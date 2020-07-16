@@ -13,6 +13,7 @@ before_script:
     libcfitsio-dev 
     libfftw3-dev 
     libgsl-dev 
+    libhdf5-dev
     libpython3-dev 
     pkg-config
     pybind11-dev
