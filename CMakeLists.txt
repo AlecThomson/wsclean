@@ -54,12 +54,28 @@ else(MPI_FOUND)
   set(MPI_CPP_FILES)
 endif(MPI_FOUND)
 
+find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+if(NOT EVERYBEAM_INCLUDE_DIR)
+  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
+endif()
+find_library(EVERYBEAM_LIB everybeam)
+
+if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  message(STATUS "EveryBeam library found.")
+  # TODO everybeam is no longer optional, so these files can become unconditional
+  set(EVERYBEAM_FILES aterms/lofarbeamterm.cpp )
+else()
+  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
+endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+
+
 find_path(LOFAR_STATION_RESPONSE_INCLUDE_DIR NAMES StationResponse/ITRFConverter.h)
 find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
   include_directories(${LOFAR_STATION_RESPONSE_INCLUDE_DIR})
   set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp aterms/lofarbeamterm.cpp)
+  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp)
   # Some versions of the LOFAR code require "HAVE_BOOST" to be set explicitly
   # (This is supposed to be fixed in newer LOFAR repositories, AO 2015-11-27)
   add_definitions(-DHAVE_LOFAR_BEAM -DHAVE_BOOST)
@@ -137,7 +153,7 @@ add_library(wsclean-object OBJECT
   wsclean/logger.cpp wsclean/observationinfo.cpp
   wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
-  ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
+  ${EVERYBEAM_FILES} ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
