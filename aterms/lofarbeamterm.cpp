@@ -71,7 +71,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	_phaseCentreDec = j2000Val[1];
 
 	_coordinate_system = {.width=_width, .height=_height, .ra=_phaseCentreRA, .dec=_phaseCentreDec, .dl=_dl, .dm=_dm, .phase_centre_dl=_phaseCentreDL, .phase_centre_dm=_phaseCentreDM};
-
+	_useDifferentialBeam = LOFARBeamKeywords::GetPreappliedBeamDirection(ms, dataColumnName, _useDifferentialBeam, _preappliedBeamDir);
+	
 	// casacore::MSAntenna aTable(ms.antenna());
 
 	// size_t nStations = aTable.nrow();
@@ -122,9 +123,9 @@ bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, doub
 	// Get the gridded response
 	std::unique_ptr<gridded_response::GriddedResponse> grid_response = telescope_->GetGriddedResponse(_coordinate_system);
 
-	// // Compute the beam (AllStations)
-	bool grid_response_pass = grid_response->CalculateAllStations(buffer, time,
-                                                                  frequency);
+	// Compute the beam (AllStations)
+	bool grid_response_pass = grid_response->CalculateAllStations(buffer, time, frequency);
+	saveATermsIfNecessary(buffer, telescope_->GetNrStations(), _width, _height);
 	return grid_response_pass;
 
 	// 
@@ -161,10 +162,7 @@ bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, doub
 	// for(size_t a=0; a!=_stations.size(); ++a)
 	// {
 	// 	double sbFrequency = _useChannelFrequency ? frequency : _subbandFrequency;
-	// 	matrix22c_t gainMatrix = _stations[a]->response(time, frequency, diffBeamCentre, sbFrequency, _station0, _tile0);
-	// 	if(_useDifferentialBeam)
-	// 	{
-	// 		_inverseCentralGain[a][0] = gainMatrix[0][0];
+	// 	matrix22c_t gainMatrix = _stations[a]->response(time, fr// saveATermsIfNecessary(buffer, _stations.size(), _width, _height);
 	// 		_inverseCentralGain[a][1] = gainMatrix[0][1];
 	// 		_inverseCentralGain[a][2] = gainMatrix[1][0];
 	// 		_inverseCentralGain[a][3] = gainMatrix[1][1];

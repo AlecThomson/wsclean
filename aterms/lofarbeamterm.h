@@ -7,20 +7,13 @@
 
 #include <complex>
 
-#include <EveryBeam/load.h>
-#include <EveryBeam/coords/coord_utils.h>
-
 #include "atermstub.h"
 #include "atermbeam.h"
 
-// #ifdef HAVE_LOFAR_BEAM
+#ifdef HAVE_EVERYBEAM
 
-// #include <StationResponse/LofarMetaDataUtil.h>
-
-#include <aocommon/lane.h>
-
-#include <aocommon/matrix2x2.h>
-
+#include <EveryBeam/load.h>
+#include <EveryBeam/coords/coord_utils.h>
 
 class LofarBeamTerm : public ATermBeam
 {
@@ -46,6 +39,7 @@ private:
 	double _subbandFrequency, _phaseCentreRA, _phaseCentreDec, _dl, _dm, _phaseCentreDL, _phaseCentreDM;
 	// casacore::MDirection _delayDir, _preappliedBeamDir, _tileBeamDir;
 	// casacore::MPosition _arrayPos;
+	casacore::MDirection _preappliedBeamDir;
 	bool _useDifferentialBeam, _useChannelFrequency;
 
 	everybeam::coords::CoordinateSystem _coordinate_system;
@@ -61,8 +55,8 @@ private:
 	// std::vector<std::thread> _threads;
 };
 
-// #else
-// using LofarBeamTerm = ATermStub;
-// #endif // HAVE_LOFAR_BEAM
+#else
+using LofarBeamTerm = ATermStub;
+#endif // HAVE_EVERYBEAM
 
 #endif 

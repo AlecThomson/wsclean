@@ -62,11 +62,12 @@ find_library(EVERYBEAM_LIB everybeam)
 
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
-  message(STATUS "EveryBeam library found.")
-  # TODO everybeam is no longer optional, so these files can become unconditional
   set(EVERYBEAM_FILES aterms/lofarbeamterm.cpp )
+  add_definitions(-DHAVE_EVERYBEAM)
+  message(STATUS "EveryBeam library found.")
 else()
-  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
+  set(EVERYBEAM_FILES "" )
+  message(FATAL_ERROR "EveryBeam library not found: LofarBeamTerm class will not be available.")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 
