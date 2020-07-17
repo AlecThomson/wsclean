@@ -38,10 +38,12 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	_useDifferentialBeam(false),
 	_useChannelFrequency(true)
 {	
-	// 
+	// Telescope options
+	Options options; 
+	options.use_differential_beam = false;
+	options.use_channel_frequency = true;
+	options.data_column_name = dataColumnName;
 
-	// Default options 
-	Options options;
 
 	// Response model
 	ElementResponseModel response_model = ElementResponseModel::kHamaker;
@@ -71,7 +73,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	_phaseCentreDec = j2000Val[1];
 
 	_coordinate_system = {.width=_width, .height=_height, .ra=_phaseCentreRA, .dec=_phaseCentreDec, .dl=_dl, .dm=_dm, .phase_centre_dl=_phaseCentreDL, .phase_centre_dm=_phaseCentreDM};
-	_useDifferentialBeam = LOFARBeamKeywords::GetPreappliedBeamDirection(ms, dataColumnName, _useDifferentialBeam, _preappliedBeamDir);
+	
+	// _useDifferentialBeam = LOFARBeamKeywords::GetPreappliedBeamDirection(ms, dataColumnName, _useDifferentialBeam, _preappliedBeamDir);
 	
 	// casacore::MSAntenna aTable(ms.antenna());
 
@@ -124,9 +127,9 @@ bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, doub
 	std::unique_ptr<gridded_response::GriddedResponse> grid_response = telescope_->GetGriddedResponse(_coordinate_system);
 
 	// Compute the beam (AllStations)
-	bool grid_response_pass = grid_response->CalculateAllStations(buffer, time, frequency);
+	grid_response->CalculateAllStations(buffer, time, frequency);
 	saveATermsIfNecessary(buffer, telescope_->GetNrStations(), _width, _height);
-	return grid_response_pass;
+	return true;
 
 	// 
 	// aocommon::Lane<size_t> lane(_nThreads);

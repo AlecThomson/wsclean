@@ -55,9 +55,6 @@ else(MPI_FOUND)
 endif(MPI_FOUND)
 
 find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
-if(NOT EVERYBEAM_INCLUDE_DIR)
-  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
-endif()
 find_library(EVERYBEAM_LIB everybeam)
 
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
@@ -67,7 +64,7 @@ if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   message(STATUS "EveryBeam library found.")
 else()
   set(EVERYBEAM_FILES "" )
-  message(FATAL_ERROR "EveryBeam library not found: LofarBeamTerm class will not be available.")
+  message("EveryBeam library not found: LofarBeamTerm class will not be available.")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 
