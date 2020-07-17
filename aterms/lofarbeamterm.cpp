@@ -11,13 +11,12 @@
 
 #include "../wsclean/logger.h"
 
-// #include <StationResponse/ITRFConverter.h>
-// #include <EveryBeam/load.h>
 #include <EveryBeam/options.h>
 #include <EveryBeam/element_response.h>
 
 #include <EveryBeam/coords/ITRFDirection.h>
 #include <EveryBeam/coords/ITRFConverter.h>
+#include <EveryBeam/gridded_response/griddedresponse.h>
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/measures/Measures/MEpoch.h>
@@ -27,7 +26,6 @@
 
 #include <algorithm>
 
-// using namespace LOFAR::StationResponse;
 using namespace everybeam;
 using namespace aocommon;
 
@@ -40,6 +38,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	_useDifferentialBeam(false),
 	_useChannelFrequency(true)
 {	
+	// 
+
 	// Default options 
 	Options options;
 
@@ -69,6 +69,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	casacore::Vector<casacore::Double> j2000Val = j2000.getValue().get();
 	_phaseCentreRA = j2000Val[0];
 	_phaseCentreDec = j2000Val[1];
+
+	_coordinate_system = {.width=_width, .height=_height, .ra=_phaseCentreRA, .dec=_phaseCentreDec, .dl=_dl, .dm=_dm, .phase_centre_dl=_phaseCentreDL, .phase_centre_dm=_phaseCentreDM};
 
 	// casacore::MSAntenna aTable(ms.antenna());
 
@@ -115,16 +117,17 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	// Logger::Debug << "Delay direction: " << RaDecCoord::RaDecToString(_delayDir.getAngle().getValue()[0], _delayDir.getAngle().getValue()[1]) << '\n';
 }
 
-// void setITRFVector(const casacore::MDirection& itrfDir, LOFAR::StationResponse::vector3r_t& itrf)
-// {
-// 	const casacore::Vector<double>& itrfVal = itrfDir.getValue().getValue();
-// 	itrf[0] = itrfVal[0];
-// 	itrf[1] = itrfVal[1];
-// 	itrf[2] = itrfVal[2];
-// }
-
 bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t)
 {
+	// Get the gridded response
+	std::unique_ptr<gridded_response::GriddedResponse> grid_response = telescope_->GetGriddedResponse(_coordinate_system);
+
+	// // Compute the beam (AllStations)
+	bool grid_response_pass = grid_response->CalculateAllStations(buffer, time,
+                                                                  frequency);
+	return grid_response_pass;
+
+	// 
 	// aocommon::Lane<size_t> lane(_nThreads);
 	// _lane = &lane;
 
@@ -191,54 +194,4 @@ bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, doub
 	// 	_threads[i].join();
 	
 	// saveATermsIfNecessary(buffer, _stations.size(), _width, _height);
-
-	return true;
-}
-
-void LofarBeamTerm::calcThread(std::complex<float>* buffer, double time, double frequency)
-{
-	// const size_t valuesPerAntenna = _width * _height * 4;
-	// const casacore::Unit radUnit("rad");
-
-	// size_t job_id;
-	// while(_lane->read(job_id))
-	// {
-	// 	size_t antennaIndex = job_id % _stations.size();
-	// 	size_t y = job_id / _stations.size();
-	// 	for(size_t x=0; x!=_width; ++x)
-	// 	{
-	// 		double l, m, n;
-	// 		ImageCoordinates::XYToLM(x, y, _dl, _dm, _width, _height, l, m);
-	// 		l += _phaseCentreDL;
-	// 		m += _phaseCentreDM;
-	// 		n = sqrt(1.0 - l*l - m*m);
-
-	// 		vector3r_t itrfDirection;
-
-	// 		itrfDirection[0] = l*_l_vector_itrf[0] + m*_m_vector_itrf[0] + n*_n_vector_itrf[0];
-	// 		itrfDirection[1] = l*_l_vector_itrf[1] + m*_m_vector_itrf[1] + n*_n_vector_itrf[1];
-	// 		itrfDirection[2] = l*_l_vector_itrf[2] + m*_m_vector_itrf[2] + n*_n_vector_itrf[2];
-
-	// 		std::complex<float>* baseBuffer = buffer + (x + y*_height) * 4;
-
-	// 		std::complex<float>* antBufferPtr = baseBuffer + antennaIndex*valuesPerAntenna;
-	// 		double sbFrequency = _useChannelFrequency ? frequency : _subbandFrequency;
-	// 		matrix22c_t gainMatrix = _stations[antennaIndex]->response(time, frequency, itrfDirection, sbFrequency, _station0, _tile0);
-	// 		if(_useDifferentialBeam)
-	// 		{
-	// 			MC2x2F stationGains;
-	// 			stationGains[0] = gainMatrix[0][0];
-	// 			stationGains[1] = gainMatrix[0][1];
-	// 			stationGains[2] = gainMatrix[1][0];
-	// 			stationGains[3] = gainMatrix[1][1];
-	// 			MC2x2F::ATimesB(antBufferPtr, _inverseCentralGain[antennaIndex], stationGains);
-	// 		}
-	// 		else {
-	// 			antBufferPtr[0] = gainMatrix[0][0];
-	// 			antBufferPtr[1] = gainMatrix[0][1];
-	// 			antBufferPtr[2] = gainMatrix[1][0];
-	// 			antBufferPtr[3] = gainMatrix[1][1];
-	// 		}
-	// 	}
-	// }
 }

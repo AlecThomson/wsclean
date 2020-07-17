@@ -8,6 +8,7 @@
 #include <complex>
 
 #include <EveryBeam/load.h>
+#include <EveryBeam/coords/coord_utils.h>
 
 #include "atermstub.h"
 #include "atermbeam.h"
@@ -39,8 +40,6 @@ public:
 private:
 	bool calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t fieldId) final override;
 
-	void calcThread(std::complex<float>* buffer, double time, double frequency);
-	
 	// std::vector<LOFAR::StationResponse::Station::Ptr> _stations;
 	std::unique_ptr<everybeam::telescope::Telescope> telescope_;
 	size_t _width, _height;
@@ -48,6 +47,9 @@ private:
 	// casacore::MDirection _delayDir, _preappliedBeamDir, _tileBeamDir;
 	// casacore::MPosition _arrayPos;
 	bool _useDifferentialBeam, _useChannelFrequency;
+
+	everybeam::coords::CoordinateSystem _coordinate_system;
+
 	// LOFAR::StationResponse::vector3r_t _l_vector_itrf;
 	// LOFAR::StationResponse::vector3r_t _m_vector_itrf;
 	// LOFAR::StationResponse::vector3r_t _n_vector_itrf;
