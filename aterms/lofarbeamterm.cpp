@@ -1,18 +1,7 @@
 #include "lofarbeamterm.h"
 
-#include <aocommon/banddata.h>
-#include <aocommon/matrix2x2.h>
-
-#include "../system.h"
-
-#include "../lofar/lofarbeamkeywords.h"
-
 #include <aocommon/imagecoordinates.h>
 
-#include "../wsclean/logger.h"
-
-// #include <EveryBeam/load.h>
-// #include <EveryBeam/coords/coord_utils.h>
 #include <EveryBeam/options.h>
 #include <EveryBeam/element_response.h>
 
@@ -23,8 +12,6 @@
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/tables/Tables/TableRecord.h>
-
-#include <aocommon/lane.h>
 
 #include <algorithm>
 
