@@ -19,7 +19,7 @@ usage () {
     echo "Script to check whether run-clang-format.sh leads to any git diffs. If so, return non-zero exit status."
     echo ""
     echo "Usage: $programname [-i filename/pattern] [-s skip directory]"
-    echo "  -i      include file(pattern) in diff"
+    echo "  -i      include file(pattern) in diff, pass wildcard arguments as literals!"
     echo "  -s      skip directory in diff. Must be specified as a path, e.g. ./external"
     echo "  -h      display help"
     exit 1
@@ -38,7 +38,7 @@ do
         usage
         exit;;
         i) 
-        include_files=("${include_files[@]}" "-i $OPTARG")
+        include_files=("${include_files[@]}" "-i '$OPTARG'")
         ;;
         s) 
         exclude_directories=("${exclude_directories[@]}" "-s $OPTARG")
@@ -76,7 +76,7 @@ $SCRIPT_PATH/run-clang-format.sh $EX_DIR $INC_FILE
 if git diff --patch --exit-code > $PATCH_NAME; then
     echo
     # print in bold-face green
-    echo -e "\e[1m\e[32mClang-format and codespell changed nothing.\e[0m"
+    echo -e "\e[1m\e[32mGreat job, clang-format changed nothing!\e[0m"
     rm -f $PATCH_NAME
     exit 0;
 else

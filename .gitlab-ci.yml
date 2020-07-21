@@ -30,7 +30,8 @@ format:
     - pip3 install clang-format
     # clang-format should be version 9
     - clang-format -version
-    - ./scripts/clang-format-check.sh
+    # Check formatting of header (*.h) and source (*.cpp) files
+    - ./scripts/clang-format-check.sh -i *.h -i *.cpp
 
 build:
   stage: build
