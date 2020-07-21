@@ -65,7 +65,7 @@ if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 else()
   set(EVERYBEAM_LIB "")
   set(EVERYBEAM_FILES "" )
-  message("EveryBeam library not found: LofarBeamTerm class will not be available.")
+  message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available.")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 

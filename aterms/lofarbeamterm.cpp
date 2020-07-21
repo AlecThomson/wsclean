@@ -55,10 +55,10 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSyste
 	double phaseCentreDec = j2000Val[1];
 
 	// Convert to everybeam::CoordinateSystem
-	_coordinate_system = {.width=coordinateSystem.width, .height=coordinateSystem.height, 
-	                      .ra=phaseCentreRA, .dec=phaseCentreDec, 
-						  .dl=coordinateSystem.dl, .dm=coordinateSystem.dm, 
-						  .phase_centre_dl=coordinateSystem.phaseCentreDL, .phase_centre_dm=coordinateSystem.phaseCentreDM};	
+	_coordinate_system = {coordinateSystem.width, coordinateSystem.height, 
+	                      phaseCentreRA, phaseCentreDec, 
+						  coordinateSystem.dl, coordinateSystem.dm, 
+						  coordinateSystem.phaseCentreDL, coordinateSystem.phaseCentreDM};	
 }
 
 bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t)
