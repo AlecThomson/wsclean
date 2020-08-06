@@ -9,6 +9,7 @@ include(CMakeVersionInfo.txt)
 #endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -DNDEBUG")
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 if(PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
@@ -144,40 +145,42 @@ add_library(wsclean-object OBJECT
 # allowed. Note that visibilities can be NaN hence this can not be turned
 # on for all files.
 set_source_files_properties(
-	deconvolution/subminorloop.cpp
-	deconvolution/genericclean.cpp
-	deconvolution/imageset.cpp
-	deconvolution/simpleclean.cpp
-	deconvolution/spectralfitter.cpp
-	multiscale/multiscalealgorithm.cpp
-	multiscale/multiscaletransforms.cpp
-	multiscale/threadeddeconvolutiontools.cpp
-	wsclean/wstackinggridder.cpp
-	wgridder/wgriddinggridder_simple.cpp
-	PROPERTIES COMPILE_FLAGS -ffast-math)
+  deconvolution/subminorloop.cpp
+  deconvolution/genericclean.cpp
+  deconvolution/imageset.cpp
+  deconvolution/simpleclean.cpp
+  deconvolution/spectralfitter.cpp
+  multiscale/multiscalealgorithm.cpp
+  multiscale/multiscaletransforms.cpp
+  multiscale/threadeddeconvolutiontools.cpp
+  wsclean/wstackinggridder.cpp
+  wgridder/wgriddinggridder_simple.cpp
+  PROPERTIES COMPILE_FLAGS -ffast-math)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 
+set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES})
+
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
+target_link_libraries(wsclean-lib ${ALL_LIBRARIES})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED ${WSCLEANFILES})
+target_link_libraries(wsclean-shared ${ALL_LIBRARIES})
 target_link_libraries(wsclean-shared)
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES})
-
 add_executable(wsclean wscleanmain.cpp)
-target_link_libraries(wsclean wsclean-lib ${ALL_LIBRARIES})
+target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
   add_executable(wsclean-mp
     "distributed/wsclean-mp.cpp"
     distributed/slave.cpp)
-  target_link_libraries(wsclean-mp wsclean-lib ${ALL_LIBRARIES})
+  target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
 add_executable(wsuvbinning EXCLUDE_FROM_ALL wsclean/examples/wsuvbinning.cpp ${WSCLEANFILES})
@@ -201,22 +204,22 @@ endif(DOXYGEN_FOUND)
 find_package(Boost COMPONENTS date_time filesystem system program_options unit_test_framework)
 if(Boost_FOUND)
   add_executable(runtest EXCLUDE_FROM_ALL
-		tests/test.cpp
-		tests/testbaselinedependentaveraging.cpp
-		tests/testclean.cpp
-		tests/testcomponentlist.cpp
-		tests/testfitsdateobstime.cpp
-		tests/testfluxdensity.cpp
-		tests/testgaussianfitter.cpp
-		tests/testhmatrix4x4.cpp
-		tests/testimage.cpp
-		tests/testimageset.cpp
-		tests/testparsetreader.cpp
-		tests/testpolynomialchannelfitter.cpp
-		tests/testpolynomialfitter.cpp
-		tests/testradeccoord.cpp
-		tests/testserialization.cpp
-		${WSCLEANFILES})
+    tests/test.cpp
+    tests/testbaselinedependentaveraging.cpp
+    tests/testclean.cpp
+    tests/testcomponentlist.cpp
+    tests/testfitsdateobstime.cpp
+    tests/testfluxdensity.cpp
+    tests/testgaussianfitter.cpp
+    tests/testhmatrix4x4.cpp
+    tests/testimage.cpp
+    tests/testimageset.cpp
+    tests/testparsetreader.cpp
+    tests/testpolynomialchannelfitter.cpp
+    tests/testpolynomialfitter.cpp
+    tests/testradeccoord.cpp
+    tests/testserialization.cpp
+    ${WSCLEANFILES})
   target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)
   add_custom_target(check COMMAND runtest DEPENDS runtest)
