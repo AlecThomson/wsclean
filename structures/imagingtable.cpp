@@ -65,7 +65,8 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
   str << std::setw(2) << entry.squaredDeconvolutionIndex << " ";
   str << std::setw(2) << entry.outputIntervalIndex << "  ";
   str << round(entry.bandStartFrequency * 1e-6) << "-"
-      << round(entry.bandEndFrequency * 1e-6) << " (" << entry.inputChannelCount << ")";
+      << round(entry.bandEndFrequency * 1e-6) << " (" << entry.inputChannelCount
+      << ")";
 
   Logger::Info << "J-" << str.str() << '\n';
 }
