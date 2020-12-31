@@ -6,6 +6,12 @@
 #include <string>
 #include <vector>
 
+namespace schaapcommon {
+namespace facets {
+class Facet;
+}
+}  // namespace schaapcommon
+
 struct ImagingTableEntry {
   struct MSBandInfo {
     size_t bandIndex;
@@ -29,6 +35,9 @@ struct ImagingTableEntry {
   size_t inputChannelCount;
 
   aocommon::PolarizationEnum polarization;
+
+  // Non-owning pointer to a Facet. If it is null, faceting is not used.
+  const schaapcommon::facets::Facet* facet;
 
   size_t outputChannelIndex;
 

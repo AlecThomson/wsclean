@@ -76,9 +76,16 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
+  void addFacetsToImagingTable(size_t& joinedGroupIndex,
+                               size_t& facetGroupIndex,
+                               size_t& squaredGroupIndex,
+                               size_t outChannelIndex,
+                               const ImagingTableEntry& templateEntry);
   void addPolarizationsToImagingTable(size_t& joinedGroupIndex,
+                                      size_t& facetGroupIndex,
                                       size_t& squaredGroupIndex,
                                       size_t outChannelIndex,
+                                      const schaapcommon::facets::Facet* facet,
                                       const ImagingTableEntry& templateEntry);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 

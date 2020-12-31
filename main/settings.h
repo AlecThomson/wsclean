@@ -1,6 +1,8 @@
 #ifndef WSCLEAN_SETTINGS_H
 #define WSCLEAN_SETTINGS_H
 
+#include <schaapcommon/facets/facet.h>
+
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
@@ -23,14 +25,7 @@ class Settings {
 
   void Validate() const;
 
-  void Propagate(bool verbose = true) {
-    if (verbose) logImportantSettings();
-    if (mode == ImagingMode || mode == PredictMode) {
-      RecalculatePaddedDimensions(verbose);
-      doReorder = determineReorder();
-      dataColumnName = determineDataColumn(verbose);
-    }
-  }
+  void Propagate(bool verbose = true);
 
   void RecalculatePaddedDimensions(bool verbose = true);
 
@@ -68,10 +63,14 @@ class Settings {
   size_t predictionChannels;
   std::string dataColumnName;
   std::set<aocommon::PolarizationEnum> polarizations;
+  std::string facetRegionFilename;
+  std::vector<schaapcommon::facets::Facet> facets;
   std::set<size_t> spectralWindows;
   WeightMode weightMode;
   std::string prefixName;
-  bool joinedPolarizationCleaning, joinedFrequencyCleaning;
+  bool joinedPolarizationCleaning;
+  bool joinedFacetCleaning;
+  bool joinedFrequencyCleaning;
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
   size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
@@ -226,10 +225,13 @@ inline Settings::Settings()
       endChannel(0),
       predictionChannels(0),
       dataColumnName(),
-      polarizations(),
+      polarizations({aocommon::Polarization::StokesI}),
+      facetRegionFilename(),
+      facets(),
       weightMode(WeightMode::UniformWeighted),
       prefixName("wsclean"),
       joinedPolarizationCleaning(false),
+      joinedFacetCleaning(false),
       joinedFrequencyCleaning(false),
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
@@ -320,8 +322,6 @@ inline Settings::Settings()
       moreSaneArgs(),
       spectralFittingMode(NoSpectralFitting),
       spectralFittingTerms(0),
-      deconvolutionChannelCount(0) {
-  polarizations.insert(aocommon::Polarization::StokesI);
-}
+      deconvolutionChannelCount(0) {}
 
 #endif

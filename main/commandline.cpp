@@ -413,6 +413,14 @@ void CommandLine::printHelp() {
          "   Links all polarizations to be cleaned from the given list: "
          "components are found in the\n"
          "   given list, but cleaned from all polarizations. \n"
+         "-facet-regions <facets.reg>\n"
+         "   Split the image into facets using the facet regions defined in "
+         " the facets.reg file. Default: off.\n"
+         "-join-facets\n"
+         "   Perform cleaning using combined images that contains all "
+         "facets,\n"
+         "   instead of cleaning the images for each facet separately. "
+         "Default: off.\n"
          "-join-channels\n"
          "   Perform cleaning by searching for peaks in the MF image, but "
          "subtract components from individual channels.\n"
@@ -938,6 +946,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       ++argi;
       settings.divideChannelFrequencies =
           NumberList::ParseDoubleList(argv[argi]);
+    } else if (param == "facet-regions") {
+      ++argi;
+      settings.facetRegionFilename = argv[argi];
+      if (settings.facetRegionFilename.empty())
+        throw std::runtime_error("Facet region file name is empty");
     } else if (param == "join-polarizations" || param == "joinpolarizations") {
       settings.joinedPolarizationCleaning = true;
       if (param == "joinpolarizations")
@@ -947,6 +960,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.joinedPolarizationCleaning = true;
       settings.linkedPolarizations =
           aocommon::Polarization::ParseList(argv[argi]);
+    } else if (param == "join-facets") {
+      settings.joinedFacetCleaning = true;
     } else if (param == "join-channels" || param == "joinchannels") {
       settings.joinedFrequencyCleaning = true;
       if (param == "joinchannels") deprecated(isSlave, param, "join-channels");

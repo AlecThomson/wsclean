@@ -486,8 +486,7 @@ void WSClean::performReordering(bool isPredictMode) {
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
     for (size_t j = 0; j != _imagingTable.SquaredGroupCount(); ++j) {
       ImagingTable squaredGroup = _imagingTable.GetSquaredGroup(j);
-      for (size_t s = 0; s != squaredGroup.EntryCount(); ++s) {
-        ImagingTableEntry& entry = _imagingTable[squaredGroup[s].index];
+      for (ImagingTableEntry& entry : squaredGroup) {
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
           if (selectChannels(selection, i, d, entry)) {
@@ -743,8 +742,7 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
 
 double WSClean::minTheoreticalBeamSize(const ImagingTable& table) const {
   double beam = 0.0;
-  for (size_t i = 0; i != table.EntryCount(); ++i) {
-    const ImagingTableEntry& e = table[i];
+  for (const ImagingTableEntry& e : table) {
     const OutputChannelInfo& info = _infoPerChannel[e.outputChannelIndex];
     if (std::isfinite(info.theoreticBeamSize) &&
         (info.theoreticBeamSize < beam || beam == 0.0))
@@ -938,9 +936,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
     //_gridder->FreeImagingData();
 
-    for (size_t joinedIndex = 0; joinedIndex != groupTable.EntryCount();
-         ++joinedIndex)
-      saveRestoredImagesForGroup(groupTable[joinedIndex], primaryBeam);
+    for (const ImagingTableEntry& joinedEntry : groupTable) {
+      saveRestoredImagesForGroup(joinedEntry, primaryBeam);
+    }
 
     if (_settings.saveSourceList) {
       _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
@@ -1049,8 +1047,7 @@ void WSClean::saveRestoredImagesForGroup(
 void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing first iteration image(s)...\n";
   Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  for (size_t e = 0; e != groupTable.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = groupTable[e];
+  for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _residualImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
@@ -1068,8 +1065,7 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
 void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing model image...\n";
   Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  for (size_t e = 0; e != groupTable.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = groupTable[e];
+  for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _modelImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
@@ -1181,9 +1177,7 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  for (size_t e = 0; e != imagingGroup.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = imagingGroup[e];
-
+  for (const ImagingTableEntry& entry : imagingGroup) {
     readEarlierModelImages(entry);
 
     predict(entry);
@@ -1394,7 +1388,9 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   Logger::Debug << "Total nr of channels found in measurement sets: "
                 << inputChannelFrequencies.size() << '\n';
 
-  size_t joinedGroupIndex = 0, squaredGroupIndex = 0;
+  size_t joinedGroupIndex = 0;
+  size_t facetGroupIndex = 0;
+  size_t squaredGroupIndex = 0;
   _imagingTable.Clear();
 
   // for(size_t interval=0; interval!=_settings.intervalsOut; ++interval)
@@ -1408,8 +1404,8 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
                             outChannelIndex, freqTemplate);
 
       size_t localJGI = joinedGroupIndex;
-      addPolarizationsToImagingTable(localJGI, squaredGroupIndex,
-                                     outChannelIndex, freqTemplate);
+      addFacetsToImagingTable(localJGI, facetGroupIndex, squaredGroupIndex,
+                              outChannelIndex, freqTemplate);
       if (localJGI > maxLocalJGI) maxLocalJGI = localJGI;
     }
     joinedGroupIndex = maxLocalJGI;
@@ -1420,8 +1416,8 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
       makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
                             outChannelIndex, freqTemplate);
 
-      addPolarizationsToImagingTable(joinedGroupIndex, squaredGroupIndex,
-                                     outChannelIndex, freqTemplate);
+      addFacetsToImagingTable(joinedGroupIndex, facetGroupIndex,
+                              squaredGroupIndex, outChannelIndex, freqTemplate);
     }
   }
   //}
@@ -1549,15 +1545,51 @@ void WSClean::makeImagingTableEntryChannelSettings(
   entry.outputIntervalIndex = outIntervalIndex;
 }
 
+void WSClean::addFacetsToImagingTable(size_t& joinedGroupIndex,
+                                      size_t& facetGroupIndex,
+                                      size_t& squaredGroupIndex,
+                                      size_t outChannelIndex,
+                                      const ImagingTableEntry& templateEntry) {
+  if (_settings.facets.empty()) {
+    addPolarizationsToImagingTable(joinedGroupIndex, facetGroupIndex,
+                                   squaredGroupIndex, outChannelIndex, nullptr,
+                                   templateEntry);
+  } else if (_settings.joinedFacetCleaning) {
+    size_t maxLocalJGI = joinedGroupIndex;
+    size_t maxLocalFGI = facetGroupIndex;
+    for (const schaapcommon::facets::Facet& facet : _settings.facets) {
+      // Start with the original joinedGroupIndex and facetGroupIndex.
+      size_t localJGI = joinedGroupIndex;
+      size_t localFGI = facetGroupIndex;
+      addPolarizationsToImagingTable(localJGI, localFGI, squaredGroupIndex,
+                                     outChannelIndex, &facet, templateEntry);
+      if (localJGI > maxLocalJGI) maxLocalJGI = localJGI;
+      if (localFGI > maxLocalFGI) maxLocalFGI = localFGI;
+    }
+    joinedGroupIndex = maxLocalJGI;
+    facetGroupIndex = maxLocalFGI;
+  } else {
+    for (const schaapcommon::facets::Facet& facet : _settings.facets) {
+      addPolarizationsToImagingTable(joinedGroupIndex, facetGroupIndex,
+                                     squaredGroupIndex, outChannelIndex, &facet,
+                                     templateEntry);
+    }
+  }
+}
+
 void WSClean::addPolarizationsToImagingTable(
-    size_t& joinedGroupIndex, size_t& squaredGroupIndex, size_t outChannelIndex,
+    size_t& joinedGroupIndex, size_t& facetGroupIndex,
+    size_t& squaredGroupIndex, size_t outChannelIndex,
+    const schaapcommon::facets::Facet* facet,
     const ImagingTableEntry& templateEntry) {
   for (aocommon::PolarizationEnum p : _settings.polarizations) {
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
     entry->index = _imagingTable.EntryCount();
     entry->outputChannelIndex = outChannelIndex;
+    entry->facet = facet;
     entry->joinedGroupIndex = joinedGroupIndex;
+    entry->facetGroupIndex = facetGroupIndex;
     entry->squaredDeconvolutionIndex = squaredGroupIndex;
     entry->polarization = p;
     if (p == aocommon::Polarization::XY)
@@ -1571,12 +1603,14 @@ void WSClean::addPolarizationsToImagingTable(
 
     if (!_settings.joinedPolarizationCleaning) {
       ++joinedGroupIndex;
+      ++facetGroupIndex;
       ++squaredGroupIndex;
     }
   }
 
   if (_settings.joinedPolarizationCleaning) {
     ++joinedGroupIndex;
+    ++facetGroupIndex;
     ++squaredGroupIndex;
   }
 }

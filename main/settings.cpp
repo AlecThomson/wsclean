@@ -2,6 +2,8 @@
 
 #include "../io/logger.h"
 
+#include <schaapcommon/facets/ds9facetfile.h>
+
 #include <sstream>
 
 void Settings::Validate() const {
@@ -23,6 +25,10 @@ void Settings::Validate() const {
     if (joinedFrequencyCleaning)
       throw std::runtime_error(
           "Joined frequency cleaning specified for prediction: prediction "
+          "doesn't clean, parameter invalid");
+    if (joinedFacetCleaning)
+      throw std::runtime_error(
+          "Joined facet cleaning specified for prediction: prediction "
           "doesn't clean, parameter invalid");
     if (joinedPolarizationCleaning)
       throw std::runtime_error(
@@ -114,6 +120,11 @@ void Settings::Validate() const {
         "Joined frequency cleaning was requested, but only one output channel "
         "is being requested. Did you forget -channels-out?");
 
+  if (joinedFacetCleaning && facetRegionFilename.empty())
+    throw std::runtime_error(
+        "Joined facet cleaning was requested without specifying facets. "
+        "Specify a facet region file, or do not request joining facets.");
+
   if (forceReorder && forceNoReorder)
     throw std::runtime_error(
         "Can not both force reordering and force not reordering!");
@@ -199,6 +210,38 @@ void Settings::checkPolarizations() const {
           "The auto-masking threshold was smaller or equal to the "
           "auto-threshold. This does not make sense. Did you accidentally "
           "reverse the auto-mask and auto-threshold values?");
+  }
+}
+
+void Settings::Propagate(bool verbose) {
+  if (verbose) logImportantSettings();
+
+  if (mode == ImagingMode || mode == PredictMode) {
+    RecalculatePaddedDimensions(verbose);
+    doReorder = determineReorder();
+    dataColumnName = determineDataColumn(verbose);
+  }
+
+  // Reading facets requires the scale and size so do it after those settings
+  // are validated, and validate the facet settings here.
+  if (!facetRegionFilename.empty()) {
+    try {
+      const double phaseCentreRa = 0.0;
+      const double phaseCentreDec = 0.0;
+      facets = schaapcommon::facets::DS9FacetFile(facetRegionFilename)
+                   .Read(phaseCentreRa, phaseCentreDec, pixelScaleX,
+                         pixelScaleY, trimmedImageWidth, trimmedImageHeight);
+      if (facets.empty()) throw std::runtime_error("No facets found");
+    } catch (std::exception& e) {
+      throw std::runtime_error("Error reading " + facetRegionFilename + ": " +
+                               e.what());
+    }
+
+    if (joinedFacetCleaning && facets.size() == 1)
+      throw std::runtime_error(
+          "Joined facet cleaning was requested while specifying a single "
+          "facet. Specify a facet region file with multiple facets, or do not "
+          "request joining facets.");
   }
 }
 

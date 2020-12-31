@@ -8,6 +8,7 @@ ImagingTableEntry::ImagingTableEntry()
       bandEndFrequency(0.0),
       inputChannelCount(0),
       polarization(aocommon::Polarization::StokesI),
+      facet(nullptr),
       outputChannelIndex(0),
       outputIntervalIndex(0),
       msData(),
