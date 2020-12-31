@@ -1555,7 +1555,7 @@ void WSClean::addPolarizationsToImagingTable(
   for (aocommon::PolarizationEnum p : _settings.polarizations) {
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
-    entry->index = _imagingTable.EntryCount() - 1;
+    entry->index = _imagingTable.EntryCount();
     entry->outputChannelIndex = outChannelIndex;
     entry->joinedGroupIndex = joinedGroupIndex;
     entry->squaredDeconvolutionIndex = squaredGroupIndex;
