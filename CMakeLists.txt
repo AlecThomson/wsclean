@@ -314,7 +314,9 @@ endif(DOXYGEN_FOUND)
 # Boost 1.59 introduced BOOST_TEST, which several tests use.
 find_package(Boost 1.59.0 COMPONENTS unit_test_framework)
 if(Boost_FOUND)
-  add_executable(runtest EXCLUDE_FROM_ALL
+  include(CTest)
+
+  add_executable(unittest EXCLUDE_FROM_ALL
     tests/test.cpp
     tests/testbaselinedependentaveraging.cpp
     tests/testclean.cpp
@@ -327,9 +329,6 @@ if(Boost_FOUND)
     tests/testpeakfinder.cpp
     tests/testserialization.cpp
 
-    tests/integration/tbasics.cpp
-    tests/integration/tveladeconvolution.cpp
-
     tests/math/tdijkstrasplitter.cpp
     tests/math/tgaussianfitter.cpp
     tests/math/tpolynomialfitter.cpp
@@ -339,19 +338,52 @@ if(Boost_FOUND)
     tests/structures/testimage.cpp
     tests/structures/testimagingtable.cpp
 
-    ${WSCLEANFILES})
-  target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-  add_test(runtest runtest)
-  add_custom_target(check COMMAND runtest DEPENDS runtest)
-else()
-  message("Boost testing framework not found (not required for wsclean: only required for running make check).")
-endif()
+    ${WSCLEANFILES}
+  )
+  target_link_libraries(unittest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
-add_custom_target(
-  coverage
-  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
-  DEPENDS check
-)
+  add_executable(integrationtest EXCLUDE_FROM_ALL
+    tests/test.cpp
+
+    tests/integration/tbasics.cpp
+    tests/integration/tveladeconvolution.cpp
+
+    ${WSCLEANFILES}
+  )
+  target_link_libraries(integrationtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+
+  add_test(NAME build_unit
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittest
+  )
+  set_tests_properties(build_unit PROPERTIES FIXTURES_SETUP unittest)
+
+  add_test(NAME build_integration
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target integrationtest
+  )
+  set_tests_properties(build_integration PROPERTIES FIXTURES_SETUP integrationtest)
+
+  add_test(NAME run_unit COMMAND unittest)
+  set_tests_properties(run_unit PROPERTIES FIXTURES_REQUIRED "unittest")
+
+  add_test(NAME run_integration COMMAND integrationtest)
+  set_tests_properties(run_integration PROPERTIES
+    FIXTURES_REQUIRED "integrationtest;mwa_ms"
+  )
+
+  add_test(
+    NAME download_mwa_ms
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  )
+  set_tests_properties(download_mwa_ms PROPERTIES FIXTURES_SETUP mwa_ms)
+
+  add_custom_target(
+    coverage
+    COMMAND ${CMAKE_CTEST_COMMAND}
+    COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
+  )
+else()
+  message("Boost testing framework not found (not required for wsclean: only required for running tests).")
+endif()
 
 get_directory_property(MAIN_COMPILE_OPTIONS COMPILE_OPTIONS)
 string(REPLACE ";" " " MAIN_COMPILE_OPTIONS "${MAIN_COMPILE_OPTIONS}")
