@@ -315,72 +315,7 @@ endif(DOXYGEN_FOUND)
 find_package(Boost 1.59.0 COMPONENTS unit_test_framework)
 if(Boost_FOUND)
   include(CTest)
-
-  add_executable(unittest EXCLUDE_FROM_ALL
-    tests/test.cpp
-    tests/testbaselinedependentaveraging.cpp
-    tests/testclean.cpp
-    tests/testcomponentlist.cpp
-    tests/testfitsdateobstime.cpp
-    tests/testfluxdensity.cpp
-    tests/testimageset.cpp
-    tests/testmultibanddata.cpp
-    tests/testparsetreader.cpp
-    tests/testpeakfinder.cpp
-    tests/testserialization.cpp
-
-    tests/math/tdijkstrasplitter.cpp
-    tests/math/tgaussianfitter.cpp
-    tests/math/tpolynomialfitter.cpp
-    tests/math/tnlplfitter.cpp
-    tests/math/tpolynomialchannelfitter.cpp
-
-    tests/structures/testimage.cpp
-    tests/structures/testimagingtable.cpp
-
-    ${WSCLEANFILES}
-  )
-  target_link_libraries(unittest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-
-  add_executable(integrationtest EXCLUDE_FROM_ALL
-    tests/test.cpp
-
-    tests/integration/tbasics.cpp
-    tests/integration/tveladeconvolution.cpp
-
-    ${WSCLEANFILES}
-  )
-  target_link_libraries(integrationtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-
-  add_test(NAME build_unit
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittest
-  )
-  set_tests_properties(build_unit PROPERTIES FIXTURES_SETUP unittest)
-
-  add_test(NAME build_integration
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target integrationtest
-  )
-  set_tests_properties(build_integration PROPERTIES FIXTURES_SETUP integrationtest)
-
-  add_test(NAME run_unit COMMAND unittest)
-  set_tests_properties(run_unit PROPERTIES FIXTURES_REQUIRED "unittest")
-
-  add_test(NAME run_integration COMMAND integrationtest)
-  set_tests_properties(run_integration PROPERTIES
-    FIXTURES_REQUIRED "integrationtest;mwa_ms"
-  )
-
-  add_test(
-    NAME download_mwa_ms
-    COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
-  )
-  set_tests_properties(download_mwa_ms PROPERTIES FIXTURES_SETUP mwa_ms)
-
-  add_custom_target(
-    coverage
-    COMMAND ${CMAKE_CTEST_COMMAND}
-    COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
-  )
+  add_subdirectory(tests)
 else()
   message("Boost testing framework not found (not required for wsclean: only required for running tests).")
 endif()
