@@ -1008,7 +1008,7 @@ ImageF WStackingGridderBase<double>::RealImageFloat() {
   ImageF image(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i) image[i] = _imageData[0][i];
   _imageData[0].reset();
-  return std::move(image);
+  return image;
 }
 
 template <>
@@ -1022,7 +1022,7 @@ ImageF WStackingGridderBase<double>::ImaginaryImageFloat() {
   for (size_t i = 0; i != _width * _height; ++i)
     image[i] = _imageDataImaginary[0][i];
   _imageDataImaginary[0].reset();
-  return std::move(image);
+  return image;
 }
 
 template class WStackingGridderBase<double>;
