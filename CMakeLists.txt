@@ -314,7 +314,7 @@ endif(DOXYGEN_FOUND)
 # Boost 1.59 introduced BOOST_TEST, which several tests use.
 find_package(Boost 1.59.0 COMPONENTS unit_test_framework)
 if(Boost_FOUND)
-  include(CTest)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
   add_subdirectory(tests)
 else()
   message("Boost testing framework not found (not required for wsclean: only required for running tests).")

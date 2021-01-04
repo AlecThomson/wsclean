@@ -43,7 +43,7 @@ build-without-everybeam:
     - make
     - make doc
     - make install
-    - ctest
+    - make check
     # gcovr to create badge
     - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*'
     # gcovr to enable line coverage highlighting in MRs
@@ -61,4 +61,4 @@ build-with-everybeam:
     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
     - make
     - make install
-    - ctest
+    - make check

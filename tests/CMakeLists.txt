@@ -36,32 +36,15 @@ set(TEST_LIBRARIES
 target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 target_link_libraries(integrationtest PRIVATE ${TEST_LIBRARIES})
 
-add_test(NAME build_unit
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittest
-)
-set_tests_properties(build_unit PROPERTIES FIXTURES_SETUP unittest)
-
-add_test(NAME build_integration
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target integrationtest
-)
-set_tests_properties(build_integration PROPERTIES FIXTURES_SETUP integrationtest)
-
-add_test(NAME run_unit COMMAND unittest)
-set_tests_properties(run_unit PROPERTIES FIXTURES_REQUIRED "unittest")
-
-add_test(NAME run_integration COMMAND integrationtest)
-set_tests_properties(run_integration PROPERTIES
-  FIXTURES_REQUIRED "integrationtest;mwa_ms"
-)
-
-add_test(
-  NAME download_mwa_ms
+add_custom_target(check
+  DEPENDS unittest;integrationtest
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  COMMAND unittest
+  COMMAND integrationtest
 )
-set_tests_properties(download_mwa_ms PROPERTIES FIXTURES_SETUP mwa_ms)
 
-add_custom_target(
-  coverage
-  COMMAND ${CMAKE_CTEST_COMMAND}
+add_custom_target(coverage
+  DEPENDS check
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
 )
