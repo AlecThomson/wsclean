@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_CASE(noAveraging) {
   std::string filename(
       "/home/anoko/Data/3C196-TestSet/L258627_SAP000_SB120_uv.MS.1ch12s.dppp");
   if (boost::filesystem::exists(filename)) {
-    size_t nAnt = 70;
+    const size_t nAnt = 70;
     MSSelection selection;
     std::map<size_t, size_t> dataDescIds;
     dataDescIds.insert(std::make_pair(0, 0));
@@ -59,6 +59,7 @@ BOOST_AUTO_TEST_CASE(noAveraging) {
       BOOST_REQUIRE_CLOSE_FRACTION(uA, uD, 1e-8);
       BOOST_REQUIRE_CLOSE_FRACTION(vA, vD, 1e-8);
       BOOST_REQUIRE_CLOSE_FRACTION(wA, wD, 1e-8);
+      BOOST_REQUIRE_CLOSE_FRACTION(timeA, timeD, 1e-8);
 
       BOOST_REQUIRE_EQUAL(descA, descD);
 
@@ -77,6 +78,48 @@ BOOST_AUTO_TEST_CASE(noAveraging) {
     BOOST_TEST_WARN(false,
                     "Test set not found -- skipping test averagingRowProvider");
   }
+  Logger::SetVerbosity(Logger::NormalVerbosity);
+}
+
+BOOST_AUTO_TEST_CASE(nonZeroTime) {
+  // This test is to prevent the issue reported in
+  // https://gitlab.com/aroffringa/wsclean/-/issues/32 The BD averager would
+  // sometimes output zero as output time, causing the primary beam to think the
+  // observation spanned from MJD 0 to MJD now, and making millions of beams.
+  Logger::SetVerbosity(Logger::QuietVerbosity);
+  std::string filename(
+      "/home/anoko/Data/3C196-TestSet/L258627_SAP000_SB120_uv.MS.1ch12s.dppp");
+  if (boost::filesystem::exists(filename)) {
+    double time = 10.0;
+    const double startTime = 4929192878.0;
+    MSSelection selection;
+    std::map<size_t, size_t> dataDescIds;
+    dataDescIds.insert(std::make_pair(0, 0));
+    AveragingMSRowProvider avgProvider(1, filename, selection, dataDescIds, 0,
+                                       "DATA", false);
+    size_t nRow = 0;
+    casacore::IPosition shape(2, 4, 1);
+    MSRowProvider::DataArray dataArray(shape);
+    MSRowProvider::FlagArray flagArray(shape);
+    MSRowProvider::WeightArray weights(shape);
+    while (!avgProvider.AtEnd() && nRow < 20000) {
+      double u, v, w;
+      uint32_t ant1 = 1337, ant2 = 1338, field;
+      uint32_t desc = 1341;
+      avgProvider.ReadData(dataArray, flagArray, weights, u, v, w, desc, ant1,
+                           ant2, field, time);
+
+      BOOST_REQUIRE_GE(time, startTime);
+
+      avgProvider.NextRow();
+      ++nRow;
+    }
+
+    BOOST_CHECK_GT(nRow, 0u);
+  } else {
+    BOOST_TEST_WARN(false, "Test set not found -- skipping test nonZeroTime");
+  }
+  Logger::SetVerbosity(Logger::NormalVerbosity);
 }
 
 /*
