@@ -29,6 +29,9 @@ class ImagingTable {
     bool operator!=(const EntryIterator& other) const {
       return _baseIterator != other._baseIterator;
     }
+    bool operator==(const EntryIterator& other) const {
+      return _baseIterator == other._baseIterator;
+    }
 
    private:
     BaseIterator _baseIterator;
@@ -54,6 +57,10 @@ class ImagingTable {
 
   ImagingTable GetSquaredGroup(size_t index) const {
     return ImagingTable(_squaredGroupLookup[index]);
+  }
+
+  size_t SquaredGroupEntryCount(size_t index) const {
+    return _squaredGroupLookup[index].size();
   }
 
   size_t EntryCount() const { return _entries.size(); }

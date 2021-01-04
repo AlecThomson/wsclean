@@ -21,6 +21,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
   ImagingTable table;
   TestGroupCounts(table, 0, 0, 0);
   BOOST_TEST(table.EntryCount() == 0u);
+  BOOST_TEST((table.begin() == table.end()));
 }
 
 BOOST_AUTO_TEST_CASE(add_update_clear) {
@@ -40,6 +41,16 @@ BOOST_AUTO_TEST_CASE(add_update_clear) {
   BOOST_TEST(&table[0] == entry1.get());
   BOOST_TEST(&table[1] == entry2.get());
   BOOST_TEST(&table.Front() == entry1.get());
+
+  // Test begin() and end() functions, including iterators.
+  auto iterator = table.begin();
+  BOOST_TEST_REQUIRE((iterator != table.end()));
+  BOOST_TEST(&*iterator == entry1.get());
+  ++iterator;
+  BOOST_TEST_REQUIRE((iterator != table.end()));
+  BOOST_TEST(&*iterator == entry2.get());
+  ++iterator;
+  BOOST_TEST((iterator == table.end()));
 
   // No Update called -> only EntryCount is correct.
   TestGroupCounts(table, 0, 0, 0);

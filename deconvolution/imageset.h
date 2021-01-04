@@ -202,10 +202,10 @@ class ImageSet {
   void initializePolFactor() {
     ImagingTable firstChannelGroup = _imagingTable.GetSquaredGroup(0);
     std::set<aocommon::PolarizationEnum> pols;
-    for (size_t i = 0; i != firstChannelGroup.EntryCount(); ++i) {
+    for (const ImagingTableEntry& entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
-          _linkedPolarizations.count(firstChannelGroup[i].polarization) != 0) {
-        pols.insert(firstChannelGroup[i].polarization);
+          _linkedPolarizations.count(entry.polarization) != 0) {
+        pols.insert(entry.polarization);
       }
     }
     bool isDual =
