@@ -4,6 +4,16 @@ namespace test {
 
 /**
  * Helper class for using using unique pointers in tests.
+ *
+ * Use case: When using unique pointers, tests often also store raw pointers
+ * for accessing objects after std::moving their unique pointer.
+ *
+ * This class supports this common pattern: Instead of storing both a unique
+ * pointer and a raw pointer, tests can use a single test::UniquePtr variable.
+ *
+ * The perfect forwarding constructor also simplifies initialization:
+ * "std::unique_ptr<X> x(new X(...));" becomes: "test::UniquePtr<X> x(...);"
+ *
  * @tparam T Object type for the unique pointer.
  */
 template <class T>
@@ -31,7 +41,7 @@ class UniquePtr {
 
  private:
   std::unique_ptr<T> _unique;
-  T* _raw;
+  T* const _raw;
 };
 
 }  // namespace test

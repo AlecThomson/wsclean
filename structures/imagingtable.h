@@ -10,10 +10,6 @@
 
 class ImagingTable {
  public:
-  using SquaredGroup = std::vector<std::shared_ptr<ImagingTableEntry>>;
-  using FacetGroup = std::vector<SquaredGroup>;
-  using IndependentGroup = std::vector<FacetGroup>;
-
   /**
    * Iterator class for looping over entries.
    *
@@ -30,7 +26,7 @@ class ImagingTable {
     ImagingTableEntry& operator*() { return **_baseIterator; }
     const ImagingTableEntry& operator*() const { return **_baseIterator; }
     void operator++() { ++_baseIterator; }
-    bool operator!=(const EntryIterator& other) {
+    bool operator!=(const EntryIterator& other) const {
       return _baseIterator != other._baseIterator;
     }
 
