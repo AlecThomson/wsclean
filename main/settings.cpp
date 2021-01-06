@@ -225,17 +225,13 @@ void Settings::Propagate(bool verbose) {
   // Reading facets requires the scale and size so do it after those settings
   // are validated, and validate the facet settings here.
   if (!facetRegionFilename.empty()) {
-    try {
-      const double phaseCentreRa = 0.0;
-      const double phaseCentreDec = 0.0;
-      facets = schaapcommon::facets::DS9FacetFile(facetRegionFilename)
-                   .Read(phaseCentreRa, phaseCentreDec, pixelScaleX,
-                         pixelScaleY, trimmedImageWidth, trimmedImageHeight);
-      if (facets.empty()) throw std::runtime_error("No facets found");
-    } catch (std::exception& e) {
-      throw std::runtime_error("Error reading " + facetRegionFilename + ": " +
-                               e.what());
-    }
+    const double phaseCentreRa = 0.0;
+    const double phaseCentreDec = 0.0;
+    facets = schaapcommon::facets::DS9FacetFile(facetRegionFilename)
+                 .Read(phaseCentreRa, phaseCentreDec, pixelScaleX, pixelScaleY,
+                       trimmedImageWidth, trimmedImageHeight);
+    if (facets.empty())
+      throw std::runtime_error("No facets found in " + facetRegionFilename);
 
     if (joinedFacetCleaning && facets.size() == 1)
       throw std::runtime_error(
