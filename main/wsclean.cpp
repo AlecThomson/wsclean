@@ -44,7 +44,6 @@
 #include <aocommon/parallelfor.h>
 
 #include <iostream>
-#include <functional>
 #include <memory>
 
 std::string commandLine;
@@ -134,9 +133,9 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::imagePSFCallback, this, std::ref(entry),
-                      std::placeholders::_1));
+  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
+    imagePSFCallback(entry, result);
+  });
 }
 
 void WSClean::imagePSFCallback(ImagingTableEntry& entry,
@@ -236,9 +235,10 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::imageMainCallback, this, std::ref(entry),
-                      std::placeholders::_1, updateBeamInfo, isFirstInversion));
+  _griddingTaskManager->Run(task, [this, &entry, updateBeamInfo,
+                                   isFirstInversion](GriddingResult& result) {
+    imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
+  });
 }
 
 void WSClean::imageMainCallback(ImagingTableEntry& entry,
@@ -403,14 +403,9 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.modelImageImaginary = std::move(modelImageImaginary);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::predictCallback, this, std::ref(entry),
-                      std::placeholders::_1));
-}
-
-void WSClean::predictCallback(const ImagingTableEntry& entry,
-                              GriddingResult& result) {
-  _msGridderMetaCache[entry.index] = std::move(result.cache);
+  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
+    _msGridderMetaCache[entry.index] = std::move(result.cache);
+  });
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
