@@ -44,6 +44,12 @@ add_custom_target(check
   COMMAND integrationtest
 )
 
+add_custom_target(checkunit
+  DEPENDS unittest
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND unittest
+)
+
 add_custom_target(coverage
   DEPENDS check
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'

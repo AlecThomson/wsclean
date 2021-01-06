@@ -15,6 +15,12 @@ class ModelParser : private Tokenizer {
  public:
   ModelParser() : _fileVersion1_0(false) {}
 
+  static bool IsInModelFormat(std::istream &stream) {
+    std::string line;
+    std::getline(stream, line);
+    return versionLineIsCorrect(line);
+  }
+
   void Parse(Model &model, std::ifstream &stream) {
     SetStream(stream);
 
@@ -36,6 +42,14 @@ class ModelParser : private Tokenizer {
 
  private:
   bool _fileVersion1_0;
+
+  static bool versionLineIsCorrect(const std::string &line) {
+    const std::string headerStart = "skymodel fileformat ";
+    if (line.substr(0, headerStart.size()) != headerStart) return false;
+    std::string version = line.substr(headerStart.size());
+    if (version != "1.0" && version != "1.1") return false;
+    return true;
+  }
 
   void parseVersionLine(const std::string &line) {
     const std::string headerStart = "skymodel fileformat ";
