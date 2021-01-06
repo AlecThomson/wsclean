@@ -157,14 +157,14 @@ class DijkstraSplitter {
 
   /**
    * Mask the space between (typically) two vertical divisions.
-   * @param subdivision An array that is the result of earlier calls
+   * @param subdivision An image that is the result of earlier calls
    * to DivideVertically().
    * @param subImgX An x-position that is in between the two splits.
-   * @param mask A mask image for which pixels will be set to true if
-   *             and only if they are part of the area specified by the
-   *             two divisions.
-   * @param x Returns the left side of the bounding box of the divisions.
-   * @param subWidth Returns the bounding width of the two divisions.
+   * @param [in,out] mask A mask image for which pixels will be set to true if
+   *   and only if they are part of the area specified by the
+   *   two divisions.
+   * @param [out] x The left side of the bounding box of the divisions.
+   * @param [out] subWidth The bounding width of the two divisions.
    */
   void FloodVerticalArea(const float* subdivision, size_t subImgX, bool* mask,
                          size_t& x, size_t& subWidth) const {
@@ -242,14 +242,14 @@ class DijkstraSplitter {
    * @param vMask Mask returned by FloodHorizontalArea(), but trimmed
    * to have the specified width.
    * @param vMaskX x-value returned by FloodHorizontalArea().
-   * @param vMaskWidth width return by FloodHorizontalArea(), and width
+   * @param vMaskWidth Width return by FloodHorizontalArea(), and width
    * of vMask.
    * @param hMask Mask returned by FloodVerticalArea().
-   * @param mask Output mask
-   * @param subX Output bounding box x-value
-   * @param subY Output bounding box y-value
-   * @param subWidth Output bounding box width
-   * @param subHeight Output bounding box height
+   * @param [in,out] mask Result
+   * @param [out] subX Bounding box x-value
+   * @param [out] subY Bounding box y-value
+   * @param [out] subWidth Bounding box width
+   * @param [out] subHeight Bounding box height
    */
   void GetBoundingMask(const bool* vMask, size_t vMaskX, size_t vMaskWidth,
                        const bool* hMask, bool* mask, size_t& subX,
