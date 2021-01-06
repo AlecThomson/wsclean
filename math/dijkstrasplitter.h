@@ -163,8 +163,8 @@ class DijkstraSplitter {
    * @param mask A mask image for which pixels will be set to true if
    *             and only if they are part of the area specified by the
    *             two divisions.
-   * @param x Returns the left side of the bounding box of the divisions.
-   * @param subWidth Returns the bounding width of the two divisions.
+   * @param [out] x Returns the left side of the bounding box of the divisions.
+   * @param [out] subWidth Returns the bounding width of the two divisions.
    */
   void FloodVerticalArea(const float* subdivision, size_t subImgX, bool* mask,
                          size_t& x, size_t& subWidth) const {
