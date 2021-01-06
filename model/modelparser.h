@@ -15,6 +15,11 @@ class ModelParser : private Tokenizer {
  public:
   ModelParser() : _fileVersion1_0(false) {}
 
+  /**
+   * Test if the first line of this stream corresponds with the
+   * 'ao' source model format. This function advances the stream
+   * to the next line.
+   */
   static bool IsInModelFormat(std::istream &stream) {
     std::string line;
     std::getline(stream, line);

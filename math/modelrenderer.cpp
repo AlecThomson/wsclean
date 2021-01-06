@@ -12,7 +12,11 @@
 
 #include <cmath>
 
+#include <boost/algorithm/clamp.hpp>
+
 using namespace aocommon;
+
+using boost::algorithm::clamp;
 
 template <typename T>
 T ModelRenderer::gaus(T x, T sigma) {
@@ -46,32 +50,13 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
       ImageCoordinates::LMToXY<long double>(
           sourceL - _phaseCentreDL, sourceM - _phaseCentreDM, _pixelScaleL,
           _pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
-      int xLeft = sourceX - boundingBoxSize, xRight = sourceX + boundingBoxSize,
-          yTop = sourceY - boundingBoxSize, yBottom = sourceY + boundingBoxSize;
-      if (xLeft < 0) {
-        xLeft = 0;
-      }
-      if (xLeft > (int)imageWidth) {
-        xLeft = (int)imageWidth;
-      }
-      if (xRight < xLeft) {
-        xRight = xLeft;
-      }
-      if (xRight > (int)imageWidth) {
-        xRight = (int)imageWidth;
-      }
-      if (yTop < 0) {
-        yTop = 0;
-      }
-      if (yTop > (int)imageHeight) {
-        yTop = (int)imageHeight;
-      }
-      if (yBottom < yTop) {
-        yBottom = yTop;
-      }
-      if (yBottom > (int)imageHeight) {
-        yBottom = (int)imageHeight;
-      }
+
+      const int xLeft = clamp(sourceX - boundingBoxSize, 0, int(imageWidth));
+      const int xRight =
+          clamp(sourceX + boundingBoxSize, xLeft, int(imageWidth));
+      const int yTop = clamp(sourceY - boundingBoxSize, 0, int(imageHeight));
+      const int yBottom =
+          clamp(sourceY + boundingBoxSize, yTop, int(imageHeight));
 
       for (int y = yTop; y != yBottom; ++y) {
         double* imageDataPtr = imageData + y * imageWidth + xLeft;
@@ -127,32 +112,10 @@ void ModelRenderer::renderGaussianComponent(
   ImageCoordinates::LMToXY<long double>(
       sourceL - _phaseCentreDL, sourceM - _phaseCentreDM, _pixelScaleL,
       _pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
-  int xLeft = sourceX - boundingBoxSize, xRight = sourceX + boundingBoxSize,
-      yTop = sourceY - boundingBoxSize, yBottom = sourceY + boundingBoxSize;
-  if (xLeft < 0) {
-    xLeft = 0;
-  }
-  if (xLeft > (int)imageWidth) {
-    xLeft = (int)imageWidth;
-  }
-  if (xRight < xLeft) {
-    xRight = xLeft;
-  }
-  if (xRight > (int)imageWidth) {
-    xRight = (int)imageWidth;
-  }
-  if (yTop < 0) {
-    yTop = 0;
-  }
-  if (yTop > (int)imageHeight) {
-    yTop = (int)imageHeight;
-  }
-  if (yBottom < yTop) {
-    yBottom = yTop;
-  }
-  if (yBottom > (int)imageHeight) {
-    yBottom = (int)imageHeight;
-  }
+  const int xLeft = clamp(sourceX - boundingBoxSize, 0, int(imageWidth));
+  const int xRight = clamp(sourceX + boundingBoxSize, xLeft, int(imageWidth));
+  const int yTop = clamp(sourceY - boundingBoxSize, 0, int(imageHeight));
+  const int yBottom = clamp(sourceY + boundingBoxSize, yTop, int(imageHeight));
 
   aocommon::UVector<double> values;
   double fluxSum = 0.0;

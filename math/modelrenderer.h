@@ -2,6 +2,7 @@
 #define MODELRENDERER_H
 
 #include <cstring>
+
 #include <aocommon/polarization.h>
 
 class ModelRenderer {
