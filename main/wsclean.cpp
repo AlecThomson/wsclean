@@ -119,6 +119,10 @@ void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
 void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
+
+  if (entry.facet)
+    throw std::runtime_error("Imaging facets is not implemented");
+
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = true;
@@ -215,6 +219,9 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                         bool updateBeamInfo) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing image ==\n";
+
+  if (entry.facet)
+    throw std::runtime_error("Imaging facets is not implemented");
 
   GriddingTask task;
   task.operation = GriddingTask::Invert;
@@ -359,6 +366,9 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   ImageF modelImageReal(_settings.trimmedImageWidth,
                         _settings.trimmedImageHeight),
       modelImageImaginary;
+
+  if (entry.facet)
+    throw std::runtime_error("Predicting facets is not implemented");
 
   if (entry.polarization == aocommon::Polarization::YX) {
     _modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY,
