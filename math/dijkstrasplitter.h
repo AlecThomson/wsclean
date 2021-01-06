@@ -160,7 +160,7 @@ class DijkstraSplitter {
    * @param subdivision An image that is the result of earlier calls
    * to DivideVertically().
    * @param subImgX An x-position that is in between the two splits.
-   * @param [in,out] mask A mask image for which pixels will be set to true if
+   * @param mask A mask image for which pixels will be set to true if
    *   and only if they are part of the area specified by the
    *   two divisions.
    * @param [out] x The left side of the bounding box of the divisions.

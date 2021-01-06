@@ -19,7 +19,7 @@ void Model::read(const char* filename) {
   if (!stream.good())
     throw std::runtime_error(std::string("Could not open model ") + filename);
   if (ModelParser::IsInModelFormat(stream)) {
-    stream = std::ifstream(filename);
+    stream.seekg(0);
     parser.Parse(*this, stream);
   } else {
     stream.close();
