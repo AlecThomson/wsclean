@@ -14,13 +14,12 @@
 size_t Model::npos = std::numeric_limits<size_t>::max();
 
 void Model::read(const char* filename) {
-  ModelParser parser;
   std::ifstream stream(filename);
   if (!stream.good())
     throw std::runtime_error(std::string("Could not open model ") + filename);
   if (ModelParser::IsInModelFormat(stream)) {
     stream.seekg(0);
-    parser.Parse(*this, stream);
+    ModelParser().Parse(*this, stream);
   } else {
     stream.close();
     *this = BBSModel::Read(filename);
