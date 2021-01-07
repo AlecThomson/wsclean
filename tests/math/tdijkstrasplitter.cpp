@@ -527,9 +527,9 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
         std::cout << PathStr(mask2, width) << '\n';
         std::cout << PathStr(mask3, width) << '\n';
         std::cout << PathStr(mask4, width) << '\n';
-        BOOST_CHECK_EQUAL(n, 1u);
         break;
       }
+      BOOST_CHECK_EQUAL(n, 1u);
     }
   }
 }
