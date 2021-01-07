@@ -1,5 +1,6 @@
 #include "model.h"
 
+#include "bbsmodel.h"
 #include "modelparser.h"
 
 #include <aocommon/radeccoord.h>
@@ -17,7 +18,13 @@ void Model::read(const char* filename) {
   std::ifstream stream(filename);
   if (!stream.good())
     throw std::runtime_error(std::string("Could not open model ") + filename);
-  parser.Parse(*this, stream);
+  if (ModelParser::IsInModelFormat(stream)) {
+    stream.seekg(0);
+    parser.Parse(*this, stream);
+  } else {
+    stream.close();
+    *this = BBSModel::Read(filename);
+  }
 }
 
 void Model::operator+=(const Model& rhs) {
@@ -30,42 +37,7 @@ void Model::operator+=(const Model& rhs) {
   }
 }
 
-void Model::Optimize() {
-  Model copy(*this);
-  _sources.clear();
-  for (const_iterator i = copy.begin(); i != copy.end(); ++i) addOptimized(*i);
-}
-
-void Model::add(const ModelSource& source) {
-  /*
-  if(source.ComponentCount()!=0)
-  {
-          for(ModelSource& s : *this)
-          {
-                  if(s.ComponentCount()!=0 && source.Peak().PosDec() ==
-  s.Peak().PosDec() && source.Peak().PosRA() == s.Peak().PosRA())
-                  {
-                          s += source;
-                          return;
-                  }
-          }
-  }*/
-  _sources.push_back(source);
-}
-
-void Model::addOptimized(const ModelSource& source) {
-  if (source.ComponentCount() != 0) {
-    for (iterator i = begin(); i != end(); ++i) {
-      if (i->ComponentCount() != 0 &&
-          source.Peak().PosDec() == i->Peak().PosDec() &&
-          source.Peak().PosRA() == i->Peak().PosRA()) {
-        /* merge */
-        return;
-      }
-    }
-  }
-  _sources.push_back(source);
-}
+void Model::add(const ModelSource& source) { _sources.push_back(source); }
 
 void Model::combineMeasurements(const ModelSource& source) {
   for (iterator i = begin(); i != end(); ++i) {
