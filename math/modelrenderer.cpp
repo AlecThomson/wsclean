@@ -14,8 +14,7 @@
 
 #include <boost/algorithm/clamp.hpp>
 
-using namespace aocommon;
-
+using aocommon::ImageCoordinates;
 using boost::algorithm::clamp;
 
 template <typename T>
