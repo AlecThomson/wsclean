@@ -11,7 +11,6 @@ BOOST_AUTO_TEST_CASE(version) {
   Logger::SetVerbosity(Logger::QuietVerbosity);
   WSClean wsclean;
   CommandLine commandLine;
-  // wsclean -version
   std::vector<const char*> args = {"wsclean", "-version"};
   BOOST_CHECK(!commandLine.Parse(wsclean, args.size(), args.data(), false));
   // Restore logger -- not strictly necessary (since there should be no
@@ -23,7 +22,6 @@ BOOST_AUTO_TEST_CASE(bad_parameter) {
   Logger::SetVerbosity(Logger::QuietVerbosity);
   WSClean wsclean;
   CommandLine commandLine;
-  // wsclean -this-is-not-a-valid-parameter
   std::vector<const char*> args = {"wsclean", "-this-is-not-a-valid-parameter"};
   BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
                     std::exception);
