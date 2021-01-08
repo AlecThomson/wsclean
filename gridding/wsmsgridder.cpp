@@ -337,6 +337,11 @@ void WSMSGridder::Invert() {
   //&& IsComplex());
   _gridder->PrepareWLayers(ActualWGridSize(), double(_memSize) * (6.0 / 10.0),
                            _minW, _maxW);
+  if (Verbose()) {
+    Logger::Info << "Will process "
+                 << (_gridder->NWLayers() / _gridder->NPasses()) << "/"
+                 << _gridder->NWLayers() << " w-layers per pass.\n";
+  }
 
   if (Verbose() && Logger::IsVerbose()) {
     for (size_t i = 0; i != MeasurementSetCount(); ++i)
@@ -387,12 +392,14 @@ void WSMSGridder::Invert() {
   }
 
   _gridder->FinalizeImage(1.0 / totalWeight());
-  Logger::Info << "Gridded visibility count: "
-               << double(GriddedVisibilityCount());
-  if (Weighting().IsNatural())
-    Logger::Info << ", effective count after weighting: "
-                 << EffectiveGriddedVisibilityCount();
-  Logger::Info << '\n';
+  if (Verbose()) {
+    Logger::Info << "Gridded visibility count: "
+                 << double(GriddedVisibilityCount());
+    if (Weighting().IsNatural())
+      Logger::Info << ", effective count after weighting: "
+                   << EffectiveGriddedVisibilityCount();
+    Logger::Info << '\n';
+  }
 
   _realImage = _gridder->RealImageFloat();
   if (IsComplex())
