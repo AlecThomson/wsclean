@@ -1393,37 +1393,24 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   Logger::Debug << "Total nr of channels found in measurement sets: "
                 << inputChannelFrequencies.size() << '\n';
 
-  size_t joinedGroupIndex = 0;
-  size_t facetGroupIndex = 0;
-  size_t squaredGroupIndex = 0;
   _imagingTable.Clear();
+
+  ImagingTableEntry templateEntry;
+  templateEntry.joinedGroupIndex = 0;
+  templateEntry.squaredDeconvolutionIndex = 0;
 
   // for(size_t interval=0; interval!=_settings.intervalsOut; ++interval)
   //{
-  if (_settings.joinedFrequencyCleaning) {
-    size_t maxLocalJGI = joinedGroupIndex;
-    for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
-         ++outChannelIndex) {
-      ImagingTableEntry freqTemplate;
-      makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
-                            outChannelIndex, freqTemplate);
+  for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
+       ++outChannelIndex) {
+    makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
+                          outChannelIndex, templateEntry);
+    templateEntry.outputChannelIndex = outChannelIndex;
 
-      size_t localJGI = joinedGroupIndex;
-      addFacetsToImagingTable(localJGI, facetGroupIndex, squaredGroupIndex,
-                              outChannelIndex, freqTemplate);
-      if (localJGI > maxLocalJGI) maxLocalJGI = localJGI;
+    if (_settings.joinedFrequencyCleaning) {
+      templateEntry.joinedGroupIndex = 0;
     }
-    joinedGroupIndex = maxLocalJGI;
-  } else {
-    for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
-         ++outChannelIndex) {
-      ImagingTableEntry freqTemplate;
-      makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
-                            outChannelIndex, freqTemplate);
-
-      addFacetsToImagingTable(joinedGroupIndex, facetGroupIndex,
-                              squaredGroupIndex, outChannelIndex, freqTemplate);
-    }
+    addFacetsToImagingTable(templateEntry);
   }
   //}
   _imagingTable.Update();
@@ -1550,73 +1537,43 @@ void WSClean::makeImagingTableEntryChannelSettings(
   entry.outputIntervalIndex = outIntervalIndex;
 }
 
-void WSClean::addFacetsToImagingTable(size_t& joinedGroupIndex,
-                                      size_t& facetGroupIndex,
-                                      size_t& squaredGroupIndex,
-                                      size_t outChannelIndex,
-                                      const ImagingTableEntry& templateEntry) {
-  if (_settings.facets.empty()) {
-    addPolarizationsToImagingTable(joinedGroupIndex, facetGroupIndex,
-                                   squaredGroupIndex, outChannelIndex, nullptr,
-                                   templateEntry);
-  } else if (_settings.joinedFacetCleaning) {
-    size_t maxLocalJGI = joinedGroupIndex;
-    size_t maxLocalFGI = facetGroupIndex;
-    for (const schaapcommon::facets::Facet& facet : _settings.facets) {
-      // Start with the original joinedGroupIndex and facetGroupIndex.
-      size_t localJGI = joinedGroupIndex;
-      size_t localFGI = facetGroupIndex;
-      addPolarizationsToImagingTable(localJGI, localFGI, squaredGroupIndex,
-                                     outChannelIndex, &facet, templateEntry);
-      if (localJGI > maxLocalJGI) maxLocalJGI = localJGI;
-      if (localFGI > maxLocalFGI) maxLocalFGI = localFGI;
-    }
-    joinedGroupIndex = maxLocalJGI;
-    facetGroupIndex = maxLocalFGI;
+void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
+  if (_facets.empty()) {
+    templateEntry.facetIndex = 0;
+    templateEntry.facet = nullptr;
+    addPolarizationsToImagingTable(templateEntry);
   } else {
-    for (const schaapcommon::facets::Facet& facet : _settings.facets) {
-      addPolarizationsToImagingTable(joinedGroupIndex, facetGroupIndex,
-                                     squaredGroupIndex, outChannelIndex, &facet,
-                                     templateEntry);
+    for (size_t f = 0; f != _facets.size(); ++f) {
+      templateEntry.facetIndex = f;
+      templateEntry.facet = &_facets[f];
+      addPolarizationsToImagingTable(templateEntry);
     }
   }
 }
 
-void WSClean::addPolarizationsToImagingTable(
-    size_t& joinedGroupIndex, size_t& facetGroupIndex,
-    size_t& squaredGroupIndex, size_t outChannelIndex,
-    const schaapcommon::facets::Facet* facet,
-    const ImagingTableEntry& templateEntry) {
+void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
   for (aocommon::PolarizationEnum p : _settings.polarizations) {
+    templateEntry.polarization = p;
+    if (p == aocommon::Polarization::XY)
+      templateEntry.imageCount = 2;
+    else if (p == aocommon::Polarization::YX)
+      templateEntry.imageCount = 0;
+    else
+      templateEntry.imageCount = 1;
+
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
-    entry->index = _imagingTable.EntryCount();
-    entry->outputChannelIndex = outChannelIndex;
-    entry->facet = facet;
-    entry->joinedGroupIndex = joinedGroupIndex;
-    entry->facetGroupIndex = facetGroupIndex;
-    entry->squaredDeconvolutionIndex = squaredGroupIndex;
-    entry->polarization = p;
-    if (p == aocommon::Polarization::XY)
-      entry->imageCount = 2;
-    else if (p == aocommon::Polarization::YX)
-      entry->imageCount = 0;
-    else
-      entry->imageCount = 1;
-
     _imagingTable.AddEntry(std::move(entry));
 
     if (!_settings.joinedPolarizationCleaning) {
-      ++joinedGroupIndex;
-      ++facetGroupIndex;
-      ++squaredGroupIndex;
+      ++templateEntry.joinedGroupIndex;
+      ++templateEntry.squaredDeconvolutionIndex;
     }
   }
 
   if (_settings.joinedPolarizationCleaning) {
-    ++joinedGroupIndex;
-    ++facetGroupIndex;
-    ++squaredGroupIndex;
+    ++templateEntry.joinedGroupIndex;
+    ++templateEntry.squaredDeconvolutionIndex;
   }
 }
 

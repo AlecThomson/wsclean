@@ -23,7 +23,7 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table->SquaredGroupEntryCount(0);
+  size_t nPol = table->SquaredGroups().front().size();
   size_t nImages = nPol * _channelsInDeconvolution;
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
@@ -40,14 +40,14 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
       _width(width),
       _height(height),
       _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table->SquaredGroupCount()
+                                   ? table->SquaredGroups().size()
                                    : settings.deconvolutionChannelCount),
       _squareJoinedChannels(settings.squaredJoins),
       _imagingTable(*table),
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table->SquaredGroupEntryCount(0);
+  size_t nPol = table->SquaredGroups().front().size();
   size_t nImages = nPol * _channelsInDeconvolution;
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
@@ -66,7 +66,7 @@ void ImageSet::initializeIndices() {
   for (const ImagingTableEntry& entry : _imagingTable) {
     size_t outChannel = entry.outputChannelIndex;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
-                     _imagingTable.SquaredGroupCount();
+                     _imagingTable.SquaredGroups().size();
     if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {
       // New output channel maps to an earlier deconvolution channel:
       // start at index of previous deconvolution channel
@@ -354,7 +354,7 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(ImageF& dest) const {
 void ImageSet::getLinearIntegratedWithNormalChannels(ImageF& dest) const {
   const bool useAllPolarizations = _linkedPolarizations.empty();
   if (_channelsInDeconvolution == 1 &&
-      _imagingTable.SquaredGroupEntryCount(0) == 1) {
+      _imagingTable.SquaredGroups().front().size() == 1) {
     ImagingTable subTable = _imagingTable.GetSquaredGroup(0);
     const ImagingTableEntry& entry = subTable[0];
     size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;

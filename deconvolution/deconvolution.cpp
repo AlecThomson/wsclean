@@ -44,7 +44,9 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   Logger::Info.Flush();
   Logger::Info << " == Cleaning (" << majorIterationNr << ") ==\n";
 
-  if (groupTable.FacetGroupCount() != groupTable.SquaredGroupCount())
+  const ImagingTable::Groups& facetGroups = groupTable.FacetGroups();
+  if (!facetGroups.empty() && !facetGroups.front().empty() &&
+      facetGroups.front().front()->facet)
     throw std::runtime_error("Deconvolving facets is not implemented");
 
   ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
