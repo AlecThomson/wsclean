@@ -9,8 +9,8 @@
 
 class ImagingTable {
  public:
-  using ImagingTableEntryPtr = std::shared_ptr<ImagingTableEntry>;
-  using Group = std::vector<ImagingTableEntryPtr>;
+  using EntryPtr = std::shared_ptr<ImagingTableEntry>;
+  using Group = std::vector<EntryPtr>;
   using Groups = std::vector<Group>;
 
   /**

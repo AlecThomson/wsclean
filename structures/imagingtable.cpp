@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <map>
 
-ImagingTable::ImagingTable(const std::vector<ImagingTableEntryPtr>& entries)
+ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
     : _entries(entries),
       _independentGroups(),
       _facetGroups(),
@@ -65,7 +65,7 @@ void ImagingTable::updateGroups(
     std::function<size_t(const ImagingTableEntry&)> getIndex) const {
   std::map<size_t, Group> groupMap;
 
-  for (const ImagingTableEntryPtr& e : _entries) {
+  for (const EntryPtr& e : _entries) {
     groupMap[getIndex(*e)].push_back(e);
   }
 
