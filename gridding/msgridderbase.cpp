@@ -344,7 +344,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   }
 
   _theoreticalBeamSize = 1.0 / maxBaseline;
-  if (Verbose()) {
+  if (IsFirstIteration()) {
     Logger::Info << "Theoretic beam = "
                  << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
   }
@@ -372,7 +372,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
           std::max(std::min(optWidth, _actualInversionWidth), size_t(32));
       size_t newHeight =
           std::max(std::min(optHeight, _actualInversionHeight), size_t(32));
-      if (Verbose()) {
+      if (IsFirstIteration()) {
         Logger::Info << "Minimal inversion size: " << minWidth << " x "
                      << minHeight << ", using optimal: " << newWidth << " x "
                      << newHeight << "\n";
@@ -384,7 +384,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
       _actualInversionWidth = newWidth;
       _actualInversionHeight = newHeight;
     } else {
-      if (Verbose()) {
+      if (IsFirstIteration()) {
         Logger::Info
             << "Small inversion enabled, but inversion resolution already "
                "smaller than beam size: not using optimization.\n";
@@ -392,7 +392,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     }
   }
 
-  if (Verbose() || !HasWGridSize()) {
+  if (IsFirstIteration() || !HasWGridSize()) {
     size_t suggestedGridSize = getSuggestedWGridSize();
     if (!HasWGridSize())
       SetActualWGridSize(suggestedGridSize);
