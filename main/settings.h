@@ -1,8 +1,6 @@
 #ifndef WSCLEAN_SETTINGS_H
 #define WSCLEAN_SETTINGS_H
 
-#include <schaapcommon/facets/facet.h>
-
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
@@ -64,12 +62,10 @@ class Settings {
   std::string dataColumnName;
   std::set<aocommon::PolarizationEnum> polarizations;
   std::string facetRegionFilename;
-  std::vector<schaapcommon::facets::Facet> facets;
   std::set<size_t> spectralWindows;
   WeightMode weightMode;
   std::string prefixName;
   bool joinedPolarizationCleaning;
-  bool joinedFacetCleaning;
   bool joinedFrequencyCleaning;
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
   size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
@@ -227,11 +223,9 @@ inline Settings::Settings()
       dataColumnName(),
       polarizations({aocommon::Polarization::StokesI}),
       facetRegionFilename(),
-      facets(),
       weightMode(WeightMode::UniformWeighted),
       prefixName("wsclean"),
       joinedPolarizationCleaning(false),
-      joinedFacetCleaning(false),
       joinedFrequencyCleaning(false),
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
