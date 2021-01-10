@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* Copyright (C) 2019-2020 Max-Planck-Society
+/* Copyright (C) 2019-2021 Max-Planck-Society
    Author: Martin Reinecke */
 
 #ifndef GRIDDER_CXX_H
@@ -51,6 +51,8 @@ template<typename T> constexpr size_t simdlen()
 
 template<typename T> using mysimd = simd<T,simdlen<T>()>;
 
+template<typename T> T sqr(T val) { return val*val; }
+
 template<typename T> void quickzero(mav<T,2> &arr, size_t nthreads)
   {
 #if 0
@@ -75,6 +77,28 @@ template<typename T> void quickzero(mav<T,2> &arr, size_t nthreads)
           arr.v(i,j) = T(0);
     });
 #endif
+  }
+
+template<typename T, typename F> [[gnu::hot]] void expi(vector<complex<T>> &res, F getang)
+  {
+  using Tsimd = native_simd<T>;
+  static constexpr auto vlen = Tsimd::size();
+  size_t i=0, n=res.size();
+  Tsimd vang(0);
+  for (; i+vlen-1<n; i+=vlen)
+    {
+    for (size_t ii=0; ii<vlen; ++ii)
+      vang[ii] = getang(i+ii);
+    auto vcos = vang.apply([](T arg) { return cos(arg); });
+    auto vsin = vang.apply([](T arg) { return sin(arg); });
+    for (size_t ii=0; ii<vlen; ++ii)
+      res[i+ii] = complex<T>(vcos[ii], vsin[ii]);
+    }
+  for (; i<n; ++i)
+    {
+    T ang = getang(i);
+    res[i] = complex<T>(cos(ang), sin(ang));
+    }
   }
 
 template<typename T, size_t len> complex<T> hsum_cmplx(simd<T, len> vr, simd<T, len> vi)
@@ -325,7 +349,10 @@ template<typename T> class Params
     size_t nvis;
     double wmin, dw;
     size_t nplanes;
-    double nm1min;
+    double nm1min, nm1max;
+
+    double lshift, mshift, nshift;
+    bool shifting, lmshift, no_nshift;
 
     size_t nu, nv;
     double ofactor;
@@ -338,15 +365,14 @@ template<typename T> class Params
     size_t vlim;
     bool uv_side_fast;
 
-    static T phase (T x, T y, T w, bool adjoint)
+    static double phase(double x, double y, double w, bool adjoint, double nshift)
       {
-      constexpr T pi = T(3.141592653589793238462643383279502884197);
-      T tmp = 1-x-y;
+      double tmp = 1.-x-y;
       if (tmp<=0) return 0; // no phase factor beyond the horizon
-      T nm1 = (-x-y)/(sqrt(tmp)+1); // more accurate form of sqrt(1-x-y)-1
-      T phs = 2*pi*w*nm1;
+      double nm1 = (-x-y)/(sqrt(tmp)+1); // more accurate form of sqrt(1-x-y)-1
+      double phs = w*(nm1+nshift);
       if (adjoint) phs *= -1;
-      return phs;
+      return twopi*(phs-floor(phs));
       }
 
     void grid2dirty_post(mav<T,2> &tmav, mav<T,2> &dirty) const
@@ -371,52 +397,49 @@ template<typename T> class Params
           }
         });
       }
-    void grid2dirty_post2(mav<complex<T>,2> &tmav, mav<T,2> &dirty, T w) const
+    void grid2dirty_post2(mav<complex<T>,2> &tmav, mav<T,2> &dirty, double w) const
       {
       checkShape(dirty.shape(), {nxdirty,nydirty});
-      double x0 = -0.5*nxdirty*pixsize_x,
-             y0 = -0.5*nydirty*pixsize_y;
-      execParallel(nxdirty/2+1, nthreads, [&](size_t lo, size_t hi)
+      double x0 = lshift-0.5*nxdirty*pixsize_x,
+             y0 = mshift-0.5*nydirty*pixsize_y;
+      size_t nxd = lmshift ? nxdirty : (nxdirty/2+1);
+      execParallel(nxd, nthreads, [&](size_t lo, size_t hi)
         {
-        using vtype = native_simd<T>;
-        constexpr size_t vlen=vtype::size();
-        size_t nvec = (nydirty/2+1+(vlen-1))/vlen;
-        vector<vtype> ph(nvec), sp(nvec), cp(nvec);
+        vector<complex<T>> phases(lmshift ? nydirty : (nydirty/2+1)); 
         for (auto i=lo; i<hi; ++i)
           {
-          T fx = T(x0+i*pixsize_x);
-          fx *= fx;
+          double fx = sqr(x0+i*pixsize_x);
           size_t ix = nu-nxdirty/2+i;
           if (ix>=nu) ix-=nu;
-          size_t i2 = nxdirty-i;
-          size_t ix2 = nu-nxdirty/2+i2;
-          if (ix2>=nu) ix2-=nu;
-          for (size_t j=0; j<=nydirty/2; ++j)
+          expi(phases, [&](size_t i)
+            { return T(phase(fx, sqr(y0+i*pixsize_y), w, true, nshift)); });
+          if (lmshift)
             {
-            T fy = T(y0+j*pixsize_y);
-            ph[j/vlen][j%vlen] = phase(fx, fy*fy, w, true);
+            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+              dirty.v(i,j) += tmav(ix,jx).real()*phases[j].real()
+                            - tmav(ix,jx).imag()*phases[j].imag();
             }
-          for (size_t j=0; j<nvec; ++j)
-            for (size_t k=0; k<vlen; ++k)
-               sp[j][k]=sin(ph[j][k]);
-          for (size_t j=0; j<nvec; ++j)
-            for (size_t k=0; k<vlen; ++k)
-              cp[j][k]=cos(ph[j][k]);
-          if ((i>0)&&(i<i2))
-            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
-              {
-              size_t j2 = min(j, nydirty-j);
-              T re = cp[j2/vlen][j2%vlen], im = sp[j2/vlen][j2%vlen];
-              dirty.v(i,j) += tmav(ix,jx).real()*re - tmav(ix,jx).imag()*im;
-              dirty.v(i2,j) += tmav(ix2,jx).real()*re - tmav(ix2,jx).imag()*im;
-              }
           else
-            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
-              {
-              size_t j2 = min(j, nydirty-j);
-              T re = cp[j2/vlen][j2%vlen], im = sp[j2/vlen][j2%vlen];
-              dirty.v(i,j) += tmav(ix,jx).real()*re - tmav(ix,jx).imag()*im; // lower left
-              }
+            {
+            size_t i2 = nxdirty-i;
+            size_t ix2 = nu-nxdirty/2+i2;
+            if (ix2>=nu) ix2-=nu;
+            if ((i>0)&&(i<i2))
+              for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+                {
+                size_t j2 = min(j, nydirty-j);
+                T re = phases[j2].real(), im = phases[j2].imag();
+                dirty.v(i,j) += tmav(ix,jx).real()*re - tmav(ix,jx).imag()*im;
+                dirty.v(i2,j) += tmav(ix2,jx).real()*re - tmav(ix2,jx).imag()*im;
+                }
+            else
+              for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+                {
+                size_t j2 = min(j, nydirty-j);
+                T re = phases[j2].real(), im = phases[j2].imag();
+                dirty.v(i,j) += tmav(ix,jx).real()*re - tmav(ix,jx).imag()*im; // lower left
+                }
+            }
           }
         });
       }
@@ -432,7 +455,7 @@ template<typename T> class Params
       }
 
     void grid2dirty_c_overwrite_wscreen_add
-      (mav<complex<T>,2> &grid, mav<T,2> &dirty, T w)
+      (mav<complex<T>,2> &grid, mav<T,2> &dirty, double w)
       {
       timers.push("FFT");
       checkShape(grid.shape(), {nu,nv});
@@ -485,7 +508,7 @@ template<typename T> class Params
         });
       timers.pop();
       }
-    void dirty2grid_pre2(const mav<T,2> &dirty, mav<complex<T>,2> &grid, T w)
+    void dirty2grid_pre2(const mav<T,2> &dirty, mav<complex<T>,2> &grid, double w)
       {
       timers.push("zeroing grid");
       checkShape(dirty.shape(), {nxdirty, nydirty});
@@ -495,49 +518,40 @@ template<typename T> class Params
       { auto a0 = subarray<2>(grid, {nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
       { auto a0 = subarray<2>(grid, {nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
       timers.poppush("wscreen+grid correction");
-      double x0 = -0.5*nxdirty*pixsize_x,
-             y0 = -0.5*nydirty*pixsize_y;
-      execParallel(nxdirty/2+1, nthreads, [&](size_t lo, size_t hi)
+      double x0 = lshift-0.5*nxdirty*pixsize_x,
+             y0 = mshift-0.5*nydirty*pixsize_y;
+      size_t nxd = lmshift ? nxdirty : (nxdirty/2+1);
+      execParallel(nxd, nthreads, [&](size_t lo, size_t hi)
         {
-        using vtype = native_simd<T>;
-        constexpr size_t vlen=vtype::size();
-        size_t nvec = (nydirty/2+1+(vlen-1))/vlen;
-        vector<vtype> ph(nvec), sp(nvec), cp(nvec);
+        vector<complex<T>> phases(lmshift ? nydirty : (nydirty/2+1)); 
         for(auto i=lo; i<hi; ++i)
           {
-          T fx = T(x0+i*pixsize_x);
-          fx *= fx;
+          double fx = sqr(x0+i*pixsize_x);
           size_t ix = nu-nxdirty/2+i;
           if (ix>=nu) ix-=nu;
-          size_t i2 = nxdirty-i;
-          size_t ix2 = nu-nxdirty/2+i2;
-          if (ix2>=nu) ix2-=nu;
-          for (size_t j=0; j<=nydirty/2; ++j)
+          expi(phases, [&](size_t i)
+            { return T(phase(fx, sqr(y0+i*pixsize_y), w, false, nshift)); });
+          if (lmshift)
             {
-            T fy = T(y0+j*pixsize_y);
-            ph[j/vlen][j%vlen] = phase(fx, fy*fy, w, false);
+            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+              grid.v(ix,jx) = dirty(i,j)*phases[j];
             }
-          for (size_t j=0; j<nvec; ++j)
-            for (size_t k=0; k<vlen; ++k)
-               sp[j][k]=sin(ph[j][k]);
-          for (size_t j=0; j<nvec; ++j)
-            for (size_t k=0; k<vlen; ++k)
-              cp[j][k]=cos(ph[j][k]);
-          if ((i>0)&&(i<i2))
-            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
-              {
-              size_t j2 = min(j, nydirty-j);
-              auto ws = complex<T>(cp[j2/vlen][j2%vlen],sp[j2/vlen][j2%vlen]);
-              grid.v(ix,jx) = dirty(i,j)*ws; // lower left
-              grid.v(ix2,jx) = dirty(i2,j)*ws; // lower right
-              }
           else
-            for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
-              {
-              size_t j2 = min(j, nydirty-j);
-              auto ws = complex<T>(cp[j2/vlen][j2%vlen],sp[j2/vlen][j2%vlen]);
-              grid.v(ix,jx) = dirty(i,j)*ws; // lower left
-              }
+            {
+            size_t i2 = nxdirty-i;
+            size_t ix2 = nu-nxdirty/2+i2;
+            if (ix2>=nu) ix2-=nu;
+            if ((i>0)&&(i<i2))
+              for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+                {
+                size_t j2 = min(j, nydirty-j);
+                grid.v(ix,jx) = dirty(i,j)*phases[j2]; // lower left
+                grid.v(ix2,jx) = dirty(i2,j)*phases[j2]; // lower right
+                }
+            else
+              for (size_t j=0, jx=nv-nydirty/2; j<nydirty; ++j, jx=(jx+1>=nv)? jx+1-nv : jx+1)
+                grid.v(ix,jx) = dirty(i,j)*phases[min(j, nydirty-j)]; // lower left
+            }
           }
         });
       timers.pop();
@@ -552,7 +566,7 @@ template<typename T> class Params
       }
 
     void dirty2grid_c_wscreen(const mav<T,2> &dirty,
-      mav<complex<T>,2> &grid, T w)
+      mav<complex<T>,2> &grid, double w)
       {
       dirty2grid_pre2(dirty, grid, w);
       timers.push("FFT");
@@ -595,7 +609,8 @@ template<typename T> class Params
 
       if (do_wgridding)
         {
-        dw = 0.5/ofactor/abs(nm1min);
+        double maxnm1 = max(abs(nm1max+nshift), abs(nm1min+nshift));
+        dw = 0.5/ofactor/maxnm1;
         nplanes = size_t((wmax_d-wmin_d)/dw+supp);
         MR_assert(nplanes<(size_t(1)<<16), "too many w planes");
         wmin = (wmin_d+wmax_d)*0.5 - 0.5*(nplanes-1)*dw;
@@ -908,6 +923,17 @@ template<typename T> class Params
           }
       };
 
+    void compute_phases(vector<complex<T>> &phases,
+      T imflip, const UVW &bcoord, const RowchanRange &rcr)
+      {
+      phases.resize(rcr.ch_end-rcr.ch_begin);
+      double fct = imflip*(bcoord.u*lshift + bcoord.v*mshift + bcoord.w*nshift);
+      expi(phases, [&](size_t i) {
+                      auto tmp = fct*bl.ffact(rcr.ch_begin+i);
+                      return T(twopi*(tmp-floor(tmp)));
+                      });
+      }
+
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void x2grid_c_helper
       (mav<complex<T>,2> &grid, size_t p0, double w0)
       {
@@ -921,6 +947,7 @@ template<typename T> class Params
         constexpr int jump = hlp.lineJump();
         const T * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
+        vector<complex<T>> phases;
 
         while (auto rng=sched.getNext()) for(auto ix_=rng.lo; ix_<rng.hi; ++ix_)
           {
@@ -928,18 +955,22 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           const auto &uvwidx(ranges[ix].first);
           if ((!wgrid) || ((uvwidx.minplane+SUPP>p0)&&(uvwidx.minplane<=p0)))
             {
+//bool lastplane = (!wgrid) || (uvwidx.minplane+SUPP-1==p0);
             size_t nth = p0-uvwidx.minplane;
             for (const auto rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
               auto bcoord = bl.baseCoord(row);
               T imflip = T(bcoord.FixW());
+              if (shifting)
+                compute_phases(phases, imflip, bcoord, rcr);
               for (size_t ch=rcr.ch_begin; ch<rcr.ch_end; ++ch)
                 {
                 auto coord = bcoord*bl.ffact(ch);
                 hlp.prep(coord, nth);
                 auto v(ms_in(row, ch));
-
+                if (shifting)
+                  v*=phases[ch-rcr.ch_begin];
                 v*=wgt(row, ch);
 
                 if constexpr (NVEC==1)
@@ -1023,6 +1054,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         constexpr int jump = hlp.lineJump();
         const T * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
+        vector<complex<T>> phases;
 
         while (auto rng=sched.getNext()) for(auto ix_=rng.lo; ix_<rng.hi; ++ix_)
           {
@@ -1030,12 +1062,15 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           const auto &uvwidx(ranges[ix].first);
           if ((!wgrid) || ((uvwidx.minplane+SUPP>p0)&&(uvwidx.minplane<=p0)))
             {
+            bool lastplane = (!wgrid) || (uvwidx.minplane+SUPP-1==p0);
             size_t nth = p0-uvwidx.minplane;
             for (const auto rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
               auto bcoord = bl.baseCoord(row);
               T imflip = T(bcoord.FixW());
+              if (shifting&&lastplane)
+                compute_phases(phases, -imflip, bcoord, rcr);
               for (size_t ch=rcr.ch_begin; ch<rcr.ch_end; ++ch)
                 {
                 auto coord = bcoord*bl.ffact(ch);
@@ -1071,8 +1106,11 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                   }
                 ri *= imflip;
                 auto r = hsum_cmplx(rr,ri);
-                r*=wgt(row, ch);
                 ms_out.v(row, ch) += r;
+                if (lastplane)
+                  ms_out.v(row, ch) *= shifting ?
+                    (phases[ch-rcr.ch_begin]*wgt(row, ch)) :
+                    wgt(row, ch);
                 }
               }
             }
@@ -1111,50 +1149,51 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
     void apply_global_corrections(mav<T,2> &dirty)
       {
       timers.push("global corrections");
-      double x0 = -0.5*nxdirty*pixsize_x,
-             y0 = -0.5*nydirty*pixsize_y;
+      double x0 = lshift-0.5*nxdirty*pixsize_x,
+             y0 = mshift-0.5*nydirty*pixsize_y;
       auto cfu = krn->corfunc(nxdirty/2+1, 1./nu, nthreads);
       auto cfv = krn->corfunc(nydirty/2+1, 1./nv, nthreads);
-      execParallel(nxdirty/2+1, nthreads, [&](size_t lo, size_t hi)
+      size_t nxd = lmshift ? nxdirty : (nxdirty/2+1);
+      size_t nyd = lmshift ? nydirty : (nydirty/2+1);
+      execParallel(nxd, nthreads, [&](size_t lo, size_t hi)
         {
         for(auto i=lo; i<hi; ++i)
           {
-          auto fx = T(x0+i*pixsize_x);
-          fx *= fx;
-          for (size_t j=0; j<=nydirty/2; ++j)
+          double fx = sqr(x0+i*pixsize_x);
+          for (size_t j=0; j<nyd; ++j)
             {
-            auto fy = T(y0+j*pixsize_y);
-            fy*=fy;
-            T fct = 0;
+            double fy = sqr(y0+j*pixsize_y);
+            double fct = 0;
             auto tmp = 1-fx-fy;
             if (tmp>=0)
               {
               auto nm1 = (-fx-fy)/(sqrt(tmp)+1); // accurate form of sqrt(1-x-y)-1
-              fct = T(krn->corfunc(nm1*dw));
+              fct = krn->corfunc((nm1+nshift)*dw);
               if (divide_by_n)
                 fct /= nm1+1;
               }
             else // beyond the horizon, don't really know what to do here
+              fct = divide_by_n ? 0 : krn->corfunc((sqrt(-tmp)-1)*dw);
+            if (lmshift)
               {
-              if (divide_by_n)
-                fct=0;
-              else
+              auto i2=min(i, nxdirty-i), j2=min(j, nydirty-j);
+              fct *= cfu[nxdirty/2-i2]*cfv[nydirty/2-j2];
+              dirty.v(i,j)*=T(fct);
+              }
+            else
+              {
+              fct *= cfu[nxdirty/2-i]*cfv[nydirty/2-j];
+              size_t i2 = nxdirty-i, j2 = nydirty-j;
+              dirty.v(i,j)*=T(fct);
+              if ((i>0)&&(i<i2))
                 {
-                auto nm1 = sqrt(-tmp)-1;
-                fct = T(krn->corfunc(nm1*dw));
+                dirty.v(i2,j)*=T(fct);
+                if ((j>0)&&(j<j2))
+                  dirty.v(i2,j2)*=T(fct);
                 }
-              }
-            fct *= T(cfu[nxdirty/2-i]*cfv[nydirty/2-j]);
-            size_t i2 = nxdirty-i, j2 = nydirty-j;
-            dirty.v(i,j)*=fct;
-            if ((i>0)&&(i<i2))
-              {
-              dirty.v(i2,j)*=fct;
               if ((j>0)&&(j<j2))
-                dirty.v(i2,j2)*=fct;
+                dirty.v(i,j2)*=T(fct);
               }
-            if ((j>0)&&(j<j2))
-              dirty.v(i,j2)*=fct;
             }
           }
         });
@@ -1208,7 +1247,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           timers.poppush("gridding proper");
           x2grid_c<true>(grid, pl, w);
           timers.pop();
-          grid2dirty_c_overwrite_wscreen_add(grid, dirty_out, T(w));
+          grid2dirty_c_overwrite_wscreen_add(grid, dirty_out, w);
           }
         // correct for w gridding etc.
         apply_global_corrections(dirty_out);
@@ -1244,7 +1283,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         for (size_t pl=0; pl<nplanes; ++pl)
           {
           double w = wmin+pl*dw;
-          dirty2grid_c_wscreen(tdirty, grid, T(w));
+          dirty2grid_c_wscreen(tdirty, grid, w);
           timers.push("degridding proper");
           grid2x_c<true>(grid, pl, w);
           timers.pop();
@@ -1269,11 +1308,31 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
     auto getNuNv()
       {
       timers.push("parameter calculation");
-      double x0 = -0.5*nxdirty*pixsize_x,
-             y0 = -0.5*nydirty*pixsize_y;
-      nm1min = sqrt(max(1.-x0*x0-y0*y0,0.))-1.;
-      if (x0*x0+y0*y0>1.)
-        nm1min = -sqrt(abs(1.-x0*x0-y0*y0))-1.;
+
+      double xmin = lshift - 0.5*nxdirty*pixsize_x,
+             xmax = xmin + (nxdirty-1)*pixsize_x,
+             ymin = mshift - 0.5*nydirty*pixsize_y,
+             ymax = ymin + (nydirty-1)*pixsize_y;
+      vector<double> xext{xmin, xmax},
+                     yext{ymin, ymax};
+      if (xmin*xmax<0) xext.push_back(0);
+      if (ymin*ymax<0) yext.push_back(0);
+      nm1min = 1e300, nm1max = -1e300;
+      for (auto xc: xext)
+        for (auto yc: yext)
+          {
+          double tmp = xc*xc+yc*yc;
+          double nval;
+          if (tmp <= 1.) // northern hemisphere
+            nval = sqrt(1.-tmp) - 1.;
+          else
+            nval = -sqrt(tmp-1.) -1.;
+          nm1min = min(nm1min, nval);
+          nm1max = max(nm1max, nval);
+          }
+      nshift = (no_nshift||(!do_wgridding)) ? 0. : -0.5*(nm1max+nm1min);
+      shifting = lmshift | (nshift!=0);
+
       auto idx = getAvailableKernels<T>(epsilon, sigma_min, sigma_max);
       double mincost = 1e300;
       constexpr double nref_fft=2048;
@@ -1293,7 +1352,8 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         double gridcost = 2.2e-10*nvis*(supp*nvec*vlen + ((2*nvec+1)*(supp+3)*vlen));
         if (do_wgridding)
           {
-          double dw = 0.5/ofactor/abs(nm1min);
+          double maxnm1 = max(abs(nm1max+nshift), abs(nm1min+nshift));
+          double dw = 0.5/ofactor/maxnm1;
           size_t nplanes = size_t((wmax_d-wmin_d)/dw+supp);
           fftcost *= nplanes;
           gridcost *= supp;
@@ -1358,7 +1418,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
            double pixsize_x_, double pixsize_y_, double epsilon_,
            bool do_wgridding_, size_t nthreads_, size_t verbosity_,
            bool negate_v_, bool divide_by_n_, double sigma_min_,
-           double sigma_max_)
+           double sigma_max_, double center_x, double center_y, bool allow_nshift)
       : gridding(ms_out_.size()==0),
         timers(gridding ? "gridding" : "degridding"),
         ms_in(ms_in_), ms_out(ms_out_),
@@ -1372,7 +1432,10 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         nthreads((nthreads_==0) ? get_default_nthreads() : nthreads_),
         verbosity(verbosity_),
         negate_v(negate_v_), divide_by_n(divide_by_n_),
-        sigma_min(sigma_min_), sigma_max(sigma_max_)
+        sigma_min(sigma_min_), sigma_max(sigma_max_),
+        lshift(center_x), mshift(center_y),
+        lmshift((lshift!=0) || (mshift!=0)),
+        no_nshift(!allow_nshift)
       {
       timers.push("Baseline construction");
       bl = Baselines(uvw, freq, negate_v);
@@ -1435,7 +1498,7 @@ template<typename T> void ms2dirty(const mav<double,2> &uvw,
   const mav<T,2> &wgt_, const mav<uint8_t,2> &mask_, double pixsize_x, double pixsize_y, double epsilon,
   bool do_wgridding, size_t nthreads, mav<T,2> &dirty, size_t verbosity,
   bool negate_v=false, bool divide_by_n=true, double sigma_min=1.1,
-  double sigma_max=2.6)
+  double sigma_max=2.6, double center_x=0, double center_y=0, bool allow_nshift=true)
   {
   auto ms_out(mav<complex<T>,2>::build_empty());
   auto dirty_in(mav<T,2>::build_empty());
@@ -1443,7 +1506,7 @@ template<typename T> void ms2dirty(const mav<double,2> &uvw,
   auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
   Params<T> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x, 
     pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
-    divide_by_n, sigma_min, sigma_max);
+    divide_by_n, sigma_min, sigma_max, center_x, center_y, allow_nshift);
   }
 
 template<typename T> void dirty2ms(const mav<double,2> &uvw,
@@ -1451,7 +1514,7 @@ template<typename T> void dirty2ms(const mav<double,2> &uvw,
   const mav<T,2> &wgt_, const mav<uint8_t,2> &mask_, double pixsize_x, double pixsize_y,
   double epsilon, bool do_wgridding, size_t nthreads, mav<complex<T>,2> &ms,
   size_t verbosity, bool negate_v=false, bool divide_by_n=true,
-  double sigma_min=1.1, double sigma_max=2.6)
+  double sigma_min=1.1, double sigma_max=2.6, double center_x=0, double center_y=0, bool allow_nshift=true)
   {
   auto ms_in(mav<complex<T>,2>::build_uniform(ms.shape(),1.));
   auto dirty_out(mav<T,2>::build_empty());
@@ -1459,7 +1522,7 @@ template<typename T> void dirty2ms(const mav<double,2> &uvw,
   auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
   Params<T> par(uvw, freq, ms_in, ms, dirty, dirty_out, wgt, mask, pixsize_x,
     pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
-    divide_by_n, sigma_min, sigma_max);
+    divide_by_n, sigma_min, sigma_max, center_x, center_y, allow_nshift);
   }
 
 } // namespace detail_gridder
