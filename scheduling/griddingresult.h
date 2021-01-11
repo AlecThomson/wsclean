@@ -3,7 +3,6 @@
 
 #include "../scheduling/metadatacache.h"
 #include "../structures/image.h"
-#include "../structures/observationinfo.h"
 
 #include <aocommon/io/serialstreamfwd.h>
 
@@ -23,7 +22,6 @@ struct GriddingResult {
 
   ImageF imageRealResult;
   ImageF imageImaginaryResult;
-  ObservationInfo observationInfo;
   double beamSize;
   double imageWeight;
   double normalizationFactor;

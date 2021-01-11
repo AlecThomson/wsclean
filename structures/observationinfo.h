@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
 struct ObservationInfo {
   double phaseCentreRA = 0.0, phaseCentreDec = 0.0;
   double startTime = 0.0;
@@ -16,6 +18,9 @@ struct ObservationInfo {
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
+
+  static ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
+                                             size_t fieldId);
 };
 
 #endif
