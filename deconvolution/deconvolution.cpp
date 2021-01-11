@@ -42,7 +42,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
                             bool& reachedMajorThreshold,
                             size_t majorIterationNr) {
   Logger::Info.Flush();
-  Logger::Info << " == Cleaning (" << majorIterationNr << ") ==\n";
+  Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
   const ImagingTable::Groups& facetGroups = groupTable.FacetGroups();
   if (!facetGroups.empty() && !facetGroups.front().empty() &&

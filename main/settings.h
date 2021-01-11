@@ -65,8 +65,8 @@ class Settings {
   std::set<size_t> spectralWindows;
   WeightMode weightMode;
   std::string prefixName;
-  bool joinedPolarizationCleaning;
-  bool joinedFrequencyCleaning;
+  bool joinedPolarizationDeconvolution;
+  bool joinedFrequencyDeconvolution;
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
   size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
@@ -225,8 +225,8 @@ inline Settings::Settings()
       facetRegionFilename(),
       weightMode(WeightMode::UniformWeighted),
       prefixName("wsclean"),
-      joinedPolarizationCleaning(false),
-      joinedFrequencyCleaning(false),
+      joinedPolarizationDeconvolution(false),
+      joinedFrequencyDeconvolution(false),
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
       parallelDeconvolutionMaxThreads(threadCount),

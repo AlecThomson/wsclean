@@ -404,9 +404,9 @@ void CommandLine::printHelp() {
          "   iteration. To use major iterations, 0.85 is a good value. "
          "Default: 1.0\n"
          "-join-polarizations\n"
-         "   Perform cleaning by searching for peaks in the sum of squares of "
-         "the polarizations, but\n"
-         "   subtract components from the individual images. Only possible "
+         "   Perform deconvolution by searching for peaks in the sum of "
+         "squares of the polarizations,\n"
+         "   but subtract components from the individual images. Only possible "
          "when imaging two or four Stokes\n"
          "   or linear parameters. Default: off.\n"
          "-link-polarizations <pollist>\n"
@@ -417,8 +417,8 @@ void CommandLine::printHelp() {
          "   Split the image into facets using the facet regions defined in "
          " the facets.reg file. Default: off.\n"
          "-join-channels\n"
-         "   Perform cleaning by searching for peaks in the MF image, but "
-         "subtract components from individual channels.\n"
+         "   Perform deconvolution by searching for peaks in the MF image,\n"
+         "but subtract components from individual channels.\n"
          "   This will turn on mf-weighting by default. Default: off.\n"
          "-spectral-correction <reffreq> <term list>\n"
          "   Enable correction of the given spectral function inside "
@@ -944,19 +944,17 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "facet-regions") {
       ++argi;
       settings.facetRegionFilename = argv[argi];
-      if (settings.facetRegionFilename.empty())
-        throw std::runtime_error("Facet region file name is empty");
     } else if (param == "join-polarizations" || param == "joinpolarizations") {
-      settings.joinedPolarizationCleaning = true;
+      settings.joinedPolarizationDeconvolution = true;
       if (param == "joinpolarizations")
         deprecated(isSlave, param, "join-polarizations");
     } else if (param == "link-polarizations") {
       ++argi;
-      settings.joinedPolarizationCleaning = true;
+      settings.joinedPolarizationDeconvolution = true;
       settings.linkedPolarizations =
           aocommon::Polarization::ParseList(argv[argi]);
     } else if (param == "join-channels" || param == "joinchannels") {
-      settings.joinedFrequencyCleaning = true;
+      settings.joinedFrequencyDeconvolution = true;
       if (param == "joinchannels") deprecated(isSlave, param, "join-channels");
     } else if (param == "mf-weighting" || param == "mfs-weighting" ||
                param == "mfsweighting") {
@@ -1330,10 +1328,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   settings.atermKernelSize = atermKernelSize.get_value_or(defaultAtermSize);
 
   settings.mfWeighting =
-      (settings.joinedFrequencyCleaning && !noMFWeighting) || mfWeighting;
+      (settings.joinedFrequencyDeconvolution && !noMFWeighting) || mfWeighting;
 
   // Joined polarizations is implemented by linking all polarizations
-  if (settings.joinedPolarizationCleaning &&
+  if (settings.joinedPolarizationDeconvolution &&
       settings.linkedPolarizations.empty()) {
     settings.linkedPolarizations = settings.polarizations;
   }

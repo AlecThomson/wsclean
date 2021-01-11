@@ -1407,7 +1407,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
                           outChannelIndex, templateEntry);
     templateEntry.outputChannelIndex = outChannelIndex;
 
-    if (_settings.joinedFrequencyCleaning) {
+    if (_settings.joinedFrequencyDeconvolution) {
       templateEntry.joinedGroupIndex = 0;
     }
     addFacetsToImagingTable(templateEntry);
@@ -1565,13 +1565,13 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
         new ImagingTableEntry(templateEntry));
     _imagingTable.AddEntry(std::move(entry));
 
-    if (!_settings.joinedPolarizationCleaning) {
+    if (!_settings.joinedPolarizationDeconvolution) {
       ++templateEntry.joinedGroupIndex;
       ++templateEntry.squaredDeconvolutionIndex;
     }
   }
 
-  if (_settings.joinedPolarizationCleaning) {
+  if (_settings.joinedPolarizationDeconvolution) {
     ++templateEntry.joinedGroupIndex;
     ++templateEntry.squaredDeconvolutionIndex;
   }
