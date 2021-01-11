@@ -2,6 +2,7 @@
 #define GRIDDING_RESULT_H
 
 #include "../structures/image.h"
+#include "../structures/observationinfo.h"
 
 #include <string>
 
@@ -21,6 +22,7 @@ struct GriddingResult {
 
   ImageF imageRealResult;
   ImageF imageImaginaryResult;
+  ObservationInfo observationInfo;
   double beamSize;
   double imageWeight;
   double normalizationFactor;

@@ -4,6 +4,15 @@
 #include <string>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/tables/Tables/TableRecord.h>
+
+#include "../structures/msselection.h"
 
 struct ObservationInfo {
   double phaseCentreRA = 0.0, phaseCentreDec = 0.0;
@@ -16,9 +25,11 @@ struct ObservationInfo {
 
   void Serialize(class SerialOStream& stream) const;
   void Unserialize(class SerialIStream& stream);
-
-  static ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
-                                             size_t fieldId);
 };
+
+/// Generates observation info from the measurement set tables.
+/// IMPORTANT: it will not fill startTime.
+struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
+                                           size_t fieldId);
 
 #endif
