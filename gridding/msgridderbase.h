@@ -6,6 +6,7 @@
 #include "../scheduling/metadatacache.h"
 
 #include "../structures/multibanddata.h"
+#include "../structures/observationinfo.h"
 
 #include <aocommon/uvector.h>
 
@@ -71,10 +72,6 @@ class MSGridderBase : public MeasurementSetGridder {
   double EffectiveGriddedVisibilityCount() const {
     return totalWeight() / MaxGriddedWeight();
   }
-
-  static void GetPhaseCentreInfo(casacore::MeasurementSet& ms, size_t fieldId,
-                                 double& ra, double& dec, double& dl,
-                                 double& dm);
 
   const std::string& TelescopeName() const { return _telescopeName; }
 
@@ -203,12 +200,12 @@ class MSGridderBase : public MeasurementSetGridder {
   static void rotateVisibilities(const BandData& bandData, double shiftFactor,
                                  std::complex<float>* dataIter);
 
-  void initializePhaseCentre(casacore::MeasurementSet& ms, size_t fieldId);
+  void initializePhaseCentre(struct ObservationInfo& obsInfo);
 
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
 
-  void initializeMetaData(casacore::MeasurementSet& ms, size_t fieldId);
+  void initializeMetaData(struct ObservationInfo& obsInfo);
 
   bool _hasFrequencies;
   double _freqHigh, _freqLow;

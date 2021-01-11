@@ -92,6 +92,7 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 
   GriddingResult result;
   result.imageRealResult = std::move(psfImage);
+  result.observationInfo = WSCFitsWriter::ReadObservationInfo(reader);
   result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
   double nVis = 0.0;
@@ -160,6 +161,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.Store(result.imageRealResult.data(),
                    *_settings.polarizations.begin(), channelIndex, false);
 
+  _observationInfo = result.observationInfo;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
@@ -264,6 +266,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
       result.normalizationFactor;
+
+  _observationInfo = result.observationInfo;
 
   // If no PSF is made, also set the beam size. If the PSF was made, these would
   // already be set after imaging the PSF.
@@ -1219,19 +1223,15 @@ void WSClean::runFirstInversion(
     if (_settings.applyPrimaryBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList;
       initializeMSList(entry, msList);
-      double ra, dec, dl, dm;
-      {
-        std::unique_ptr<MSProvider> provider = msList.front()->GetProvider();
-        SynchronizedMS ms(provider->MS());
-        MSGridderBase::GetPhaseCentreInfo(*ms, _settings.fieldIds[0], ra, dec,
-                                          dl, dm);
-      }
       std::shared_ptr<ImageWeights> weights =
           initializeImageWeights(entry, msList);
       primaryBeam.reset(new PrimaryBeam(_settings));
       for (std::unique_ptr<MSDataDescription>& description : msList)
         primaryBeam->AddMS(std::move(description));
-      primaryBeam->SetPhaseCentre(ra, dec, dl, dm);
+      // TODO L make sure that the info is gathered before this point
+      primaryBeam->SetPhaseCentre(
+          _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+          _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
       primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
     }
   }

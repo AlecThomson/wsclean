@@ -27,9 +27,9 @@ void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
       .String(fieldName);
 }
 
-ObservationInfo ObservationInfo::ReadObservationInfo(
-    casacore::MeasurementSet& ms, size_t fieldId) {
-  ObservationInfo obsInfo;
+struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
+                                           size_t fieldId) {
+  struct ObservationInfo obsInfo;
 
   casacore::MSAntenna aTable = ms.antenna();
   size_t antennaCount = aTable.nrow();
@@ -67,14 +67,19 @@ ObservationInfo ObservationInfo::ReadObservationInfo(
     obsInfo.phaseCentreDM = 0.0;
   }
 
-  MSObservation obsTable(ms.observation());
-  casacore::ScalarColumn<std::string> telescopeNameColumn(
-      obsTable, obsTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
-  casacore::ScalarColumn<std::string> observerColumn(
+  casacore::MSObservation oTable = ms.observation();
+  size_t obsCount = oTable.nrow();
+  if (obsCount == 0) throw std::runtime_error("No observations in set");
+  casacore::ScalarColumn<casacore::String> telescopeNameColumn(
+      oTable, oTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
+  casacore::ScalarColumn<casacore::String> observerColumn(
       oTable, oTable.columnName(casacore::MSObservation::OBSERVER));
   obsInfo.telescopeName = telescopeNameColumn(0);
   obsInfo.observer = observerColumn(0);
 
-  obsInfo.startTime = reader.DateObs();
+  casacore::ScalarColumn<casacore::String> fieldNameColumn(
+      fTable, fTable.columnName(casacore::MSField::NAME));
+  obsInfo.fieldName = fieldNameColumn(fieldRow);
+
   return obsInfo;
 }
