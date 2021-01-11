@@ -92,7 +92,6 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 
   GriddingResult result;
   result.imageRealResult = std::move(psfImage);
-  result.observationInfo = WSCFitsWriter::ReadObservationInfo(reader);
   result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
   double nVis = 0.0;
@@ -161,7 +160,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.Store(result.imageRealResult.data(),
                    *_settings.polarizations.begin(), channelIndex, false);
 
-  _observationInfo = result.observationInfo;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
@@ -266,8 +264,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
       result.normalizationFactor;
-
-  _observationInfo = result.observationInfo;
 
   // If no PSF is made, also set the beam size. If the PSF was made, these would
   // already be set after imaging the PSF.
