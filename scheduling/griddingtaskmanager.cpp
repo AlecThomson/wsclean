@@ -136,6 +136,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
   result.imageRealResult = gridder.ImageRealResult();
   if (gridder.IsComplex())
     result.imageImaginaryResult = gridder.ImageImaginaryResult();
+  result.startTime = gridder.StartTime();
   result.beamSize = gridder.BeamSize();
   result.imageWeight = gridder.ImageWeight();
   result.normalizationFactor = gridder.NormalizationFactor();

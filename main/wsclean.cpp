@@ -56,7 +56,8 @@ WSClean::WSClean()
       _deconvolutionWatch(false),
       _isFirstInversion(true),
       _majorIterationNr(0),
-      _deconvolution(_settings) {}
+      _deconvolution(_settings),
+      _lastStartTime(0.0) {}
 
 WSClean::~WSClean() {}
 
@@ -160,6 +161,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.Store(result.imageRealResult.data(),
                    *_settings.polarizations.begin(), channelIndex, false);
 
+  _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
@@ -264,6 +266,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
       result.normalizationFactor;
+
+  _lastStartTime = result.startTime;
 
   // If no PSF is made, also set the beam size. If the PSF was made, these would
   // already be set after imaging the PSF.
@@ -517,8 +521,7 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
-  // TODO L fieldId?
-  _observationInfo = ReadObservationInfo(ms, 1);
+  _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -672,8 +675,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 
 void WSClean::RunPredict() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
-  // TODO L fieldId?
-  _observationInfo = ReadObservationInfo(ms, 1);
+  _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1570,7 +1572,8 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isModel) const {
   return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
                        _observationInfo, _majorIterationNr, _commandLine,
-                       _infoPerChannel[entry.outputChannelIndex], isModel);
+                       _infoPerChannel[entry.outputChannelIndex], isModel,
+                       _lastStartTime);
 }
 
 WSCFitsWriter WSClean::createWSCFitsWriter(
@@ -1579,5 +1582,5 @@ WSCFitsWriter WSClean::createWSCFitsWriter(
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
                        _deconvolution, _observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
-                       isModel);
+                       isModel, _lastStartTime);
 }

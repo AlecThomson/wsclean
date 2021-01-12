@@ -10,7 +10,8 @@
 
 struct GriddingResult {
   GriddingResult()
-      : beamSize(0.0),
+      : startTime(0.0),
+        beamSize(0.0),
         imageWeight(0.0),
         normalizationFactor(0.0),
         actualWGridSize(0),
@@ -22,6 +23,7 @@ struct GriddingResult {
 
   ImageF imageRealResult;
   ImageF imageImaginaryResult;
+  double startTime;
   double beamSize;
   double imageWeight;
   double normalizationFactor;
