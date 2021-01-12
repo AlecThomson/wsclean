@@ -7,7 +7,6 @@
 #include "../msproviders/msprovider.h"
 
 #include "../structures/imageweights.h"
-#include "../structures/observationinfo.h"
 
 #include "../units/angle.h"
 
