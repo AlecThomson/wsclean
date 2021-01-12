@@ -20,12 +20,12 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                              const ObservationInfo& observationInfo,
                              size_t majorIterationNr,
                              const std::string& commandLine,
-                             const OutputChannelInfo& channelInfo,
-                             bool isModel) {
+                             const OutputChannelInfo& channelInfo, bool isModel,
+                             double startTime) {
   _filenamePrefix = ImageFilename::GetPrefix(
       settings, entry.polarization, entry.outputChannelIndex,
       entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo);
+  setGridderConfiguration(settings, observationInfo, startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -40,11 +40,11 @@ WSCFitsWriter::WSCFitsWriter(
     bool isImaginary, const Settings& settings,
     const Deconvolution& deconvolution, const ObservationInfo& observationInfo,
     size_t majorIterationNr, const std::string& commandLine,
-    const OutputChannelInfo& channelInfo, bool isModel) {
+    const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
   _filenamePrefix =
       ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
                                entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo);
+  setGridderConfiguration(settings, observationInfo, startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -77,7 +77,8 @@ void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
 }
 
 void WSCFitsWriter::setGridderConfiguration(
-    const Settings& settings, const ObservationInfo& observationInfo) {
+    const Settings& settings, const ObservationInfo& observationInfo,
+    double startTime) {
   const double ra = observationInfo.phaseCentreRA,
                dec = observationInfo.phaseCentreDec,
                pixelScaleX = settings.pixelScaleX,
@@ -86,7 +87,8 @@ void WSCFitsWriter::setGridderConfiguration(
   _writer.SetImageDimensions(settings.trimmedImageWidth,
                              settings.trimmedImageHeight, ra, dec, pixelScaleX,
                              pixelScaleY);
-  // TODO L verify is startTime can be removed here
+
+  _writer.SetDate(startTime);
   if (observationInfo.hasDenormalPhaseCentre)
     _writer.SetPhaseCentreShift(observationInfo.phaseCentreDL,
                                 observationInfo.phaseCentreDM);
