@@ -86,6 +86,7 @@ void WSCFitsWriter::setGridderConfiguration(
   _writer.SetImageDimensions(settings.trimmedImageWidth,
                              settings.trimmedImageHeight, ra, dec, pixelScaleX,
                              pixelScaleY);
+  // TODO L verify is startTime can be removed here
   if (observationInfo.hasDenormalPhaseCentre)
     _writer.SetPhaseCentreShift(observationInfo.phaseCentreDL,
                                 observationInfo.phaseCentreDM);

@@ -6,7 +6,6 @@
 #include "../scheduling/metadatacache.h"
 
 #include "../structures/multibanddata.h"
-#include "../structures/observationinfo.h"
 
 #include <aocommon/uvector.h>
 
@@ -176,8 +175,6 @@ class MSGridderBase : public MeasurementSetGridder {
 
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
-
-  void initializeMetaData(struct ObservationInfo& obsInfo);
 
   bool _hasFrequencies;
   double _freqHigh, _freqLow;
