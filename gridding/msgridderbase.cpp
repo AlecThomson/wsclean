@@ -43,10 +43,6 @@ MSGridderBase::MSGridderBase()
       _bandStart(0.0),
       _bandEnd(0.0),
       _startTime(0.0),
-      _phaseCentreRA(0.0),
-      _phaseCentreDec(0.0),
-      _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0),
       _denormalPhaseCentre(false),
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
@@ -87,18 +83,6 @@ int64_t MSGridderBase::getAvailableMemory(double memFraction,
       memory = int64_t(double(absMemLimit) * double(1024.0 * 1024.0 * 1024.0));
   }
   return memory;
-}
-
-void MSGridderBase::initializePhaseCentre(struct ObservationInfo& obsInfo) {
-  _phaseCentreRA = obsInfo.phaseCentreRA;
-  _phaseCentreDec = obsInfo.phaseCentreDec;
-  _phaseCentreDL = obsInfo.phaseCentreDL;
-  _phaseCentreDM = obsInfo.phaseCentreDM;
-
-  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
-  if (_denormalPhaseCentre)
-    Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
-                  << ", dm=" << _phaseCentreDM << '\n';
 }
 
 void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
@@ -233,12 +217,6 @@ void MSGridderBase::initializeMSDataVector(
   calculateOverallMetaData(msDataVector.data());
 }
 
-void MSGridderBase::initializeMetaData(struct ObservationInfo& obsInfo) {
-  _telescopeName = obsInfo.telescopeName;
-  _observer = obsInfo.observer;
-  _fieldName = obsInfo.fieldName;
-}
-
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
                                              bool isCacheInitialized) {
@@ -249,12 +227,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 
   initializeBandData(*ms, msData);
 
-  calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
+  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
+  if (_denormalPhaseCentre)
+    Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
+                  << ", dm=" << _phaseCentreDM << '\n';
 
-  struct ObservationInfo obsInfo =
-      ReadObservationInfo(*ms, Selection(msData.msIndex).FieldIds()[0]);
-  initializePhaseCentre(obsInfo);
-  initializeMetaData(obsInfo);
+  calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
 
   if (isCacheInitialized) {
     msData.maxW = cacheEntry.maxW;

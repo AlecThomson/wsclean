@@ -92,7 +92,6 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 
   GriddingResult result;
   result.imageRealResult = std::move(psfImage);
-  result.observationInfo = WSCFitsWriter::ReadObservationInfo(reader);
   result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
   double nVis = 0.0;
@@ -161,7 +160,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.Store(result.imageRealResult.data(),
                    *_settings.polarizations.begin(), channelIndex, false);
 
-  _observationInfo = result.observationInfo;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
@@ -266,8 +264,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
       result.normalizationFactor;
-
-  _observationInfo = result.observationInfo;
 
   // If no PSF is made, also set the beam size. If the PSF was made, these would
   // already be set after imaging the PSF.
@@ -521,6 +517,10 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
+  casacore::MeasurementSet ms(_settings.filenames[0]);
+  // TODO L fieldId?
+  _observationInfo = ReadObservationInfo(ms, 1);
+
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
@@ -539,7 +539,8 @@ void WSClean::RunClean() {
 
     if (_settings.mfWeighting) initializeMFSImageWeights();
 
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
+    _griddingTaskManager =
+        GriddingTaskManager::Make(_settings, _observationInfo);
 
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
@@ -671,6 +672,10 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
+  casacore::MeasurementSet ms(_settings.filenames[0]);
+  // TODO L fieldId?
+  _observationInfo = ReadObservationInfo(ms, 1);
+
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
@@ -689,7 +694,8 @@ void WSClean::RunPredict() {
 
     if (_settings.doReorder) performReordering(true);
 
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
+    _griddingTaskManager =
+        GriddingTaskManager::Make(_settings, _observationInfo);
 
     for (size_t groupIndex = 0; groupIndex != _imagingTable.SquaredGroupCount();
          ++groupIndex) {
@@ -1148,7 +1154,8 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
     // TODO check phase centre
 
     if (resetGridder)
-      _griddingTaskManager = GriddingTaskManager::Make(_settings);
+      _griddingTaskManager =
+          GriddingTaskManager::Make(_settings, _observationInfo);
 
     if (!_imageWeightCache) {
       // The construction of the weight cache is delayed in prediction mode,
@@ -1242,7 +1249,6 @@ void WSClean::runFirstInversion(
       primaryBeam.reset(new PrimaryBeam(_settings));
       for (std::unique_ptr<MSDataDescription>& description : msList)
         primaryBeam->AddMS(std::move(description));
-      // TODO L make sure that the info is gathered before this point
       primaryBeam->SetPhaseCentre(
           _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
           _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
