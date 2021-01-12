@@ -6,7 +6,6 @@
 void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Double(startTime)
       .Bool(hasDenormalPhaseCentre)
       .Double(phaseCentreDL)
       .Double(phaseCentreDM)
@@ -18,7 +17,6 @@ void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
 void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Double(startTime)
       .Bool(hasDenormalPhaseCentre)
       .Double(phaseCentreDL)
       .Double(phaseCentreDM)

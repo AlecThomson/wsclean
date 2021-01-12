@@ -18,12 +18,6 @@ class MSGridderBase : public MeasurementSetGridder {
   ~MSGridderBase();
 
   virtual double StartTime() const final override { return _startTime; }
-  virtual double PhaseCentreRA() const final override { return _phaseCentreRA; }
-  virtual double PhaseCentreDec() const final override {
-    return _phaseCentreDec;
-  }
-  virtual double PhaseCentreDL() const final override { return _phaseCentreDL; }
-  virtual double PhaseCentreDM() const final override { return _phaseCentreDM; }
   virtual bool HasDenormalPhaseCentre() const final override {
     return _denormalPhaseCentre;
   }
@@ -33,20 +27,6 @@ class MSGridderBase : public MeasurementSetGridder {
   }
   virtual double BeamSize() const final override {
     return _theoreticalBeamSize;
-  }
-
-  struct ObservationInfo ObservationInfo() const {
-    struct ObservationInfo info;
-    info.phaseCentreRA = PhaseCentreRA();
-    info.phaseCentreDec = PhaseCentreDec();
-    info.startTime = StartTime();
-    info.hasDenormalPhaseCentre = HasDenormalPhaseCentre();
-    info.phaseCentreDL = PhaseCentreDL();
-    info.phaseCentreDM = PhaseCentreDM();
-    info.telescopeName = TelescopeName();
-    info.fieldName = FieldName();
-    info.observer = Observer();
-    return info;
   }
 
   /**
@@ -72,12 +52,6 @@ class MSGridderBase : public MeasurementSetGridder {
   double EffectiveGriddedVisibilityCount() const {
     return totalWeight() / MaxGriddedWeight();
   }
-
-  const std::string& TelescopeName() const { return _telescopeName; }
-
-  const std::string& Observer() const { return _observer; }
-
-  const std::string& FieldName() const { return _fieldName; }
 
   void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) {
     _metaDataCache = std::move(cache);
@@ -200,8 +174,6 @@ class MSGridderBase : public MeasurementSetGridder {
   static void rotateVisibilities(const BandData& bandData, double shiftFactor,
                                  std::complex<float>* dataIter);
 
-  void initializePhaseCentre(struct ObservationInfo& obsInfo);
-
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
 
@@ -212,9 +184,7 @@ class MSGridderBase : public MeasurementSetGridder {
   double _bandStart, _bandEnd;
   double _startTime;
 
-  double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   bool _denormalPhaseCentre;
-  std::string _telescopeName, _observer, _fieldName;
 
   size_t _griddedVisibilityCount;
   double _totalWeight;

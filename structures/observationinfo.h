@@ -18,7 +18,6 @@
 
 struct ObservationInfo {
   double phaseCentreRA = 0.0, phaseCentreDec = 0.0;
-  double startTime = 0.0;
   bool hasDenormalPhaseCentre = false;
   double phaseCentreDL = 0.0, phaseCentreDM = 0.0;
   std::string telescopeName;
@@ -30,7 +29,6 @@ struct ObservationInfo {
 };
 
 /// Generates observation info from the measurement set tables.
-/// IMPORTANT: it will not fill startTime.
 struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
                                            size_t fieldId);
 
