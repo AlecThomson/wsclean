@@ -3,8 +3,8 @@
 #include "../scheduling/griddingtask.h"
 #include "../idg/averagebeam.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
 BOOST_AUTO_TEST_SUITE(serialization)
 
