@@ -305,9 +305,11 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       readEarlierModelImages(entry);
       // Reinitalize facets because the pixelScaleX, pixelScaleY,
       // trimmedImageWidth or trimmedImageHeight could be changed
-      _facets =
-          FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                  _observationInfo.phaseCentreDec);
+      if (!_settings.facetRegionFilename.empty() && _facets.empty()) {
+        _facets =
+            FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                    _observationInfo.phaseCentreDec);
+      }
     } else {
       // Set model to zero: already done if this is YX of XY/YX imaging combi
       if (!(entry.polarization == aocommon::Polarization::YX &&
@@ -685,8 +687,6 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 void WSClean::RunPredict() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
   _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                    _observationInfo.phaseCentreDec);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1205,8 +1205,11 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
     readEarlierModelImages(entry);
     // Reinitalize facets because the pixelScaleX, pixelScaleY,
     // trimmedImageWidth or trimmedImageHeight could be changed
-    _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                      _observationInfo.phaseCentreDec);
+    if (!_settings.facetRegionFilename.empty() && _facets.empty()) {
+      _facets =
+          FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                  _observationInfo.phaseCentreDec);
+    }
 
     predict(entry);
   }  // end of polarization loop
