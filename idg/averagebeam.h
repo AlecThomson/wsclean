@@ -38,8 +38,8 @@ class AverageBeam {
     return _matrixInverseBeam;
   }
 
-  void Serialize(class aocommon::SerialOStream& stream) const;
-  void Unserialize(class aocommon::SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 
  private:
   std::shared_ptr<std::vector<float>> _scalarBeam;
