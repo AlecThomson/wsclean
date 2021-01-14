@@ -7,6 +7,7 @@
 #include "../gridding/directmsgridder.h"
 #include "../gridding/measurementsetgridder.h"
 
+#include "../io/facetreader.h"
 #include "../io/imagefilename.h"
 #include "../io/imageweightcache.h"
 #include "../io/logger.h"
@@ -304,8 +305,9 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       readEarlierModelImages(entry);
       // Reinitalize facets because the pixelScaleX, pixelScaleY,
       // trimmedImageWidth or trimmedImageHeight could be changed
-      _facets = _settings.ReadFacets(_observationInfo.phaseCentreRA,
-                                     _observationInfo.phaseCentreDec);
+      _facets =
+          FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                  _observationInfo.phaseCentreDec);
     } else {
       // Set model to zero: already done if this is YX of XY/YX imaging combi
       if (!(entry.polarization == aocommon::Polarization::YX &&
@@ -527,8 +529,8 @@ void WSClean::performReordering(bool isPredictMode) {
 void WSClean::RunClean() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
   _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  _facets = _settings.ReadFacets(_observationInfo.phaseCentreRA,
-                                 _observationInfo.phaseCentreDec);
+  _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                    _observationInfo.phaseCentreDec);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -683,8 +685,8 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 void WSClean::RunPredict() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
   _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  _facets = _settings.ReadFacets(_observationInfo.phaseCentreRA,
-                                 _observationInfo.phaseCentreDec);
+  _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                    _observationInfo.phaseCentreDec);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1203,8 +1205,8 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
     readEarlierModelImages(entry);
     // Reinitalize facets because the pixelScaleX, pixelScaleY,
     // trimmedImageWidth or trimmedImageHeight could be changed
-    _facets = _settings.ReadFacets(_observationInfo.phaseCentreRA,
-                                   _observationInfo.phaseCentreDec);
+    _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
+                                      _observationInfo.phaseCentreDec);
 
     predict(entry);
   }  // end of polarization loop
