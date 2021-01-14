@@ -46,8 +46,9 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  ms2dirty(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
-           true, nthreads_, tdirty, verbosity_, true, false);
+  ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
+                         pixelSizeY_, epsilon_, true, nthreads_, tdirty,
+                         verbosity_, true, false);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.craw(i);
 }
 
@@ -84,6 +85,7 @@ void WGriddingGridder_Simple::PredictVisibilities(
   mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  dirty2ms(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
-           true, nthreads_, ms, verbosity_, true, false);
+  dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
+                         pixelSizeY_, epsilon_, true, nthreads_, ms,
+                         verbosity_, true, false);
 }
