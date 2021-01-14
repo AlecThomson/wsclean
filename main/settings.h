@@ -1,6 +1,8 @@
 #ifndef WSCLEAN_SETTINGS_H
 #define WSCLEAN_SETTINGS_H
 
+#include <schaapcommon/facets/facet.h>
+
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
@@ -26,6 +28,11 @@ class Settings {
   void Propagate(bool verbose = true);
 
   void RecalculatePaddedDimensions(bool verbose = true);
+
+  // Reading facets requires the scale and size so do it after those settings
+  // are validated, and validate the facet settings here.
+  std::vector<schaapcommon::facets::Facet> ReadFacets(double phaseCentreRa,
+                                                      double phaseCentreDec);
 
   std::vector<std::string> filenames;
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;

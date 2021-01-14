@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#include <schaapcommon/facets/ds9facetfile.h>
+
 #include "../io/logger.h"
 
 #include <sstream>
@@ -224,6 +226,21 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
                     << trimmedImageHeight << ", padded to " << paddedImageWidth
                     << " x " << paddedImageHeight << ".\n";
   }
+}
+
+std::vector<schaapcommon::facets::Facet> Settings::ReadFacets(
+    double phaseCentreRa, double phaseCentreDec) {
+  std::vector<schaapcommon::facets::Facet> facets;
+  if (!facetRegionFilename.empty()) {
+    facets = schaapcommon::facets::DS9FacetFile(facetRegionFilename)
+                 .Read(phaseCentreRa, phaseCentreDec, pixelScaleX, pixelScaleY,
+                       trimmedImageWidth, trimmedImageHeight);
+
+    if (facets.empty())
+      throw std::runtime_error("No facets found in " + facetRegionFilename);
+  }
+
+  return facets;
 }
 
 bool Settings::determineReorder() const {
