@@ -345,7 +345,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
          ++chp)
       rowData.data[chp] = 1.0;
     if (HasDenormalPhaseCentre()) {
-      double lmsqrt = sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
+      double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
                            PhaseCentreDM() * PhaseCentreDM());
       double shiftFactor = 2.0 * M_PI * (rowData.uvw[2] * (lmsqrt - 1.0));
       rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
