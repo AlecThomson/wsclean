@@ -938,8 +938,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       if (param == "channelrange") deprecated(isSlave, param, "channel-range");
     } else if (param == "shift") {
       settings.hasShift = true;
-      settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi+1]);
-      settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi+2]);
+      settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi + 1]);
+      settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi + 2]);
       argi += 2;
     } else if (param == "channelsout" || param == "channels-out") {
       ++argi;

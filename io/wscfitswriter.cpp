@@ -90,8 +90,7 @@ void WSCFitsWriter::setGridderConfiguration(
 
   _writer.SetDate(startTime);
   if (observationInfo.hasShiftedPhaseCentre)
-    _writer.SetPhaseCentreShift(observationInfo.shiftL,
-                                observationInfo.shiftM);
+    _writer.SetPhaseCentreShift(observationInfo.shiftL, observationInfo.shiftM);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);

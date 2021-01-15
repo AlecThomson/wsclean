@@ -415,12 +415,15 @@ void WSClean::predict(const ImagingTableEntry& entry) {
       });
 }
 
-ObservationInfo WSClean::getObservationInfo() const
-{
+ObservationInfo WSClean::getObservationInfo() const {
   casacore::MeasurementSet ms(_settings.filenames[0]);
-  ObservationInfo observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  if(_settings.hasShift) {
-    aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec, observationInfo.phaseCentreRA, observationInfo.phaseCentreDec, observationInfo.shiftL, observationInfo.shiftM);
+  ObservationInfo observationInfo =
+      ReadObservationInfo(ms, _settings.fieldIds[0]);
+  if (_settings.hasShift) {
+    aocommon::ImageCoordinates::RaDecToLM(
+        _settings.shiftRA, _settings.shiftDec, observationInfo.phaseCentreRA,
+        observationInfo.phaseCentreDec, observationInfo.shiftL,
+        observationInfo.shiftM);
   }
   return observationInfo;
 }
@@ -538,7 +541,7 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
-   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
     facet.CalculatePixelPositions(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
