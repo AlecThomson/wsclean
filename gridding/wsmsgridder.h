@@ -16,12 +16,7 @@
 #include <memory>
 #include <thread>
 
-namespace casacore {
-class MeasurementSet;
-}
-class ImageBufferAllocator;
-
-class WSMSGridder : public MSGridderBase {
+class WSMSGridder final : public MSGridderBase {
  public:
   typedef WStackingGridderF GridderType;
 

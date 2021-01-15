@@ -42,7 +42,6 @@ MSGridderBase::MSGridderBase()
       _bandStart(0.0),
       _bandEnd(0.0),
       _startTime(0.0),
-      _denormalPhaseCentre(false),
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
