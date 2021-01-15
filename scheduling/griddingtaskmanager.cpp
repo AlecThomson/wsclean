@@ -11,7 +11,7 @@
 #include "../idg/idgmsgridder.h"
 
 #ifdef HAVE_WGRIDDER
-#include "../wgridder/bufferedmsgridder.h"
+#include "../wgridder/wgriddingmsgridder.h"
 #endif
 
 GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
@@ -41,7 +41,7 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
     return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
   } else if (_settings.useWGridder) {
 #ifdef HAVE_WGRIDDER
-    return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(
+    return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(
         _settings.threadCount, _settings.memFraction, _settings.absMemLimit,
         _settings.wgridderAccuracy));
 #else
