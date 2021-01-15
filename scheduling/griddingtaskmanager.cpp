@@ -14,15 +14,13 @@
 #include "../wgridder/bufferedmsgridder.h"
 #endif
 
-GriddingTaskManager::GriddingTaskManager(const class Settings& settings,
-                                         const struct ObservationInfo& obsInfo)
-    : _settings(settings), _obsInfo(obsInfo) {}
+GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
+    : _settings(settings) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings, const struct ObservationInfo& obsInfo,
-    bool useDirectScheduler) {
+    const class Settings& settings, bool useDirectScheduler) {
   if (settings.useMPI && !useDirectScheduler) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
@@ -31,10 +29,10 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 #endif
   } else if (settings.parallelGridding == 1 || useDirectScheduler) {
     return std::unique_ptr<GriddingTaskManager>(
-        new GriddingTaskManager(settings, obsInfo));
+        new GriddingTaskManager(settings));
   } else {
     return std::unique_ptr<GriddingTaskManager>(
-        new ThreadedScheduler(settings, obsInfo));
+        new ThreadedScheduler(settings));
   }
 }
 
@@ -83,7 +81,7 @@ void GriddingTaskManager::Run(
     GriddingTask& task, std::function<void(GriddingResult&)> finishCallback) {
   if (!_gridder) {
     _gridder = createGridder();
-    prepareGridder(*_gridder);
+    prepareGridder(*_gridder, task.obsInfo);
   }
 
   GriddingResult result = runDirect(task, *_gridder);
@@ -93,7 +91,7 @@ void GriddingTaskManager::Run(
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask& task) {
   if (!_gridder) {
     _gridder = createGridder();
-    prepareGridder(*_gridder);
+    prepareGridder(*_gridder, task.obsInfo);
   }
 
   return runDirect(task, *_gridder);
@@ -151,7 +149,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
   return result;
 }
 
-void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
+void GriddingTaskManager::prepareGridder(
+    MSGridderBase& gridder, const struct ObservationInfo& obsInfo) {
   gridder.SetGridMode(_settings.gridMode);
   gridder.SetImageWidth(_settings.paddedImageWidth);
   gridder.SetImageHeight(_settings.paddedImageHeight);
@@ -173,8 +172,8 @@ void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
   gridder.SetWLimit(_settings.wLimit / 100.0);
   gridder.SetSmallInversion(_settings.smallInversion);
   gridder.SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
-  gridder.SetPhaseCentreDec(_obsInfo.phaseCentreDec);
-  gridder.SetPhaseCentreRA(_obsInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(_obsInfo.phaseCentreDM);
-  gridder.SetPhaseCentreDL(_obsInfo.phaseCentreDL);
+  gridder.SetPhaseCentreDec(obsInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(obsInfo.phaseCentreRA);
+  gridder.SetPhaseCentreDM(obsInfo.phaseCentreDM);
+  gridder.SetPhaseCentreDL(obsInfo.phaseCentreDL);
 }
