@@ -521,8 +521,10 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  casacore::MeasurementSet ms(_settings.filenames[0]);
-  _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  {
+    casacore::MeasurementSet ms(_settings.filenames[0]);
+    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  }
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
     facet.CalculatePixelPositions(
@@ -683,8 +685,10 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
-  casacore::MeasurementSet ms(_settings.filenames[0]);
-  _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  {
+    casacore::MeasurementSet ms(_settings.filenames[0]);
+    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  }
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;

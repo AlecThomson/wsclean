@@ -50,7 +50,7 @@ class GriddingTaskManager {
 
  private:
   std::unique_ptr<MSGridderBase> _gridder;
-  const struct ObservationInfo& _obsInfo;
+  const struct ObservationInfo _obsInfo;
 };
 
 #endif
