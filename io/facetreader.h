@@ -9,6 +9,6 @@ class FacetReader {
   // Reading facets requires the scale and size so do it after those settings
   // are validated, and validate the facet settings here.
   static std::vector<schaapcommon::facets::Facet> ReadFacets(
-      const Settings& settings, double phaseCentreRA, double phaseCentreDec);
+      std::string facetRegionFilename);
 };
 #endif

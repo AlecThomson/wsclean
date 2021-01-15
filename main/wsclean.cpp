@@ -303,13 +303,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
     if (_settings.continuedRun) {
       readEarlierModelImages(entry);
-      // Reinitalize facets because the pixelScaleX, pixelScaleY,
-      // trimmedImageWidth or trimmedImageHeight could be changed
-      if (!_settings.facetRegionFilename.empty() && _facets.empty()) {
-        _facets =
-            FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                    _observationInfo.phaseCentreDec);
-      }
     } else {
       // Set model to zero: already done if this is YX of XY/YX imaging combi
       if (!(entry.polarization == aocommon::Polarization::YX &&
@@ -531,8 +524,14 @@ void WSClean::performReordering(bool isPredictMode) {
 void WSClean::RunClean() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
   _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  _facets = FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                    _observationInfo.phaseCentreDec);
+  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  for (schaapcommon::facets::Facet& facet : _facets) {
+    facet.CalculatePixelPositions(
+        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+        _settings.pixelScaleX, _settings.pixelScaleY,
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+        _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+  }
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1202,13 +1201,17 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
 
   _predictingWatch.Start();
   for (const ImagingTableEntry& entry : imagingGroup) {
+    const bool calculatePixelPositions = _settings.trimmedImageWidth == 0;
     readEarlierModelImages(entry);
-    // Reinitalize facets because the pixelScaleX, pixelScaleY,
-    // trimmedImageWidth or trimmedImageHeight could be changed
-    if (!_settings.facetRegionFilename.empty() && _facets.empty()) {
-      _facets =
-          FacetReader::ReadFacets(_settings, _observationInfo.phaseCentreRA,
-                                  _observationInfo.phaseCentreDec);
+
+    if (calculatePixelPositions) {
+      for (schaapcommon::facets::Facet& facet : _facets) {
+        facet.CalculatePixelPositions(
+            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+            _settings.pixelScaleX, _settings.pixelScaleY,
+            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+            _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+      }
     }
 
     predict(entry);

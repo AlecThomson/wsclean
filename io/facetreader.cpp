@@ -4,17 +4,13 @@
 #include <schaapcommon/facets/ds9facetfile.h>
 
 std::vector<schaapcommon::facets::Facet> FacetReader::ReadFacets(
-    const Settings& settings, double phaseCentreRA, double phaseCentreDec) {
+    std::string facetRegionFilename) {
   std::vector<schaapcommon::facets::Facet> facets;
-  if (!settings.facetRegionFilename.empty()) {
-    facets = schaapcommon::facets::DS9FacetFile(settings.facetRegionFilename)
-                 .Read(phaseCentreRA, phaseCentreDec, settings.pixelScaleX,
-                       settings.pixelScaleY, settings.trimmedImageWidth,
-                       settings.trimmedImageHeight);
+  if (!facetRegionFilename.empty()) {
+    facets = schaapcommon::facets::DS9FacetFile(facetRegionFilename).Read();
 
     if (facets.empty())
-      throw std::runtime_error("No facets found in " +
-                               settings.facetRegionFilename);
+      throw std::runtime_error("No facets found in " + facetRegionFilename);
   }
 
   return facets;
