@@ -78,26 +78,26 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
 }
 
 void GriddingTaskManager::Run(
-    GriddingTask& task, std::function<void(GriddingResult&)> finishCallback) {
+    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
   if (!_gridder) {
     _gridder = createGridder();
-    prepareGridder(*_gridder, task.obsInfo);
+    prepareGridder(*_gridder);
   }
 
-  GriddingResult result = runDirect(task, *_gridder);
+  GriddingResult result = runDirect(std::move(task), *_gridder);
   finishCallback(result);
 }
 
-GriddingResult GriddingTaskManager::RunDirect(GriddingTask& task) {
+GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
   if (!_gridder) {
     _gridder = createGridder();
-    prepareGridder(*_gridder, task.obsInfo);
+    prepareGridder(*_gridder);
   }
 
-  return runDirect(task, *_gridder);
+  return runDirect(std::move(task), *_gridder);
 }
 
-GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
+GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
                                               MSGridderBase& gridder) {
   gridder.ClearMeasurementSetList();
   std::vector<std::unique_ptr<MSProvider>> msProviders;
@@ -105,6 +105,10 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
+  gridder.SetPhaseCentreDec(task.obsInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(task.obsInfo.phaseCentreRA);
+  gridder.SetPhaseCentreDM(task.obsInfo.phaseCentreDM);
+  gridder.SetPhaseCentreDL(task.obsInfo.phaseCentreDL);
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
@@ -149,8 +153,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
   return result;
 }
 
-void GriddingTaskManager::prepareGridder(
-    MSGridderBase& gridder, const struct ObservationInfo& obsInfo) {
+void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
   gridder.SetGridMode(_settings.gridMode);
   gridder.SetImageWidth(_settings.paddedImageWidth);
   gridder.SetImageHeight(_settings.paddedImageHeight);
@@ -172,8 +175,4 @@ void GriddingTaskManager::prepareGridder(
   gridder.SetWLimit(_settings.wLimit / 100.0);
   gridder.SetSmallInversion(_settings.smallInversion);
   gridder.SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
-  gridder.SetPhaseCentreDec(obsInfo.phaseCentreDec);
-  gridder.SetPhaseCentreRA(obsInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(obsInfo.phaseCentreDM);
-  gridder.SetPhaseCentreDL(obsInfo.phaseCentreDL);
 }

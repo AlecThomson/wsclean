@@ -10,7 +10,7 @@ ThreadedScheduler::~ThreadedScheduler() {
 }
 
 void ThreadedScheduler::Run(
-    GriddingTask& task, std::function<void(GriddingResult&)> finishCallback) {
+    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
   // Start an extra thread if not maxed out already
   if (_threadList.size() < _settings.parallelGridding)
     _threadList.emplace_back(&ThreadedScheduler::processQueue, this);
@@ -36,7 +36,7 @@ void ThreadedScheduler::processQueue() {
 
   std::pair<GriddingTask, std::function<void(GriddingResult&)>> taskPair;
   while (_taskList.read(taskPair)) {
-    GriddingResult result = runDirect(taskPair.first, *gridder);
+    GriddingResult result = runDirect(std::move(taskPair.first), *gridder);
 
     std::lock_guard<std::mutex> lock(_mutex);
     _readyList.emplace_back(std::move(result), taskPair.second);
