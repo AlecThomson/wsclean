@@ -7,6 +7,7 @@
 #include "../gridding/directmsgridder.h"
 #include "../gridding/measurementsetgridder.h"
 
+#include "../io/facetreader.h"
 #include "../io/imagefilename.h"
 #include "../io/imageweightcache.h"
 #include "../io/logger.h"
@@ -523,6 +524,14 @@ void WSClean::performReordering(bool isPredictMode) {
 void WSClean::RunClean() {
   casacore::MeasurementSet ms(_settings.filenames[0]);
   _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  for (schaapcommon::facets::Facet& facet : _facets) {
+    facet.CalculatePixelPositions(
+        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+        _settings.pixelScaleX, _settings.pixelScaleY,
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+        _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+  }
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1192,7 +1201,18 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
 
   _predictingWatch.Start();
   for (const ImagingTableEntry& entry : imagingGroup) {
+    const bool calculatePixelPositions = _settings.trimmedImageWidth == 0;
     readEarlierModelImages(entry);
+
+    if (calculatePixelPositions) {
+      for (schaapcommon::facets::Facet& facet : _facets) {
+        facet.CalculatePixelPositions(
+            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+            _settings.pixelScaleX, _settings.pixelScaleY,
+            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+            _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+      }
+    }
 
     predict(entry);
   }  // end of polarization loop
