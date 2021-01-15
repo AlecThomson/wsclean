@@ -5,33 +5,33 @@
 
 #include <memory>
 
-class WGriddingMSGridder : public MSGridderBase {
+class WGriddingMSGridder final : public MSGridderBase {
  public:
   WGriddingMSGridder(size_t threadCount, double memFraction, double absMemLimit,
                      double accuracy);
 
-  virtual void Invert() final override;
+  virtual void Invert() override;
 
-  virtual void Predict(ImageF image) final override;
-  virtual void Predict(ImageF, ImageF) final override {
+  virtual void Predict(ImageF image) override;
+  virtual void Predict(ImageF, ImageF) override {
     throw std::runtime_error("Can not do imaginary imaging in this mode");
   }
 
-  virtual ImageF ImageRealResult() final override { return std::move(_image); }
-  virtual ImageF ImageImaginaryResult() final override {
+  virtual ImageF ImageRealResult() override { return std::move(_image); }
+  virtual ImageF ImageImaginaryResult() override {
     throw std::runtime_error("Can not do imaginary imaging in this mode");
   }
 
-  virtual size_t ActualInversionWidth() const final override {
+  virtual size_t ActualInversionWidth() const override {
     return _actualInversionWidth;
   }
-  virtual size_t ActualInversionHeight() const final override {
+  virtual size_t ActualInversionHeight() const override {
     return _actualInversionHeight;
   }
 
-  virtual void FreeImagingData() final override {}
+  virtual void FreeImagingData() override {}
 
-  virtual size_t getSuggestedWGridSize() const final override { return 1; }
+  virtual size_t getSuggestedWGridSize() const override { return 1; }
 
  private:
   ImageF _image;

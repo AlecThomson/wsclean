@@ -186,6 +186,7 @@ void WGriddingMSGridder::Invert() {
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);
 
+  Logger::Info << "Shift: " << PhaseCentreDL() << " " << PhaseCentreDM() << '\n';
   _gridder.reset(new WGriddingGridder_Simple(
       _actualInversionWidth, _actualInversionHeight, trimmedWidth,
       trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, PhaseCentreDL(),

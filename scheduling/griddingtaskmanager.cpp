@@ -105,10 +105,10 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
-  gridder.SetPhaseCentreDec(task.obsInfo.phaseCentreDec);
-  gridder.SetPhaseCentreRA(task.obsInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(task.obsInfo.phaseCentreDM);
-  gridder.SetPhaseCentreDL(task.obsInfo.phaseCentreDL);
+  gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
+  gridder.SetPhaseCentreDM(task.observationInfo.shiftM);
+  gridder.SetPhaseCentreDL(task.observationInfo.shiftL);
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
