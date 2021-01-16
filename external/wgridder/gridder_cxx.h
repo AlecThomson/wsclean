@@ -31,6 +31,7 @@
 #include <memory>
 
 #include "ducc0/infra/error_handling.h"
+#include "ducc0/math/constants.h"
 #include "ducc0/math/fft.h"
 #include "ducc0/infra/threading.h"
 #include "ducc0/infra/misc_utils.h"
@@ -167,10 +168,8 @@ template<typename T> void hartley2complex
     {
     for(size_t u=lo, xu=(u==0) ? 0 : nu-u; u<hi; ++u, xu=nu-u)
       for (size_t v=0, xv=0; v<nv; ++v, xv=nv-v)
-        {
-        T v1 = T(0.5)*grid(u,v), v2 = T(0.5)*grid(xu,xv);
-        grid2.v(u,v) = complex<T>(v1+v2, v1-v2);
-        }
+        grid2.v(u,v) = complex<T>(T(.5)*(grid(u,v)+grid(xu,xv)),
+                                  T(.5)*(grid(u,v)-grid(xu,xv)));
     });
   }
 
@@ -599,8 +598,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
 
       if (do_wgridding)
         {
-        double maxnm1 = max(abs(nm1max+nshift), abs(nm1min+nshift));
-        dw = 0.5/ofactor/maxnm1;
+        dw = 0.5/ofactor/max(abs(nm1max+nshift), abs(nm1min+nshift));
         nplanes = size_t((wmax_d-wmin_d)/dw+supp);
         MR_assert(nplanes<(size_t(1)<<16), "too many w planes");
         wmin = (wmin_d+wmax_d)*0.5 - 0.5*(nplanes-1)*dw;
@@ -946,7 +944,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
             {
 //bool lastplane = (!wgrid) || (uvwidx.minplane+SUPP-1==p0);
             size_t nth = p0-uvwidx.minplane;
-            for (const auto rcr: ranges[ix].second)
+            for (const auto &rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
               auto bcoord = bl.baseCoord(row);
@@ -1054,7 +1052,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
             {
             bool lastplane = (!wgrid) || (uvwidx.minplane+SUPP-1==p0);
             size_t nth = p0-uvwidx.minplane;
-            for (const auto rcr: ranges[ix].second)
+            for (const auto &rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
               auto bcoord = bl.baseCoord(row);
@@ -1227,7 +1225,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         timers.push("zeroing dirty image");
         dirty_out.fill(0);
         timers.poppush("allocating grid");
-        auto grid = mav<complex<Tcalc>,2>::build_noncritical({nu,nv});
+        auto grid = mav<complex<Tcalc>,2>::build_noncritical({nu,nv}, UNINITIALIZED);
         timers.pop();
         for (size_t pl=0; pl<nplanes; ++pl)
           {
@@ -1249,7 +1247,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         timers.poppush("gridding proper");
         x2grid_c<false>(grid, 0);
         timers.poppush("allocating rgrid");
-        auto rgrid = mav<Tcalc,2>::build_noncritical(grid.shape());
+        auto rgrid = mav<Tcalc,2>::build_noncritical(grid.shape(), UNINITIALIZED);
         timers.poppush("complex2hartley");
         complex2hartley(grid, rgrid, nthreads);
         timers.pop();
@@ -1262,13 +1260,13 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       if (do_wgridding)
         {
         timers.push("copying dirty image");
-        mav<Timg,2> tdirty({nxdirty,nydirty});
+        mav<Timg,2> tdirty({nxdirty,nydirty}, UNINITIALIZED);
         tdirty.apply(dirty_in, [](Timg &a, Timg b) {a=b;});
         timers.pop();
         // correct for w gridding etc.
         apply_global_corrections(tdirty);
         timers.push("allocating grid");
-        auto grid = mav<complex<Tcalc>,2>::build_noncritical({nu,nv});
+        auto grid = mav<complex<Tcalc>,2>::build_noncritical({nu,nv}, UNINITIALIZED);
         timers.pop();
         for (size_t pl=0; pl<nplanes; ++pl)
           {
@@ -1282,7 +1280,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       else
         {
         timers.push("allocating grid");
-        auto rgrid = mav<Tcalc,2>::build_noncritical({nu,nv});
+        auto rgrid = mav<Tcalc,2>::build_noncritical({nu,nv}, UNINITIALIZED);
         timers.pop();
         dirty2grid(dirty_in, rgrid);
         timers.push("allocating grid");
@@ -1321,7 +1319,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           nm1max = max(nm1max, nval);
           }
       nshift = (no_nshift||(!do_wgridding)) ? 0. : -0.5*(nm1max+nm1min);
-      shifting = lmshift | (nshift!=0);
+      shifting = lmshift || (nshift!=0);
 
       auto idx = getAvailableKernels<Tcalc>(epsilon, sigma_min, sigma_max);
       double mincost = 1e300;
@@ -1343,8 +1341,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         if (gridding) gridcost *= sizeof(Tacc)/sizeof(Tcalc);
         if (do_wgridding)
           {
-          double maxnm1 = max(abs(nm1max+nshift), abs(nm1min+nshift));
-          double dw = 0.5/ofactor/maxnm1;
+          double dw = 0.5/ofactor/max(abs(nm1max+nshift), abs(nm1min+nshift));
           size_t nplanes = size_t((wmax_d-wmin_d)/dw+supp);
           fftcost *= nplanes;
           gridcost *= supp;
