@@ -50,7 +50,7 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   const double sigma_min = 1.1, sigma_max = 2.6;
   ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
                          epsilon_, true, nthreads_, tdirty, verbosity_, true,
-                         false, sigma_min, sigma_max, shiftL_, shiftM_);
+                         false, sigma_min, sigma_max, -shiftL_, shiftM_);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.craw(i);
 }
 
@@ -90,5 +90,5 @@ void WGriddingGridder_Simple::PredictVisibilities(
   const double sigma_min = 1.1, sigma_max = 2.6;
   dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                          pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
-                         true, false, sigma_min, sigma_max, shiftL_, shiftM_);
+                         true, false, sigma_min, sigma_max, -shiftL_, shiftM_);
 }
