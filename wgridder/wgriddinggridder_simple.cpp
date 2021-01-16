@@ -47,9 +47,10 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
+  const double sigma_min = 1.1, sigma_max = 2.6;
   ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
                          epsilon_, true, nthreads_, tdirty, verbosity_, true,
-                         false);
+                         false, sigma_min, sigma_max, shiftL_, shiftM_);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.craw(i);
 }
 
