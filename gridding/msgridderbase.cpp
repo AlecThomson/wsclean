@@ -345,9 +345,12 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
          ++chp)
       rowData.data[chp] = 1.0;
     if (HasDenormalPhaseCentre()) {
-      double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
-                                PhaseCentreDM() * PhaseCentreDM());
-      double shiftFactor = 2.0 * M_PI * ((rowData.uvw[0] * PhaseCentreDL() + rowData.uvw[1] * PhaseCentreDM()) + rowData.uvw[2] * (lmsqrt - 1.0) );
+      const double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
+                                      PhaseCentreDM() * PhaseCentreDM());
+      const double shiftFactor = 2.0 * M_PI *
+                                 ((rowData.uvw[0] * PhaseCentreDL() +
+                                   rowData.uvw[1] * PhaseCentreDM()) +
+                                  rowData.uvw[2] * (lmsqrt - 1.0));
       rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
     }
   } else {
