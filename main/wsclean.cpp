@@ -420,6 +420,7 @@ ObservationInfo WSClean::getObservationInfo() const {
   ObservationInfo observationInfo =
       ReadObservationInfo(ms, _settings.fieldIds[0]);
   if (_settings.hasShift) {
+    observationInfo.hasShiftedPhaseCentre = true;
     aocommon::ImageCoordinates::RaDecToLM(
         _settings.shiftRA, _settings.shiftDec, observationInfo.phaseCentreRA,
         observationInfo.phaseCentreDec, observationInfo.shiftL,
