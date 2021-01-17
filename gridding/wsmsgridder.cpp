@@ -155,8 +155,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       newItem.dataDescId = dataDescId;
 
       // Any visibilities that are not gridded in this pass
-      // should not contribute to the weight sum, so set these
-      // to have zero weight.
+      // should not contribute to the weight sum
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
         double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
         isSelected[ch] = _gridder->IsInLayerRange(w);
@@ -165,6 +164,13 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       readAndWeightVisibilities<1>(*msData.msProvider, newItem, curBand,
                                    weightBuffer.data(), modelBuffer.data(),
                                    isSelected.data());
+
+      if (HasDenormalPhaseCentre()) {
+        const double shiftFactor = 2.0 * M_PI *
+                                   (newItem.uvw[0] * PhaseCentreDL() +
+                                    newItem.uvw[1] * PhaseCentreDM());
+        rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
+      }
 
       InversionWorkSample sampleData;
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
