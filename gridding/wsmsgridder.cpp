@@ -305,13 +305,14 @@ void WSMSGridder::predictCalcThread(
 
   PredictionWorkItem item;
   while (inputLane->read(item)) {
-    _gridder->SampleData(item.data.get(), item.dataDescId, item.uvw[0], item.uvw[1],
-                         item.uvw[2]);
+    _gridder->SampleData(item.data.get(), item.dataDescId, item.uvw[0],
+                         item.uvw[1], item.uvw[2]);
     if (HasDenormalPhaseCentre()) {
-      const double shiftFactor = 2.0 * M_PI *
-                                  (item.uvw[0] * PhaseCentreDL() +
-                                  item.uvw[1] * PhaseCentreDM());
-      rotateVisibilities<1>((*bandData)[item.dataDescId], shiftFactor, item.data.get());
+      const double shiftFactor =
+          2.0 * M_PI *
+          (item.uvw[0] * PhaseCentreDL() + item.uvw[1] * PhaseCentreDM());
+      rotateVisibilities<1>((*bandData)[item.dataDescId], shiftFactor,
+                            item.data.get());
     }
 
     writeBuffer.write(std::move(item));
