@@ -51,7 +51,7 @@ class WSMSGridder final : public MSGridderBase {
     std::complex<float> sample;
   };
   struct PredictionWorkItem {
-    double u, v, w;
+    std::array<double, 3> uvw;
     std::unique_ptr<std::complex<float>[]> data;
     size_t rowId, dataDescId;
   };
@@ -76,7 +76,8 @@ class WSMSGridder final : public MSGridderBase {
   void workThreadPerSample(aocommon::Lane<InversionWorkSample>* workLane);
 
   void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane,
-                         aocommon::Lane<PredictionWorkItem>* outputLane);
+                         aocommon::Lane<PredictionWorkItem>* outputLane,
+                         const MultiBandData* bandData);
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
                           const MSData* msData);
 
