@@ -22,30 +22,30 @@ class WSMSGridder final : public MSGridderBase {
 
   WSMSGridder(size_t threadCount, double memFraction, double absMemLimit);
 
-  virtual void Invert() final override;
+  virtual void Invert() override;
 
-  virtual void Predict(ImageF image) final override {
+  virtual void Predict(ImageF image) override {
     Predict(std::move(image), ImageF());
   }
-  virtual void Predict(ImageF real, ImageF imaginary) final override;
+  virtual void Predict(ImageF real, ImageF imaginary) override;
 
-  virtual ImageF ImageRealResult() final override {
+  virtual ImageF ImageRealResult() override {
     return std::move(_realImage);
   }
-  virtual ImageF ImageImaginaryResult() final override {
+  virtual ImageF ImageImaginaryResult() override {
     if (!IsComplex())
       throw std::runtime_error(
           "No imaginary result available for non-complex inversion");
     return std::move(_imaginaryImage);
   }
-  virtual size_t ActualInversionWidth() const final override {
+  virtual size_t ActualInversionWidth() const override {
     return _actualInversionWidth;
   }
-  virtual size_t ActualInversionHeight() const final override {
+  virtual size_t ActualInversionHeight() const override {
     return _actualInversionHeight;
   }
 
-  virtual void FreeImagingData() final override { _gridder.reset(); }
+  virtual void FreeImagingData() override { _gridder.reset(); }
 
  private:
   struct InversionWorkSample {
@@ -60,7 +60,7 @@ class WSMSGridder final : public MSGridderBase {
 
   void gridMeasurementSet(MSData& msData);
   void countSamplesPerLayer(MSData& msData);
-  virtual size_t getSuggestedWGridSize() const final override;
+  virtual size_t getSuggestedWGridSize() const override;
 
   void predictMeasurementSet(MSData& msData);
 
