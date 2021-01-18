@@ -24,7 +24,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
 void WGriddingGridder_Simple::memUsage(size_t &constant,
                                        size_t &per_vis) const {
   // storage for "grid": pessimistically assume an oversampling factor of 2
-  constant = 4 * width_t_ * height_t_ * sizeof(std::complex<float>);
+  constant = sigma_max * sigma_max * width_t_ * height_t_ *
+             sizeof(std::complex<float>);
   // for prediction, we also need a copy of the dirty image
   constant += width_t_ * height_t_ * sizeof(float);  // trimmed dirty image
   // Storage for the indexing information is really hard to estimate ...
@@ -47,7 +48,6 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  const double sigma_min = 1.1, sigma_max = 2.6;
   ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
                          epsilon_, true, nthreads_, tdirty, verbosity_, true,
                          false, sigma_min, sigma_max, -shiftL_, shiftM_);
@@ -87,7 +87,6 @@ void WGriddingGridder_Simple::PredictVisibilities(
   mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  const double sigma_min = 1.1, sigma_max = 2.6;
   dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                          pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
                          true, false, sigma_min, sigma_max, -shiftL_, shiftM_);

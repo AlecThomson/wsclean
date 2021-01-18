@@ -18,6 +18,8 @@
 
 class WGriddingGridder_Simple {
  private:
+  static constexpr double sigma_min = 1.1;
+  static constexpr double sigma_max = 2.0;
   size_t width_, height_, width_t_, height_t_, nthreads_;
   double pixelSizeX_, pixelSizeY_;
   double shiftL_, shiftM_;
