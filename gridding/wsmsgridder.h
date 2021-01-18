@@ -29,9 +29,7 @@ class WSMSGridder final : public MSGridderBase {
   }
   virtual void Predict(ImageF real, ImageF imaginary) override;
 
-  virtual ImageF ImageRealResult() override {
-    return std::move(_realImage);
-  }
+  virtual ImageF ImageRealResult() override { return std::move(_realImage); }
   virtual ImageF ImageImaginaryResult() override {
     if (!IsComplex())
       throw std::runtime_error(
