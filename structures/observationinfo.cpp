@@ -74,8 +74,6 @@ ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
         "the shift\n"
         "and use wsclean's -shift parameter.\n");
   }
-  obsInfo.shiftL = 0.0;
-  obsInfo.shiftM = 0.0;
 
   casacore::MSObservation oTable = ms.observation();
   size_t obsCount = oTable.nrow();
