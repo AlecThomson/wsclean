@@ -120,9 +120,6 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
 
-  if (entry.facet)
-    throw std::runtime_error("Imaging facets is not implemented");
-
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = true;
@@ -132,6 +129,11 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
+  if (entry.facet != nullptr) {
+    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
+    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
+    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+  }
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
@@ -222,9 +224,6 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   Logger::Info.Flush();
   Logger::Info << " == Constructing image ==\n";
 
-  if (entry.facet)
-    throw std::runtime_error("Imaging facets is not implemented");
-
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = false;
@@ -238,6 +237,11 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
+  if (entry.facet != nullptr) {
+    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
+    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
+    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+  }
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -396,7 +400,6 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                         entry.outputChannelIndex, true);
     }
   }
-
   GriddingTask task;
   task.operation = GriddingTask::Predict;
   task.polarization = entry.polarization;
@@ -409,6 +412,11 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
+  if (entry.facet != nullptr) {
+    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
+    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
+    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+  }
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
