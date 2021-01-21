@@ -84,9 +84,9 @@ void IdgMsGridder::Invert() {
       max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
     }
 
-    const float shiftl = PhaseCentreDL();
-    const float shiftm = PhaseCentreDM();
-    const float shiftp =
+    const double shiftl = PhaseCentreDL();
+    const double shiftm = PhaseCentreDM();
+    const double shiftp =
         std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
     _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
                      shiftp, _options);
@@ -297,9 +297,9 @@ void IdgMsGridder::Predict(ImageF image) {
       max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
     }
 
-    const float shiftl = PhaseCentreDL();
-    const float shiftm = PhaseCentreDM();
-    const float shiftp =
+    const double shiftl = PhaseCentreDL();
+    const double shiftm = PhaseCentreDM();
+    const double shiftp =
         std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
     _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
                      shiftp, _options);
