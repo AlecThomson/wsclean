@@ -392,7 +392,6 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                         entry.outputChannelIndex, true);
     }
   }
-
   GriddingTask task;
   task.operation = GriddingTask::Predict;
   task.polarization = entry.polarization;
@@ -563,7 +562,7 @@ void WSClean::RunClean() {
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM);
+        _observationInfo.shiftL, _observationInfo.shiftM, true);
     facet.CalculateSize(_settings.useIDG);
   }
 
@@ -1227,7 +1226,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM);
+            _observationInfo.shiftL, _observationInfo.shiftM, true);
         facet.CalculateSize(_settings.useIDG);
       }
     }
