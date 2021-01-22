@@ -130,9 +130,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
-    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
-    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+    initializeFacetPhaseShift(entry.facet, task.observationInfo);
   }
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -238,9 +236,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
-    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
-    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+    initializeFacetPhaseShift(entry.facet, task.observationInfo);
   }
 
   _griddingTaskManager->Run(
@@ -400,6 +396,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                         entry.outputChannelIndex, true);
     }
   }
+
   GriddingTask task;
   task.operation = GriddingTask::Predict;
   task.polarization = entry.polarization;
@@ -413,9 +410,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    const schaapcommon::facets::BoundingBox box = entry.facet->GetBoundingBox();
-    task.observationInfo.shiftL = box.Min().x * _settings.pixelScaleX;
-    task.observationInfo.shiftM = box.Min().y * _settings.pixelScaleY;
+    initializeFacetPhaseShift(entry.facet, task.observationInfo);
   }
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -435,6 +430,19 @@ ObservationInfo WSClean::getObservationInfo() const {
         observationInfo.shiftM);
   }
   return observationInfo;
+}
+
+void WSClean::initializeFacetPhaseShift(
+    const schaapcommon::facets::Facet* facet,
+    ObservationInfo& observationInfo) const {
+  const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
+  const int centre_x = (box.Max().x + box.Min().x) / 2;
+  const int centre_y = (box.Max().y + box.Min().y) / 2;
+  const int centre_x_image = _settings.trimmedImageWidth / 2;
+  const int centre_y_image = _settings.trimmedImageHeight / 2;
+
+  observationInfo.shiftL = (centre_x_image - centre_x) * _settings.pixelScaleX;
+  observationInfo.shiftM = (centre_y - centre_y_image) * _settings.pixelScaleY;
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
