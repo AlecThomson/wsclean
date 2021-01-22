@@ -392,6 +392,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                         entry.outputChannelIndex, true);
     }
   }
+
   GriddingTask task;
   task.operation = GriddingTask::Predict;
   task.polarization = entry.polarization;
