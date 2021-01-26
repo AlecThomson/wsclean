@@ -436,8 +436,9 @@ void WSClean::initializeFacetPhaseShift(
     const schaapcommon::facets::Facet* facet,
     ObservationInfo& observationInfo) const {
   const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
-  const int centre_x = (box.Max().x + box.Min().x) / 2;
-  const int centre_y = (box.Max().y + box.Min().y) / 2;
+  // Width and height are both divisible by 4
+  const int centre_x = box.Min().x + facet->Width() / 2;
+  const int centre_y = box.Min().y + facet->Height() / 2;
   const int centre_x_image = _settings.trimmedImageWidth / 2;
   const int centre_y_image = _settings.trimmedImageHeight / 2;
 
@@ -565,6 +566,7 @@ void WSClean::RunClean() {
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM);
+    facet.CalculateSize(_settings.useIDG);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1228,6 +1230,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
             _observationInfo.shiftL, _observationInfo.shiftM);
+        facet.CalculateSize(_settings.useIDG);
       }
     }
 

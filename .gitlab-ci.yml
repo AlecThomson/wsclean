@@ -41,14 +41,15 @@ build-without-everybeam:
     - mkdir build
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
-    - make
+    - make -j4
     - make doc
     - make install
     - make check
-    # gcovr to create badge
-    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*'
+    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
     # gcovr to enable line coverage highlighting in MRs
-    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
+    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    # gcovr to create badge
+    - gcovr --add-tracefile run-unit.json
   artifacts:
     reports:
       cobertura: build/coverage.xml
@@ -60,6 +61,6 @@ build-with-everybeam:
     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
     - cd $CI_PROJECT_DIR && mkdir build && cd build
     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
-    - make
+    - make -j4
     - make install
     - make check
