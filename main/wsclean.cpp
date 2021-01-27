@@ -130,7 +130,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
+    initializeFacetPhaseShift(*entry.facet, task.observationInfo);
   }
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -236,7 +236,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
+    initializeFacetPhaseShift(*entry.facet, task.observationInfo);
   }
 
   _griddingTaskManager->Run(
@@ -410,7 +410,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
+    initializeFacetPhaseShift(*entry.facet, task.observationInfo);
   }
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -433,12 +433,12 @@ ObservationInfo WSClean::getObservationInfo() const {
 }
 
 void WSClean::initializeFacetPhaseShift(
-    const schaapcommon::facets::Facet* facet,
+    const schaapcommon::facets::Facet& facet,
     ObservationInfo& observationInfo) const {
-  const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
+  const schaapcommon::facets::BoundingBox box = facet.GetBoundingBox();
   // Width and height are both divisible by 4
-  const int centre_x = box.Min().x + facet->Width() / 2;
-  const int centre_y = box.Min().y + facet->Height() / 2;
+  const int centre_x = box.Min().x + facet.Width() / 2;
+  const int centre_y = box.Min().y + facet.Height() / 2;
   const int centre_x_image = _settings.trimmedImageWidth / 2;
   const int centre_y_image = _settings.trimmedImageHeight / 2;
 

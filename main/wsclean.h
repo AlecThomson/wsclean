@@ -56,8 +56,8 @@ class WSClean {
   ObservationInfo getObservationInfo() const;
   /// Call when the shiftL and shiftM of the input ObservationInfo need to be
   /// changed to the phase shift of the facet.
-  void initializeFacetPhaseShift(const schaapcommon::facets::Facet*,
-                                 ObservationInfo&) const;
+  void initializeFacetPhaseShift(const schaapcommon::facets::Facet& facet,
+                                 ObservationInfo& observationInfo) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
