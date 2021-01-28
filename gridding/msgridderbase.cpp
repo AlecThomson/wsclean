@@ -225,8 +225,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 
   initializeBandData(*ms, msData);
 
-  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
-  if (_denormalPhaseCentre)
+  if (HasDenormalPhaseCentre())
     Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
                   << ", dm=" << _phaseCentreDM << '\n';
 
