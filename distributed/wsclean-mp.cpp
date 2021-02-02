@@ -33,14 +33,14 @@ int main(int argc, char* argv[]) {
   std::cout << "Node " << rank << ", PID " << getpid() << " on " << hostname
             << "\n";
 
-  bool shortException = !Logger::IsVerbose();
+  bool shortException = false;
   try {
-    check_openblas_multithreading();
     bool parseResult = false;
     shortException = !master;
     parseResult = CommandLine::ParseWithoutValidation(
         wsclean, argc, const_cast<const char**>(argv), !master);
-    shortException = !Logger::IsVerbose();
+    shortException = !master && !Logger::IsVerbose();
+    check_openblas_multithreading();
     if (parseResult) {
       CommandLine::Validate(wsclean);
       Settings& settings = wsclean.GetSettings();
