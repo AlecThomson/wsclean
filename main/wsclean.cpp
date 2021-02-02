@@ -428,19 +428,18 @@ ObservationInfo WSClean::getObservationInfo() const {
 
 void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
                                    ObservationInfo& observationInfo) const {
-  using schaapcommon::facets::Vertex;
   if (facet) {
-    const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
-    // Width and height are both divisible by 4
-    const Vertex facet_center =
-        box.Min() + Vertex(0, 0, facet->Width() / 2, facet->Height() / 2);
-    const Vertex image_center(0, 0, _settings.trimmedImageWidth / 2,
-                              _settings.trimmedImageHeight / 2);
-    const Vertex diff(0, 0, facet_center.x - image_center.x,
-                      facet_center.y - image_center.y);
+    schaapcommon::facets::Vertex centre = facet->GetBoundingBox().Centre();
 
-    observationInfo.shiftL -= diff.x * _settings.pixelScaleX;
-    observationInfo.shiftM += diff.y * _settings.pixelScaleY;
+    // The alignment of the facet might have cause it to fall outside of the
+    // image which we need to correct.
+    const int shift_x = std::max(
+        0, (signed)facet->Width() - (signed)_settings.trimmedImageWidth);
+    const int shift_y = std::max(
+        0, (signed)facet->Height() - (signed)_settings.trimmedImageHeight);
+
+    observationInfo.shiftL = (centre.x - shift_x) * _settings.pixelScaleX;
+    observationInfo.shiftM = (centre.y - shift_y) * _settings.pixelScaleY;
   }
 }
 
