@@ -32,8 +32,9 @@ int main(int argc, char* argv[]) {
   std::cout << "Node " << rank << ", PID " << getpid() << " on " << hostname
             << "\n";
 
-  bool shortException = false;
+  bool shortException = !Logger::IsVerbose();
   try {
+    check_openblas_multithreading();
     bool parseResult = false;
     shortException = !master;
     parseResult = CommandLine::ParseWithoutValidation(
@@ -64,9 +65,12 @@ int main(int argc, char* argv[]) {
                     << " stopped because of an exception.\n";
     else {
       Logger::Error << "+ + + + + + + + + + + + + + + + + + +\n"
-                    << "+ An exception occured in process " << rank << ":\n"
-                    << "+ >>> " << e.what() << "\n"
-                    << "+ + + + + + + + + + + + + + + + + + +\n";
+                    << "+ An exception occured in process " << rank << ":\n";
+      std::istringstream iss(e.what());
+      for (std::string line; std::getline(iss, line);) {
+        Logger::Error << "+ >>> " << line << "\n";
+      }
+      Logger::Error << "+ + + + + + + + + + + + + + + + + + +\n";
     }
     result = -1;
   }
