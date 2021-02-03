@@ -7,9 +7,13 @@
 #include <thread>
 #include <vector>
 
+// template <typename num_t>
+// DirectMSGridder<num_t>::DirectMSGridder(size_t nThreads)
+//     : _nThreads(nThreads) {}
+
 template <typename num_t>
-DirectMSGridder<num_t>::DirectMSGridder(size_t nThreads)
-    : _nThreads(nThreads) {}
+DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings)
+    : MSGridderBase(settings), _nThreads(_settings.threadCount) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {

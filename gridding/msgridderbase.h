@@ -3,17 +3,23 @@
 
 #include "measurementsetgridder.h"
 
+#include "../main/settings.h"
+
 #include "../scheduling/metadatacache.h"
 
 #include "../structures/multibanddata.h"
 
+#include <EveryBeam/pointresponse/pointresponse.h>
+
 #include <aocommon/uvector.h>
 
 #include <mutex>
+#include <memory>
 
 class MSGridderBase : public MeasurementSetGridder {
  public:
-  MSGridderBase();
+  // MSGridderBase();
+  MSGridderBase(const Settings& settings);
   ~MSGridderBase();
 
   virtual double StartTime() const final override { return _startTime; }
@@ -172,6 +178,10 @@ class MSGridderBase : public MeasurementSetGridder {
   static void rotateVisibilities(const BandData& bandData, double shiftFactor,
                                  std::complex<float>* dataIter);
 
+ protected:
+  const Settings& _settings;
+  // Settings _settings;
+
  private:
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
@@ -187,6 +197,11 @@ class MSGridderBase : public MeasurementSetGridder {
   double _visibilityWeightSum;
 
   aocommon::UVector<float> _scratchWeights;
+// TODO: make sure that we can set this to a nullptr if not compiled with
+// everybeam
+#ifdef HAVE_EVERYBEAM
+  std::unique_ptr<everybeam::pointresponse::PointResponse> _point_response;
+#endif
 };
 
 #endif

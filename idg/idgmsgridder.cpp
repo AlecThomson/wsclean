@@ -35,9 +35,10 @@ using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
 IdgMsGridder::IdgMsGridder(const Settings& settings)
-    : _averageBeam(nullptr),
+    : MSGridderBase(settings),
+      _averageBeam(nullptr),
       _outputProvider(nullptr),
-      _settings(settings),
+      // _settings(settings),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
       _buffersize(0) {
   IdgConfiguration::Read(_proxyType, _buffersize, _options);

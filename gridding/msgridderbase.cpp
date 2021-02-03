@@ -10,6 +10,10 @@
 
 #include "../units/angle.h"
 
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/load.h>
+#endif
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
@@ -28,7 +32,26 @@ MSGridderBase::MSData::MSData()
 
 MSGridderBase::MSData::~MSData() {}
 
-MSGridderBase::MSGridderBase()
+// MSGridderBase::MSGridderBase()
+//     : MeasurementSetGridder(),
+//       _theoreticalBeamSize(0.0),
+//       _actualInversionWidth(0),
+//       _actualInversionHeight(0),
+//       _actualPixelSizeX(0),
+//       _actualPixelSizeY(0),
+//       _metaDataCache(nullptr),
+//       _hasFrequencies(false),
+//       _freqHigh(0.0),
+//       _freqLow(0.0),
+//       _bandStart(0.0),
+//       _bandEnd(0.0),
+//       _startTime(0.0),
+//       _griddedVisibilityCount(0),
+//       _totalWeight(0.0),
+//       _maxGriddedWeight(0.0),
+//       _visibilityWeightSum(0.0) {}
+
+MSGridderBase::MSGridderBase(const Settings& settings)
     : MeasurementSetGridder(),
       _theoreticalBeamSize(0.0),
       _actualInversionWidth(0),
@@ -36,6 +59,7 @@ MSGridderBase::MSGridderBase()
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
       _metaDataCache(nullptr),
+      _settings(settings),
       _hasFrequencies(false),
       _freqHigh(0.0),
       _freqLow(0.0),
@@ -250,6 +274,19 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.maxBaselineInM = msData.maxBaselineInM;
     cacheEntry.integrationTime = msData.integrationTime;
   }
+
+// TODO: initialize point response class down here
+#ifdef HAVE_EVERYBEAM
+  if (ApplyFacetBeam()) {
+    everybeam::Options options;
+    // TODO: fill options from settings...
+    std::unique_ptr<everybeam::telescope::Telescope> telescope =
+        everybeam::Load(ms.MS(), options);
+    _point_response = telescope->GetPointResponse(msProvider.StartTime());
+  } else {
+    _point_response = nullptr;
+  }
+#endif
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
