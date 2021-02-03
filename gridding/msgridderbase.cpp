@@ -32,25 +32,6 @@ MSGridderBase::MSData::MSData()
 
 MSGridderBase::MSData::~MSData() {}
 
-// MSGridderBase::MSGridderBase()
-//     : MeasurementSetGridder(),
-//       _theoreticalBeamSize(0.0),
-//       _actualInversionWidth(0),
-//       _actualInversionHeight(0),
-//       _actualPixelSizeX(0),
-//       _actualPixelSizeY(0),
-//       _metaDataCache(nullptr),
-//       _hasFrequencies(false),
-//       _freqHigh(0.0),
-//       _freqLow(0.0),
-//       _bandStart(0.0),
-//       _bandEnd(0.0),
-//       _startTime(0.0),
-//       _griddedVisibilityCount(0),
-//       _totalWeight(0.0),
-//       _maxGriddedWeight(0.0),
-//       _visibilityWeightSum(0.0) {}
-
 MSGridderBase::MSGridderBase(const Settings& settings)
     : MeasurementSetGridder(),
       _theoreticalBeamSize(0.0),

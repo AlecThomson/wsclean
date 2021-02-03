@@ -38,7 +38,6 @@ IdgMsGridder::IdgMsGridder(const Settings& settings)
     : MSGridderBase(settings),
       _averageBeam(nullptr),
       _outputProvider(nullptr),
-      // _settings(settings),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
       _buffersize(0) {
   IdgConfiguration::Read(_proxyType, _buffersize, _options);

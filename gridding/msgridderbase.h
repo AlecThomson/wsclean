@@ -18,7 +18,6 @@
 
 class MSGridderBase : public MeasurementSetGridder {
  public:
-  // MSGridderBase();
   MSGridderBase(const Settings& settings);
   ~MSGridderBase();
 
@@ -178,9 +177,7 @@ class MSGridderBase : public MeasurementSetGridder {
   static void rotateVisibilities(const BandData& bandData, double shiftFactor,
                                  std::complex<float>* dataIter);
 
- protected:
   const Settings& _settings;
-  // Settings _settings;
 
  private:
   void initializeBandData(casacore::MeasurementSet& ms,

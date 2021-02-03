@@ -41,9 +41,6 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
     return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
   } else if (_settings.useWGridder) {
 #ifdef HAVE_WGRIDDER
-    // return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(
-    //     _settings.threadCount, _settings.memFraction, _settings.absMemLimit,
-    //     _settings.wgridderAccuracy));
     return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
 #else
     throw std::runtime_error(
@@ -60,29 +57,20 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
         // _settings.threadCount));
         break;
       case DirectFTPrecision::Float:
-        // return std::unique_ptr<MSGridderBase>(
-        //     new DirectMSGridder<float>(_settings.threadCount));
         return std::unique_ptr<MSGridderBase>(
             new DirectMSGridder<float>(_settings));
         break;
       default:
       case DirectFTPrecision::Double:
-        // return std::unique_ptr<MSGridderBase>(
-        //     new DirectMSGridder<double>(_settings.threadCount));
         return std::unique_ptr<MSGridderBase>(
             new DirectMSGridder<double>(_settings));
         break;
       case DirectFTPrecision::LongDouble:
-        // return std::unique_ptr<MSGridderBase>(
-        //     new DirectMSGridder<long double>(_settings.threadCount));
         return std::unique_ptr<MSGridderBase>(
             new DirectMSGridder<long double>(_settings));
         break;
     }
   } else
-    // return std::unique_ptr<MSGridderBase>(new WSMSGridder(
-    //     _settings.threadCount, _settings.memFraction,
-    //     _settings.absMemLimit));
     return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
 }
 
