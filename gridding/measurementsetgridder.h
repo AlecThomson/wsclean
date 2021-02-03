@@ -4,6 +4,7 @@
 #include "gridmodeenum.h"
 
 #include <aocommon/polarization.h>
+#include <aocommon/imagecoordinates.h>
 
 #include "../structures/observationinfo.h"
 #include "../structures/msselection.h"
@@ -59,7 +60,10 @@ class MeasurementSetGridder {
         _overSamplingFactor(63),
         _visibilityWeightingMode(NormalVisibilityWeighting),
         _gridMode(KaiserBesselKernel),
-        _storeImagingWeights(false) {}
+        _storeImagingWeights(false),
+        _applyFacetBeam(false) {
+    ComputeRaDec();
+  }
   virtual ~MeasurementSetGridder() {}
 
   size_t ImageWidth() const { return _imageWidth; }
@@ -106,6 +110,7 @@ class MeasurementSetGridder {
     return _visibilityWeightingMode;
   }
   bool StoreImagingWeights() const { return _storeImagingWeights; }
+  bool ApplyFacetBeam() const { return _applyFacetBeam; }
 
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
@@ -155,6 +160,9 @@ class MeasurementSetGridder {
   void SetStoreImagingWeights(bool storeImagingWeights) {
     _storeImagingWeights = storeImagingWeights;
   }
+  void SetApplyFacetBeam(bool applyFacetBeam) {
+    _applyFacetBeam = applyFacetBeam;
+  }
 
   virtual void Invert() = 0;
 
@@ -165,18 +173,22 @@ class MeasurementSetGridder {
   virtual ImageF ImageImaginaryResult() = 0;
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
+    ComputeRaDec();
   }
   void SetPhaseCentreDec(const double phaseCentreDec) {
     _phaseCentreDec = phaseCentreDec;
+    ComputeRaDec();
   }
   double PhaseCentreRA() const { return _phaseCentreRA; }
   double PhaseCentreDec() const { return _phaseCentreDec; }
   virtual bool HasDenormalPhaseCentre() const { return false; }
   void SetPhaseCentreDL(const double phaseCentreDL) {
     _phaseCentreDL = phaseCentreDL;
+    ComputeRaDec();
   }
   void SetPhaseCentreDM(const double phaseCentreDM) {
     _phaseCentreDM = phaseCentreDM;
+    ComputeRaDec();
   }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
@@ -217,6 +229,12 @@ class MeasurementSetGridder {
 
  protected:
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  double _ra, _dec;
+  void ComputeRaDec() {
+    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
+                                          _phaseCentreRA, _phaseCentreDec, _ra,
+                                          _dec);
+  }
 
  private:
   size_t _imageWidth, _imageHeight;
@@ -239,6 +257,7 @@ class MeasurementSetGridder {
   enum VisibilityWeightingMode _visibilityWeightingMode;
   GridModeEnum _gridMode;
   bool _storeImagingWeights;
+  bool _applyFacetBeam;
 };
 
 #endif
