@@ -434,10 +434,10 @@ void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
     // Width and height are both divisible by 4
     const Vertex facet_center =
         box.Min() + Vertex(0, 0, facet->Width() / 2, facet->Height() / 2);
-    const Vertex image_center(_settings.trimmedImageWidth / 2,
+    const Vertex image_center(0, 0, _settings.trimmedImageWidth / 2,
                               _settings.trimmedImageHeight / 2);
-    const Vertex diff = Vertex(facet_center.x - image_center.x,
-                               facet_center.y - image_center.y);
+    const Vertex diff(0, 0, facet_center.x - image_center.x,
+                      facet_center.y - image_center.y);
 
     observationInfo.shiftL -= diff.x * _settings.pixelScaleX;
     observationInfo.shiftM += diff.y * _settings.pixelScaleY;
