@@ -198,6 +198,8 @@ class MSGridderBase : public MeasurementSetGridder {
   aocommon::UVector<float> _scratchWeights;
 
 #ifdef HAVE_EVERYBEAM
+  // _telescope attribute needed to keep the telecope in _point_response alive
+  std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _point_response;
   everybeam::Options getEveryBeamOptions(
       const casacore::MeasurementSet& ms) const;

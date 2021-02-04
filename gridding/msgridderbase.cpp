@@ -262,25 +262,26 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam) {
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     everybeam::Options options = getEveryBeamOptions(*ms);
-    std::unique_ptr<everybeam::telescope::Telescope> telescope =
-        everybeam::Load(*ms, options);
-    _point_response = telescope->GetPointResponse(msProvider.StartTime());
+    _telescope = everybeam::Load(*ms, options);
+    _point_response = _telescope->GetPointResponse(msProvider.StartTime());
     // TODO: preferably, the size of _cached_buffer is set here. This however,
     // requires knowledge about the frequencies, which isn't available here (?)
   } else {
+    if (_settings.applyFacetBeam) {
+      Logger::Warn << "-apply-facet-beam was set, but no corresponding facet "
+                      "regions file was specified.\n";
+    }
     _point_response = nullptr;
     _cached_response.resize(0);
   }
   _cached_time = std::numeric_limits<double>::min();
 #else
-  if (_settings.applyFacetBeam) {
-    throw std::runtime_error(
-        "-apply-facet-beam was set to true, but wsclean was not compiled with "
-        "EveryBeam. "
-        "Please compile wsclean with EveryBeam to use the Facet Beam "
-        "functionality");
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    Logger::Error << "-apply-facet-beam was set, but wsclean was not compiled "
+                     "with EveryBeam. Please compile wsclean with EveryBeam to "
+                     "use the Facet Beam functionality\n";
   }
 #endif
 }
@@ -400,7 +401,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam) {
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msProvider.ReadMeta(metaData);
     if (metaData.time != _cached_time) {
@@ -411,8 +412,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
       _point_response->UpdateTime(_cached_time);
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _point_response->CalculateAllStations(
-            _cached_response.data() +
-                ch * _point_response->GetAllStationsBufferSize(),
+            &_cached_response[ch * _point_response->GetAllStationsBufferSize()],
             _ra, _dec, curBand.ChannelFrequency(ch), metaData.fieldId);
       }
     }
