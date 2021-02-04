@@ -60,8 +60,7 @@ class MeasurementSetGridder {
         _overSamplingFactor(63),
         _visibilityWeightingMode(NormalVisibilityWeighting),
         _gridMode(KaiserBesselKernel),
-        _storeImagingWeights(false),
-        _applyFacetBeam(false) {
+        _storeImagingWeights(false) {
     ComputeRaDec();
   }
   virtual ~MeasurementSetGridder() {}
@@ -110,7 +109,6 @@ class MeasurementSetGridder {
     return _visibilityWeightingMode;
   }
   bool StoreImagingWeights() const { return _storeImagingWeights; }
-  bool ApplyFacetBeam() const { return _applyFacetBeam; }
 
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
@@ -159,9 +157,6 @@ class MeasurementSetGridder {
   }
   void SetStoreImagingWeights(bool storeImagingWeights) {
     _storeImagingWeights = storeImagingWeights;
-  }
-  void SetApplyFacetBeam(bool applyFacetBeam) {
-    _applyFacetBeam = applyFacetBeam;
   }
 
   virtual void Invert() = 0;
@@ -257,7 +252,6 @@ class MeasurementSetGridder {
   enum VisibilityWeightingMode _visibilityWeightingMode;
   GridModeEnum _gridMode;
   bool _storeImagingWeights;
-  bool _applyFacetBeam;
 };
 
 #endif

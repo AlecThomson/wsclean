@@ -9,7 +9,9 @@
 
 #include "../structures/multibanddata.h"
 
+#ifdef HAVE_EVERYBEAM
 #include <EveryBeam/pointresponse/pointresponse.h>
+#endif
 
 #include <aocommon/uvector.h>
 
@@ -194,10 +196,14 @@ class MSGridderBase : public MeasurementSetGridder {
   double _visibilityWeightSum;
 
   aocommon::UVector<float> _scratchWeights;
-// TODO: make sure that we can set this to a nullptr if not compiled with
-// everybeam
+
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<everybeam::pointresponse::PointResponse> _point_response;
+  everybeam::Options getEveryBeamOptions(
+      const casacore::MeasurementSet& ms) const;
+
+  aocommon::UVector<std::complex<float>> _cached_response;
+  double _cached_time;
 #endif
 };
 

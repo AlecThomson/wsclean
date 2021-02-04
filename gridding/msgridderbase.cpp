@@ -12,6 +12,11 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
+
+// Only needed for EB related options
+#include "../io/findmwacoefffile.h"
+#include <limits>
+#include <aocommon/matrix2x2.h>
 #endif
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -256,16 +261,26 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
-// TODO: initialize point response class down here
 #ifdef HAVE_EVERYBEAM
-  if (ApplyFacetBeam()) {
-    everybeam::Options options;
-    // TODO: fill options from settings...
+  if (_settings.applyFacetBeam) {
+    everybeam::Options options = getEveryBeamOptions(*ms);
     std::unique_ptr<everybeam::telescope::Telescope> telescope =
-        everybeam::Load(ms.MS(), options);
+        everybeam::Load(*ms, options);
     _point_response = telescope->GetPointResponse(msProvider.StartTime());
+    // TODO: preferably, the size of _cached_buffer is set here. This however,
+    // requires knowledge about the frequencies, which isn't available here (?)
   } else {
     _point_response = nullptr;
+    _cached_response.resize(0);
+  }
+  _cached_time = std::numeric_limits<double>::min();
+#else
+  if (_settings.applyFacetBeam) {
+    throw std::runtime_error(
+        "-apply-facet-beam was set to true, but wsclean was not compiled with "
+        "EveryBeam. "
+        "Please compile wsclean with EveryBeam to use the Facet Beam "
+        "functionality");
   }
 #endif
 }
@@ -384,6 +399,51 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
     }
   }
 
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam) {
+    MSProvider::MetaData metaData;
+    msProvider.ReadMeta(metaData);
+    if (metaData.time != _cached_time) {
+      // TODO: would be neater to set size in initMeasurementSet
+      _cached_response.resize(curBand.ChannelCount() *
+                              _point_response->GetAllStationsBufferSize());
+      _cached_time = metaData.time;
+      _point_response->UpdateTime(_cached_time);
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        _point_response->CalculateAllStations(
+            _cached_response.data() +
+                ch * _point_response->GetAllStationsBufferSize(),
+            _ra, _dec, curBand.ChannelFrequency(ch), metaData.fieldId);
+      }
+    }
+
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * _point_response->GetAllStationsBufferSize();
+      const size_t offset1 = offset + metaData.antenna1 * 4;
+      const size_t offset2 = offset + metaData.antenna2 * 4;
+
+      aocommon::MC2x2F gain1(&_cached_response[offset1]);
+      aocommon::MC2x2F gain2(&_cached_response[offset2]);
+
+      if (PolarizationCount == 1) {
+        // Stokes-I
+        modelBuffer[ch] = 0.25f * std::conj(gain1[0] + gain1[1]) *
+                          modelBuffer[ch] * (gain2[0] + gain2[1]);
+      } else {
+        size_t offset_vis = ch * PolarizationCount;
+        // All polarizations
+        aocommon::MC2x2F visibilities(&modelBuffer[offset_vis]);
+
+        std::complex<float> scratch[4];
+        aocommon::MC2x2F::ATimesB(scratch, visibilities, gain2);
+        aocommon::MC2x2F result;
+        aocommon::MC2x2F::HermATimesB(result, gain1, aocommon::MC2x2F(scratch));
+        result.AssignTo(&modelBuffer[offset_vis]);
+      }
+    }
+  }
+#endif
+
   msProvider.ReadWeights(weightBuffer);
 
   // Any visibilities that are not gridded in this pass
@@ -463,6 +523,32 @@ void MSGridderBase::rotateVisibilities(const BandData& bandData,
     }
   }
 }
+
+#ifdef HAVE_EVERYBEAM
+everybeam::Options MSGridderBase::getEveryBeamOptions(
+    const casacore::MeasurementSet& ms) const {
+  everybeam::Options options;
+  // Hard-coded for now
+  options.frequency_interpolation = true;
+  options.use_channel_frequency = true;
+
+  options.data_column_name = DataColumnName();
+
+  // Extract info from wsclean settings:
+  options.use_differential_beam = _settings.useDifferentialLofarBeam;
+  if (everybeam::GetTelescopeType(ms) ==
+      everybeam::TelescopeType::kMWATelescope) {
+    options.coeff_path = wsclean::mwa::FindCoeffFile(_settings.mwaPath);
+  }
+
+  std::string response_string =
+      !_settings.beamModel.empty() ? _settings.beamModel : "DEFAULT";
+  everybeam::ElementResponseModel response_model =
+      everybeam::GetElementResponseEnum(response_string);
+  options.element_response_model = response_model;
+  return options;
+}
+#endif
 
 template void MSGridderBase::rotateVisibilities<1>(
     const BandData& bandData, double shiftFactor,
