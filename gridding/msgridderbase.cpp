@@ -417,6 +417,8 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
       }
     }
 
+    // rowData.data contains the visibilities
+    std::complex<float>* iter = rowData.data;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       const size_t offset = ch * _point_response->GetAllStationsBufferSize();
       const size_t offset1 = offset + metaData.antenna1 * 4;
@@ -427,18 +429,18 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 
       if (PolarizationCount == 1) {
         // Stokes-I
-        modelBuffer[ch] = 0.25f * std::conj(gain1[0] + gain1[1]) *
-                          modelBuffer[ch] * (gain2[0] + gain2[1]);
+        iter[ch] = 0.25f * std::conj(gain1[0] + gain1[1]) * iter[ch] *
+                   (gain2[0] + gain2[1]);
       } else {
-        size_t offset_vis = ch * PolarizationCount;
         // All polarizations
-        aocommon::MC2x2F visibilities(&modelBuffer[offset_vis]);
+        aocommon::MC2x2F visibilities(iter);
 
         std::complex<float> scratch[4];
         aocommon::MC2x2F::ATimesB(scratch, visibilities, gain2);
         aocommon::MC2x2F result;
         aocommon::MC2x2F::HermATimesB(result, gain1, aocommon::MC2x2F(scratch));
-        result.AssignTo(&modelBuffer[offset_vis]);
+        result.AssignTo(iter);
+        iter += PolarizationCount;
       }
     }
   }
