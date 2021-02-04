@@ -44,6 +44,8 @@
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
 
+#include <schaapcommon/facets/facetimage.h>
+
 #include <iostream>
 #include <memory>
 
@@ -429,17 +431,16 @@ ObservationInfo WSClean::getObservationInfo() const {
 void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
                                    ObservationInfo& observationInfo) const {
   if (facet) {
-    schaapcommon::facets::Vertex centre = facet->GetBoundingBox().Centre();
+    // TODO for now we use the facet image to get the centre offset. Eventually
+    // we want to integrate this in the flow.
+    schaapcommon::facets::FacetImage fi;
+    const std::vector<aocommon::UVector<float>> images;
+    fi.CopyFacetPart(*facet, images, _settings.trimmedImageWidth,
+                     _settings.trimmedImageHeight, _settings.imagePadding,
+                     _settings.useIDG);
 
-    // The alignment of the facet might have cause it to fall outside of the
-    // image which we need to correct.
-    const int shift_x = std::max(
-        0, (signed)facet->Width() - (signed)_settings.trimmedImageWidth);
-    const int shift_y = std::max(
-        0, (signed)facet->Height() - (signed)_settings.trimmedImageHeight);
-
-    observationInfo.shiftL = (centre.x - shift_x) * _settings.pixelScaleX;
-    observationInfo.shiftM = (centre.y - shift_y) * _settings.pixelScaleY;
+    observationInfo.shiftL -= fi.DX() * _settings.pixelScaleX;
+    observationInfo.shiftM += fi.DY() * _settings.pixelScaleY;
   }
 }
 
@@ -562,8 +563,7 @@ void WSClean::RunClean() {
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM, true);
-    facet.CalculateSize(_settings.useIDG);
+        _observationInfo.shiftL, _observationInfo.shiftM, false);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1226,8 +1226,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM, true);
-        facet.CalculateSize(_settings.useIDG);
+            _observationInfo.shiftL, _observationInfo.shiftM, false);
       }
     }
 
