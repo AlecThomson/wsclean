@@ -38,11 +38,10 @@ class CachedImageSet {
 
   template <typename NumT>
   void Load(NumT* image, aocommon::PolarizationEnum polarization,
-            size_t freqIndex, bool isImaginary, size_t facetIndex = 0) const {
+            size_t freqIndex, bool isImaginary) const {
     if (_writer.Width() == 0 || _writer.Height() == 0)
       throw std::runtime_error("Writer is not set.");
-    Logger::Debug << "Loading "
-                  << name(polarization, freqIndex, facetIndex, isImaginary)
+    Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary)
                   << '\n';
     // TODO: maybe _facetCount <= 1 is fine?
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0)
@@ -52,20 +51,34 @@ class CachedImageSet {
         std::copy(_image.data(),
                   _image.data() + _writer.Width() * _writer.Height(), image);
     else {
-      FitsReader reader(name(polarization, freqIndex, facetIndex, isImaginary));
+      FitsReader reader(name(polarization, freqIndex, isImaginary));
+      reader.Read(image);
+    }
+  }
+
+  template <typename NumT>
+  void LoadFacet(NumT* image, aocommon::PolarizationEnum polarization,
+                 size_t freqIndex, bool isImaginary, size_t facetIndex) const {
+    if (_facetCount == 0) {
+      Load<NumT>(image, polarization, freqIndex, isImaginary);
+    } else {
+      // No need to check width and height here, because we do not cache
+      std::string n =
+          name_facet(polarization, freqIndex, facetIndex, isImaginary);
+      Logger::Debug << "Loading " << n << '\n';
+      FitsReader reader(n);
       reader.Read(image);
     }
   }
 
   template <typename NumT>
   void Store(const NumT* image, aocommon::PolarizationEnum polarization,
-             size_t freqIndex, bool isImaginary, size_t facetIndex = 0) {
+             size_t freqIndex, bool isImaginary) {
     if (_writer.Width() == 0 || _writer.Height() == 0)
       throw std::runtime_error("Writer is not set.");
-    Logger::Debug << "Storing "
-                  << name(polarization, freqIndex, facetIndex, isImaginary)
+    Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary)
                   << '\n';
-    // TODO: maybe _facetCount <= 1 is fine?
+    // TODO: maybe leave out _facetCount, or use _facetCount <= 1?
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       if (_image.empty()) {
         _image = Image(_writer.Width(), _writer.Height());
@@ -73,24 +86,66 @@ class CachedImageSet {
       std::copy(image, image + _writer.Width() * _writer.Height(),
                 _image.data());
     } else {
-      std::string n = name(polarization, freqIndex, facetIndex, isImaginary);
+      std::string n = name(polarization, freqIndex, isImaginary);
       _writer.Write(n, image);
+      _storedNames.insert(n);
+    }
+  }
+
+  template <typename NumT>
+  void StoreFacet(const NumT* image, aocommon::PolarizationEnum polarization,
+                  size_t freqIndex, bool isImaginary, size_t facetIndex,
+                  size_t facet_width, size_t facet_height) {
+    if (_facetCount == 0) {
+      // If _facetCount 0, use the main "Store" as is
+      Store<NumT>(image, polarization, freqIndex, isImaginary);
+    } else {
+      std::string n =
+          name_facet(polarization, freqIndex, facetIndex, isImaginary);
+      Logger::Debug << "Storing " << n << '\n';
+
+      // Initialize FacetWriter, using facet_width and facet_height
+      FitsWriter facetWriter;
+      facetWriter.SetImageDimensions(facet_width, facet_height);
+      facetWriter.Write(n, image);
       _storedNames.insert(n);
     }
   }
 
  private:
   std::string name(aocommon::PolarizationEnum polarization, size_t freqIndex,
-                   size_t facetIndex, bool isImaginary) const {
+                   bool isImaginary) const {
+    std::ostringstream str;
+    str << name_trunk(polarization, freqIndex, isImaginary);
+    str << "-tmp.fits";
+    return str.str();
+  }
+
+  std::string name_facet(aocommon::PolarizationEnum polarization,
+                         size_t freqIndex, size_t facetIndex,
+                         bool isImaginary) const {
+    std::ostringstream str;
+    str << name_trunk(polarization, freqIndex, isImaginary);
+    if (_facetCount > 0) {
+      str << "-facet-";
+      if (facetIndex < 10) str << '0';
+      if (freqIndex < 100) str << '0';
+      if (freqIndex < 1000) str << '0';
+      str << facetIndex;
+    }
+    str << "-tmp.fits";
+    return str.str();
+  }
+
+  std::string name_trunk(aocommon::PolarizationEnum polarization,
+                         size_t freqIndex, bool isImaginary) const {
     if (_freqCount == 1) {
       if (isImaginary)
         return _prefix + '-' +
-               aocommon::Polarization::TypeToShortString(polarization) +
-               "i-tmp.fits";
+               aocommon::Polarization::TypeToShortString(polarization) + "i";
       else
         return _prefix + '-' +
-               aocommon::Polarization::TypeToShortString(polarization) +
-               "-tmp.fits";
+               aocommon::Polarization::TypeToShortString(polarization);
     } else {
       std::ostringstream str;
       str << _prefix + '-' +
@@ -100,15 +155,6 @@ class CachedImageSet {
       if (freqIndex < 10) str << '0';
       if (freqIndex < 100) str << '0';
       if (freqIndex < 1000) str << '0';
-      str << freqIndex;
-      if (_facetCount > 0) {
-        str << "-FACET_ID-";
-        if (facetIndex < 10) str << '0';
-        if (freqIndex < 100) str << '0';
-        if (freqIndex < 1000) str << '0';
-        str << facetIndex;
-      }
-      str << "-tmp.fits";
       return str.str();
     }
   }
