@@ -253,14 +253,14 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
   storeAndCombineXYandYX(_residualImages, entry.polarization,
-                         joinedChannelIndex, false,
+                         joinedChannelIndex, entry.facetIndex, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
     result.imageImaginaryResult *=
         _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
         entry.siCorrection;
     storeAndCombineXYandYX(_residualImages, entry.polarization,
-                           joinedChannelIndex, true,
+                           joinedChannelIndex, entry.facetIndex, true,
                            result.imageImaginaryResult.data());
   }
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -341,13 +341,14 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
                                      aocommon::PolarizationEnum polarization,
                                      size_t joinedChannelIndex,
-                                     bool isImaginary, const float* image) {
+                                     size_t facetIndex, bool isImaginary,
+                                     const float* image) {
   if (polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
     Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     dest.Load(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-              isImaginary);
+              isImaginary, facetIndex);
     size_t count = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
     if (isImaginary) {
       for (size_t i = 0; i != count; ++i)
@@ -357,9 +358,10 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
     dest.Store(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-               isImaginary);
+               isImaginary, facetIndex);
   } else {
-    dest.Store(image, polarization, joinedChannelIndex, isImaginary);
+    dest.Store(image, polarization, joinedChannelIndex, isImaginary,
+               facetIndex);
   }
 }
 
@@ -805,9 +807,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                           _settings.channelsOut,
                           _settings.prefixName + "-model");
   WSCFitsWriter writer(createWSCFitsWriter(groupTable.Front(), false, false));
-  _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
-                             _settings.channelsOut,
-                             _settings.prefixName + "-residual");
+  _residualImages.Initialize(
+      writer.Writer(), _settings.polarizations.size(), _settings.channelsOut,
+      _settings.prefixName + "-residual", _facets.size());
   if (groupTable.Front().polarization == *_settings.polarizations.begin())
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
                           _settings.prefixName + "-psf");
