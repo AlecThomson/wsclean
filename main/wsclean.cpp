@@ -850,6 +850,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       runFirstInversion(entry, primaryBeam);
     }
     _griddingTaskManager->Finish();
+    // TODO: call StitchFacets method here
   } else {
     bool hasMore;
     size_t sqIndex = 0;
@@ -863,6 +864,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       }
       ++sqIndex;
       _griddingTaskManager->Finish();
+      // TODO: call StitchFacets method here
     } while (hasMore);
   }
   _inversionWatch.Pause();
@@ -910,6 +912,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
+            // TODO: call StitchFacets method here
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             for (const ImagingTable::Group& sqGroup :
@@ -926,6 +929,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                 imageMain(*entry, false, false);
               }  // end of polarization loop
               _griddingTaskManager->Finish();
+              // TODO: call StitchFacets method here
               _inversionWatch.Pause();
             }  // end of joined channels loop
           }
