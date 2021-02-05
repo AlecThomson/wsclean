@@ -253,14 +253,16 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
   storeAndCombineXYandYX(_residualImages, entry.polarization,
-                         joinedChannelIndex, entry.facetIndex, false,
+                         joinedChannelIndex, entry.facetIndex,
+                         entry.facet->Width(), entry.facet->Height(), false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
     result.imageImaginaryResult *=
         _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
         entry.siCorrection;
     storeAndCombineXYandYX(_residualImages, entry.polarization,
-                           joinedChannelIndex, entry.facetIndex, true,
+                           joinedChannelIndex, entry.facetIndex,
+                           entry.facet->Width(), entry.facet->Height(), true,
                            result.imageImaginaryResult.data());
   }
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -341,14 +343,15 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
                                      aocommon::PolarizationEnum polarization,
                                      size_t joinedChannelIndex,
-                                     size_t facetIndex, bool isImaginary,
+                                     size_t facetIndex, size_t facetWidth,
+                                     size_t facetHeight, bool isImaginary,
                                      const float* image) {
   if (polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
     Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-    dest.Load(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-              isImaginary, facetIndex);
+    dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
+                   joinedChannelIndex, isImaginary, facetIndex);
     size_t count = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
     if (isImaginary) {
       for (size_t i = 0; i != count; ++i)
@@ -357,11 +360,12 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
       for (size_t i = 0; i != count; ++i)
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
-    dest.Store(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-               isImaginary, facetIndex);
+    dest.StoreFacet(xyImage.data(), aocommon::Polarization::XY,
+                    joinedChannelIndex, isImaginary, facetIndex, facetWidth,
+                    facetHeight);
   } else {
-    dest.Store(image, polarization, joinedChannelIndex, isImaginary,
-               facetIndex);
+    dest.StoreFacet(image, polarization, joinedChannelIndex, isImaginary,
+                    facetIndex, facetWidth, facetHeight);
   }
 }
 
@@ -1081,6 +1085,14 @@ void WSClean::saveRestoredImagesForGroup(
         }
       }
     }
+  }
+}
+
+void WSClean::stitchFacet() {
+  if (_facets.size() > 0) {
+    // TODO: extract data from facet fits file
+    // Call
+    // schaapcommon::facets::FacetImage::AddToImages()
   }
 }
 

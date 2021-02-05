@@ -71,6 +71,7 @@ class WSClean {
   void storeAndCombineXYandYX(CachedImageSet& dest,
                               aocommon::PolarizationEnum polarization,
                               size_t joinedChannelIndex, size_t facetIndex,
+                              size_t facetWidth, size_t facetHeight,
                               bool isImaginary, const float* image);
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
@@ -113,6 +114,8 @@ class WSClean {
   // isImaginary, bool isPBCorrected) const;
   void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
+
+  void stitchFacet();
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
 
