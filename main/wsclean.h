@@ -70,8 +70,8 @@ class WSClean {
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
   void storeAndCombineXYandYX(CachedImageSet& dest,
                               aocommon::PolarizationEnum polarization,
-                              size_t joinedChannelIndex, bool isImaginary,
-                              const float* image);
+                              size_t joinedChannelIndex, size_t facetIndex,
+                              bool isImaginary, const float* image);
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
