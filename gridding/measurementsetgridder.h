@@ -224,11 +224,11 @@ class MeasurementSetGridder {
 
  protected:
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-  double _ra, _dec;
+  double _facetCentreRA, _facetCentreDec;
   void ComputeRaDec() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
-                                          _phaseCentreRA, _phaseCentreDec, _ra,
-                                          _dec);
+                                          _phaseCentreRA, _phaseCentreDec,
+                                          _facetCentreRA, _facetCentreDec);
   }
 
  private:

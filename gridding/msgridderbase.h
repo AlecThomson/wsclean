@@ -200,12 +200,9 @@ class MSGridderBase : public MeasurementSetGridder {
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
-  std::unique_ptr<everybeam::pointresponse::PointResponse> _point_response;
-  everybeam::Options getEveryBeamOptions(
-      const casacore::MeasurementSet& ms) const;
-
-  aocommon::UVector<std::complex<float>> _cached_response;
-  double _cached_time;
+  std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
+  aocommon::UVector<std::complex<float>> _cachedResponse;
+  double _cachedTime;
 #endif
 };
 
