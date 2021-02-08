@@ -439,7 +439,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
   FitsWriter writer;
   writer.SetImageDimensions(width, height);
   CachedImageSet cachedImgs;
-  const std::vector weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
+  const std::vector<double> weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
   cachedImgs.Initialize(writer, 4, 6, "imagesettest");
   ImageF storedImage(width, height);
   for (size_t ch = 0; ch != nFreq; ++ch) {
