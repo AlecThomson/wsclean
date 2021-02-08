@@ -428,16 +428,13 @@ ObservationInfo WSClean::getObservationInfo() const {
 
 void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
                                    ObservationInfo& observationInfo) const {
-  using schaapcommon::facets::Vertex;
+  using schaapcommon::facets::Pixel;
   if (facet) {
-    const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
-    // Width and height are both divisible by 4
-    const Vertex facet_center =
-        box.Min() + Vertex(0, 0, facet->Width() / 2, facet->Height() / 2);
-    const Vertex image_center(0, 0, _settings.trimmedImageWidth / 2,
-                              _settings.trimmedImageHeight / 2);
-    const Vertex diff(0, 0, facet_center.x - image_center.x,
-                      facet_center.y - image_center.y);
+    const schaapcommon::facets::BoundingBox box(facet->GetPixels(), 4);
+    const Pixel facet_centre = box.Centre();
+    const Pixel image_centre(_settings.trimmedImageWidth / 2,
+                             _settings.trimmedImageHeight / 2);
+    const Pixel diff = facet_centre - image_centre;
 
     observationInfo.shiftL -= diff.x * _settings.pixelScaleX;
     observationInfo.shiftM += diff.y * _settings.pixelScaleY;
@@ -556,6 +553,7 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
+  const bool kOriginAtZero = false;
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
@@ -563,8 +561,7 @@ void WSClean::RunClean() {
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM);
-    facet.CalculateSize(_settings.useIDG);
+        _observationInfo.shiftL, _observationInfo.shiftM, kOriginAtZero);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1222,13 +1219,13 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
     readEarlierModelImages(*entry);
 
     if (calculatePixelPositions) {
+      const bool kOriginAtZero = false;
       for (schaapcommon::facets::Facet& facet : _facets) {
         facet.CalculatePixelPositions(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM);
-        facet.CalculateSize(_settings.useIDG);
+            _observationInfo.shiftL, _observationInfo.shiftM, kOriginAtZero);
       }
     }
 
