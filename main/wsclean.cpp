@@ -44,8 +44,6 @@
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
 
-#include <schaapcommon/facets/facetimage.h>
-
 #include <iostream>
 #include <memory>
 
@@ -131,7 +129,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
-  applyFacetPhaseShift(entry.facet, task.observationInfo);
+  applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
@@ -235,7 +233,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
-  applyFacetPhaseShift(entry.facet, task.observationInfo);
+  applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -407,7 +405,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
-  applyFacetPhaseShift(entry.facet, task.observationInfo);
+  applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -428,19 +426,14 @@ ObservationInfo WSClean::getObservationInfo() const {
   return observationInfo;
 }
 
-void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
+void WSClean::applyFacetPhaseShift(const ImagingTableEntry& entry,
                                    ObservationInfo& observationInfo) const {
-  if (facet) {
-    // TODO for now we use the facet image to get the centre offset. Eventually
-    // we want to integrate this in the flow.
-    schaapcommon::facets::FacetImage fi;
-    const std::vector<aocommon::UVector<float>> images;
-    fi.CopyFacetPart(*facet, images, _settings.trimmedImageWidth,
-                     _settings.trimmedImageHeight, _settings.imagePadding,
-                     _settings.useIDG);
-
-    observationInfo.shiftL -= fi.DX() * _settings.pixelScaleX;
-    observationInfo.shiftM += fi.DY() * _settings.pixelScaleY;
+  if (entry.facet) {
+    observationInfo.shiftL -= entry.centre_delta_x * _settings.pixelScaleX;
+    observationInfo.shiftM += entry.centre_delta_y * _settings.pixelScaleY;
+    if (entry.centre_delta_x != 0.0 || entry.centre_delta_y != 0.0) {
+      observationInfo.hasShiftedPhaseCentre = true;
+    }
   }
 }
 
@@ -1586,6 +1579,16 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
     for (size_t f = 0; f != _facets.size(); ++f) {
       templateEntry.facetIndex = f;
       templateEntry.facet = &_facets[f];
+
+      // Calculate phase center delta for entry
+      schaapcommon::facets::FacetImage fi;
+      const std::vector<aocommon::UVector<float>> images;
+      fi.CopyFacetPart(_facets[f], images, _settings.trimmedImageWidth,
+                       _settings.trimmedImageHeight, _settings.imagePadding,
+                       _settings.useIDG);
+      templateEntry.centre_delta_x = fi.DX();
+      templateEntry.centre_delta_y = fi.DY();
+
       addPolarizationsToImagingTable(templateEntry);
     }
   }
@@ -1620,8 +1623,11 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
 WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isImaginary,
                                            bool isModel) const {
+  ObservationInfo observationInfo = _observationInfo;
+  applyFacetPhaseShift(entry, observationInfo);
+
   return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
-                       _observationInfo, _majorIterationNr, _commandLine,
+                       observationInfo, _majorIterationNr, _commandLine,
                        _infoPerChannel[entry.outputChannelIndex], isModel,
                        _lastStartTime);
 }
@@ -1629,8 +1635,11 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
 WSCFitsWriter WSClean::createWSCFitsWriter(
     const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
     bool isImaginary, bool isModel) const {
+  ObservationInfo observationInfo = _observationInfo;
+  applyFacetPhaseShift(entry, observationInfo);
+
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
-                       _deconvolution, _observationInfo, _majorIterationNr,
+                       _deconvolution, observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
 }
