@@ -40,9 +40,10 @@
 #include "progressbar.h"
 
 #include <aocommon/fits/fitswriter.h>
-
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
+
+#include <schaapcommon/facets/facetimage.h>
 
 #include <iostream>
 #include <memory>
@@ -1094,11 +1095,26 @@ void WSClean::saveRestoredImagesForGroup(
   }
 }
 
-void WSClean::stitchFacet() {
+void WSClean::stitchFacets(const ImagingTable& table,
+                           const CachedImageSet& cachedImage) {
   if (_facets.size() > 0) {
-    // TODO: extract data from facet fits file
-    // Call
-    // schaapcommon::facets::FacetImage::AddToImages()
+    schaapcommon::facets::FacetImage image;
+    // Initialize FacetImage with data from full image!?
+    // Loop definitely can be condensed
+    for (size_t i = 0; i < table.FacetGroupCount(); ++i) {
+      ImagingTable facet_table = table.GetFacetGroup(i);
+      for (size_t j = 0; j < facet_table.EntryCount(); ++j) {
+        // TODO: check this! Is outputChannelIndex indeed the correct one?
+        // TODO: not sure what to do with "isImaginary", now hardcoded to false
+        aocommon::UVector<float> facet_buffer(facet_table[j].facet->Width() *
+                                              facet_table[j].facet->Height());
+        cachedImage.LoadFacet(facet_buffer.data(), facet_table[j].polarization,
+                              facet_table[j].outputChannelIndex, false,
+                              facet_table[j].facetIndex);
+        // Pass Facet along with corresponding data buffer to
+        // schaapcommon::FacetImage::AddFacetToImage()
+      }
+    }
   }
 }
 
