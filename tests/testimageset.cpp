@@ -458,12 +458,19 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
 
   ImageSet imageSet(&table, settings, width, height);
   imageSet.LoadAndAverage(cachedImgs);
+  // The first image has all values set to 2^0, the second image 2^1, etc...
+  // The XX polarizations of deconvolution channel 1 consists of
+  // images 0, 2 and 4. These have been weighted with 4, 4, 0:
   BOOST_CHECK_CLOSE_FRACTION(imageSet[0 * nPol + 0][0],
                              double(1 * 4 + 4 * 4 + 16 * 0) / 8.0, 1e-6);
+  // The YY polarizations consists of images 1, 3 and 5, weights 4, 4, 0:
   BOOST_CHECK_CLOSE_FRACTION(imageSet[0 * nPol + 1][0],
                              double(2 * 4 + 8 * 4 + 32 * 0) / 8.0, 1e-6);
+  // The XX polarizations of deconvolution channel 2 consists of images 6, 8 and
+  // 10 Weights 0, 1, 1
   BOOST_CHECK_CLOSE_FRACTION(imageSet[1 * nPol + 0][0],
                              double(64 * 0 + 256 * 1 + 1024 * 1) / 2.0, 1e-6);
+  // YY: images 7, 9, 10, weights 0, 1, 1
   BOOST_CHECK_CLOSE_FRACTION(imageSet[1 * nPol + 1][0],
                              double(128 * 0 + 512 * 1 + 2048 * 1) / 2.0, 1e-6);
 
