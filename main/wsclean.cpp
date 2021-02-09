@@ -253,17 +253,13 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
-  storeAndCombineXYandYX(_residualImages, entry.polarization,
-                         joinedChannelIndex, entry.facetIndex,
-                         entry.facet->Width(), entry.facet->Height(), false,
+  storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
     result.imageImaginaryResult *=
         _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
         entry.siCorrection;
-    storeAndCombineXYandYX(_residualImages, entry.polarization,
-                           joinedChannelIndex, entry.facetIndex,
-                           entry.facet->Width(), entry.facet->Height(), true,
+    storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, true,
                            result.imageImaginaryResult.data());
   }
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -342,17 +338,20 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 }
 
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
-                                     aocommon::PolarizationEnum polarization,
                                      size_t joinedChannelIndex,
-                                     size_t facetIndex, size_t facetWidth,
-                                     size_t facetHeight, bool isImaginary,
-                                     const float* image) {
-  if (polarization == aocommon::Polarization::YX &&
+                                     const ImagingTableEntry& entry,
+                                     bool isImaginary, const float* image) {
+  if (entry.polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
     Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-    dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
-                   joinedChannelIndex, isImaginary, facetIndex);
+    if (nullptr != entry.facet) {
+      dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
+                     joinedChannelIndex, isImaginary, entry.facetIndex);
+    } else {
+      dest.Load(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
+                isImaginary);
+    }
     size_t count = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
     if (isImaginary) {
       for (size_t i = 0; i != count; ++i)
@@ -361,12 +360,24 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
       for (size_t i = 0; i != count; ++i)
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
-    dest.StoreFacet(xyImage.data(), aocommon::Polarization::XY,
-                    joinedChannelIndex, isImaginary, facetIndex, facetWidth,
-                    facetHeight);
+    if (nullptr != entry.facet) {
+      dest.StoreFacet(xyImage.data(), aocommon::Polarization::XY,
+                      joinedChannelIndex, isImaginary, entry.facetIndex,
+                      entry.facet->GetBoundingBox().Width(),
+                      entry.facet->GetBoundingBox().Height());
+    } else {
+      dest.Store(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
+                 isImaginary);
+    }
   } else {
-    dest.StoreFacet(image, polarization, joinedChannelIndex, isImaginary,
-                    facetIndex, facetWidth, facetHeight);
+    if (nullptr != entry.facet) {
+      dest.StoreFacet(image, entry.polarization, joinedChannelIndex,
+                      isImaginary, entry.facetIndex,
+                      entry.facet->GetBoundingBox().Width(),
+                      entry.facet->GetBoundingBox().Height());
+    } else {
+      dest.Store(image, entry.polarization, joinedChannelIndex, isImaginary);
+    }
   }
 }
 
@@ -1100,8 +1111,9 @@ void WSClean::stitchFacets(const ImagingTable& table,
       for (size_t j = 0; j < facet_table.EntryCount(); ++j) {
         // TODO: check this! Is outputChannelIndex indeed the correct one?
         // TODO: not sure what to do with "isImaginary", now hardcoded to false
-        aocommon::UVector<float> facet_buffer(facet_table[j].facet->Width() *
-                                              facet_table[j].facet->Height());
+        aocommon::UVector<float> facet_buffer(
+            facet_table[j].facet->GetBoundingBox().Width() *
+            facet_table[j].facet->GetBoundingBox().Height());
         cachedImage.LoadFacet(facet_buffer.data(), facet_table[j].polarization,
                               facet_table[j].outputChannelIndex, false,
                               facet_table[j].facetIndex);

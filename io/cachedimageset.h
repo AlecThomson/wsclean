@@ -155,6 +155,7 @@ class CachedImageSet {
       if (freqIndex < 10) str << '0';
       if (freqIndex < 100) str << '0';
       if (freqIndex < 1000) str << '0';
+      str << freqIndex;
       return str.str();
     }
   }
