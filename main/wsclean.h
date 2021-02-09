@@ -3,7 +3,6 @@
 
 #include <aocommon/polarization.h>
 #include <schaapcommon/facets/facet.h>
-#include <schaapcommon/facets/facetimage.h>
 
 #include "../deconvolution/deconvolution.h"
 

@@ -52,8 +52,10 @@ struct ImagingTableEntry {
 
   /**
    * Difference from the centre to the facet centre to the facet centre.
+   * Example, if the image centre was 100,100 and the facet centre 50,50, these
+   * value will be -50,-50
    */
-  int centre_delta_x, centre_delta_y;
+  int centreShiftX, centreShiftY;
 
   size_t outputChannelIndex;
 

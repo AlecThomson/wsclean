@@ -39,6 +39,8 @@
 
 #include "progressbar.h"
 
+#include <schaapcommon/facets/facetimage.h>
+
 #include <aocommon/fits/fitswriter.h>
 
 #include <aocommon/uvector.h>
@@ -429,9 +431,9 @@ ObservationInfo WSClean::getObservationInfo() const {
 void WSClean::applyFacetPhaseShift(const ImagingTableEntry& entry,
                                    ObservationInfo& observationInfo) const {
   if (entry.facet) {
-    observationInfo.shiftL -= entry.centre_delta_x * _settings.pixelScaleX;
-    observationInfo.shiftM += entry.centre_delta_y * _settings.pixelScaleY;
-    if (entry.centre_delta_x != 0.0 || entry.centre_delta_y != 0.0) {
+    observationInfo.shiftL -= entry.centreShiftX * _settings.pixelScaleX;
+    observationInfo.shiftM += entry.centreShiftY * _settings.pixelScaleY;
+    if (entry.centreShiftX != 0.0 || entry.centreShiftY != 0.0) {
       observationInfo.hasShiftedPhaseCentre = true;
     }
   }
@@ -1586,8 +1588,8 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       fi.CopyFacetPart(_facets[f], images, _settings.trimmedImageWidth,
                        _settings.trimmedImageHeight, _settings.imagePadding,
                        _settings.useIDG);
-      templateEntry.centre_delta_x = fi.DX();
-      templateEntry.centre_delta_y = fi.DY();
+      templateEntry.centreShiftX = fi.CentreShiftX();
+      templateEntry.centreShiftY = fi.CentreShiftY();
 
       addPolarizationsToImagingTable(templateEntry);
     }
