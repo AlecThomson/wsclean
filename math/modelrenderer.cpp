@@ -222,8 +222,8 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     if (boundingBoxSize % 2 != 0) {
       ++boundingBoxSize;
     }
-    if (boundingBoxSize > imageWidth || boundingBoxSize > imageHeight)
-      boundingBoxSize = imageWidth;
+    if (boundingBoxSize > std::min(imageWidth, imageHeight))
+      boundingBoxSize = std::min(imageWidth, imageHeight);
     aocommon::UVector<float> kernel(boundingBoxSize * boundingBoxSize);
     auto iter = kernel.begin();
     for (size_t y = 0; y != boundingBoxSize; ++y) {
