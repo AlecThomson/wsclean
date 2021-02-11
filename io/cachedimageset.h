@@ -64,7 +64,7 @@ class CachedImageSet {
   void LoadFacet(NumT* image, aocommon::PolarizationEnum polarization,
                  size_t freqIndex, size_t facetIndex, const Facet* facet,
                  bool isImaginary) const {
-    if (_facetCount <= 1 || facet == nullptr) {
+    if (facet == nullptr) {
       Load<NumT>(image, polarization, freqIndex, isImaginary);
     } else {
       // No need to check width and height here, because we do not cache
@@ -85,7 +85,7 @@ class CachedImageSet {
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount <= 1) {
       if (_image.empty()) {
-        _image = Image(_writer.Width(), _writer.Height());
+        _image = ImageF(_writer.Width(), _writer.Height());
       }
       std::copy(image, image + _writer.Width() * _writer.Height(),
                 _image.data());
@@ -100,7 +100,7 @@ class CachedImageSet {
   void StoreFacet(const NumT* image, aocommon::PolarizationEnum polarization,
                   size_t freqIndex, size_t facetIndex, const Facet* facet,
                   bool isImaginary) {
-    if (_facetCount <= 1 || facet == nullptr) {
+    if (facet == nullptr) {
       // If _facetCount 0, use the main "Store" as is
       Store<NumT>(image, polarization, freqIndex, isImaginary);
     } else {
@@ -165,7 +165,7 @@ class CachedImageSet {
   size_t _polCount, _freqCount, _facetCount;
   std::string _prefix;
 
-  Image _image;
+  ImageF _image;
   std::set<std::string> _storedNames;
 };
 
