@@ -134,8 +134,8 @@ class CachedImageSet {
     if (_facetCount > 0) {
       str << "-facet-";
       if (facetIndex < 10) str << '0';
-      if (freqIndex < 100) str << '0';
-      if (freqIndex < 1000) str << '0';
+      if (facetIndex < 100) str << '0';
+      if (facetIndex < 1000) str << '0';
       str << facetIndex;
     }
     str << "-tmp.fits";
