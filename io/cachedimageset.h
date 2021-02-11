@@ -133,8 +133,8 @@ class CachedImageSet {
                         bool isImaginary) const {
     std::ostringstream str;
     str << nameTrunk(polarization, freqIndex, isImaginary);
-    if (_facetCount > 1) {
-      str << "-facet-";
+    if (_facetCount > 0) {
+      str << "-f";
       str << std::setw(4) << std::setfill('0') << facetIndex;
     }
     str << "-tmp.fits";
