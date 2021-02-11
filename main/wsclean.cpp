@@ -804,7 +804,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   WSCFitsWriter modelWriter(
       createWSCFitsWriter(groupTable.Front(), false, true));
   _modelImages.Initialize(modelWriter.Writer(), _settings.polarizations.size(),
-                          _settings.channelsOut, 0,
+                          _settings.channelsOut, _facets.size(),
                           _settings.prefixName + "-model");
   WSCFitsWriter writer(createWSCFitsWriter(groupTable.Front(), false, false));
   _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
@@ -812,7 +812,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                              _settings.prefixName + "-residual");
   if (groupTable.Front().polarization == *_settings.polarizations.begin())
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
-                          0, _settings.prefixName + "-psf");
+                          _facets.size(), _settings.prefixName + "-psf");
 
   // In the case of IDG we have to directly ask for all Four polarizations. This
   // can't be parallelized in the current structure.
@@ -1208,7 +1208,8 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
 void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
   _modelImages.Initialize(
       createWSCFitsWriter(*imagingGroup.front(), false, true).Writer(),
-      _settings.polarizations.size(), 1, 0, _settings.prefixName + "-model");
+      _settings.polarizations.size(), 1, _facets.size(),
+      _settings.prefixName + "-model");
 
   const std::string rootPrefix = _settings.prefixName;
 

@@ -48,7 +48,7 @@ class CachedImageSet {
       throw std::runtime_error("Writer is not set.");
     Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary)
                   << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount <= 1)
+    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0)
       if (_image.empty())
         throw std::runtime_error("Loading image before store");
       else
@@ -83,7 +83,7 @@ class CachedImageSet {
       throw std::runtime_error("Writer is not set.");
     Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary)
                   << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount <= 1) {
+    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       if (_image.empty()) {
         _image = ImageF(_writer.Width(), _writer.Height());
       }
