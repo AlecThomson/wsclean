@@ -862,7 +862,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       runFirstInversion(entry, primaryBeam);
     }
     _griddingTaskManager->Finish();
-    // TODO: call StitchFacets method here
   } else {
     bool hasMore;
     size_t sqIndex = 0;
@@ -876,7 +875,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       }
       ++sqIndex;
       _griddingTaskManager->Finish();
-      // TODO: call StitchFacets method here
     } while (hasMore);
   }
   _inversionWatch.Pause();
@@ -924,7 +922,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
-            // TODO: call StitchFacets method here
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             for (const ImagingTable::Group& sqGroup :
@@ -941,7 +938,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                 imageMain(*entry, false, false);
               }  // end of polarization loop
               _griddingTaskManager->Finish();
-              // TODO: call StitchFacets method here
               _inversionWatch.Pause();
             }  // end of joined channels loop
           }
@@ -1095,30 +1091,6 @@ void WSClean::saveRestoredImagesForGroup(
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
         }
-      }
-    }
-  }
-}
-
-void WSClean::stitchFacets(const ImagingTable& table,
-                           const CachedImageSet& cachedImage) {
-  if (_facets.size() > 0) {
-    schaapcommon::facets::FacetImage image;
-    // Initialize FacetImage with data from full image!?
-    // Loop definitely can be condensed
-    for (size_t i = 0; i < table.FacetGroupCount(); ++i) {
-      ImagingTable facet_table = table.GetFacetGroup(i);
-      for (size_t j = 0; j < facet_table.EntryCount(); ++j) {
-        // TODO: check this! Is outputChannelIndex indeed the correct one?
-        // TODO: not sure what to do with "isImaginary", now hardcoded to false
-        aocommon::UVector<float> facet_buffer(
-            facet_table[j].facet->GetBoundingBox().Width() *
-            facet_table[j].facet->GetBoundingBox().Height());
-        cachedImage.LoadFacet(facet_buffer.data(), facet_table[j].polarization,
-                              facet_table[j].outputChannelIndex, false,
-                              facet_table[j].facetIndex);
-        // Pass Facet along with corresponding data buffer to
-        // schaapcommon::FacetImage::AddFacetToImage()
       }
     }
   }

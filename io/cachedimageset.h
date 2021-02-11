@@ -112,6 +112,13 @@ class CachedImageSet {
     }
   }
 
+  /**
+   * @brief Get the Stored Names object, used for testing only
+   *
+   * @return const std::set<std::string>&
+   */
+  const std::set<std::string>& GetStoredNames() const { return _storedNames; };
+
  private:
   std::string name(aocommon::PolarizationEnum polarization, size_t freqIndex,
                    bool isImaginary) const {
