@@ -22,8 +22,12 @@ class CachedImageSet {
   CachedImageSet() : _polCount(0), _freqCount(0), _facetCount(0), _image() {}
 
   ~CachedImageSet() {
+    std::cout << "Destructor CachedImageSet: don't remove temporaries, but "
+                 "print the stored names for debugging"
+              << std::endl;
     for (const std::string& filename : _storedNames)
-      std::remove(filename.c_str());
+      std::cout << "Fname " << filename.c_str() << std::endl;
+    // std::remove(filename.c_str());
   }
 
   CachedImageSet(const CachedImageSet& source) = delete;
