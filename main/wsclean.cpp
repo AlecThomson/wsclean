@@ -846,6 +846,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       runFirstInversion(entry, primaryBeam);
     }
     _griddingTaskManager->Finish();
+    stitchFacets(groupTable, _residualImages);
   } else {
     bool hasMore;
     size_t sqIndex = 0;
@@ -859,6 +860,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       }
       ++sqIndex;
       _griddingTaskManager->Finish();
+      stitchFacets(groupTable, _residualImages);
     } while (hasMore);
   }
   _inversionWatch.Pause();
@@ -906,6 +908,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
+            stitchFacets(groupTable, _residualImages);
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             for (const ImagingTable::Group& sqGroup :
@@ -924,6 +927,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               _griddingTaskManager->Finish();
               _inversionWatch.Pause();
             }  // end of joined channels loop
+            stitchFacets(groupTable, _residualImages);
           }
 
           else {  // only parallize channels
@@ -1369,33 +1373,41 @@ void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
 }
 
 void WSClean::stitchFacets(const ImagingTable& table,
-                           const CachedImageSet& cachedImage) {
+                           CachedImageSet& cachedImage) {
   if (_facets.size() > 0) {
-    // TODO: where to get the nr of spectral terms?
-    schaapcommon::facets::FacetImage image(cachedImage.Writer().Width(),
-                                           cachedImage.Writer().Height(), 1);
-    // TODO: condense loop
-    for (size_t i = 0; i < table.FacetGroupCount(); ++i) {
-      ImagingTable facet_table = table.GetFacetGroup(i);
-      for (size_t j = 0; j < facet_table.EntryCount(); ++j) {
-        // TODO: loop over spectral terms, but where to get those?
-        // TODO: is outputChannelIndex indeed the correct one?
-        // TODO: not sure what to do with "isImaginary", now hardcoded to false
-        std::vector<aocommon::UVector<float>> facet_buffer(1);
-        facet_buffer[0].resize(facet_table[j].facet->GetBoundingBox().Width() *
-                               facet_table[j].facet->GetBoundingBox().Height());
-        cachedImage.LoadFacet(
-            facet_buffer[0].data(), facet_table[j].polarization,
-            facet_table[j].outputChannelIndex, facet_table[j].facetIndex,
-            facet_table[j].facet, false);
-        // Pass Facet along with corresponding data buffer to
-        image.AddFacetToImage(*facet_table[j].facet, facet_buffer);
+    // Initialize FacetImage with propertiet of stitched image, always
+    // stitch facets for 1 spectral term.
+    schaapcommon::facets::FacetImage image(_settings.trimmedImageWidth,
+                                           _settings.trimmedImageHeight, 1);
+    for (size_t channel_idx = 0; channel_idx < table.IndependentGroupCount();
+         ++channel_idx) {
+      const ImagingTable channel_table = table.GetIndependentGroup(channel_idx);
+      // outputChannelIndex constant within this group, extract from first entry
+      const size_t freq_idx = channel_table.Front().outputChannelIndex;
+      for (size_t pol_idx = 0; pol_idx < channel_table.SquaredGroupCount();
+           ++pol_idx) {
+        const ImagingTable polarization_table = table.GetSquaredGroup(pol_idx);
+        // polarization constant within this group, extract from first entry
+        const aocommon::PolarizationEnum polarization =
+            polarization_table.Front().polarization;
+        for (size_t image_idx = 0;
+             image_idx <= polarization_table.Front().imageCount; ++image_idx) {
+          for (auto entry = polarization_table.begin();
+               entry != polarization_table.end(); ++entry) {
+            std::vector<aocommon::UVector<float>> facet_buffer(1);
+            facet_buffer[0].resize((*entry).facet->GetBoundingBox().Width() *
+                                   (*entry).facet->GetBoundingBox().Height());
+            cachedImage.LoadFacet(facet_buffer[0].data(), (*entry).polarization,
+                                  (*entry).outputChannelIndex,
+                                  (*entry).facetIndex, (*entry).facet,
+                                  image_idx == 1);
+            image.AddFacetToImage(*(*entry).facet, facet_buffer);
+          }
+          cachedImage.Store(image.Data(0).data(), polarization, freq_idx,
+                            image_idx == 1);
+        }
       }
     }
-    // TODO: how to compute filename?
-    std::string filename = "my-stitched-image.fits";
-    // TODO: nr of spectral terms, again...
-    cachedImage.Writer().Write(filename, image.Data(0).data());
   }
 }
 
