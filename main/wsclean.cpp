@@ -1368,6 +1368,37 @@ void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
   writer.WriteUV(prefix + "-imag.fits", imagUV.data());
 }
 
+void WSClean::stitchFacets(const ImagingTable& table,
+                           const CachedImageSet& cachedImage) {
+  if (_facets.size() > 0) {
+    // TODO: where to get the nr of spectral terms?
+    schaapcommon::facets::FacetImage image(cachedImage.Writer().Width(),
+                                           cachedImage.Writer().Height(), 1);
+    // TODO: condense loop
+    for (size_t i = 0; i < table.FacetGroupCount(); ++i) {
+      ImagingTable facet_table = table.GetFacetGroup(i);
+      for (size_t j = 0; j < facet_table.EntryCount(); ++j) {
+        // TODO: loop over spectral terms, but where to get those?
+        // TODO: is outputChannelIndex indeed the correct one?
+        // TODO: not sure what to do with "isImaginary", now hardcoded to false
+        std::vector<aocommon::UVector<float>> facet_buffer(1);
+        facet_buffer[0].resize(facet_table[j].facet->GetBoundingBox().Width() *
+                               facet_table[j].facet->GetBoundingBox().Height());
+        cachedImage.LoadFacet(
+            facet_buffer[0].data(), facet_table[j].polarization,
+            facet_table[j].outputChannelIndex, facet_table[j].facetIndex,
+            facet_table[j].facet, false);
+        // Pass Facet along with corresponding data buffer to
+        image.AddFacetToImage(*facet_table[j].facet, facet_buffer);
+      }
+    }
+    // TODO: how to compute filename?
+    std::string filename = "my-stitched-image.fits";
+    // TODO: nr of spectral terms, again...
+    cachedImage.Writer().Write(filename, image.Data(0).data());
+  }
+}
+
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   std::set<aocommon::ChannelInfo> channelSet;
   _msBands.assign(_settings.filenames.size(), MultiBandData());
