@@ -108,8 +108,11 @@ class WSClean {
 
   void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
-
-  void stitchFacets(const ImagingTable& table, CachedImageSet& cachedImage);
+  // writeWCSFits: write WSClean fits file true/false
+  // isDirty: write dirty image (true) or psf (false) WSClean fits. Only
+  // effective in case writeWCSFits is true
+  void stitchFacets(const ImagingTable& table, CachedImageSet& cachedImage,
+                    bool writeWCSFits, bool isDirty);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;

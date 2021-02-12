@@ -162,8 +162,9 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                                           _settings.trimmedImageWidth,
                                           _settings.trimmedImageHeight);
   _psfImages.SetFitsWriter(createWSCFitsWriter(entry, false, false).Writer());
-  _psfImages.Store(result.imageRealResult.data(),
-                   *_settings.polarizations.begin(), channelIndex, false);
+  _psfImages.StoreFacet(result.imageRealResult.data(),
+                        *_settings.polarizations.begin(), channelIndex,
+                        entry.facetIndex, entry.facet, false);
 
   _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -321,7 +322,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       }
     }
 
-    if (_settings.isDirtySaved) {
+    // If _facets.size() > 0, dirty image is saved in stitchFacets
+    if (_settings.isDirtySaved && _facets.size() == 0) {
       for (size_t imageIndex = 0; imageIndex != entry.imageCount;
            ++imageIndex) {
         bool isImaginary = (imageIndex == 1);
@@ -828,10 +830,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   const std::string rootPrefix = _settings.prefixName;
 
   _inversionWatch.Start();
+  bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
+                   _settings.makePSF || _settings.makePSFOnly;
   for (ImagingTableEntry& entry : groupTable) {
     bool isFirstPol = entry.polarization == *_settings.polarizations.begin();
-    bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
-                     _settings.makePSF || _settings.makePSFOnly;
     if (doMakePSF && isFirstPol) {
       if (_settings.reusePsf)
         loadExistingPSF(entry);
@@ -840,13 +842,14 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     }
   }
   _griddingTaskManager->Finish();
+  if (doMakePSF) stitchFacets(groupTable, _psfImages, true, false);
 
   if (parallelizePolarizations) {
     for (ImagingTableEntry& entry : groupTable) {
       runFirstInversion(entry, primaryBeam);
     }
     _griddingTaskManager->Finish();
-    stitchFacets(groupTable, _residualImages);
+    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, true);
   } else {
     bool hasMore;
     size_t sqIndex = 0;
@@ -860,7 +863,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       }
       ++sqIndex;
       _griddingTaskManager->Finish();
-      stitchFacets(groupTable, _residualImages);
+      stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, true);
     } while (hasMore);
   }
   _inversionWatch.Pause();
@@ -908,7 +911,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
-            stitchFacets(groupTable, _residualImages);
+            stitchFacets(groupTable, _residualImages, false, false);
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             for (const ImagingTable::Group& sqGroup :
@@ -927,7 +930,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               _griddingTaskManager->Finish();
               _inversionWatch.Pause();
             }  // end of joined channels loop
-            stitchFacets(groupTable, _residualImages);
+            stitchFacets(groupTable, _residualImages, false, false);
           }
 
           else {  // only parallize channels
@@ -1373,12 +1376,14 @@ void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
 }
 
 void WSClean::stitchFacets(const ImagingTable& table,
-                           CachedImageSet& cachedImage) {
+                           CachedImageSet& cachedImage, bool writeWCSFits,
+                           bool isDirty) {
   if (_facets.size() > 0) {
-    // Initialize FacetImage with propertiet of stitched image, always
+    // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage image(_settings.trimmedImageWidth,
                                            _settings.trimmedImageHeight, 1);
+    // TODO: iteration over IndependentGroupCount is incorrect
     for (size_t channel_idx = 0; channel_idx < table.IndependentGroupCount();
          ++channel_idx) {
       const ImagingTable channel_table = table.GetIndependentGroup(channel_idx);
@@ -1391,7 +1396,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
         const aocommon::PolarizationEnum polarization =
             polarization_table.Front().polarization;
         for (size_t image_idx = 0;
-             image_idx <= polarization_table.Front().imageCount; ++image_idx) {
+             image_idx != polarization_table.Front().imageCount; ++image_idx) {
           for (auto entry = polarization_table.begin();
                entry != polarization_table.end(); ++entry) {
             std::vector<aocommon::UVector<float>> facet_buffer(1);
@@ -1405,6 +1410,24 @@ void WSClean::stitchFacets(const ImagingTable& table,
           }
           cachedImage.Store(image.Data(0).data(), polarization, freq_idx,
                             image_idx == 1);
+
+          if (writeWCSFits) {
+            if (isDirty) {
+              // Dirty image
+              bool is_imaginary = (image_idx == 1);
+              WSCFitsWriter writer(createWSCFitsWriter(
+                  polarization_table.Front(), is_imaginary, false));
+              Image dirtyImage(_settings.trimmedImageWidth,
+                               _settings.trimmedImageHeight);
+              Logger::Info << "Writing dirty image...\n";
+              writer.WriteImage("dirty.fits", image.Data(0).data());
+            } else {
+              // PSF
+              // TODO: should get large chunk of code from imagePSFCallback
+              throw std::runtime_error(
+                  "Writing the psf image not yet supported");
+            }
+          }
         }
       }
     }
