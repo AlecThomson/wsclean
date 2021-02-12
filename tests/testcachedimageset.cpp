@@ -38,8 +38,9 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
     }
     // dl (and dm) should be retrievable from FitsWriter
     facets[i].CalculatePixelPositions(
-        writer.RA(), writer.Dec(), dl_dm, dl_dm, writer.Width(),
-        writer.Height(), writer.PhaseCentreDL(), writer.PhaseCentreDM(), false);
+        writer.RA(), writer.Dec(), writer.PixelSizeX(), writer.PixelSizeY(),
+        writer.Width(), writer.Height(), writer.PhaseCentreDL(),
+        writer.PhaseCentreDM(), false);
     facets_data[i].assign(facets[i].GetBoundingBox().Width() *
                               facets[i].GetBoundingBox().Height(),
                           static_cast<float>(i + 1));

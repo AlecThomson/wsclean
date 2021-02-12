@@ -109,6 +109,9 @@ class WSClean {
   void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
 
+  void stitchFacets(const ImagingTable& table,
+                    const CachedImageSet& cachedImage);
+
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
 
