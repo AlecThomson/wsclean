@@ -1445,20 +1445,6 @@ void WSClean::stitchSingleGroup(
     // TODO here we should now call:
     // processFullPSF(imageStorage.Data(0).data(), entry);
     // TODO This requires data to be non-const
-
-    Logger::Info << "Writing psf image... ";
-    if (_settings.isUVImageSaved && !isImaginary) {
-      saveUVImage(imageStorage.Data(0).data(), entry, false, "uvpsf");
-    }
-
-    Logger::Info.Flush();
-    const std::string name(
-        ImageFilename::GetPSFPrefix(_settings, channelIndex,
-                                    entry.outputIntervalIndex) +
-        "-psf.fits");
-    WSCFitsWriter fitsFile = createWSCFitsWriter(entry, false, false);
-    fitsFile.WritePSF(name, imageStorage.Data(0).data());
-    Logger::Info << "DONE\n";
   }
 }
 
