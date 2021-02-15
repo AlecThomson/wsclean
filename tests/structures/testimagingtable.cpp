@@ -32,8 +32,8 @@ BOOST_AUTO_TEST_CASE(add_update_clear) {
   test::UniquePtr<ImagingTableEntry> entry2;
   entry1->joinedGroupIndex = 42;
   entry2->joinedGroupIndex = 43;
-  entry1->facetIndex = 142;
-  entry2->facetIndex = 142;
+  entry1->facetGroupIndex = 142;
+  entry2->facetGroupIndex = 142;
   entry1->squaredDeconvolutionIndex = 242;
   entry2->squaredDeconvolutionIndex = 242;
   table.AddEntry(entry1.take());
@@ -109,10 +109,10 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   test::UniquePtr<ImagingTableEntry> entry0_1;
   test::UniquePtr<ImagingTableEntry> entry0_2;
   test::UniquePtr<ImagingTableEntry> entry1_0;
-  entry0_0->facetIndex = 43;
-  entry0_1->facetIndex = 43;
-  entry0_2->facetIndex = 43;
-  entry1_0->facetIndex = 42;
+  entry0_0->facetGroupIndex = 43;
+  entry0_1->facetGroupIndex = 43;
+  entry0_2->facetGroupIndex = 43;
+  entry1_0->facetGroupIndex = 42;
   table.AddEntry(entry0_0.take());
   table.AddEntry(entry0_1.take());
   table.AddEntry(entry0_2.take());
