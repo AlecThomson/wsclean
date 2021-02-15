@@ -26,8 +26,7 @@ class CachedImageSet {
                  "print the stored names for debugging"
               << std::endl;
     for (const std::string& filename : _storedNames)
-      std::cout << "Fname " << filename.c_str() << std::endl;
-    // std::remove(filename.c_str());
+      std::remove(filename.c_str());
   }
 
   CachedImageSet(const CachedImageSet& source) = delete;

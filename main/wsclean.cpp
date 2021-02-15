@@ -1391,19 +1391,13 @@ void WSClean::stitchFacets(const ImagingTable& table,
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage image(_settings.trimmedImageWidth,
                                            _settings.trimmedImageHeight, 1);
-    for (size_t squaredGroupIndex = 0;
-         squaredGroupIndex != table.SquaredGroupCount(); ++squaredGroupIndex) {
-      const ImagingTable squaredGroup =
-          table.GetSquaredGroup(squaredGroupIndex);
-      for (size_t facetGroupIndex = 0;
-           facetGroupIndex != squaredGroup.FacetGroupCount();
-           ++facetGroupIndex) {
-        const ImagingTable stitchGroup = table.GetFacetGroup(facetGroupIndex);
-        const size_t imageCount = stitchGroup.Front().imageCount;
-        for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
-          stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
-                            isPSF, image);
-        }
+    for (size_t facetGroupIndex = 0; facetGroupIndex != table.FacetGroupCount();
+         ++facetGroupIndex) {
+      const ImagingTable stitchGroup = table.GetFacetGroup(facetGroupIndex);
+      const size_t imageCount = stitchGroup.Front().imageCount;
+      for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
+        stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
+                          isPSF, image);
       }
     }
   }
