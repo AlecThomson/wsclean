@@ -52,7 +52,7 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
   str << std::setw(2) << entry.outputChannelIndex << " ";
   str << std::setw(2) << entry.joinedGroupIndex << " ";
   str << std::setw(2) << entry.squaredDeconvolutionIndex << " ";
-  str << std::setw(2) << entry.facetIndex << " ";
+  str << std::setw(2) << entry.facetGroupIndex << " ";
   str << std::setw(2) << entry.outputIntervalIndex << "  ";
   str << round(entry.bandStartFrequency * 1e-6) << "-"
       << round(entry.bandEndFrequency * 1e-6) << " (" << entry.inputChannelCount

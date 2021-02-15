@@ -90,7 +90,7 @@ class ImagingTable {
     updateGroups(_independentGroups,
                  [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
     updateGroups(_facetGroups,
-                 [](const ImagingTableEntry& e) { return e.facetIndex; });
+                 [](const ImagingTableEntry& e) { return e.facetGroupIndex; });
     updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
       return e.squaredDeconvolutionIndex;
     });
