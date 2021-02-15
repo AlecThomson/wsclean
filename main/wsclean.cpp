@@ -573,6 +573,8 @@ void WSClean::RunClean() {
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM, false);
+    // Adjusted bounding box should be divisible by 4
+    facet.CalculateBoundingBox(_settings.imagePadding, 4u, _settings.useIDG);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1240,6 +1242,10 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
             _observationInfo.shiftL, _observationInfo.shiftM, false);
+        // TODO: check if BoundingBox adjustment needed here
+        // Adjusted bounding box should be divisible by 4
+        facet.CalculateBoundingBox(_settings.imagePadding, 4u,
+                                   _settings.useIDG);
       }
     }
 
@@ -1408,37 +1414,29 @@ void WSClean::stitchSingleGroup(
     bool writeDirty, bool isPSF,
     schaapcommon::facets::FacetImage& imageStorage) {
   const bool isImaginary = (imageIndex == 1);
-  // TODO the image must be cleared before stitching -- however aocommon
-  // currently doesn't allow write access.
-  // TODO something like imageStorage.Clear(); -> or refactor facetimage to not
-  // operate on internal storage, since it would be nicer to use wsclean's own
-  // Image class.
+  ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
+                   0.0f);
   for (const ImagingTableEntry& facetEntry : group) {
-    std::vector<aocommon::UVector<float>> facet_buffer(1);
-    facet_buffer[0].resize(facetEntry.facet->GetBoundingBox().Width() *
-                           facetEntry.facet->GetBoundingBox().Height());
-    cachedImage.LoadFacet(facet_buffer[0].data(), facetEntry.polarization,
+    imageStorage.SetFacet(*facetEntry.facet);
+    cachedImage.LoadFacet(imageStorage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
-    imageStorage.AddFacetToImage(*facetEntry.facet, facet_buffer);
+    imageStorage.AddToImage(std::vector<float*>{imageMain.data()});
   }
   const size_t channelIndex = group.Front().outputChannelIndex;
   const aocommon::PolarizationEnum polarization = group.Front().polarization;
-  cachedImage.Store(imageStorage.Data(0).data(), polarization, channelIndex,
-                    isImaginary);
+  cachedImage.Store(imageMain.data(), polarization, channelIndex, isImaginary);
 
   if (writeDirty) {
     WSCFitsWriter writer(
         createWSCFitsWriter(group.Front(), isImaginary, false));
     Logger::Info << "Writing dirty image...\n";
-    writer.WriteImage("dirty.fits", imageStorage.Data(0).data());
+    writer.WriteImage("dirty.fits", imageMain.data());
   }
 
   if (isPSF) {
     const ImagingTableEntry& entry = group.Front();
-    // TODO here we should now call:
-    // processFullPSF(imageStorage.Data(0).data(), entry);
-    // TODO This requires data to be non-const
+    processFullPSF(imageMain.data(), entry);
   }
 }
 
@@ -1664,13 +1662,10 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       entry->facet = &_facets[f];
 
       // Calculate phase center delta for entry
-      schaapcommon::facets::FacetImage fi;
-      const std::vector<aocommon::UVector<float>> images;
-      fi.CopyFacetPart(_facets[f], images, _settings.trimmedImageWidth,
-                       _settings.trimmedImageHeight, _settings.imagePadding,
-                       _settings.useIDG);
-      entry->centreShiftX = fi.CentreShiftX();
-      entry->centreShiftY = fi.CentreShiftY();
+      entry->centreShiftX = _facets[f].GetBoundingBox().Centre().x -
+                            _settings.trimmedImageWidth / 2;
+      entry->centreShiftY = _facets[f].GetBoundingBox().Centre().y -
+                            _settings.trimmedImageHeight / 2;
 
       _imagingTable.AddEntry(std::move(entry));
     }
