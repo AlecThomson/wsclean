@@ -26,6 +26,12 @@
 
 #include <set>
 
+namespace schaapcommon {
+namespace facets {
+class FacetImage;
+}
+}  // namespace schaapcommon
+
 class WSClean {
  public:
   WSClean();
@@ -108,11 +114,17 @@ class WSClean {
 
   void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
+
+  void processFullPSF(float* image, const ImagingTableEntry& entry);
   // writeWCSFits: write WSClean fits file true/false
   // isDirty: write dirty image (true) or psf (false) WSClean fits. Only
   // effective in case writeWCSFits is true
   void stitchFacets(const ImagingTable& table, CachedImageSet& cachedImage,
-                    bool writeWCSFits, bool isDirty);
+                    bool writeDirty, bool isPSF);
+  void stitchSingleGroup(const ImagingTable& group, size_t imageIndex,
+                         CachedImageSet& cachedImage, bool writeDirty,
+                         bool writePSF,
+                         schaapcommon::facets::FacetImage& imageStorage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
