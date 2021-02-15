@@ -122,8 +122,6 @@ class CachedImageSet {
    */
   const std::set<std::string>& GetStoredNames() const { return _storedNames; };
 
-  const FitsWriter& Writer() const { return _writer; }
-
  private:
   std::string name(aocommon::PolarizationEnum polarization, size_t freqIndex,
                    bool isImaginary) const {
