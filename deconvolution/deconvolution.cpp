@@ -199,7 +199,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
       groupTable.SquaredGroups().front();
   _polarizations.clear();
   for (const ImagingTable::EntryPtr& entry : firstSquaredGroup) {
-    if (_polarizations.count(entry->polarization) != 0)
+    if (entry->facet == nullptr &&
+        _polarizations.count(entry->polarization) != 0)
       throw std::runtime_error(
           "Two equal polarizations were given to the deconvolution algorithm "
           "within a single polarized group");

@@ -24,6 +24,7 @@ add_executable(unittest EXCLUDE_FROM_ALL
 add_executable(integrationtest EXCLUDE_FROM_ALL
   test.cpp
   integration/tbasics.cpp
+  integration/tfacetstitch.cpp
   integration/tveladeconvolution.cpp
   ${WSCLEANFILES}
 )
@@ -47,6 +48,7 @@ add_custom_target(checkintegration
   DEPENDS integrationtest
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/scripts/generate_facets.sh
   COMMAND integrationtest
 )
 
