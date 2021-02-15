@@ -119,8 +119,21 @@ class WSClean {
   // writeWCSFits: write WSClean fits file true/false
   // isDirty: write dirty image (true) or psf (false) WSClean fits. Only
   // effective in case writeWCSFits is true
+
+  /**
+   * @brief Stitch facets for all FacetGroups
+   *
+   * @param table Imaging table
+   * @param cachedImage CachedImages
+   * @param writeDirty Write dirty image?
+   * @param writePSF Write PSF image?
+   */
   void stitchFacets(const ImagingTable& table, CachedImageSet& cachedImage,
-                    bool writeDirty, bool isPSF);
+                    bool writeDirty, bool writePSF);
+
+  /**
+   * @brief Stitch facet for a single (Facet)Group
+   */
   void stitchSingleGroup(const ImagingTable& group, size_t imageIndex,
                          CachedImageSet& cachedImage, bool writeDirty,
                          bool writePSF,

@@ -1391,7 +1391,7 @@ void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
 
 void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& cachedImage, bool writeDirty,
-                           bool isPSF) {
+                           bool writePSF) {
   if (!_facets.empty()) {
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
@@ -1403,7 +1403,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
       const size_t imageCount = stitchGroup.Front().imageCount;
       for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
         stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
-                          isPSF, image);
+                          writePSF, image);
       }
     }
   }
@@ -1411,7 +1411,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
 
 void WSClean::stitchSingleGroup(
     const ImagingTable& group, size_t imageIndex, CachedImageSet& cachedImage,
-    bool writeDirty, bool isPSF,
+    bool writeDirty, bool writePSF,
     schaapcommon::facets::FacetImage& imageStorage) {
   const bool isImaginary = (imageIndex == 1);
   ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -1434,7 +1434,7 @@ void WSClean::stitchSingleGroup(
     writer.WriteImage("dirty.fits", imageMain.data());
   }
 
-  if (isPSF) {
+  if (writePSF) {
     const ImagingTableEntry& entry = group.Front();
     processFullPSF(imageMain.data(), entry);
   }
