@@ -1528,7 +1528,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
     if (_settings.joinedFrequencyDeconvolution) {
       templateEntry.joinedGroupIndex = 0;
     }
-    addFacetsToImagingTable(templateEntry);
+    addPolarizationsToImagingTable(templateEntry);
   }
   //}
   _imagingTable.Update();
@@ -1657,13 +1657,17 @@ void WSClean::makeImagingTableEntryChannelSettings(
 
 void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
   if (_facets.empty()) {
-    templateEntry.facetIndex = 0;
-    templateEntry.facet = nullptr;
-    addPolarizationsToImagingTable(templateEntry);
+    std::unique_ptr<ImagingTableEntry> entry(
+        new ImagingTableEntry(templateEntry));
+    entry->facetIndex = 0;
+    entry->facet = nullptr;
+    _imagingTable.AddEntry(std::move(entry));
   } else {
     for (size_t f = 0; f != _facets.size(); ++f) {
-      templateEntry.facetIndex = f;
-      templateEntry.facet = &_facets[f];
+      std::unique_ptr<ImagingTableEntry> entry(
+          new ImagingTableEntry(templateEntry));
+      entry->facetIndex = f;
+      entry->facet = &_facets[f];
 
       // Calculate phase center delta for entry
       schaapcommon::facets::FacetImage fi;
@@ -1671,12 +1675,13 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       fi.CopyFacetPart(_facets[f], images, _settings.trimmedImageWidth,
                        _settings.trimmedImageHeight, _settings.imagePadding,
                        _settings.useIDG);
-      templateEntry.centreShiftX = fi.CentreShiftX();
-      templateEntry.centreShiftY = fi.CentreShiftY();
+      entry->centreShiftX = fi.CentreShiftX();
+      entry->centreShiftY = fi.CentreShiftY();
 
-      addPolarizationsToImagingTable(templateEntry);
+      _imagingTable.AddEntry(std::move(entry));
     }
   }
+  ++templateEntry.facetGroupIndex;
 }
 
 void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
@@ -1689,9 +1694,7 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
     else
       templateEntry.imageCount = 1;
 
-    std::unique_ptr<ImagingTableEntry> entry(
-        new ImagingTableEntry(templateEntry));
-    _imagingTable.AddEntry(std::move(entry));
+    addFacetsToImagingTable(templateEntry);
 
     if (!_settings.joinedPolarizationDeconvolution) {
       ++templateEntry.joinedGroupIndex;
