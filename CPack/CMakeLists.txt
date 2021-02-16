@@ -42,7 +42,7 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "everybeam (>=0.1), idg-api (>=0.8)")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION 
 "WSClean (w-stacking clean) is a fast generic widefield imager.
  It implements several gridding algorithms and offers fully-automated
- multi-scale multi-frequency deconvolution. 
+ multi-scale multi-frequency deconvolution.
  Manual: https://wsclean.readthedocs.io/")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "deb-packages@astron.nl")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")

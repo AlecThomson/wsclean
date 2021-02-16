@@ -21,7 +21,8 @@ check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
 option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
 option(PORTABLE_CODE "Generate portable code" OFF)
-option(BUILD_PACKAGES "Build Debian packages (forces generation of portable code)" OFF)
+option(BUILD_PACKAGES "Build Debian packages" OFF)
+#option(BUILD_PACKAGES "Build Debian packages (forces generation of portable code)" OFF)
 
 #if(BUILD_PACKAGES)
 #  set(PORTABLE_CODE ON CACHE BOOL "Generate portable code" FORCE)
@@ -42,7 +43,7 @@ endif()
 
 if(NOT PORTABLE_CODE)
 #  add_compile_options(-march=native)
- set(X86_INSTRUCTION_SET avx)
+  set(X86_INSTRUCTION_SET avx)
   add_compile_options(-m${X86_INSTRUCTION_SET})
 endif(NOT PORTABLE_CODE)
 
@@ -102,9 +103,15 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost COMPONENTS date_time filesystem system program_options REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_library(DL_LIB dl REQUIRED)
+
+# Once we bump minimum CMake version to >= 3.2, we can use find_package(GSL).
 find_library(GSL_LIB NAMES gsl)
 find_path(GSL_INCLUDE_DIR NAMES gsl/gsl_version.h)
 find_library(GSL_CBLAS_LIB NAMES gslcblas)
+if(NOT GSL_LIB OR NOT GSL_INCLUDE_DIR OR NOT GSL_CBLAS_LIB)
+  message(FATAL_ERROR "GSL not found, but required to build WSClean!")
+endif()
+
 find_package(MPI)
 
 if(MPI_FOUND)
