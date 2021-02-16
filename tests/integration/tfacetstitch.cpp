@@ -10,33 +10,101 @@ const char* kFacets = "test_data/facets.reg";
 
 BOOST_AUTO_TEST_SUITE(facet_stitching)
 
+void CheckAndRemoveFileNames(const std::string& prefix, bool isIDG = false) {
+  std::vector<std::string> filesExpected;
+  if (isIDG) {
+    filesExpected.emplace_back(prefix + "-dirty.fits");
+    filesExpected.emplace_back(prefix + "-image.fits");
+  } else {
+    filesExpected.emplace_back(prefix + "-XX-dirty.fits");
+    filesExpected.emplace_back(prefix + "-YY-dirty.fits");
+    filesExpected.emplace_back(prefix + "-XX-image.fits");
+    filesExpected.emplace_back(prefix + "-YY-image.fits");
+  }
+
+  for (const std::string& str : filesExpected) {
+    BOOST_CHECK(boost::filesystem::is_regular_file(str));
+    BOOST_CHECK(boost::filesystem::remove(str));
+  }
+}
+
 BOOST_AUTO_TEST_CASE(wstacking) {
   BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
   BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacets));
+  const char* prefix = "facet-stitch-wstack";
 
   WSClean wsclean;
   CommandLine commandLine;
   std::vector<const char*> args = {
-      "wsclean", "-quiet", "-size",        "256",   "256",
-      "-scale",  "4amin",  "-pol",         "XX,YY", "-facet-regions",
-      kFacets,   "-name",  "facet-stitch", kMWA_MS};
+      "wsclean", "-quiet", "-size", "256",   "256",
+      "-scale",  "4amin",  "-pol",  "XX,YY", "-facet-regions",
+      kFacets,   "-name",  prefix,  kMWA_MS};
   commandLine.Parse(wsclean, args.size(), args.data(), false);
   commandLine.Run(wsclean);
 
-  std::vector<std::string> filesExpected;
-
-  filesExpected.emplace_back("facet-stitch-XX-dirty.fits");
-  filesExpected.emplace_back("facet-stitch-YY-dirty.fits");
-  filesExpected.emplace_back("facet-stitch-XX-image.fits");
-  filesExpected.emplace_back("facet-stitch-YY-image.fits");
-
-  for (const std::string& str : filesExpected)
-    BOOST_CHECK(boost::filesystem::is_regular_file(str));
-
-  for (const std::string& str : filesExpected)
-    BOOST_CHECK(boost::filesystem::remove(str));
-
-  BOOST_CHECK(boost::filesystem::remove(kFacets));
+  CheckAndRemoveFileNames(std::string(prefix));
 }
 
+BOOST_AUTO_TEST_CASE(wgridder) {
+  BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
+  BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacets));
+  const char* prefix = "facet-stitch-wgridder";
+
+  WSClean wsclean;
+  CommandLine commandLine;
+  std::vector<const char*> args = {
+      "wsclean", "-size",         "256",  "256",   "-scale",
+      "4amin",   "-use-wgridder", "-pol", "XX,YY", "-facet-regions",
+      kFacets,   "-name",         prefix, kMWA_MS};
+  commandLine.Parse(wsclean, args.size(), args.data(), false);
+  commandLine.Run(wsclean);
+
+  CheckAndRemoveFileNames(std::string(prefix));
+}
+
+// Since CI does not compile IDG, this test won't be run as part
+// of the CI/CD pipeline
+#ifdef HAVE_IDG
+BOOST_AUTO_TEST_CASE(idg) {
+  BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
+  BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacets));
+  const char* prefix = "facet-stitch-idg";
+
+  WSClean wsclean;
+  CommandLine commandLine;
+#ifdef HAVE_EVERYBEAM
+  std::vector<const char*> args = {"wsclean",
+                                   "-quiet",
+                                   "-size",
+                                   "256",
+                                   "256",
+                                   "-scale",
+                                   "4amin",
+                                   "-use-idg",
+                                   "-apply-facet-beam",
+                                   "-facet-regions",
+                                   kFacets,
+                                   "-name",
+                                   prefix,
+                                   "-mwa-path",
+                                   "test_data",
+                                   kMWA_MS};
+#else
+  std::vector<const char*> args = {
+      "wsclean",  "-size",          "256",   "256",   "-scale", "4amin",
+      "-use-idg", "-facet-regions", kFacets, "-name", prefix,   kMWA_MS};
+#endif
+  commandLine.Parse(wsclean, args.size(), args.data(), false);
+  commandLine.Run(wsclean);
+
+  CheckAndRemoveFileNames(std::string(prefix), true);
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_CASE(remove_facets_regions,
+                     *boost::unit_test::depends_on("facet_stitching") *
+                         boost::unit_test::enabled()) {
+  BOOST_CHECK(boost::filesystem::remove(kFacets));
+}

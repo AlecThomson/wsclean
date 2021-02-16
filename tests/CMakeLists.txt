@@ -44,10 +44,17 @@ add_custom_target(checkunit
   COMMAND unittest
 )
 
+if(EVERYBEAM_LIB AND IDGAPI_LIBRARIES)
+  set(DOWNLOAD_COEFF true)
+else()
+  set(DOWNLOAD_COEFF false)
+endif()
+
 add_custom_target(checkintegration
   DEPENDS integrationtest
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_coeff.sh ${DOWNLOAD_COEFF}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/generate_facets.sh
   COMMAND integrationtest
 )
