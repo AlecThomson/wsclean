@@ -116,9 +116,6 @@ class WSClean {
                    bool isImaginary, const std::string& prefix) const;
 
   void processFullPSF(float* image, const ImagingTableEntry& entry);
-  // writeWCSFits: write WSClean fits file true/false
-  // isDirty: write dirty image (true) or psf (false) WSClean fits. Only
-  // effective in case writeWCSFits is true
 
   /**
    * @brief Stitch facets for all FacetGroups
