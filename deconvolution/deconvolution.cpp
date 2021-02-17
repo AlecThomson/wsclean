@@ -199,6 +199,10 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
       groupTable.SquaredGroups().front();
   _polarizations.clear();
   for (const ImagingTable::EntryPtr& entry : firstSquaredGroup) {
+    // TODO: condition below needs attention when extending facetting
+    // to deconvolution. We'd rather want to read one entry per full image
+    // (independent of number of facets), this might need additional
+    // functionality in the imaging table, e.g. CollapseFacetGroup
     if (entry->facet == nullptr &&
         _polarizations.count(entry->polarization) != 0)
       throw std::runtime_error(
