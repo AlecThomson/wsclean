@@ -266,10 +266,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
-  std::cout << "[JM] Bounding box " << entry.facet->GetBoundingBox().Width()
-            << " " << entry.facet->GetBoundingBox().Height() << std::endl;
-  std::cout << "[JM] WIDTH / HEIGHT " << result.imageRealResult.Width() << " ,"
-            << result.imageRealResult.Height() << std::endl;
   storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
@@ -575,23 +571,12 @@ void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
-    schaapcommon::facets::BoundingBox imageBox(
-        std::vector<schaapcommon::facets::Pixel>{
-            schaapcommon::facets::Pixel(0.0, 0.0),
-            schaapcommon::facets::Pixel(_settings.trimmedImageWidth,
-                                        _settings.trimmedImageHeight)});
     facet.CalculatePixels(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM, false, imageBox,
+        _observationInfo.shiftL, _observationInfo.shiftM, false,
         _settings.imagePadding, 4u, _settings.useIDG);
-
-    std::cout << "[JM] Facet box" << std::endl;
-    std::cout << facet.GetBoundingBox().Min().x << " "
-              << facet.GetBoundingBox().Min().y << "\n"
-              << facet.GetBoundingBox().Max().x << " "
-              << facet.GetBoundingBox().Max().y << std::endl;
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1254,14 +1239,12 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
 
     if (calculatePixelPositions) {
       for (schaapcommon::facets::Facet& facet : _facets) {
-        // TODO: need to clip to main image?
         facet.CalculatePixels(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
             _observationInfo.shiftL, _observationInfo.shiftM, false,
-            schaapcommon::facets::BoundingBox(), _settings.imagePadding, 4u,
-            _settings.useIDG);
+            _settings.imagePadding, 4u, _settings.useIDG);
       }
     }
 
@@ -1433,7 +1416,8 @@ void WSClean::stitchSingleGroup(
   ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
                    0.0f);
   for (const ImagingTableEntry& facetEntry : group) {
-    imageStorage.SetFacet(*facetEntry.facet);
+    constexpr bool useTrimmedFacet = true;
+    imageStorage.SetFacet(*facetEntry.facet, useTrimmedFacet);
     cachedImage.LoadFacet(imageStorage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1678,9 +1662,10 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       entry->facet = &_facets[f];
 
       // Calculate phase center delta for entry
-      entry->centreShiftX = _facets[f].GetBoundingBox().Centre().x -
+      // TODO: check whether untrimmed or trimmed?!
+      entry->centreShiftX = _facets[f].GetUntrimmedBoundingBox().Centre().x -
                             _settings.trimmedImageWidth / 2;
-      entry->centreShiftY = _facets[f].GetBoundingBox().Centre().y -
+      entry->centreShiftY = _facets[f].GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
 
       _imagingTable.AddEntry(std::move(entry));
