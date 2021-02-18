@@ -568,13 +568,17 @@ void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
-    facet.CalculatePixelPositions(
+    schaapcommon::facets::BoundingBox imageBox(
+        std::vector<schaapcommon::facets::Pixel>{
+            schaapcommon::facets::Pixel(0.0, 0.0),
+            schaapcommon::facets::Pixel(_settings.trimmedImageWidth,
+                                        _settings.trimmedImageHeight)});
+    facet.CalculatePixels(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM, false);
-    // Adjusted bounding box should be divisible by 4
-    facet.CalculateBoundingBox(_settings.imagePadding, 4u, _settings.useIDG);
+        _observationInfo.shiftL, _observationInfo.shiftM, false, imageBox,
+        _settings.imagePadding, 4u, _settings.useIDG);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -1237,15 +1241,14 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
 
     if (calculatePixelPositions) {
       for (schaapcommon::facets::Facet& facet : _facets) {
-        facet.CalculatePixelPositions(
+        // TODO: need to clip to main image?
+        facet.CalculatePixels(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM, false);
-        // TODO: check if BoundingBox adjustment needed here
-        // Adjusted bounding box should be divisible by 4
-        facet.CalculateBoundingBox(_settings.imagePadding, 4u,
-                                   _settings.useIDG);
+            _observationInfo.shiftL, _observationInfo.shiftM, false,
+            schaapcommon::facets::BoundingBox(), _settings.imagePadding, 4u,
+            _settings.useIDG);
       }
     }
 
