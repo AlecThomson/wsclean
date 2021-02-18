@@ -131,7 +131,7 @@ class WSClean {
   /**
    * @brief Stitch facet for a single (Facet)Group
    */
-  void stitchSingleGroup(const ImagingTable& group, size_t imageIndex,
+  void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& cachedImage, bool writeDirty,
                          bool writePSF,
                          schaapcommon::facets::FacetImage& imageStorage);
