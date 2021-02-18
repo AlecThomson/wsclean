@@ -22,8 +22,8 @@ class CachedImageSet {
   CachedImageSet() : _polCount(0), _freqCount(0), _facetCount(0), _image() {}
 
   ~CachedImageSet() {
-    for (const std::string& filename : _storedNames)
-      std::remove(filename.c_str());
+    // for (const std::string& filename : _storedNames)
+    //   std::remove(filename.c_str());
   }
 
   CachedImageSet(const CachedImageSet& source) = delete;
@@ -110,7 +110,8 @@ class CachedImageSet {
 
       // Initialize FacetWriter, using facet_width and facet_height
       FitsWriter facetWriter;
-      schaapcommon::facets::BoundingBox bbox(facet->GetPixels());
+
+      schaapcommon::facets::BoundingBox bbox(facet->GetPixels(), 4u);
       facetWriter.SetImageDimensions(bbox.Width(), bbox.Height());
       facetWriter.Write(filename, image);
       _storedNames.insert(filename);

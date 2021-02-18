@@ -132,6 +132,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
+  task.facet = entry.facet;
   applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -247,6 +248,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
+  task.facet = entry.facet;
   applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
@@ -264,6 +266,10 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
+  std::cout << "[JM] Bounding box " << entry.facet->GetBoundingBox().Width()
+            << " " << entry.facet->GetBoundingBox().Height() << std::endl;
+  std::cout << "[JM] WIDTH / HEIGHT " << result.imageRealResult.Width() << " ,"
+            << result.imageRealResult.Height() << std::endl;
   storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
@@ -421,6 +427,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
+  task.facet = entry.facet;
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -579,6 +586,12 @@ void WSClean::RunClean() {
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM, false, imageBox,
         _settings.imagePadding, 4u, _settings.useIDG);
+
+    std::cout << "[JM] Facet box" << std::endl;
+    std::cout << facet.GetBoundingBox().Min().x << " "
+              << facet.GetBoundingBox().Min().y << "\n"
+              << facet.GetBoundingBox().Max().x << " "
+              << facet.GetBoundingBox().Max().y << std::endl;
   }
 
   _globalSelection = _settings.GetMSSelection();
