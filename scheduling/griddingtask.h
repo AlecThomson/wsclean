@@ -4,6 +4,8 @@
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 
+#include <schaapcommon/facets/facet.h>
+
 #include "../structures/image.h"
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -30,6 +32,8 @@ class GriddingTask {
   ImageF modelImageReal;
   ImageF modelImageImaginary;
   ObservationInfo observationInfo;
+
+  const schaapcommon::facets::Facet* facet;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

@@ -10,6 +10,8 @@
 
 #include "../idg/idgmsgridder.h"
 
+#include <schaapcommon/facets/facet.h>
+
 #ifdef HAVE_WGRIDDER
 #include "../wgridder/wgriddingmsgridder.h"
 #endif
@@ -101,6 +103,16 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   for (auto& p : task.msList) {
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
+  }
+  if (task.facet != nullptr) {
+    // TODO: schaapcommon should provide trimmed and untrimmed
+    // version
+    // Should be untrimmed box
+    gridder.SetImageWidth(task.facet->GetBoundingBox().Width());
+    gridder.SetImageHeight(task.facet->GetBoundingBox().Height());
+    // Should be trimmed box
+    schaapcommon::facets::BoundingBox bbox(task.facet->GetPixels(), 4u);
+    gridder.SetTrimSize(bbox.Width(), bbox.Height());
   }
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
