@@ -105,14 +105,10 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
   if (task.facet != nullptr) {
-    // TODO: schaapcommon should provide trimmed and untrimmed
-    // version
-    // Should be untrimmed box
-    gridder.SetImageWidth(task.facet->GetBoundingBox().Width());
-    gridder.SetImageHeight(task.facet->GetBoundingBox().Height());
-    // Should be trimmed box
-    schaapcommon::facets::BoundingBox bbox(task.facet->GetPixels(), 4u);
-    gridder.SetTrimSize(bbox.Width(), bbox.Height());
+    gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
+    gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
+    gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),
+                        task.facet->GetTrimmedBoundingBox().Height());
   }
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
