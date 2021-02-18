@@ -110,8 +110,8 @@ class CachedImageSet {
 
       // Initialize FacetWriter, using facet_width and facet_height
       FitsWriter facetWriter;
-      facetWriter.SetImageDimensions(facet->GetBoundingBox().Width(),
-                                     facet->GetBoundingBox().Height());
+      schaapcommon::facets::BoundingBox bbox(facet->GetPixels());
+      facetWriter.SetImageDimensions(bbox.Width(), bbox.Height());
       facetWriter.Write(filename, image);
       _storedNames.insert(filename);
     }
