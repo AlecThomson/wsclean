@@ -55,13 +55,12 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
     }
     // The bounding box is padded such that it is partially outside the main
     // image
-    facets[i].CalculatePixels(
-        writer.RA(), writer.Dec(), writer.PixelSizeX(), writer.PixelSizeY(),
-        writer.Width(), writer.Height(), writer.PhaseCentreDL(),
-        writer.PhaseCentreDM(), false, schaapcommon::facets::BoundingBox(), 1.5,
-        1u, false);
-    facets_data[i].assign(facets[i].GetBoundingBox().Width() *
-                              facets[i].GetBoundingBox().Height(),
+    facets[i].CalculatePixels(writer.RA(), writer.Dec(), writer.PixelSizeX(),
+                              writer.PixelSizeY(), writer.Width(),
+                              writer.Height(), writer.PhaseCentreDL(),
+                              writer.PhaseCentreDM(), false, 1.5, 1u, false);
+    facets_data[i].assign(facets[i].GetTrimmedBoundingBox().Width() *
+                              facets[i].GetTrimmedBoundingBox().Height(),
                           static_cast<float>(i + 1));
   }
 
@@ -88,15 +87,16 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
       // Offset in file list
       size_t offset = pol_idx * facets.size() + facet_idx;
-      imageStorage.SetFacet(facets[facet_idx]);
+      imageStorage.SetFacet(facets[facet_idx], true);
       BOOST_CHECK_EQUAL(storedNames[offset],
                         prefix + "-" +
                             aocommon::Polarization::TypeToShortString(
                                 polarizations[pol_idx]) +
                             "-f000" + std::to_string(facet_idx) + "-tmp.fits");
 
-      size_t num_facet_pixels = facets[facet_idx].GetBoundingBox().Width() *
-                                facets[facet_idx].GetBoundingBox().Height();
+      size_t num_facet_pixels =
+          facets[facet_idx].GetTrimmedBoundingBox().Width() *
+          facets[facet_idx].GetTrimmedBoundingBox().Height();
       cSet.LoadFacet(imageStorage.Data(0), polarizations[pol_idx], 1, facet_idx,
                      &facets[facet_idx], false);
       imageStorage.AddToImage(std::vector<float*>{imageMain.data()});
