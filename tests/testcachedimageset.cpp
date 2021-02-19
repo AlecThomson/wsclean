@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
           facets[facet_idx].GetTrimmedBoundingBox().Height();
       cSet.LoadFacet(imageStorage.Data(0), polarizations[pol_idx], 1, facet_idx,
                      &facets[facet_idx], false);
-      imageStorage.AddToImage(std::vector<float*>{imageMain.data()});
+      imageStorage.AddToImage({imageMain.data()});
       BOOST_CHECK_EQUAL_COLLECTIONS(
           imageStorage.Data(0), imageStorage.Data(0) + num_facet_pixels,
           facets_data[facet_idx].data(),

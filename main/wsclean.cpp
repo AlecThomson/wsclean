@@ -225,7 +225,9 @@ void WSClean::processFullPSF(float* image, const ImagingTableEntry& entry) {
       ImageFilename::GetPSFPrefix(_settings, channelIndex,
                                   entry.outputIntervalIndex) +
       "-psf.fits");
-  WSCFitsWriter fitsFile = createWSCFitsWriter(entry, false, false);
+  const bool isMainImage = true;
+  WSCFitsWriter fitsFile =
+      createWSCFitsWriter(entry, false, false, isMainImage);
   fitsFile.WritePSF(name, image);
   Logger::Info << "DONE\n";
 }
@@ -1676,7 +1678,6 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       entry->facet = &_facets[f];
 
       // Calculate phase center delta for entry
-      // TODO: check whether untrimmed or trimmed?!
       entry->centreShiftX = _facets[f].GetUntrimmedBoundingBox().Centre().x -
                             _settings.trimmedImageWidth / 2;
       entry->centreShiftY = _facets[f].GetUntrimmedBoundingBox().Centre().y -

@@ -452,7 +452,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 
       if (PolarizationCount == 1) {
         // Stokes-I
-        *iter = 0.25f * std::conj(gain1[0] + gain1[3]) * iter[0] *
+        *iter = 0.25f * std::conj(gain1[0] + gain1[3]) * (*iter) *
                 (gain2[0] + gain2[3]);
       } else {
         // All polarizations

@@ -4,8 +4,6 @@
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 
-#include <schaapcommon/facets/facet.h>
-
 #include "../structures/image.h"
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -13,6 +11,12 @@
 #include "../msproviders/msdatadescription.h"
 
 #include "metadatacache.h"
+
+namespace schaapcommon {
+namespace facets {
+class Facet;
+}
+}  // namespace schaapcommon
 
 class GriddingTask {
  public:
