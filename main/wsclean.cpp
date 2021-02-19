@@ -536,7 +536,8 @@ void WSClean::performReordering(bool isPredictMode) {
   loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
-    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
+    for (const ImagingTable::Group& sqGroup :
+         _imagingTable.GetFacetGroup(0).SquaredGroups()) {
       for (const ImagingTable::EntryPtr& entry : sqGroup) {
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
