@@ -109,6 +109,11 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),
                         task.facet->GetTrimmedBoundingBox().Height());
+  } else {
+    gridder.SetImageWidth(_settings.paddedImageWidth);
+    gridder.SetImageHeight(_settings.paddedImageHeight);
+    gridder.SetTrimSize(_settings.trimmedImageWidth,
+                        _settings.trimmedImageHeight);
   }
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
@@ -160,10 +165,6 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
 
 void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
   gridder.SetGridMode(_settings.gridMode);
-  gridder.SetImageWidth(_settings.paddedImageWidth);
-  gridder.SetImageHeight(_settings.paddedImageHeight);
-  gridder.SetTrimSize(_settings.trimmedImageWidth,
-                      _settings.trimmedImageHeight);
   gridder.SetNWSize(_settings.widthForNWCalculation,
                     _settings.heightForNWCalculation);
   gridder.SetNWFactor(_settings.nWLayersFactor);

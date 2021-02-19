@@ -540,7 +540,7 @@ void WSClean::performReordering(bool isPredictMode) {
 
     for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
       for (const ImagingTable::EntryPtr& entry : sqGroup) {
-        if (entry->facetIndex != 0){
+        if (entry->facetIndex != 0) {
           // No need to repeat for every facet
           continue;
         }
@@ -866,28 +866,34 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _griddingTaskManager->Finish();
   if (doMakePSF) stitchFacets(groupTable, _psfImages, false, true);
 
-  if (parallelizePolarizations) {
-    for (ImagingTableEntry& entry : groupTable) {
-      runFirstInversion(entry, primaryBeam);
-    }
-    _griddingTaskManager->Finish();
-    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
-  } else {
-    bool hasMore;
-    size_t sqIndex = 0;
-    do {
-      hasMore = false;
-      for (const ImagingTable::Group& sqGroup : groupTable.SquaredGroups()) {
-        if (sqIndex < sqGroup.size()) {
-          hasMore = true;
-          runFirstInversion(*sqGroup[sqIndex], primaryBeam);
-        }
+  const size_t facetCount = groupTable.FacetCount();
+  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
+    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
+
+    if (parallelizePolarizations) {
+      for (ImagingTableEntry& entry : facetTable) {
+        runFirstInversion(entry, primaryBeam);
       }
-      ++sqIndex;
-      _griddingTaskManager->Finish();
-      stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
-    } while (hasMore);
+    } else {
+      bool hasMore;
+      size_t sqIndex = 0;
+      do {
+        hasMore = false;
+        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
+          if (sqIndex < sqGroup.size()) {
+            hasMore = true;
+            runFirstInversion(*sqGroup[sqIndex], primaryBeam);
+          }
+        }
+        ++sqIndex;
+        _griddingTaskManager->Finish();
+      } while (hasMore);
+    }
   }
+  if (parallelizePolarizations) {
+    _griddingTaskManager->Finish();
+  }
+  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
   _inversionWatch.Pause();
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
@@ -933,7 +939,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
-            stitchFacets(groupTable, _residualImages, false, false);
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             for (const ImagingTable::Group& sqGroup :
@@ -951,11 +956,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               }  // end of polarization loop
               _griddingTaskManager->Finish();
               _inversionWatch.Pause();
-            }  // end of joined channels loop
-            stitchFacets(groupTable, _residualImages, false, false);
-          }
-
-          else {  // only parallize channels
+            }       // end of joined channels loop
+          } else {  // only parallize channels
             _predictingWatch.Start();
             bool hasMore;
             size_t sqIndex = 0;
@@ -989,6 +991,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             } while (hasMore);
             _inversionWatch.Pause();
           }
+          stitchFacets(groupTable, _residualImages, false, false);
         }
 
         ++_majorIterationNr;
@@ -1709,11 +1712,10 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
 }
 
 WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
-                                           bool isImaginary,
-                                           bool isModel,
+                                           bool isImaginary, bool isModel,
                                            bool isMainImage) const {
   ObservationInfo observationInfo = _observationInfo;
-  if (!isMainImage){
+  if (!isMainImage) {
     applyFacetPhaseShift(entry, observationInfo);
   }
 

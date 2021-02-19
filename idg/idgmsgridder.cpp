@@ -165,7 +165,7 @@ void IdgMsGridder::Invert() {
     // result is now in _image member
     // Can be accessed by subsequent calls to ImageRealResult()
 
-  } else if (_image.empty()) {
+  } else if (_image.empty() || _image.size() != 4 * width * height) {
     throw std::runtime_error(
         "IdgMsGridder::Invert() was called out of sequence");
   }
