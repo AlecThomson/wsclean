@@ -158,7 +158,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
-  if (_facets.empty()) processFullPSF(result.imageRealResult.data(), entry);
+  if (_facets.empty()) processFullPSF(result.imageRealResult, entry);
 
   _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -183,7 +183,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _isFirstInversion = false;
 }
 
-void WSClean::processFullPSF(float* image, const ImagingTableEntry& entry) {
+void WSClean::processFullPSF(ImageF& image, const ImagingTableEntry& entry) {
   size_t centralIndex =
       _settings.trimmedImageWidth / 2 +
       (_settings.trimmedImageHeight / 2) * _settings.trimmedImageWidth;
@@ -195,21 +195,18 @@ void WSClean::processFullPSF(float* image, const ImagingTableEntry& entry) {
 
   const size_t channelIndex = entry.outputChannelIndex;
   _infoPerChannel[channelIndex].psfNormalizationFactor = normFactor;
-  for (size_t i = 0;
-       i != _settings.trimmedImageWidth * _settings.trimmedImageHeight; ++i) {
-    image[i] *= normFactor * entry.siCorrection;
-  }
+  image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
-  DeconvolutionAlgorithm::RemoveNaNsInPSF(image, _settings.trimmedImageWidth,
-                                          _settings.trimmedImageHeight);
+  DeconvolutionAlgorithm::RemoveNaNsInPSF(
+      image.data(), _settings.trimmedImageWidth, _settings.trimmedImageHeight);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
   double initialFitSize =
       std::max(_infoPerChannel[channelIndex].beamSizeEstimate, minPixelScale);
   double bMaj, bMin, bPA, bTheoretical;
   ImageOperations::DetermineBeamSize(_settings, bMaj, bMin, bPA, bTheoretical,
-                                     image, initialFitSize);
+                                     image.data(), initialFitSize);
   _infoPerChannel[channelIndex].theoreticBeamSize = bTheoretical;
   _infoPerChannel[channelIndex].beamMaj = bMaj;
   _infoPerChannel[channelIndex].beamMin = bMin;
@@ -228,7 +225,7 @@ void WSClean::processFullPSF(float* image, const ImagingTableEntry& entry) {
   const bool isMainImage = true;
   WSCFitsWriter fitsFile =
       createWSCFitsWriter(entry, false, false, isMainImage);
-  fitsFile.WritePSF(name, image);
+  fitsFile.WritePSF(name, image.data());
   Logger::Info << "DONE\n";
 }
 
@@ -1048,7 +1045,7 @@ void WSClean::saveRestoredImagesForGroup(
       writer.WriteImage("residual.fits", restoredImage.data());
 
     if (_settings.isUVImageSaved)
-      saveUVImage(restoredImage.data(), tableEntry, isImaginary, "uv");
+      saveUVImage(restoredImage, tableEntry, isImaginary, "uv");
 
     ImageF modelImage(_settings.trimmedImageWidth,
                       _settings.trimmedImageHeight);
@@ -1382,14 +1379,14 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
   }
 }
 
-void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
+void WSClean::saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
   ImageF realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   FFTResampler fft(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
                    _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1,
                    true);
-  fft.SingleFT(image, realUV.data(), imagUV.data());
+  fft.SingleFT(image.data(), realUV.data(), imagUV.data());
   // Factors of 2 involved: because of SingleFT()
   // (also one from the fact that normF excludes a factor of two?)
   realUV *=
@@ -1452,7 +1449,7 @@ void WSClean::stitchSingleGroup(
 
   if (writePSF) {
     const ImagingTableEntry& entry = facetGroup.Front();
-    processFullPSF(imageMain.data(), entry);
+    processFullPSF(imageMain, entry);
   }
 }
 

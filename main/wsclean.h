@@ -112,10 +112,10 @@ class WSClean {
 
   void predict(const ImagingTableEntry& entry);
 
-  void saveUVImage(const float* image, const ImagingTableEntry& entry,
+  void saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
 
-  void processFullPSF(float* image, const ImagingTableEntry& entry);
+  void processFullPSF(ImageF& image, const ImagingTableEntry& entry);
 
   /**
    * @brief Stitch facets for all FacetGroups
