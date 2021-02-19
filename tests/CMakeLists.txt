@@ -50,12 +50,14 @@ else()
   set(DOWNLOAD_COEFF false)
 endif()
 
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test_data/)
+
 add_custom_target(checkintegration
   DEPENDS integrationtest
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_coeff.sh ${DOWNLOAD_COEFF}
-  COMMAND ${CMAKE_SOURCE_DIR}/scripts/generate_facets.sh
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/data/ds9.reg ${CMAKE_BINARY_DIR}/test_data/ds9.reg
   COMMAND integrationtest
 )
 

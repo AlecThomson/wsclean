@@ -5,7 +5,7 @@
 
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
-const char* kFacets = "test_data/facets.reg";
+const char* kFacets = "test_data/ds9.reg";
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(facet_stitching)
@@ -102,9 +102,3 @@ BOOST_AUTO_TEST_CASE(idg) {
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_CASE(remove_facets_regions,
-                     *boost::unit_test::depends_on("facet_stitching") *
-                         boost::unit_test::enabled()) {
-  BOOST_CHECK(boost::filesystem::remove(kFacets));
-}
