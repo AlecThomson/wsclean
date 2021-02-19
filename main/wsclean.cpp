@@ -358,11 +358,12 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
   if (entry.polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
+    // TODO: reduce buffer sizes when using facets
     Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
                    joinedChannelIndex, entry.facetIndex, entry.facet,
                    isImaginary);
-    size_t count = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
+    const size_t count = xyImage.size();
     if (isImaginary) {
       for (size_t i = 0; i != count; ++i)
         xyImage[i] = (xyImage[i] - image[i]) * 0.5;
@@ -536,9 +537,13 @@ void WSClean::performReordering(bool isPredictMode) {
   loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
-    for (const ImagingTable::Group& sqGroup :
-         _imagingTable.GetFacetGroup(0).SquaredGroups()) {
+
+    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
       for (const ImagingTable::EntryPtr& entry : sqGroup) {
+        if (entry->facetIndex != 0){
+          // No need to repeat for every facet
+          continue;
+        }
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
           if (selectChannels(selection, i, d, *entry)) {
@@ -1435,7 +1440,7 @@ void WSClean::stitchSingleGroup(
 
   if (writeDirty) {
     WSCFitsWriter writer(
-        createWSCFitsWriter(facetGroup.Front(), isImaginary, false));
+        createWSCFitsWriter(facetGroup.Front(), isImaginary, false, true));
     Logger::Info << "Writing dirty image...\n";
     writer.WriteImage("dirty.fits", imageMain.data());
   }
@@ -1673,7 +1678,6 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
                             _settings.trimmedImageWidth / 2;
       entry->centreShiftY = _facets[f].GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
-
       _imagingTable.AddEntry(std::move(entry));
     }
   }
@@ -1706,9 +1710,12 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
 
 WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isImaginary,
-                                           bool isModel) const {
+                                           bool isModel,
+                                           bool isMainImage) const {
   ObservationInfo observationInfo = _observationInfo;
-  applyFacetPhaseShift(entry, observationInfo);
+  if (!isMainImage){
+    applyFacetPhaseShift(entry, observationInfo);
+  }
 
   return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
                        observationInfo, _majorIterationNr, _commandLine,

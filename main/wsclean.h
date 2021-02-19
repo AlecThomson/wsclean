@@ -144,7 +144,7 @@ class WSClean {
   void makeBeam();
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    bool isImaginary, bool isModel) const;
+                                    bool isImaginary, bool isModel, bool isMainImage=false) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     aocommon::PolarizationEnum polarization,

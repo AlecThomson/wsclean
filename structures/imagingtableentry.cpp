@@ -9,6 +9,7 @@ ImagingTableEntry::ImagingTableEntry()
       inputChannelCount(0),
       polarization(aocommon::Polarization::StokesI),
       facetGroupIndex(0),
+      facetIndex(0),
       facet(nullptr),
       centreShiftX(0),
       centreShiftY(0),
