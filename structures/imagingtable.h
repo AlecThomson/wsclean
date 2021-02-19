@@ -7,6 +7,18 @@
 #include <memory>
 #include <vector>
 
+/**
+ * The ImagingTable contains ImagingTableEntry's and supports creating subtables
+ * with entries that have the same attribute.
+ * It supports the following grouping types:
+ * - IndependentGroup : Entries have an equal joinedGroupIndex in each group.
+ * - FacetGroup : Entries have an equal facetGroupIndex in each group.
+ *   Each group thus contains all entries that form a single image.
+ * - Facet : Entries have an equal facetIndex in each group.
+ *   Each group thus contains all entries for a single facet.
+ * - SquaredGroup : Entries have an equal squaredDeconvolutionIndex in each
+ *   group.
+ */
 class ImagingTable {
  public:
   using EntryPtr = std::shared_ptr<ImagingTableEntry>;
