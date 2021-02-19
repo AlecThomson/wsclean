@@ -6,7 +6,7 @@
 # Email: jakob.maljaars_@_stcorp.nl
 
 # Script for downloading the MWA coefficients. Coefficients
-# file will only be downloaded if
+# file will only be downloaded if not yet present
 
 set -e
 
