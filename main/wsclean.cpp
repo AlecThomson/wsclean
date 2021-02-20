@@ -1138,10 +1138,7 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry) {
     if (!(entry.polarization == aocommon::Polarization::YX &&
           _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
       ImageF modelImage(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight);
-      std::fill_n(modelImage.data(),
-                  _settings.trimmedImageWidth * _settings.trimmedImageHeight,
-                  0.0);
+                        _settings.trimmedImageHeight, 0.0f);
       _modelImages.Store(modelImage.data(), entry.polarization,
                          entry.outputChannelIndex, false);
       if (aocommon::Polarization::IsComplex(entry.polarization))
