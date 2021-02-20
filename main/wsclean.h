@@ -80,7 +80,6 @@ class WSClean {
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
-  void readEarlierModelImages(const ImagingTableEntry& entry);
 
   void makeImagingTable(size_t outputIntervalIndex);
   void makeImagingTableEntry(const std::vector<aocommon::ChannelInfo>& channels,
@@ -96,6 +95,13 @@ class WSClean {
 
   void multiplyImage(double factor, double* image) const;
 
+  /**
+   * Initializes full-size model images for the given entry. Depending on the
+   * settings, this might load existing images from disk or initialize
+   * them to zero.
+   */
+  void initializeModelImages(const ImagingTableEntry& entry);
+  void readExistingModelImages(const ImagingTableEntry& entry);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
