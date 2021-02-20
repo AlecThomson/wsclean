@@ -399,7 +399,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
                                               std::complex<float>* modelBuffer,
                                               const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
-  if (DoImagePSF()) {
+  if (DoImagePSF() && _settings.facetRegionFilename.empty()) {
     std::fill_n(rowData.data, dataSize, 1.0);
     if (HasDenormalPhaseCentre()) {
       const double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
