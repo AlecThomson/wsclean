@@ -308,39 +308,20 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
     }
   }
 
-  if (isInitialInversion) {
-    _modelImages.SetFitsWriter(
-        createWSCFitsWriter(entry, false, true).Writer());
+  // If !_facets.empty(), these actions are performed in stitchFacets
+  if (isInitialInversion && _facets.empty()) {
+    initializeModelImages(entry);
+
     _residualImages.SetFitsWriter(
         createWSCFitsWriter(entry, false, false).Writer());
-
-    if (_settings.continuedRun) {
-      readEarlierModelImages(entry);
-    } else {
-      // Set model to zero: already done if this is YX of XY/YX imaging combi
-      if (!(entry.polarization == aocommon::Polarization::YX &&
-            _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
-        Image modelImage(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight);
-        memset(modelImage.data(), 0,
-               _settings.trimmedImageWidth * _settings.trimmedImageHeight *
-                   sizeof(double));
-        _modelImages.Store(modelImage.data(), entry.polarization,
-                           entry.outputChannelIndex, false);
-        if (aocommon::Polarization::IsComplex(entry.polarization))
-          _modelImages.Store(modelImage.data(), entry.polarization,
-                             entry.outputChannelIndex, true);
-      }
-    }
-
     // If !_facets.empty(), dirty image is saved in stitchFacets
-    if (_settings.isDirtySaved && _facets.empty()) {
+    if (_settings.isDirtySaved) {
       for (size_t imageIndex = 0; imageIndex != entry.imageCount;
            ++imageIndex) {
         bool isImaginary = (imageIndex == 1);
         WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
-        Image dirtyImage(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight);
+        ImageF dirtyImage(_settings.trimmedImageWidth,
+                          _settings.trimmedImageHeight);
         _residualImages.Load(dirtyImage.data(), entry.polarization,
                              entry.outputChannelIndex, isImaginary);
         Logger::Info << "Writing dirty image...\n";
@@ -1147,7 +1128,30 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   }
 }
 
-void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
+void WSClean::initializeModelImages(const ImagingTableEntry& entry) {
+  _modelImages.SetFitsWriter(createWSCFitsWriter(entry, false, true).Writer());
+
+  if (_settings.continuedRun) {
+    readExistingModelImages(entry);
+  } else {
+    // Set model to zero: already done if this is YX of XY/YX imaging combi
+    if (!(entry.polarization == aocommon::Polarization::YX &&
+          _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
+      ImageF modelImage(_settings.trimmedImageWidth,
+                        _settings.trimmedImageHeight);
+      std::fill_n(modelImage.data(),
+                  _settings.trimmedImageWidth * _settings.trimmedImageHeight,
+                  0.0);
+      _modelImages.Store(modelImage.data(), entry.polarization,
+                         entry.outputChannelIndex, false);
+      if (aocommon::Polarization::IsComplex(entry.polarization))
+        _modelImages.Store(modelImage.data(), entry.polarization,
+                           entry.outputChannelIndex, true);
+    }
+  }
+}
+
+void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
   // load image(s) from disk and store them in the model-image cache.
   for (size_t i = 0; i != entry.imageCount; ++i) {
     std::string prefix = ImageFilename::GetPrefix(
@@ -1247,7 +1251,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
   _predictingWatch.Start();
   for (const ImagingTable::EntryPtr& entry : imagingGroup) {
     const bool calculatePixelPositions = _settings.trimmedImageWidth == 0;
-    readEarlierModelImages(*entry);
+    readExistingModelImages(*entry);
 
     if (calculatePixelPositions) {
       for (schaapcommon::facets::Facet& facet : _facets) {
@@ -1445,6 +1449,9 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
   cachedImage.Store(imageMain.data(), polarization, channelIndex, isImaginary);
 
   if (writeDirty) {
+    initializeModelImages(facetGroup.Front());
+    _residualImages.SetFitsWriter(
+        createWSCFitsWriter(facetGroup.Front(), false, false).Writer());
     WSCFitsWriter writer(
         createWSCFitsWriter(facetGroup.Front(), isImaginary, false, true));
     Logger::Info << "Writing dirty image...\n";
