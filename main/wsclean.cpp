@@ -1404,36 +1404,38 @@ void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& cachedImage, bool writeDirty,
                            bool writePSF) {
   if (!_facets.empty()) {
+    // Allocate main image
+    ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
+                     0.0f);
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
-    schaapcommon::facets::FacetImage image(_settings.trimmedImageWidth,
-                                           _settings.trimmedImageHeight, 1);
+    schaapcommon::facets::FacetImage imageFacet(
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     for (size_t facetGroupIndex = 0; facetGroupIndex != table.FacetGroupCount();
          ++facetGroupIndex) {
       const ImagingTable stitchGroup = table.GetFacetGroup(facetGroupIndex);
       const size_t imageCount = stitchGroup.Front().imageCount;
       for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
         stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
-                          writePSF, image);
+                          writePSF, imageMain, imageFacet);
       }
     }
   }
 }
 
-void WSClean::stitchSingleGroup(
-    const ImagingTable& facetGroup, size_t imageIndex,
-    CachedImageSet& cachedImage, bool writeDirty, bool writePSF,
-    schaapcommon::facets::FacetImage& imageStorage) {
+void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
+                                size_t imageIndex, CachedImageSet& cachedImage,
+                                bool writeDirty, bool writePSF,
+                                ImageF& imageMain,
+                                schaapcommon::facets::FacetImage& imageFacet) {
   const bool isImaginary = (imageIndex == 1);
-  ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
-                   0.0f);
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     constexpr bool useTrimmedFacet = true;
-    imageStorage.SetFacet(*facetEntry.facet, useTrimmedFacet);
-    cachedImage.LoadFacet(imageStorage.Data(0), facetEntry.polarization,
+    imageFacet.SetFacet(*facetEntry.facet, useTrimmedFacet);
+    cachedImage.LoadFacet(imageFacet.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
-    imageStorage.AddToImage({imageMain.data()});
+    imageFacet.AddToImage({imageMain.data()});
   }
   const size_t channelIndex = facetGroup.Front().outputChannelIndex;
   const aocommon::PolarizationEnum polarization =
