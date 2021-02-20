@@ -1002,7 +1002,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     }
 
     for (const ImagingTableEntry& joinedEntry : groupTable) {
-      saveRestoredImagesForGroup(joinedEntry, primaryBeam);
+      if (joinedEntry.facetIndex == 0) {
+        saveRestoredImagesForGroup(joinedEntry, primaryBeam);
+      }
     }
 
     if (_settings.saveSourceList) {
