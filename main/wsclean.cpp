@@ -314,23 +314,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
     _residualImages.SetFitsWriter(
         createWSCFitsWriter(entry, false, false).Writer());
-
-    if (_settings.continuedRun) {
-      readEarlierModelImages(entry);
-    } else {
-      // Set model to zero: already done if this is YX of XY/YX imaging combi
-      if (!(entry.polarization == aocommon::Polarization::YX &&
-            _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
-        ImageF modelImage(_settings.trimmedImageWidth,
-                          _settings.trimmedImageHeight, 0.0);
-        _modelImages.Store(modelImage.data(), entry.polarization,
-                           entry.outputChannelIndex, false);
-        if (aocommon::Polarization::IsComplex(entry.polarization))
-          _modelImages.Store(modelImage.data(), entry.polarization,
-                             entry.outputChannelIndex, true);
-      }
-    }
-
     // If !_facets.empty(), dirty image is saved in stitchFacets
     if (_settings.isDirtySaved) {
       for (size_t imageIndex = 0; imageIndex != entry.imageCount;
