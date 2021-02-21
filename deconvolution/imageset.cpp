@@ -36,7 +36,7 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
 
 ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
                    size_t width, size_t height)
-  : ImageSet(table, settings) {
+    : ImageSet(table, settings) {
   _width = width;
   _height = height;
   allocateImages();
@@ -127,7 +127,7 @@ void ImageSet::LoadAndAveragePSFs(
     const ImagingTableEntry& entry = *sqGroup.front();
     const double inputChannelWeight = entry.imageWeight;
     psfSet.Load(scratch.data(), psfPolarization, entry.outputChannelIndex, 0);
-     for (size_t i = 0; i != _width * _height; ++i) {
+    for (size_t i = 0; i != _width * _height; ++i) {
       psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
     }
     averagedWeights[chIndex] += inputChannelWeight;

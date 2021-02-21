@@ -322,7 +322,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       if (!(entry.polarization == aocommon::Polarization::YX &&
             _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
         ImageF modelImage(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight, 0.0);
+                          _settings.trimmedImageHeight, 0.0);
         _modelImages.Store(modelImage.data(), entry.polarization,
                            entry.outputChannelIndex, false);
         if (aocommon::Polarization::IsComplex(entry.polarization))
@@ -338,7 +338,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
         bool isImaginary = (imageIndex == 1);
         WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
         ImageF dirtyImage(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight);
+                          _settings.trimmedImageHeight);
         _residualImages.Load(dirtyImage.data(), entry.polarization,
                              entry.outputChannelIndex, isImaginary);
         Logger::Info << "Writing dirty image...\n";
@@ -1471,7 +1471,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     const ImagingTableEntry& entry = facetGroup.Front();
     processFullPSF(imageMain, entry);
   }
-  
+
   const size_t channelIndex = facetGroup.Front().outputChannelIndex;
   const aocommon::PolarizationEnum polarization =
       facetGroup.Front().polarization;
