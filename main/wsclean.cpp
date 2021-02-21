@@ -517,9 +517,11 @@ void WSClean::performReordering(bool isPredictMode) {
   loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
-    for (size_t sqIndex=0; sqIndex!= _imagingTable.SquaredGroupCount(); ++sqIndex) {
+    for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
+         ++sqIndex) {
       ImagingTable sqGroup = _imagingTable.GetSquaredGroup(sqIndex);
-      for (size_t fgIndex = 0; fgIndex!= sqGroup.FacetGroupCount(); ++fgIndex) {
+      for (size_t fgIndex = 0; fgIndex != sqGroup.FacetGroupCount();
+           ++fgIndex) {
         ImagingTable facetGroup = sqGroup.GetFacetGroup(fgIndex);
         // The band information is determined from the first facet in the group.
         // After this, all facet entries inside the group are updated.
@@ -534,8 +536,7 @@ void WSClean::performReordering(bool isPredictMode) {
               r.end = selection.ChannelRangeEnd();
               channels.push_back(r);
             }
-            for(ImagingTableEntry& facetEntry : facetGroup)
-            {
+            for (ImagingTableEntry& facetEntry : facetGroup) {
               facetEntry.msData[i].bands[d].partIndex =
                   nextIndex[entry.polarization];
             }
@@ -1442,8 +1443,9 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     cachedImage.LoadFacet(imageFacet.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
-    // TODO with our current stitching implementation, facets should always be directly
-    // copied to the full image, not added. The facets should not overlap though.
+    // TODO with our current stitching implementation, facets should always be
+    // directly copied to the full image, not added. The facets should not
+    // overlap though.
     imageFacet.AddToImage({imageMain.data()});
   }
   if (writeDirty) {
