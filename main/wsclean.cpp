@@ -517,26 +517,29 @@ void WSClean::performReordering(bool isPredictMode) {
   loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
-
-    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
-      for (const ImagingTable::EntryPtr& entry : sqGroup) {
-        if (entry->facetIndex != 0) {
-          // No need to repeat for every facet
-          continue;
-        }
+    for (size_t sqIndex=0; sqIndex!= _imagingTable.SquaredGroupCount(); ++sqIndex) {
+      ImagingTable sqGroup = _imagingTable.GetSquaredGroup(sqIndex);
+      for (size_t fgIndex = 0; fgIndex!= sqGroup.FacetGroupCount(); ++fgIndex) {
+        ImagingTable facetGroup = sqGroup.GetFacetGroup(fgIndex);
+        // The band information is determined from the first facet in the group.
+        // After this, all facet entries inside the group are updated.
+        const ImagingTableEntry& entry = facetGroup.Front();
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selectChannels(selection, i, d, *entry)) {
-            if (entry->polarization == *_settings.polarizations.begin()) {
+          if (selectChannels(selection, i, d, entry)) {
+            if (entry.polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
               r.start = selection.ChannelRangeStart();
               r.end = selection.ChannelRangeEnd();
               channels.push_back(r);
             }
-            entry->msData[i].bands[d].partIndex =
-                nextIndex[entry->polarization];
-            ++nextIndex[entry->polarization];
+            for(ImagingTableEntry& facetEntry : facetGroup)
+            {
+              facetEntry.msData[i].bands[d].partIndex =
+                  nextIndex[entry.polarization];
+            }
+            ++nextIndex[entry.polarization];
           }
         }
       }
@@ -1407,9 +1410,9 @@ void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& cachedImage, bool writeDirty,
                            bool writePSF) {
   if (!_facets.empty()) {
+    Logger::Info << "Stitching facets onto full image...\n";
     // Allocate main image
-    ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
-                     0.0f);
+    ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage imageFacet(
@@ -1432,12 +1435,15 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 ImageF& imageMain,
                                 schaapcommon::facets::FacetImage& imageFacet) {
   const bool isImaginary = (imageIndex == 1);
+  imageMain = 0.0f;
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     constexpr bool useTrimmedFacet = true;
     imageFacet.SetFacet(*facetEntry.facet, useTrimmedFacet);
     cachedImage.LoadFacet(imageFacet.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
+    // TODO with our current stitching implementation, facets should always be directly
+    // copied to the full image, not added. The facets should not overlap though.
     imageFacet.AddToImage({imageMain.data()});
   }
   if (writeDirty) {
