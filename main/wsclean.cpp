@@ -339,7 +339,7 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
     // TODO: reduce buffer sizes when using facets
-    Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    ImageF xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
                    joinedChannelIndex, entry.facetIndex, entry.facet,
                    isImaginary);
@@ -877,7 +877,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _inversionWatch.Pause();
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
-      groupTable, *_settings.polarizations.begin(),
+      groupTable.GetFacet(0), *_settings.polarizations.begin(),
       minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
   if (!_settings.makePSFOnly) {
@@ -889,7 +889,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         _deconvolution.InitializeImages(_residualImages, _modelImages,
                                         _psfImages);
         _deconvolutionWatch.Start();
-        _deconvolution.Perform(groupTable, reachedMajorThreshold,
+        _deconvolution.Perform(groupTable.GetFacet(0), reachedMajorThreshold,
                                _majorIterationNr);
         _deconvolutionWatch.Pause();
 
@@ -1094,7 +1094,7 @@ void WSClean::saveRestoredImagesForGroup(
 
 void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing first iteration image(s)...\n";
-  Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
@@ -1112,7 +1112,7 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
 
 void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing model image...\n";
-  Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
@@ -1223,7 +1223,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
     FitsWriter writer(reader);
     _modelImages.SetFitsWriter(writer);
 
-    Image buffer(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    ImageF buffer(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     reader.Read(buffer.data());
     for (size_t j = 0;
          j != _settings.trimmedImageWidth * _settings.trimmedImageHeight; ++j) {
@@ -1440,11 +1440,6 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                           facetEntry.facet, isImaginary);
     imageFacet.AddToImage({imageMain.data()});
   }
-  const size_t channelIndex = facetGroup.Front().outputChannelIndex;
-  const aocommon::PolarizationEnum polarization =
-      facetGroup.Front().polarization;
-  cachedImage.Store(imageMain.data(), polarization, channelIndex, isImaginary);
-
   if (writeDirty) {
     initializeModelImages(facetGroup.Front());
     _residualImages.SetFitsWriter(
@@ -1459,6 +1454,11 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     const ImagingTableEntry& entry = facetGroup.Front();
     processFullPSF(imageMain, entry);
   }
+
+  const size_t channelIndex = facetGroup.Front().outputChannelIndex;
+  const aocommon::PolarizationEnum polarization =
+      facetGroup.Front().polarization;
+  cachedImage.Store(imageMain.data(), polarization, channelIndex, isImaginary);
 }
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
