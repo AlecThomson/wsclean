@@ -1409,7 +1409,7 @@ void WSClean::saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
 
 void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& cachedImage, bool writeDirty,
-                           bool writePSF) {
+                           bool isPSF) {
   if (!_facets.empty()) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate main image
@@ -1421,10 +1421,15 @@ void WSClean::stitchFacets(const ImagingTable& table,
     for (size_t facetGroupIndex = 0; facetGroupIndex != table.FacetGroupCount();
          ++facetGroupIndex) {
       const ImagingTable stitchGroup = table.GetFacetGroup(facetGroupIndex);
-      const size_t imageCount = stitchGroup.Front().imageCount;
-      for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
-        stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
-                          writePSF, imageMain, imageFacet);
+
+      // The PSF is only once imaged for all polarizations
+      if (!isPSF || stitchGroup.Front().polarization ==
+                        *_settings.polarizations.begin()) {
+        const size_t imageCount = stitchGroup.Front().imageCount;
+        for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
+          stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
+                            isPSF, imageMain, imageFacet);
+        }
       }
     }
   }
@@ -1432,8 +1437,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
 
 void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 size_t imageIndex, CachedImageSet& cachedImage,
-                                bool writeDirty, bool writePSF,
-                                ImageF& imageMain,
+                                bool writeDirty, bool isPSF, ImageF& imageMain,
                                 schaapcommon::facets::FacetImage& imageFacet) {
   const bool isImaginary = (imageIndex == 1);
   imageMain = 0.0f;
@@ -1458,7 +1462,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     writer.WriteImage("dirty.fits", imageMain.data());
   }
 
-  if (writePSF) {
+  if (isPSF) {
     const ImagingTableEntry& entry = facetGroup.Front();
     processFullPSF(imageMain, entry);
   }

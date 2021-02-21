@@ -132,14 +132,14 @@ class WSClean {
    * @param writePSF Write PSF image?
    */
   void stitchFacets(const ImagingTable& table, CachedImageSet& cachedImage,
-                    bool writeDirty, bool writePSF);
+                    bool writeDirty, bool isPSF);
 
   /**
    * @brief Stitch facet for a single (Facet)Group
    */
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& cachedImage, bool writeDirty,
-                         bool writePSF, ImageF& imageMain,
+                         bool isPSF, ImageF& imageMain,
                          schaapcommon::facets::FacetImage& imageStorage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
