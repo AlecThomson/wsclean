@@ -44,11 +44,6 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   Logger::Info.Flush();
   Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
-  const ImagingTable::Groups& facetGroups = groupTable.FacetGroups();
-  if (!facetGroups.empty() && !facetGroups.front().empty() &&
-      facetGroups.front().front()->facet)
-    throw std::runtime_error("Deconvolving facets is not implemented");
-
   ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
       modelSet(&groupTable, _settings, _imgWidth, _imgHeight);
 
@@ -341,7 +336,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     }
 
     Logger::Info << "Saving horizon mask...\n";
-    Image image(_imgWidth, _imgHeight);
+    ImageF image(_imgWidth, _imgHeight);
     for (size_t i = 0; i != _imgWidth * _imgHeight; ++i)
       image[i] = _cleanMask[i] ? 1.0 : 0.0;
 
