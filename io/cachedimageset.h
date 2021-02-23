@@ -109,7 +109,7 @@ class CachedImageSet {
       Logger::Debug << "Storing " << filename << '\n';
 
       // Initialize FacetWriter, use the trimmed facet width and
-      // height as dimensions. The image argument that is feeded into
+      // height as dimensions. The image argument that is fed into
       // the Write() function should have the same size.
       FitsWriter facetWriter;
       facetWriter.SetImageDimensions(facet->GetTrimmedBoundingBox().Width(),

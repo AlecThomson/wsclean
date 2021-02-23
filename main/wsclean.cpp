@@ -338,8 +338,18 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
   if (entry.polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
-    // TODO: reduce buffer sizes when using facets
-    ImageF xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    ImageF xyImage;
+    if (entry.facet != nullptr) {
+      // Trimmed facet size
+      xyImage = static_cast<ImageF&>(
+          *ImageF::Make(entry.facet->GetTrimmedBoundingBox().Width(),
+                        entry.facet->GetTrimmedBoundingBox().Height()));
+    } else {
+      // Full image size
+      xyImage = static_cast<ImageF&>(*ImageF::Make(
+          _settings.trimmedImageWidth, _settings.trimmedImageHeight));
+    }
+
     dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
                    joinedChannelIndex, entry.facetIndex, entry.facet,
                    isImaginary);
@@ -1408,15 +1418,15 @@ void WSClean::saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
 }
 
 void WSClean::stitchFacets(const ImagingTable& table,
-                           CachedImageSet& cachedImage, bool writeDirty,
+                           CachedImageSet& imageCache, bool writeDirty,
                            bool isPSF) {
   if (!_facets.empty()) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate main image
-    ImageF imageMain(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    ImageF mainImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
-    schaapcommon::facets::FacetImage imageFacet(
+    schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     for (size_t facetGroupIndex = 0; facetGroupIndex != table.FacetGroupCount();
          ++facetGroupIndex) {
@@ -1427,8 +1437,8 @@ void WSClean::stitchFacets(const ImagingTable& table,
                         *_settings.polarizations.begin()) {
         const size_t imageCount = stitchGroup.Front().imageCount;
         for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
-          stitchSingleGroup(stitchGroup, imageIndex, cachedImage, writeDirty,
-                            isPSF, imageMain, imageFacet);
+          stitchSingleGroup(stitchGroup, imageIndex, imageCache, writeDirty,
+                            isPSF, mainImage, facetImage);
         }
       }
     }
@@ -1436,21 +1446,21 @@ void WSClean::stitchFacets(const ImagingTable& table,
 }
 
 void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
-                                size_t imageIndex, CachedImageSet& cachedImage,
-                                bool writeDirty, bool isPSF, ImageF& imageMain,
-                                schaapcommon::facets::FacetImage& imageFacet) {
+                                size_t imageIndex, CachedImageSet& imageCache,
+                                bool writeDirty, bool isPSF, ImageF& mainImage,
+                                schaapcommon::facets::FacetImage& facetImage) {
   const bool isImaginary = (imageIndex == 1);
-  imageMain = 0.0f;
+  mainImage = 0.0f;
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     constexpr bool useTrimmedFacet = true;
-    imageFacet.SetFacet(*facetEntry.facet, useTrimmedFacet);
-    cachedImage.LoadFacet(imageFacet.Data(0), facetEntry.polarization,
-                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                          facetEntry.facet, isImaginary);
+    facetImage.SetFacet(*facetEntry.facet, useTrimmedFacet);
+    imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
+                         facetEntry.outputChannelIndex, facetEntry.facetIndex,
+                         facetEntry.facet, isImaginary);
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not
     // overlap though.
-    imageFacet.AddToImage({imageMain.data()});
+    facetImage.AddToImage({mainImage.data()});
   }
   if (writeDirty) {
     initializeModelImages(facetGroup.Front());
@@ -1459,18 +1469,18 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     WSCFitsWriter writer(
         createWSCFitsWriter(facetGroup.Front(), isImaginary, false, true));
     Logger::Info << "Writing dirty image...\n";
-    writer.WriteImage("dirty.fits", imageMain.data());
+    writer.WriteImage("dirty.fits", mainImage.data());
   }
 
   if (isPSF) {
     const ImagingTableEntry& entry = facetGroup.Front();
-    processFullPSF(imageMain, entry);
+    processFullPSF(mainImage, entry);
   }
 
   const size_t channelIndex = facetGroup.Front().outputChannelIndex;
   const aocommon::PolarizationEnum polarization =
       facetGroup.Front().polarization;
-  cachedImage.Store(imageMain.data(), polarization, channelIndex, isImaginary);
+  imageCache.Store(mainImage.data(), polarization, channelIndex, isImaginary);
 }
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
