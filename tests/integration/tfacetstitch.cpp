@@ -5,7 +5,7 @@
 
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
-const char* kFacets = "test_data/ds9.reg";
+const char* kFacets = "test_data/ds9_2facets.reg";
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(facet_stitching)
