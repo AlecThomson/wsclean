@@ -163,7 +163,9 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
-  _psfImages.SetFitsWriter(createWSCFitsWriter(entry, false, false).Writer());
+  const bool isFullImage = false;
+  _psfImages.SetFitsWriter(
+      createWSCFitsWriter(entry, false, false, isFullImage).Writer());
   _psfImages.StoreFacet(result.imageRealResult.data(),
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
@@ -222,9 +224,9 @@ void WSClean::processFullPSF(ImageF& image, const ImagingTableEntry& entry) {
       ImageFilename::GetPSFPrefix(_settings, channelIndex,
                                   entry.outputIntervalIndex) +
       "-psf.fits");
-  const bool isMainImage = true;
+  const bool isFullImage = true;
   WSCFitsWriter fitsFile =
-      createWSCFitsWriter(entry, false, false, isMainImage);
+      createWSCFitsWriter(entry, false, false, isFullImage);
   fitsFile.WritePSF(name, image.data());
   Logger::Info << "DONE\n";
 }
@@ -312,14 +314,16 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   if (isInitialInversion && _facets.empty()) {
     initializeModelImages(entry);
 
+    const bool isFullImage = false;
     _residualImages.SetFitsWriter(
-        createWSCFitsWriter(entry, false, false).Writer());
+        createWSCFitsWriter(entry, false, false, isFullImage).Writer());
     // If !_facets.empty(), dirty image is saved in stitchFacets
     if (_settings.isDirtySaved) {
       for (size_t imageIndex = 0; imageIndex != entry.imageCount;
            ++imageIndex) {
-        bool isImaginary = (imageIndex == 1);
-        WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
+        const bool isImaginary = (imageIndex == 1);
+        WSCFitsWriter writer(
+            createWSCFitsWriter(entry, isImaginary, false, isFullImage));
         ImageF dirtyImage(_settings.trimmedImageWidth,
                           _settings.trimmedImageHeight);
         _residualImages.Load(dirtyImage.data(), entry.polarization,
@@ -818,12 +822,14 @@ double WSClean::minTheoreticalBeamSize(const ImagingTable& table) const {
 
 void WSClean::runIndependentGroup(ImagingTable& groupTable,
                                   std::unique_ptr<PrimaryBeam>& primaryBeam) {
+  const bool isFullImage = false;
   WSCFitsWriter modelWriter(
-      createWSCFitsWriter(groupTable.Front(), false, true));
+      createWSCFitsWriter(groupTable.Front(), false, true, isFullImage));
   _modelImages.Initialize(modelWriter.Writer(), _settings.polarizations.size(),
                           _settings.channelsOut, _facets.size(),
                           _settings.prefixName + "-model");
-  WSCFitsWriter writer(createWSCFitsWriter(groupTable.Front(), false, false));
+  WSCFitsWriter writer(
+      createWSCFitsWriter(groupTable.Front(), false, false, isFullImage));
   _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
                              _settings.channelsOut, _facets.size(),
                              _settings.prefixName + "-residual");
@@ -1032,7 +1038,9 @@ void WSClean::saveRestoredImagesForGroup(
   aocommon::PolarizationEnum curPol = tableEntry.polarization;
   for (size_t imageIter = 0; imageIter != tableEntry.imageCount; ++imageIter) {
     bool isImaginary = (imageIter == 1);
-    WSCFitsWriter writer(createWSCFitsWriter(tableEntry, isImaginary, false));
+    const bool isFullImage = false;
+    WSCFitsWriter writer(
+        createWSCFitsWriter(tableEntry, isImaginary, false, isFullImage));
     ImageF restoredImage(_settings.trimmedImageWidth,
                          _settings.trimmedImageHeight);
     _residualImages.Load(restoredImage.data(), curPol, currentChannelIndex,
@@ -1109,16 +1117,18 @@ void WSClean::saveRestoredImagesForGroup(
 void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing first iteration image(s)...\n";
   ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  const bool isFullImage = false;
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _residualImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
-      WSCFitsWriter writer(
-          createWSCFitsWriter(entry, aocommon::Polarization::XY, true, false));
+      WSCFitsWriter writer(createWSCFitsWriter(
+          entry, aocommon::Polarization::XY, true, false, isFullImage));
       writer.WriteImage("first-residual.fits", ptr.data());
     } else {
       _residualImages.Load(ptr.data(), entry.polarization, ch, false);
-      WSCFitsWriter writer(createWSCFitsWriter(entry, false, false));
+      WSCFitsWriter writer(
+          createWSCFitsWriter(entry, false, false, isFullImage));
       writer.WriteImage("first-residual.fits", ptr.data());
     }
   }
@@ -1127,23 +1137,27 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
 void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing model image...\n";
   ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  const bool isFullImage = false;
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _modelImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
-      WSCFitsWriter writer(
-          createWSCFitsWriter(entry, aocommon::Polarization::XY, true, true));
+      WSCFitsWriter writer(createWSCFitsWriter(
+          entry, aocommon::Polarization::XY, true, true, isFullImage));
       writer.WriteImage("model.fits", ptr.data());
     } else {
       _modelImages.Load(ptr.data(), entry.polarization, ch, false);
-      WSCFitsWriter writer(createWSCFitsWriter(entry, false, true));
+      WSCFitsWriter writer(
+          createWSCFitsWriter(entry, false, true, isFullImage));
       writer.WriteImage("model.fits", ptr.data());
     }
   }
 }
 
 void WSClean::initializeModelImages(const ImagingTableEntry& entry) {
-  _modelImages.SetFitsWriter(createWSCFitsWriter(entry, false, true).Writer());
+  const bool isFullImage = false;
+  _modelImages.SetFitsWriter(
+      createWSCFitsWriter(entry, false, true, isFullImage).Writer());
 
   if (_settings.continuedRun) {
     readExistingModelImages(entry);
@@ -1252,8 +1266,10 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
 }
 
 void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
+  const bool isFullImage = false;
   _modelImages.Initialize(
-      createWSCFitsWriter(*imagingGroup.front(), false, true).Writer(),
+      createWSCFitsWriter(*imagingGroup.front(), false, true, isFullImage)
+          .Writer(),
       _settings.polarizations.size(), 1, _facets.size(),
       _settings.prefixName + "-model");
 
@@ -1412,7 +1428,9 @@ void WSClean::saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
   imagUV *=
       _infoPerChannel[entry.outputChannelIndex].normalizationFactor /
       sqrt(0.5 * _settings.trimmedImageWidth * _settings.trimmedImageHeight);
-  WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
+  const bool isFullImage = false;
+  WSCFitsWriter writer(
+      createWSCFitsWriter(entry, isImaginary, false, isFullImage));
   writer.WriteUV(prefix + "-real.fits", realUV.data());
   writer.WriteUV(prefix + "-imag.fits", imagUV.data());
 }
@@ -1463,11 +1481,13 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     facetImage.AddToImage({mainImage.data()});
   }
   if (writeDirty) {
+    const bool isFullImage = true;
     initializeModelImages(facetGroup.Front());
     _residualImages.SetFitsWriter(
-        createWSCFitsWriter(facetGroup.Front(), false, false).Writer());
-    WSCFitsWriter writer(
-        createWSCFitsWriter(facetGroup.Front(), isImaginary, false, true));
+        createWSCFitsWriter(facetGroup.Front(), false, false, isFullImage)
+            .Writer());
+    WSCFitsWriter writer(createWSCFitsWriter(facetGroup.Front(), isImaginary,
+                                             false, isFullImage));
     Logger::Info << "Writing dirty image...\n";
     writer.WriteImage("dirty.fits", mainImage.data());
   }
@@ -1741,9 +1761,9 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
 
 WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isImaginary, bool isModel,
-                                           bool isMainImage) const {
+                                           bool isFullImage) const {
   ObservationInfo observationInfo = _observationInfo;
-  if (!isMainImage) {
+  if (!isFullImage) {
     applyFacetPhaseShift(entry, observationInfo);
   }
 
@@ -1755,9 +1775,11 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
 
 WSCFitsWriter WSClean::createWSCFitsWriter(
     const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
-    bool isImaginary, bool isModel) const {
+    bool isImaginary, bool isModel, bool isFullImage) const {
   ObservationInfo observationInfo = _observationInfo;
-  applyFacetPhaseShift(entry, observationInfo);
+  if (!isFullImage) {
+    applyFacetPhaseShift(entry, observationInfo);
+  }
 
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
                        _deconvolution, observationInfo, _majorIterationNr,

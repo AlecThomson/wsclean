@@ -151,11 +151,12 @@ class WSClean {
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     bool isImaginary, bool isModel,
-                                    bool isMainImage = false) const;
+                                    bool isFullImage) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     aocommon::PolarizationEnum polarization,
-                                    bool isImaginary, bool isModel) const;
+                                    bool isImaginary, bool isModel,
+                                    bool isFullImage) const;
 
   MSSelection _globalSelection;
   std::string _commandLine;
