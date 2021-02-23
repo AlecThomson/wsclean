@@ -139,7 +139,7 @@ class WSClean {
    */
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
-                         bool isPSF, ImageF& mainImage,
+                         bool isPSF, ImageF& fullImage,
                          schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
