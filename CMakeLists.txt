@@ -22,11 +22,6 @@ check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
 option(PORTABLE_CODE "Generate portable code" OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
-#option(BUILD_PACKAGES "Build Debian packages (forces generation of portable code)" OFF)
-
-#if(BUILD_PACKAGES)
-#  set(PORTABLE_CODE ON CACHE BOOL "Generate portable code" FORCE)
-#endif()
 
 if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
   add_compile_options(-std=c++17)
@@ -42,15 +37,8 @@ else()
 endif()
 
 if(NOT PORTABLE_CODE)
-#  add_compile_options(-march=native)
-  set(X86_INSTRUCTION_SET avx)
-  add_compile_options(-m${X86_INSTRUCTION_SET})
+  add_compile_options(-march=native)
 endif(NOT PORTABLE_CODE)
-
-message(STATUS "Disable C++17 compiler features: ${DISABLE_CXX17}")
-message(STATUS "Generate portable code: ${PORTABLE_CODE}")
-message(STATUS "Build Debian packages: ${BUILD_PACKAGES}")
-message(STATUS "X86_INSTRUCTION_SET=${X86_INSTRUCTION_SET}")
 
 # Find and include git submodules
 find_package(Git QUIET)

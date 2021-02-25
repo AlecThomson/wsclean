@@ -8,11 +8,12 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 find_package(Git)
 if(Git_FOUND)
   execute_process(
-    COMMAND bash -c "${GIT_EXECUTABLE} --git-dir ${CMAKE_SOURCE_DIR}/.git \
-                     describe --tags --dirty"
+    COMMAND bash -c "${GIT_EXECUTABLE} describe --tags --dirty"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE VERSION_STRING
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET)
+  # Strip leading non-numeric characters, like "v"
   string(REGEX REPLACE "^[^[0-9]]*" "" VERSION_STRING ${VERSION_STRING})
 endif()
 if(NOT VERSION_STRING)
@@ -21,17 +22,26 @@ if(NOT VERSION_STRING)
                   "using ${VERSION_STRING} instead.")
 endif()
 
-if(NOT X86_INSTRUCTION_SET)
-  set(CPACK_PACKAGE_NAME "WSClean")
-else()
-  set(CPACK_PACKAGE_NAME "WSClean-${X86_INSTRUCTION_SET}")
+# Determine which AVX-feature flags are enabled, if any.
+include(${CMAKE_CURRENT_SOURCE_DIR}/DetermineEnabledAVXFeatures.cmake)
+
+# Set package name: encode "highest" AVX-feature, if any, in package name.
+set(CPACK_PACKAGE_NAME "WSClean")
+if(USE_AVX)
+  set(CPACK_PACKAGE_NAME "WSClean-avx")
 endif()
+if(USE_AVX2)
+  set(CPACK_PACKAGE_NAME "WSClean-avx2")
+endif()
+if(USE_AVX512F)
+  set(CPACK_PACKAGE_NAME "WSClean-avx512f")
+endif()
+
 set(CPACK_PACKAGE_VENDOR "ASTRON")
 set(CPACK_PACKAGE_VERSION "${VERSION_STRING}")
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WSClean (w-stacking clean)")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://gitlab.com/aroffringa/wsclean")
-#set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_SOURCE_GENERATOR "TGZ")
