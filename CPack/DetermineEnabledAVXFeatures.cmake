@@ -9,12 +9,12 @@ current architecture, by using the compile option `-march=native`. This
 module determines which AVX-features are enabled by the compiler. For each
 enabled feature, a boolean variable ``USE_<AVX-feature>`` is written into
 the cache. The user can force the generation of portable code by setting
-the option ``PORTABLE_CODE`` to ``TRUE``. In that case, all cached 
+the option ``PORTABLE`` to ``TRUE``. In that case, all cached 
 ``USE_<AVX-feature>`` variables will be removed from the cache.
 #]=======================================================================]
 
 # If we're building portable code, remove every cached USE_<AVX> variable.
-if(PORTABLE_CODE)
+if(PORTABLE)
   get_cmake_property(_cache_variables CACHE_VARIABLES)
   foreach(_var ${_cache_variables})
     if(_var MATCHES "USE_AVX")

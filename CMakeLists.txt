@@ -20,7 +20,7 @@ include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
 option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
-option(PORTABLE_CODE "Generate portable code" OFF)
+option(PORTABLE "Generate portable code" OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
 
 if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
@@ -36,9 +36,9 @@ else()
   set(WGRIDDER_FILES)
 endif()
 
-if(NOT PORTABLE_CODE)
+if(NOT PORTABLE)
   add_compile_options(-march=native)
-endif(NOT PORTABLE_CODE)
+endif(NOT PORTABLE)
 
 # Find and include git submodules
 find_package(Git QUIET)
