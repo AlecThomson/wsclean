@@ -92,7 +92,7 @@ find_package(Boost COMPONENTS date_time filesystem system program_options REQUIR
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 
-# Once we bump minimum CMake version to >= 3.2, we can use find_package(GSL).
+# Once we bump minimum CMake version to >= 3.2, we can use `find_package(GSL REQUIRED)`.
 find_library(GSL_LIB NAMES gsl)
 find_path(GSL_INCLUDE_DIR NAMES gsl/gsl_version.h)
 find_library(GSL_CBLAS_LIB NAMES gslcblas)

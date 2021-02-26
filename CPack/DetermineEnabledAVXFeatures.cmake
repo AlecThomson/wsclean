@@ -6,9 +6,9 @@ Determine which AVX-features are enabled by the current compile options.
 
 By default, the build system will generate code that is optimized for the
 current architecture, by using the compile option `-march=native`. This
-function will determine which AVX-features are enabled by the compiler. For
-each enabled feature, a boolean variable ``USE_<AVX-feature>`` is written
-into the cache. The user can force the generation of portable code by setting
+module determines which AVX-features are enabled by the compiler. For each
+enabled feature, a boolean variable ``USE_<AVX-feature>`` is written into
+the cache. The user can force the generation of portable code by setting
 the option ``PORTABLE_CODE`` to ``TRUE``. In that case, all cached 
 ``USE_<AVX-feature>`` variables will be removed from the cache.
 #]=======================================================================]
