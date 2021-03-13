@@ -348,7 +348,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
   BOOST_CHECK_EQUAL(subXL, 0u);
   BOOST_CHECK_EQUAL(subWidthL, 4u);
   aocommon::UVector<bool> maskL(subWidthL * height);
-  DImage::TrimBox(maskL.data(), subXL, 0, subWidthL, height, mask.data(), width,
+  ImageF::TrimBox(maskL.data(), subXL, 0, subWidthL, height, mask.data(), width,
                   height);
   BOOST_CHECK_EQUAL(PathStr(maskL, subWidthL),
                     "XXXX\n"
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
   BOOST_CHECK_EQUAL(subXR, 3u);
   BOOST_CHECK_EQUAL(subWidthR, 6u);
   aocommon::UVector<bool> maskR(subWidthR * height);
-  DImage::TrimBox(maskR.data(), subXR, 0, subWidthR, height, mask.data(), width,
+  ImageF::TrimBox(maskR.data(), subXR, 0, subWidthR, height, mask.data(), width,
                   height);
   BOOST_CHECK_EQUAL(PathStr(maskR, subWidthR),
                     " XXXXX\n"

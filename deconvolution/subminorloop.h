@@ -83,7 +83,7 @@ class SubMinorModel {
  private:
   std::vector<std::pair<size_t, size_t>> _positions;
   std::unique_ptr<ImageSet> _residual, _model;
-  DImage _rmsFactorImage;
+  ImageF _rmsFactorImage;
   size_t _width;
 };
 

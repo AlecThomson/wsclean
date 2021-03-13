@@ -463,10 +463,10 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
   beamName.SetPolarization(aocommon::Polarization::StokesI);
   aocommon::FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 
-  DImage beam(reader.ImageWidth(), reader.ImageHeight());
+  ImageF beam(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(beam.data());
 
-  DImage image;
+  ImageF image;
   for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
     aocommon::PolarizationEnum pol =
         aocommon::Polarization::IndexToStokes(polIndex);
@@ -475,7 +475,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
     aocommon::FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind +
                                 ".fits");
     if (image.empty())
-      image = DImage(reader.ImageWidth(), reader.ImageHeight());
+      image = ImageF(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 
     for (size_t i = 0; i != reader.ImageWidth() * reader.ImageHeight(); ++i) {

@@ -119,7 +119,7 @@ void SubMinorModel::MakeSets(const ImageSet& residualSet) {
 }
 
 void SubMinorModel::MakeRMSFactorImage(ImageF& rmsFactorImage) {
-  _rmsFactorImage = DImage(size(), 1);
+  _rmsFactorImage = ImageF(size(), 1);
   for (size_t pxIndex = 0; pxIndex != size(); ++pxIndex) {
     size_t srcIndex =
         _positions[pxIndex].second * _width + _positions[pxIndex].first;

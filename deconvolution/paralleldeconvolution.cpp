@@ -136,7 +136,7 @@ void ParallelDeconvolution::runSubImage(
         aocommon::UVector<bool>& output = msAlg.GetScaleMask(i);
         output.assign(subImg.width * subImg.height, false);
         if (i < _scaleMasks.size())
-          DImage::TrimBox(output.data(), subImg.x, subImg.y, subImg.width,
+          ImageF::TrimBox(output.data(), subImg.x, subImg.y, subImg.width,
                           subImg.height, _scaleMasks[i].data(), width, height);
       }
     }
@@ -162,7 +162,7 @@ void ParallelDeconvolution::runSubImage(
     for (size_t i = 0; i != msAlg.ScaleCount(); ++i) {
       const aocommon::UVector<bool>& msMask = msAlg.GetScaleMask(i);
       if (i < _scaleMasks.size())
-        DImage::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width,
+        ImageF::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width,
                            msMask.data(), subImg.width, subImg.height,
                            subImg.mask.data());
     }
@@ -243,7 +243,7 @@ void ParallelDeconvolution::executeParallelRun(
     divisor.FloodVerticalArea(dividingLine.data(), midX,
                               largeScratchMask.data(), area.x, area.width);
     area.mask.resize(area.width * height);
-    DImage::TrimBox(area.mask.data(), area.x, 0, area.width, height,
+    ImageF::TrimBox(area.mask.data(), area.x, 0, area.width, height,
                     largeScratchMask.data(), width, height);
   }
 
@@ -280,14 +280,14 @@ void ParallelDeconvolution::executeParallelRun(
                     << subImage.x + subImage.width << ","
                     << subImage.y + subImage.height << ")\n";
       subImage.mask.resize(subImage.width * subImage.height);
-      DImage::TrimBox(subImage.mask.data(), subImage.x, subImage.y,
+      ImageF::TrimBox(subImage.mask.data(), subImage.x, subImage.y,
                       subImage.width, subImage.height, mask.data(), width,
                       height);
 
       // If a user mask is active, take the union of that mask with the division
       // mask (note that 'mask' is reused as a scratch space)
       if (_mask != nullptr) {
-        DImage::TrimBox(mask.data(), subImage.x, subImage.y, subImage.width,
+        ImageF::TrimBox(mask.data(), subImage.x, subImage.y, subImage.width,
                         subImage.height, _mask, width, height);
         for (size_t i = 0; i != subImage.mask.size(); ++i)
           subImage.mask[i] = subImage.mask[i] && mask[i];
@@ -469,7 +469,7 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
 
   PrimaryBeamImageSet beamImages;
 
-  DImage scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  ImageF scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   size_t deconvolutionChannels = _settings.deconvolutionChannelCount;
 
   /// TODO : use real weights of images
