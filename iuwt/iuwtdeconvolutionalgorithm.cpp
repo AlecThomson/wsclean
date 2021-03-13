@@ -611,8 +611,8 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
     else {
       trimmedPriorMask.resize(newWidth * newHeight);
       trimmedPriorMaskPtr = trimmedPriorMask.data();
-      Image::TrimBox(trimmedPriorMaskPtr, x1, y1, newWidth, newHeight,
-                     priorMask, width, height);
+      DImage::TrimBox(trimmedPriorMaskPtr, x1, y1, newWidth, newHeight,
+                      priorMask, width, height);
     }
 
     ImageAnalysis::Component newMaxComp(maxComp.x - x1, maxComp.y - y1,

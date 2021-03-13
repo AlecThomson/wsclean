@@ -79,14 +79,14 @@ BOOST_AUTO_TEST_CASE(msselection) {
 }
 
 BOOST_AUTO_TEST_CASE(image) {
-  Image a(12, 13);
+  DImage a(12, 13);
   for (size_t i = 0; i != 12 * 13; ++i) a[i] = i + 1;
 
   SerialOStream ostr;
   a.Serialize(ostr);
   BOOST_CHECK_NE(ostr.size(), 0u);
 
-  Image b;
+  DImage b;
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
   BOOST_CHECK_EQUAL(a.Width(), b.Width());
