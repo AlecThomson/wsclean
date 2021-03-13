@@ -52,7 +52,7 @@ void ParallelDeconvolution::SetAlgorithm(
   }
 }
 
-void ParallelDeconvolution::SetRMSFactorImage(ImageF&& image) {
+void ParallelDeconvolution::SetRMSFactorImage(Image&& image) {
   if (_settings.parallelDeconvolutionMaxSize == 0)
     _algorithms.front()->SetRMSFactorImage(std::move(image));
   else
@@ -96,19 +96,19 @@ void ParallelDeconvolution::runSubImage(
   }
 
   // Construct the smaller psfs
-  std::vector<ImageF> subPsfs(psfImages.size());
+  std::vector<Image> subPsfs(psfImages.size());
   aocommon::UVector<const float*> subPsfVector(psfImages.size());
   for (size_t i = 0; i != psfImages.size(); ++i) {
-    subPsfs[i] = ImageF(subImg.width, subImg.height);
-    ImageF::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
-                 width, height);
+    subPsfs[i] = Image(subImg.width, subImg.height);
+    Image::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
+                width, height);
     subPsfVector[i] = subPsfs[i].data();
   }
   _algorithms[subImg.index]->SetCleanMask(subImg.mask.data());
 
   // Construct smaller RMS image if necessary
   if (!_rmsImage.empty()) {
-    ImageF subRmsImage =
+    Image subRmsImage =
         _rmsImage.TrimBox(subImg.x, subImg.y, subImg.width, subImg.height);
     _algorithms[subImg.index]->SetRMSFactorImage(std::move(subRmsImage));
   }
@@ -136,8 +136,8 @@ void ParallelDeconvolution::runSubImage(
         aocommon::UVector<bool>& output = msAlg.GetScaleMask(i);
         output.assign(subImg.width * subImg.height, false);
         if (i < _scaleMasks.size())
-          ImageF::TrimBox(output.data(), subImg.x, subImg.y, subImg.width,
-                          subImg.height, _scaleMasks[i].data(), width, height);
+          Image::TrimBox(output.data(), subImg.x, subImg.y, subImg.width,
+                         subImg.height, _scaleMasks[i].data(), width, height);
       }
     }
   }
@@ -148,7 +148,7 @@ void ParallelDeconvolution::runSubImage(
 
   // Since this was an RMS image specifically for this subimage size, we free it
   // immediately
-  _algorithms[subImg.index]->SetRMSFactorImage(ImageF());
+  _algorithms[subImg.index]->SetRMSFactorImage(Image());
 
   if (_trackPerScaleMasks) {
     std::lock_guard<std::mutex> lock(*mutex);
@@ -162,9 +162,9 @@ void ParallelDeconvolution::runSubImage(
     for (size_t i = 0; i != msAlg.ScaleCount(); ++i) {
       const aocommon::UVector<bool>& msMask = msAlg.GetScaleMask(i);
       if (i < _scaleMasks.size())
-        ImageF::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width,
-                           msMask.data(), subImg.width, subImg.height,
-                           subImg.mask.data());
+        Image::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width,
+                          msMask.data(), subImg.width, subImg.height,
+                          subImg.mask.data());
     }
   }
 
@@ -215,7 +215,7 @@ void ParallelDeconvolution::executeParallelRun(
                avgHSubImageSize = width / _horImages,
                avgVSubImageSize = height / _verImages;
 
-  ImageF image(width, height), dividingLine(width, height, 0.0);
+  Image image(width, height), dividingLine(width, height, 0.0);
   aocommon::UVector<bool> largeScratchMask(width * height);
   dataImage.GetLinearIntegrated(image);
 
@@ -243,8 +243,8 @@ void ParallelDeconvolution::executeParallelRun(
     divisor.FloodVerticalArea(dividingLine.data(), midX,
                               largeScratchMask.data(), area.x, area.width);
     area.mask.resize(area.width * height);
-    ImageF::TrimBox(area.mask.data(), area.x, 0, area.width, height,
-                    largeScratchMask.data(), width, height);
+    Image::TrimBox(area.mask.data(), area.x, 0, area.width, height,
+                   largeScratchMask.data(), width, height);
   }
 
   // Make the rows (horizontal lines)
@@ -280,15 +280,15 @@ void ParallelDeconvolution::executeParallelRun(
                     << subImage.x + subImage.width << ","
                     << subImage.y + subImage.height << ")\n";
       subImage.mask.resize(subImage.width * subImage.height);
-      ImageF::TrimBox(subImage.mask.data(), subImage.x, subImage.y,
-                      subImage.width, subImage.height, mask.data(), width,
-                      height);
+      Image::TrimBox(subImage.mask.data(), subImage.x, subImage.y,
+                     subImage.width, subImage.height, mask.data(), width,
+                     height);
 
       // If a user mask is active, take the union of that mask with the division
       // mask (note that 'mask' is reused as a scratch space)
       if (_mask != nullptr) {
-        ImageF::TrimBox(mask.data(), subImage.x, subImage.y, subImage.width,
-                        subImage.height, _mask, width, height);
+        Image::TrimBox(mask.data(), subImage.x, subImage.y, subImage.width,
+                       subImage.height, _mask, width, height);
         for (size_t i = 0; i != subImage.mask.size(); ++i)
           subImage.mask[i] = subImage.mask[i] && mask[i];
       }
@@ -469,7 +469,7 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
 
   PrimaryBeamImageSet beamImages;
 
-  ImageF scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  Image scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   size_t deconvolutionChannels = _settings.deconvolutionChannelCount;
 
   /// TODO : use real weights of images

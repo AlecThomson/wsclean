@@ -252,7 +252,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   _griddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(ImageF image) {
+void IdgMsGridder::Predict(Image image) {
   const size_t untrimmedWidth = ImageWidth();
   const size_t width = TrimWidth(), height = TrimHeight();
 
@@ -414,20 +414,20 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   _degriddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(ImageF /*real*/, ImageF /*imaginary*/) {
+void IdgMsGridder::Predict(Image /*real*/, Image /*imaginary*/) {
   throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
-ImageF IdgMsGridder::ImageRealResult() {
+Image IdgMsGridder::ImageRealResult() {
   const size_t width = TrimWidth(), height = TrimHeight();
   size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-  ImageF image(height, width);
+  Image image(height, width);
   std::copy_n(_image.data() + polIndex * width * height, width * height,
               image.data());
   return std::move(image);
 }
 
-ImageF IdgMsGridder::ImageImaginaryResult() {
+Image IdgMsGridder::ImageImaginaryResult() {
   throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
@@ -463,10 +463,10 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
   beamName.SetPolarization(aocommon::Polarization::StokesI);
   aocommon::FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 
-  ImageF beam(reader.ImageWidth(), reader.ImageHeight());
+  Image beam(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(beam.data());
 
-  ImageF image;
+  Image image;
   for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
     aocommon::PolarizationEnum pol =
         aocommon::Polarization::IndexToStokes(polIndex);
@@ -474,8 +474,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
     name.SetPolarization(pol);
     aocommon::FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind +
                                 ".fits");
-    if (image.empty())
-      image = ImageF(reader.ImageWidth(), reader.ImageHeight());
+    if (image.empty()) image = Image(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 
     for (size_t i = 0; i != reader.ImageWidth() * reader.ImageHeight(); ++i) {

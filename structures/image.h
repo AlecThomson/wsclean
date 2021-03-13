@@ -197,7 +197,7 @@ void ImageT<NumT>::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth,
 }
 
 typedef ImageT<double> DImage;
-typedef ImageT<float> ImageF;
+typedef ImageT<float> Image;
 typedef ImageT<std::complex<float>> ImageCF;
 
 template <class T>
