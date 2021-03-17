@@ -13,6 +13,7 @@
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
 #include <EveryBeam/aterms/atermconfig.h>
+#include <EveryBeam/pointresponse/phasedarraypoint.h>
 
 // Only needed for EB related options
 #include "../io/findmwacoefffile.h"
@@ -429,9 +430,16 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msProvider.ReadMeta(metaData);
-    if (metaData.time != _cachedTime) {
+    if (metaData.time != _cachedTime || _cachedTime == _startTime) {
       _cachedTime = metaData.time;
-      _pointResponse->UpdateTime(_cachedTime);
+      if (auto phasedArray =
+              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
+                  _pointResponse.get())) {
+        phasedArray->UpdateITRFVectors(_cachedTime, _facetCentreRA,
+                                       _facetCentreDec);
+      } else {
+        _pointResponse->UpdateTime(_cachedTime);
+      }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
             &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
