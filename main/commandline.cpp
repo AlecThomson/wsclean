@@ -320,7 +320,7 @@ void CommandLine::printHelp() {
          "images\n"
          "-facet-beam-update <seconds>\n"
          "   Set the facet beam update time in seconds. The default is every "
-         "300 seconds.\n"
+         "120 seconds.\n"
          "-save-aterms\n"
          "   Output a fits file for every aterm update, containing the applied "
          "image for every station.\n"
@@ -1261,8 +1261,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {
       ++argi;
-      double val = parse_double(argv[argi], 0.0, "facet-beam-update");
-      settings.facetBeamUpdateTime = val;
+      settings.facetBeamUpdateTime =
+          parse_double(argv[argi], 0.0, "facet-beam-update");
     } else if (param == "save-aterms") {
       settings.saveATerms = true;
     } else if (param == "visibility-weighting-mode") {
