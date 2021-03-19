@@ -277,7 +277,7 @@ inline Settings::Settings()
       gridWithBeam(false),
       beamAtermUpdateTime(300.0),
       applyFacetBeam(false),
-      facetBeamUpdateTime(120.0),
+      facetBeamUpdateTime(300.0),
       saveATerms(false),
       idgMode(IDG_DEFAULT),
       gridMode(KaiserBesselKernel),
