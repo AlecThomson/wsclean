@@ -207,12 +207,12 @@ void Settings::Propagate(bool verbose) {
 
   if (trimmedImageWidth % 2 != 0) {
     ++trimmedImageWidth;
-    Logger::Warn << "Image width is not divisable by two: changing size to "
+    Logger::Warn << "Image width is not divisable by two: changing width to "
                  << trimmedImageWidth << '\n';
   }
   if (trimmedImageHeight % 2 != 0) {
     ++trimmedImageHeight;
-    Logger::Warn << "Image height is not divisable by two: changing size to "
+    Logger::Warn << "Image height is not divisable by two: changing height to "
                  << trimmedImageHeight << '\n';
   }
 
