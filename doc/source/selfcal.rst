@@ -1,7 +1,7 @@
 Self-calibration
 ================
 
-WSClean can be used to perform self-cal, and has some flexibility to support many different scenarios. There are two main approaches:
+WSClean can be used to perform self-cal. There are two main approaches, supporting a range of scenarios:
 
 - Use WSClean to fill the ``MODEL_DATA`` with predicted visibilities from an imaging run. When using ``-mgain`` with a value less than 1,
   WSClean will fill the column. This column can then be used during calibration (e.g. with DP3). The advantage of this is that it is
