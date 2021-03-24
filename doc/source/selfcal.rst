@@ -3,11 +3,8 @@ Self-calibration
 
 WSClean can be used to perform self-cal. There are two main approaches, supporting a range of scenarios:
 
-- Use WSClean to fill the ``MODEL_DATA`` with predicted visibilities from an imaging run. When using ``-mgain`` with a value less than 1,
-  WSClean will fill the column. This column can then be used during calibration (e.g. with DP3). The advantage of this is that it is
-  relatively fast and easy.
-- Make WSClean output a source component list (see :doc:`component_list`) and use this list during the calibration (DP3 supports this format).
-  The advantage of this approach is that it is easier to apply the beam (and other effects) on a source list, it is very accurate, and it is possible to prune/edit the source list. A disadvantage can be that if the number of sources is very large, calibration will be very slow.
+- Use WSClean to fill the ``MODEL_DATA`` with predicted visibilities from an imaging run. When using ``-mgain`` with a value less than 1, WSClean will fill the column. This column can then be used during calibration (e.g. with DP3). The advantage of this is that it is relatively fast and easy.
+- Make WSClean output a source component list (see :doc:`component_list`) and use this list during the calibration (DP3 supports this format). The advantage of this approach is that it is easier to apply the beam (and other effects) on a source list, it is very accurate, and it is possible to prune/edit the source list. A disadvantage can be that if the number of sources is very large, calibration will be very slow.
 
 
 Image-based self-calibration
