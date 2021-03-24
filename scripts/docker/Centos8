@@ -44,13 +44,13 @@ RUN \
   cd build && \
   cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF && \
   make -j 24 && \
-  make install -j24
+  make install -j`nproc --all`
 
 ADD . /src
 WORKDIR /src
 
 RUN mkdir /build && cd /build && cmake ../src
 
-RUN cd /build && make -j24 && make install && make check -j24
+RUN cd /build && make -j`nproc --all` && make install
 
 RUN wsclean --version

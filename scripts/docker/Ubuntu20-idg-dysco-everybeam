@@ -27,15 +27,15 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 
 # Install EveryBeam
 RUN mkdir /external && cd /external && git clone https://git.astron.nl/RD/EveryBeam.git
-RUN mkdir /external/EveryBeam/build && cd /external/EveryBeam/build && cmake ../ && make install -j24
+RUN mkdir /external/EveryBeam/build && cd /external/EveryBeam/build && cmake ../ && make install -j`nproc --all`
 
 # Install Dysco
 RUN cd /external && git clone https://github.com/aroffringa/dysco.git
-RUN mkdir /external/dysco/build && cd /external/dysco/build && cmake ../ && make install -j24
+RUN mkdir /external/dysco/build && cd /external/dysco/build && cmake ../ && make install -j`nproc --all`
 
 # Install IDG
 RUN cd /external && git clone https://git.astron.nl/RD/idg.git
-RUN mkdir /external/idg/build && cd /external/idg/build && cmake ../ && make install -j24
+RUN mkdir /external/idg/build && cd /external/idg/build && cmake ../ && make install -j`nproc --all`
 
 # WSClean
 ADD . /src
@@ -43,6 +43,6 @@ WORKDIR /src
 
 RUN mkdir /build && cd /build && cmake ../src
 
-RUN cd /build && make -j24 && make install && make check -j24
+RUN cd /build && make -j`nproc --all` && make install && make check -j`nproc --all`
 
 RUN wsclean --version
