@@ -141,6 +141,17 @@ class WSClean {
                          CachedImageSet& imageCache, bool writeDirty,
                          bool isPSF, Image& fullImage,
                          schaapcommon::facets::FacetImage& facetImage);
+  /**
+   * @brief Clip model image into facets and save them into fits files
+   */
+  void clipModelIntoFacets(const ImagingTable& table);
+
+  /**
+   * @brief Clip image into facets for a single (Facet)Group
+   */
+  void clipSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
+                       CachedImageSet& imageCache, const Image& fullImage,
+                       schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
