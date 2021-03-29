@@ -371,32 +371,40 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
 void WSClean::predict(const ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Converting model image to visibilities ==\n";
-  Image modelImageReal(_settings.trimmedImageWidth,
-                       _settings.trimmedImageHeight),
-      modelImageImaginary;
-
-  if (entry.facet)
-    throw std::runtime_error("Predicting facets is not implemented");
+  Image modelImageReal, modelImageImaginary;
+  modelImageReal =
+      entry.facet == nullptr
+          ? Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight)
+          : Image(entry.facet->GetTrimmedBoundingBox().Width(),
+                  entry.facet->GetTrimmedBoundingBox().Height());
 
   if (entry.polarization == aocommon::Polarization::YX) {
-    _modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY,
-                      entry.outputChannelIndex, false);
+    _modelImages.LoadFacet(modelImageReal.data(), aocommon::Polarization::XY,
+                           entry.outputChannelIndex, entry.facetIndex,
+                           entry.facet, false);
     modelImageImaginary =
-        Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-    _modelImages.Load(modelImageImaginary.data(), aocommon::Polarization::XY,
-                      entry.outputChannelIndex, true);
-    const size_t size =
-        _settings.trimmedImageWidth * _settings.trimmedImageHeight;
-    for (size_t i = 0; i != size; ++i)
+        entry.facet == nullptr
+            ? Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight)
+            : Image(entry.facet->GetTrimmedBoundingBox().Width(),
+                    entry.facet->GetTrimmedBoundingBox().Height());
+    _modelImages.LoadFacet(modelImageImaginary.data(),
+                           aocommon::Polarization::XY, entry.outputChannelIndex,
+                           entry.facetIndex, entry.facet, true);
+    for (size_t i = 0; i != modelImageImaginary.size(); ++i)
       modelImageImaginary[i] = -modelImageImaginary[i];
   } else {
-    _modelImages.Load(modelImageReal.data(), entry.polarization,
-                      entry.outputChannelIndex, false);
+    _modelImages.LoadFacet(modelImageReal.data(), entry.polarization,
+                           entry.outputChannelIndex, entry.facetIndex,
+                           entry.facet, false);
     if (aocommon::Polarization::IsComplex(entry.polarization)) {
       modelImageImaginary =
-          Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-      _modelImages.Load(modelImageImaginary.data(), entry.polarization,
-                        entry.outputChannelIndex, true);
+          entry.facet == nullptr
+              ? Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight)
+              : Image(entry.facet->GetTrimmedBoundingBox().Width(),
+                      entry.facet->GetTrimmedBoundingBox().Height());
+      _modelImages.LoadFacet(modelImageImaginary.data(), entry.polarization,
+                             entry.outputChannelIndex, entry.facetIndex,
+                             entry.facet, true);
     }
   }
 
@@ -895,6 +903,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
   if (!_settings.makePSFOnly) {
     if (_settings.deconvolutionIterationCount > 0) {
+      std::cout << "Deconvolution iteration count "
+                << _settings.deconvolutionIterationCount << std::endl;
       // Start major cleaning loop
       _majorIterationNr = 1;
       bool reachedMajorThreshold = false;
@@ -909,12 +919,17 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
             _settings.isFirstResidualSaved)
           writeFirstResidualImages(groupTable);
-
-        if (!reachedMajorThreshold) writeModelImages(groupTable);
+        const bool isFinished = !reachedMajorThreshold;
+        if (isFinished) {
+          writeModelImages(groupTable);
+        } else {
+          clipModelIntoFacets(groupTable);
+        }
 
         if (_settings.deconvolutionMGain != 1.0) {
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
+            // TODO: maybe consider swapping the order?
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
               for (const ImagingTable::EntryPtr& entry : sqGroup) {
@@ -993,6 +1008,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       --_majorIterationNr;
       Logger::Info << _majorIterationNr
                    << " major iterations were performed.\n";
+      std::cout << "WAS HERE" << std::endl;
     }
 
     for (const ImagingTableEntry& joinedEntry : groupTable) {
@@ -1141,6 +1157,51 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   }
 }
 
+void WSClean::clipModelIntoFacets(const ImagingTable& table) {
+  if (!_facets.empty()) {
+    Logger::Info << "Clipping model image into facets...\n";
+    // Allocate full image
+    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    // Initialize FacetImage with properties of stitched image, always
+    // stitch facets for 1 spectral term.
+    schaapcommon::facets::FacetImage facetImage(
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+    for (size_t facetGroupIndex = 0; facetGroupIndex != table.FacetGroupCount();
+         ++facetGroupIndex) {
+      const ImagingTable clipGroup = table.GetFacetGroup(facetGroupIndex);
+      const size_t imageCount = clipGroup.Front().imageCount;
+      // TODO:
+      // - check polarization
+      // - check channel index
+      _modelImages.Load(fullImage.data(), clipGroup.Front().polarization,
+                        clipGroup.Front().outputChannelIndex, false);
+      for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
+        clipSingleGroup(clipGroup, imageIndex, _modelImages, fullImage,
+                        facetImage);
+      }
+    }
+  }
+}
+
+void WSClean::clipSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
+                              CachedImageSet& imageCache,
+                              const Image& fullImage,
+                              schaapcommon::facets::FacetImage& facetImage) {
+  const bool isImaginary = (imageIndex == 1);
+  for (const ImagingTableEntry& facetEntry : facetGroup) {
+    facetImage.SetFacet(*facetEntry.facet, true);
+    // TODO: modify FacetImage::CopyToFacet to accept a buffer
+    facetImage.CopyToFacet({fullImage.data()});
+    // Spectral term 0
+    // TODO:
+    // - check polarization
+    // - check freqIndex --> provisionally set to outputChannelIndex
+    imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
+                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
+                          facetEntry.facet, isImaginary);
+  }
+}
+
 void WSClean::initializeModelImages(const ImagingTableEntry& entry) {
   _modelImages.SetFitsWriter(
       createWSCFitsWriter(entry, false, true, false).Writer());
@@ -1199,8 +1260,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
       resetGridder = true;
     }
     // Check if image corresponds with image dimensions of the settings
-    // Here I require the pixel scale to be accurate enough so that the image is
-    // at most 1/10th pixel larger/smaller.
+    // Here I require the pixel scale to be accurate enough so that the image
+    // is at most 1/10th pixel larger/smaller.
     else if (std::fabs(reader.PixelSizeX() - _settings.pixelScaleX) *
                      _settings.trimmedImageWidth >
                  0.1 * _settings.pixelScaleX ||
@@ -1243,7 +1304,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
          j != _settings.trimmedImageWidth * _settings.trimmedImageHeight; ++j) {
       if (!std::isfinite(buffer[j]))
         throw std::runtime_error(
-            "The input image contains non-finite values -- can't predict from "
+            "The input image contains non-finite values -- can't predict "
+            "from "
             "an image with non-finite values");
     }
     _modelImages.Store(buffer.data(), entry.polarization,
@@ -1377,8 +1439,8 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
       Logger::Info << "DONE (" << timestepIndex << ")\n";
       tS = 0;
       tE = timestepIndex;
-      // Store the full interval in the selection, so that it doesn't need to be
-      // determined again.
+      // Store the full interval in the selection, so that it doesn't need to
+      // be determined again.
       fullSelection.SetInterval(tS, tE);
     }
     if (_settings.intervalsOut > tE - tS) {
