@@ -74,7 +74,6 @@ foreach(_cpu ${KNOWN_TARGET_CPUS})
   endif()
 endforeach()
 set(CPACK_DEBIAN_PACKAGE_CONFLICTS "${_conflicts}")
-message(STATUS "CPACK_DEBIAN_PACKAGE_CONFLICTS=${CPACK_DEBIAN_PACKAGE_CONFLICTS}")
 
 include(CPack)
 
