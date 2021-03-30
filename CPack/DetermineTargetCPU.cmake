@@ -22,6 +22,11 @@ the option ``PORTABLE`` to ``TRUE``. In that case, all cached
 #]=======================================================================]
 
 # List of target CPUs known by both GCC and Clang
+# This list was produced as follows (note: requires llc to be installed):
+#   comm -12 \
+#     <(g++ -march=foo -E - < /dev/null |& grep '^cc1: note' | \
+#       sed -nE 's,^.*: *([^;]*).*$,\1,p' | tr ' ' '\n' | sort -u) \
+#     <(llc -mattr=help |& grep processor. | awk '{print $1}' | sort -u) 
 set(KNOWN_TARGET_CPUS
   amdfam10 athlon64 athlon64-sse3 athlon-fx atom barcelona bdver1 bdver2
   bdver3 bdver4 bonnell broadwell btver1 btver2 core2 core-avx2 core-avx-i
