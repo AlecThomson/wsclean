@@ -1008,7 +1008,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       --_majorIterationNr;
       Logger::Info << _majorIterationNr
                    << " major iterations were performed.\n";
-      std::cout << "WAS HERE" << std::endl;
     }
 
     for (const ImagingTableEntry& joinedEntry : groupTable) {
