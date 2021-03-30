@@ -393,7 +393,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 }
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
-                                      std::complex<float>* buffer) const {
+                                      const std::complex<float>* buffer) const {
   msProvider.WriteModel(rowId, buffer);
 }
 

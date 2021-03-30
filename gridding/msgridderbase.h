@@ -164,7 +164,7 @@ class MSGridderBase : public MeasurementSetGridder {
    * @param buffer data buffer to write
    */
   void writeVisibilities(MSProvider& msProvider, size_t rowId,
-                         std::complex<float>* buffer) const;
+                         const std::complex<float>* buffer) const;
 
   double _maxW, _minW;
   double _theoreticalBeamSize;
