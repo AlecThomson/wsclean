@@ -297,7 +297,7 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
         }
       }
 
-      if (chIndex == 0)
+      if (weightSum == groupWeight)  // first channel that is added?
         assignMultiply(dest, scratch, groupWeight);
       else
         dest.AddWithFactor(scratch, groupWeight);
