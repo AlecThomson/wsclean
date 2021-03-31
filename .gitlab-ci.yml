@@ -3,6 +3,8 @@ image: ubuntu:20.04
 stages:
  - format
  - build
+ # Temporary (stage) to test facets
+ - test-facets
 
 before_script:
  - apt-get update -qq
@@ -50,6 +52,8 @@ build-without-everybeam:
     # gcovr to create badge
     - gcovr --add-tracefile run-unit.json
   artifacts:
+    paths:
+      - build
     reports:
       cobertura: build/coverage.xml
 
@@ -63,3 +67,13 @@ build-with-everybeam:
     - make
     - make install
     - make check
+
+test-facet-based-predict:
+  stage: test-facets
+  needs: [build-without-everybeam]
+  script:
+    - cd build
+    - make install
+    - wsclean --version
+    # TODO
+    # - make check-facet-predict
