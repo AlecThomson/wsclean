@@ -266,6 +266,7 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
     }
   } else {
     double weightSum = 0.0;
+    bool isFirstChannel = true;
     for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
       size_t sqIndex = channelToSqIndex(chIndex);
       const ImagingTable::Group& sqGroup =
@@ -280,14 +281,14 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
           scratch = entryToImage(entry);
         } else {
           const bool useAllPolarizations = _linkedPolarizations.empty();
-          bool isFirst = true;
+          bool isFirstPolarization = true;
           for (const ImagingTable::EntryPtr& entry : sqGroup) {
             if (useAllPolarizations ||
                 _linkedPolarizations.count(entry->polarization) != 0) {
-              if (isFirst) {
+              if (isFirstPolarization) {
                 scratch = entryToImage(entry);
                 scratch.Square();
-                isFirst = false;
+                isFirstPolarization = false;
               } else {
                 scratch.AddSquared(entryToImage(entry));
               }
@@ -297,8 +298,10 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
         }
       }
 
-      if (weightSum == groupWeight)  // first channel that is added?
+      if (isFirstChannel) {
         assignMultiply(dest, scratch, groupWeight);
+        isFirstChannel = false;
+      }
       else
         dest.AddWithFactor(scratch, groupWeight);
     }
