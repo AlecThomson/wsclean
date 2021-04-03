@@ -301,8 +301,7 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
       if (isFirstChannel) {
         assignMultiply(dest, scratch, groupWeight);
         isFirstChannel = false;
-      }
-      else
+      } else
         dest.AddWithFactor(scratch, groupWeight);
     }
     if (_channelsInDeconvolution > 0)
