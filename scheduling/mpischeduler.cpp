@@ -17,14 +17,17 @@
 #include <cassert>
 
 MPIScheduler::MPIScheduler(const Settings &settings)
-    : GriddingTaskManager(settings), _masterDoesWork(settings.masterDoesWork), _isRunning(false) {
+    : GriddingTaskManager(settings),
+      _masterDoesWork(settings.masterDoesWork),
+      _isRunning(false) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   _nodes.assign(
       world_size,
       std::make_pair(AvailableNode, std::function<void(GriddingResult &)>()));
-  if(!settings.masterDoesWork && world_size <= 1)
-    throw std::runtime_error("Master was told not to work, but no other workers available");
+  if (!settings.masterDoesWork && world_size <= 1)
+    throw std::runtime_error(
+        "Master was told not to work, but no other workers available");
 }
 
 MPIScheduler::~MPIScheduler() { Finish(); }
