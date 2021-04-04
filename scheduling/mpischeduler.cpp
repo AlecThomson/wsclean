@@ -124,8 +124,8 @@ int MPIScheduler::findAndSetNodeState(
         newState) {
   std::unique_lock<std::mutex> lock(_mutex);
   do {
-    size_t firstNode = _masterDoesWork ? 0 : 1;
-    for (size_t i = firstNode; i != _nodes.size(); ++i) {
+    size_t iterEnd = _masterDoesWork ? _nodes.size() : _nodes.size() - 1;
+    for (size_t i = 0; i != iterEnd; ++i) {
       const int node = _nodes.size() - i - 1;
       if (_nodes[node].first == currentState) {
         _nodes[node] = newState;
