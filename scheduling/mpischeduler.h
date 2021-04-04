@@ -76,6 +76,7 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   bool receiveTasksAreRunning_UNSYNCHRONIZED();
 
+  const bool _masterDoesWork;
   bool _isRunning, _isFinishing;
   std::condition_variable _notify;
   std::mutex _mutex;

@@ -4,6 +4,8 @@
 
 #include "../io/logger.h"
 
+#include "../main/settings.h"
+
 #include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
@@ -14,13 +16,15 @@
 
 #include <cassert>
 
-MPIScheduler::MPIScheduler(const class Settings &settings)
-    : GriddingTaskManager(settings), _isRunning(false) {
+MPIScheduler::MPIScheduler(const Settings &settings)
+    : GriddingTaskManager(settings), _masterDoesWork(settings.masterDoesWork), _isRunning(false) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   _nodes.assign(
       world_size,
       std::make_pair(AvailableNode, std::function<void(GriddingResult &)>()));
+  if(!settings.masterDoesWork && world_size <= 1)
+    throw std::runtime_error("Master was told not to work, but no other workers available");
 }
 
 MPIScheduler::~MPIScheduler() { Finish(); }
@@ -117,6 +121,7 @@ int MPIScheduler::findAndSetNodeState(
         newState) {
   std::unique_lock<std::mutex> lock(_mutex);
   do {
+    size_t firstNode = _masterDoesWork ? 0 : 1;
     for (size_t i = 0; i != _nodes.size(); ++i) {
       const int node = _nodes.size() - i - 1;
       if (_nodes[node].first == currentState) {
