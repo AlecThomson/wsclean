@@ -45,7 +45,8 @@ void GriddingTaskManager::Run(
 }
 
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
-  return runDirect(std::move(task), *makeGridder());
+  std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  return runDirect(std::move(task), *gridder);
 }
 
 GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
@@ -154,7 +155,7 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {
-  std::unique_ptr<MSGridderBase> gridder;
+  std::unique_ptr<MSGridderBase> gridder(constructGridder());
   gridder->SetGridMode(_settings.gridMode);
   gridder->SetNWSize(_settings.widthForNWCalculation,
                      _settings.heightForNWCalculation);
