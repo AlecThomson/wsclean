@@ -61,8 +61,21 @@ add_custom_target(checkintegration
   COMMAND integrationtest
 )
 
+# Test the facet based and non-facet based predict
+add_custom_target(checkpredict
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/tests/facets/resources/ds9_facet.reg
+  ${CMAKE_BINARY_DIR}/test_data/ds9_facet.reg
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/tests/facets/resources/point-source-model.fits
+  ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits
+  COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tPredict.sh
+)
+add_dependencies(checkpredict wsclean)
+
 add_custom_target(check
-  DEPENDS checkunit;checkintegration
+  DEPENDS checkunit;checkintegration;checkpredict
 )
 
 add_custom_target(coverage
