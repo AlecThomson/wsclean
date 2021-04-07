@@ -60,7 +60,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * should be called by the main thread only, so that the user of the MPI
    * scheduler does not need to synchronize.
    *
-   * This function is UNSYNCHRONISED: the caller should
+   * This function is UNSYNCHRONIZED: the caller should
    * hold the mutex locked while calling it.
    */
   void processReadyList_UNSYNCHRONIZED();
@@ -71,7 +71,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * master node: when the master node is gridding, it will nevertheless
    * return false if the other nodes are not running tasks.
    *
-   * This function is UNSYNCHRONISED: the caller should
+   * This function is UNSYNCHRONIZED: the caller should
    * hold the mutex locked while calling it.
    */
   bool receiveTasksAreRunning_UNSYNCHRONIZED();
