@@ -737,6 +737,9 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 
 void WSClean::RunPredict() {
   _observationInfo = getObservationInfo();
+  // _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  std::vector<schaapcommon::facets::Facet> facets_tmp =
+      FacetReader::ReadFacets(_settings.facetRegionFilename);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -758,9 +761,51 @@ void WSClean::RunPredict() {
 
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
-    for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
-      predictGroup(group);
+    if (!facets_tmp.empty()) {
+      //   if(!_facets.empty()){
+      // All provided model images are assumed to have the same size,
+      // so that the image size of the full image can be inferred from the first
+      // entry in the _imagingTable
+      std::string prefix =
+          ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
+                                   _imagingTable[0].outputChannelIndex,
+                                   _imagingTable[0].outputIntervalIndex, 1);
+      FitsReader reader(prefix + "-model.fits");
+      (void)overrideImageSettings(reader);
+
+      // TODO: not sure whether we need this conditional?
+      if (_settings.trimmedImageWidth == 0) {
+        // for (schaapcommon::facets::Facet& facet : _facets) {
+        for (schaapcommon::facets::Facet& facet : facets_tmp) {
+          const size_t alignment = 4;
+          facet.CalculatePixels(
+              _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+              _settings.pixelScaleX, _settings.pixelScaleY,
+              _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+              _observationInfo.shiftL, _observationInfo.shiftM,
+              _settings.imagePadding, alignment, _settings.useIDG);
+        }
+      }
     }
+
+    // TODO: loop over FacetGroupCount?
+    // for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
+    //   predictGroup(group);
+    // }
+
+    for (size_t i = 0; i != _imagingTable.SquaredGroupCount(); ++i) {
+      predictGroup(_imagingTable.GetSquaredGroup(i));
+    }
+
+    // for (size_t i = 0; i != _imagingTable.FacetGroupCount(); ++i) {
+    //   const ImagingTable facetGroup = _imagingTable.GetFacetGroup(i);
+    //   for (const ImagingTable::Group& squaredGroup :
+    //        facetGroup.SquaredGroups()) {
+    //     predictGroup(squaredGroup);
+    //   }
+    // }
+    // predictGroup(group);
+    // }
 
     // Needs to be destructed before image allocator, or image allocator will
     // report error caused by leaked memory
@@ -1230,57 +1275,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
         entry.outputIntervalIndex, i == 1);
     FitsReader reader(prefix + "-model.fits");
     Logger::Info << "Reading " << reader.Filename() << "...\n";
-    bool resetGridder = false;
-    if (_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0) {
-      _settings.trimmedImageWidth = reader.ImageWidth();
-      _settings.trimmedImageHeight = reader.ImageHeight();
-      _settings.RecalculatePaddedDimensions();
-      resetGridder = true;
-    } else if (reader.ImageWidth() != _settings.trimmedImageWidth ||
-               reader.ImageHeight() != _settings.trimmedImageHeight) {
-      std::ostringstream msg;
-      msg << "Inconsistent image size: dimensions of input image did not "
-             "match, input: "
-          << reader.ImageWidth() << " x " << reader.ImageHeight()
-          << ", specified: " << _settings.trimmedImageWidth << " x "
-          << _settings.trimmedImageHeight;
-      throw std::runtime_error(msg.str());
-    }
 
-    if (reader.PixelSizeX() == 0.0 || reader.PixelSizeY() == 0.0)
-      Logger::Warn
-          << "Warning: input fits file misses the pixel size keywords.\n";
-    else if (_settings.pixelScaleX == 0 && _settings.pixelScaleY == 0) {
-      _settings.pixelScaleX = reader.PixelSizeX();
-      _settings.pixelScaleY = reader.PixelSizeY();
-      Logger::Debug << "Using pixel size of "
-                    << Angle::ToNiceString(_settings.pixelScaleX) << " x "
-                    << Angle::ToNiceString(_settings.pixelScaleY) << ".\n";
-      resetGridder = true;
-    }
-    // Check if image corresponds with image dimensions of the settings
-    // Here I require the pixel scale to be accurate enough so that the image
-    // is at most 1/10th pixel larger/smaller.
-    else if (std::fabs(reader.PixelSizeX() - _settings.pixelScaleX) *
-                     _settings.trimmedImageWidth >
-                 0.1 * _settings.pixelScaleX ||
-             std::fabs(reader.PixelSizeY() - _settings.pixelScaleY) *
-                     _settings.trimmedImageHeight >
-                 0.1 * _settings.pixelScaleY) {
-      std::ostringstream msg;
-      msg << "Inconsistent pixel size: pixel size of input image did not "
-             "match. Input: "
-          << reader.PixelSizeX() << " x " << reader.PixelSizeY()
-          << ", specified: " << _settings.pixelScaleX << " x "
-          << _settings.pixelScaleY;
-      throw std::runtime_error(msg.str());
-    }
-    if (_settings.pixelScaleX == 0.0 || _settings.pixelScaleY == 0.0) {
-      throw std::runtime_error(
-          "Could not determine proper pixel size. The input image did not "
-          "provide proper pixel size values, and no or an invalid -scale was "
-          "provided to WSClean");
-    }
+    const bool resetGridder = overrideImageSettings(reader);
 
     // TODO check phase centre
 
@@ -1309,36 +1305,98 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
     }
     _modelImages.Store(buffer.data(), entry.polarization,
                        entry.outputChannelIndex, i == 1);
+    // TODO: can we clip into facets here?
   }
 }
 
-void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
+bool WSClean::overrideImageSettings(const FitsReader& reader) {
+  bool resetGridder = false;
+  if (_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0) {
+    _settings.trimmedImageWidth = reader.ImageWidth();
+    _settings.trimmedImageHeight = reader.ImageHeight();
+    _settings.RecalculatePaddedDimensions();
+    resetGridder = true;
+  } else if (reader.ImageWidth() != _settings.trimmedImageWidth ||
+             reader.ImageHeight() != _settings.trimmedImageHeight) {
+    std::ostringstream msg;
+    msg << "Inconsistent image size: dimensions of input image did not "
+           "match, input: "
+        << reader.ImageWidth() << " x " << reader.ImageHeight()
+        << ", specified: " << _settings.trimmedImageWidth << " x "
+        << _settings.trimmedImageHeight;
+    throw std::runtime_error(msg.str());
+  }
+
+  if (reader.PixelSizeX() == 0.0 || reader.PixelSizeY() == 0.0)
+    Logger::Warn
+        << "Warning: input fits file misses the pixel size keywords.\n";
+  else if (_settings.pixelScaleX == 0 && _settings.pixelScaleY == 0) {
+    _settings.pixelScaleX = reader.PixelSizeX();
+    _settings.pixelScaleY = reader.PixelSizeY();
+    Logger::Debug << "Using pixel size of "
+                  << Angle::ToNiceString(_settings.pixelScaleX) << " x "
+                  << Angle::ToNiceString(_settings.pixelScaleY) << ".\n";
+    resetGridder = true;
+  }
+  // Check if image corresponds with image dimensions of the settings
+  // Here I require the pixel scale to be accurate enough so that the image
+  // is at most 1/10th pixel larger/smaller.
+  else if (std::fabs(reader.PixelSizeX() - _settings.pixelScaleX) *
+                   _settings.trimmedImageWidth >
+               0.1 * _settings.pixelScaleX ||
+           std::fabs(reader.PixelSizeY() - _settings.pixelScaleY) *
+                   _settings.trimmedImageHeight >
+               0.1 * _settings.pixelScaleY) {
+    std::ostringstream msg;
+    msg << "Inconsistent pixel size: pixel size of input image did not "
+           "match. Input: "
+        << reader.PixelSizeX() << " x " << reader.PixelSizeY()
+        << ", specified: " << _settings.pixelScaleX << " x "
+        << _settings.pixelScaleY;
+    throw std::runtime_error(msg.str());
+  }
+  if (_settings.pixelScaleX == 0.0 || _settings.pixelScaleY == 0.0) {
+    throw std::runtime_error(
+        "Could not determine proper pixel size. The input image did not "
+        "provide proper pixel size values, and no or an invalid -scale was "
+        "provided to WSClean");
+  }
+  return resetGridder;
+}
+
+// void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
+void WSClean::predictGroup(const ImagingTable& groupTable) {
+  // _modelImages.Initialize(
+  //     createWSCFitsWriter(*imagingGroup.front(), false, true,
+  //     false).Writer(), _settings.polarizations.size(), 1, _facets.size(),
+  //     _settings.prefixName + "-model");
   _modelImages.Initialize(
-      createWSCFitsWriter(*imagingGroup.front(), false, true, false).Writer(),
+      createWSCFitsWriter(groupTable.Front(), false, true, false).Writer(),
       _settings.polarizations.size(), 1, _facets.size(),
       _settings.prefixName + "-model");
 
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  for (const ImagingTable::EntryPtr& entry : imagingGroup) {
-    const bool calculatePixelPositions = _settings.trimmedImageWidth == 0;
-    readExistingModelImages(*entry);
+  // for (auto entry = groupTable.begin(); entry != groupTable.end(); ++entry) {
+  //   readExistingModelImages(*entry);
 
-    if (calculatePixelPositions) {
-      for (schaapcommon::facets::Facet& facet : _facets) {
-        const size_t alignment = 4;
-        facet.CalculatePixels(
-            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-            _settings.pixelScaleX, _settings.pixelScaleY,
-            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM,
-            _settings.imagePadding, alignment, _settings.useIDG);
-      }
+  //   predict(*entry);
+  // }  // end of polarization loop
+
+  for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
+       ++groupIndex) {
+    ImagingTable independentGroup =
+        _imagingTable.GetIndependentGroup(groupIndex);
+    readExistingModelImages(independentGroup.Front());
+    clipModelIntoFacets(independentGroup);
+
+    for (auto entry = independentGroup.begin(); entry != independentGroup.end();
+         ++entry) {
+      predict(*entry);
     }
-
-    predict(*entry);
   }  // end of polarization loop
+
   _predictingWatch.Pause();
 
   _griddingTaskManager->Finish();

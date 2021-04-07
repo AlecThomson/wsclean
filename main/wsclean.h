@@ -52,7 +52,8 @@ class WSClean {
   void saveRestoredImagesForGroup(
       const ImagingTableEntry& tableEntry,
       std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
-  void predictGroup(const ImagingTable::Group& imagingGroup);
+  //   void predictGroup(const ImagingTable::Group& imagingGroup);
+  void predictGroup(const ImagingTable& groupTable);
 
   void runFirstInversion(ImagingTableEntry& entry,
                          std::unique_ptr<class PrimaryBeam>& primaryBeam);
@@ -102,6 +103,12 @@ class WSClean {
    */
   void initializeModelImages(const ImagingTableEntry& entry);
   void readExistingModelImages(const ImagingTableEntry& entry);
+  /**
+   * Override the image settings given a FitsReader object.
+   * The boolean return value indicates whether the gridder needs
+   * to be reset.
+   */
+  bool overrideImageSettings(const FitsReader& reader);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
