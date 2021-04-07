@@ -737,9 +737,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 
 void WSClean::RunPredict() {
   _observationInfo = getObservationInfo();
-  // _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
-  std::vector<schaapcommon::facets::Facet> facets_tmp =
-      FacetReader::ReadFacets(_settings.facetRegionFilename);
+  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -761,8 +759,7 @@ void WSClean::RunPredict() {
 
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
-    if (!facets_tmp.empty()) {
-      //   if(!_facets.empty()){
+    if (!_facets.empty()) {
       // All provided model images are assumed to have the same size,
       // so that the image size of the full image can be inferred from the first
       // entry in the _imagingTable
@@ -773,39 +770,20 @@ void WSClean::RunPredict() {
       FitsReader reader(prefix + "-model.fits");
       (void)overrideImageSettings(reader);
 
-      // TODO: not sure whether we need this conditional?
-      if (_settings.trimmedImageWidth == 0) {
-        // for (schaapcommon::facets::Facet& facet : _facets) {
-        for (schaapcommon::facets::Facet& facet : facets_tmp) {
-          const size_t alignment = 4;
-          facet.CalculatePixels(
-              _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-              _settings.pixelScaleX, _settings.pixelScaleY,
-              _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-              _observationInfo.shiftL, _observationInfo.shiftM,
-              _settings.imagePadding, alignment, _settings.useIDG);
-        }
+      for (schaapcommon::facets::Facet& facet : _facets) {
+        const size_t alignment = 4;
+        facet.CalculatePixels(
+            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+            _settings.pixelScaleX, _settings.pixelScaleY,
+            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+            _observationInfo.shiftL, _observationInfo.shiftM,
+            _settings.imagePadding, alignment, _settings.useIDG);
       }
     }
-
-    // TODO: loop over FacetGroupCount?
-    // for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
-    //   predictGroup(group);
-    // }
 
     for (size_t i = 0; i != _imagingTable.SquaredGroupCount(); ++i) {
       predictGroup(_imagingTable.GetSquaredGroup(i));
     }
-
-    // for (size_t i = 0; i != _imagingTable.FacetGroupCount(); ++i) {
-    //   const ImagingTable facetGroup = _imagingTable.GetFacetGroup(i);
-    //   for (const ImagingTable::Group& squaredGroup :
-    //        facetGroup.SquaredGroups()) {
-    //     predictGroup(squaredGroup);
-    //   }
-    // }
-    // predictGroup(group);
-    // }
 
     // Needs to be destructed before image allocator, or image allocator will
     // report error caused by leaked memory
@@ -1305,7 +1283,6 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
     }
     _modelImages.Store(buffer.data(), entry.polarization,
                        entry.outputChannelIndex, i == 1);
-    // TODO: can we clip into facets here?
   }
 }
 
@@ -1364,12 +1341,7 @@ bool WSClean::overrideImageSettings(const FitsReader& reader) {
   return resetGridder;
 }
 
-// void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
 void WSClean::predictGroup(const ImagingTable& groupTable) {
-  // _modelImages.Initialize(
-  //     createWSCFitsWriter(*imagingGroup.front(), false, true,
-  //     false).Writer(), _settings.polarizations.size(), 1, _facets.size(),
-  //     _settings.prefixName + "-model");
   _modelImages.Initialize(
       createWSCFitsWriter(groupTable.Front(), false, true, false).Writer(),
       _settings.polarizations.size(), 1, _facets.size(),
@@ -1378,17 +1350,13 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  // for (auto entry = groupTable.begin(); entry != groupTable.end(); ++entry) {
-  //   readExistingModelImages(*entry);
-
-  //   predict(*entry);
-  // }  // end of polarization loop
-
+  // TODO: check this loop carefully
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
-    ImagingTable independentGroup =
-        _imagingTable.GetIndependentGroup(groupIndex);
-    readExistingModelImages(independentGroup.Front());
+    ImagingTable independentGroup = groupTable.GetIndependentGroup(groupIndex);
+    // readExistingModelImages is independent of number of facets, provide facet
+    // 0
+    readExistingModelImages(independentGroup.GetFacet(0).Front());
     clipModelIntoFacets(independentGroup);
 
     for (auto entry = independentGroup.begin(); entry != independentGroup.end();

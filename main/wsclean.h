@@ -52,7 +52,6 @@ class WSClean {
   void saveRestoredImagesForGroup(
       const ImagingTableEntry& tableEntry,
       std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
-  //   void predictGroup(const ImagingTable::Group& imagingGroup);
   void predictGroup(const ImagingTable& groupTable);
 
   void runFirstInversion(ImagingTableEntry& entry,
