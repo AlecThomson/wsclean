@@ -53,4 +53,5 @@ else
   # Create expected taql output.
   echo "    select result of 0 rows" > taql.ref
   diff taql.out taql.ref  ||  exit 1
+  echo "Succes!"
 fi
