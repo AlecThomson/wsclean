@@ -937,8 +937,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
   if (!_settings.makePSFOnly) {
     if (_settings.deconvolutionIterationCount > 0) {
-      std::cout << "Deconvolution iteration count "
-                << _settings.deconvolutionIterationCount << std::endl;
       // Start major cleaning loop
       _majorIterationNr = 1;
       bool reachedMajorThreshold = false;
@@ -1287,8 +1285,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
       if (!std::isfinite(buffer[j]))
         throw std::runtime_error(
             "The input image contains non-finite values -- can't predict "
-            "from "
-            "an image with non-finite values");
+            "from an image with non-finite values");
     }
     _modelImages.Store(buffer.data(), entry.polarization,
                        entry.outputChannelIndex, i == 1);

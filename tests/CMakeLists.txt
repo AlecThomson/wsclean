@@ -75,7 +75,7 @@ add_custom_target(checkpredict
 add_dependencies(checkpredict wsclean)
 
 add_custom_target(check
-  DEPENDS checkunit;checkintegration;checkpredict
+  DEPENDS checkunit;checkintegration
 )
 
 add_custom_target(coverage
