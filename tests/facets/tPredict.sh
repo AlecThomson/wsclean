@@ -37,8 +37,7 @@ echo "===== Predicting full image ====="
 wsclean ${common} ${MWA_MOCK_FULL}
 
 echo "===== Predicting facet ====="
-wsclean  -verbose ${common} -facet-regions ${facetfile} ${MWA_MOCK_FACET}
-
+wsclean ${common} -facet-regions ${facetfile} ${MWA_MOCK_FACET}
 
 
 if ! command -v taql &> /dev/null
@@ -47,8 +46,7 @@ then
   exit
 else
   # DP3 needed for taql
-  # TODO: tolerance is way too high...
-  taql "select from MWA_MOCK_FULL.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e1))" > taql.out
+  taql "select from MWA_MOCK_FULL.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,3e-3))" > taql.out
 
   # Create expected taql output.
   echo "    select result of 0 rows" > taql.ref

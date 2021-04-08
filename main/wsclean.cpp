@@ -779,6 +779,17 @@ void WSClean::RunPredict() {
             _observationInfo.shiftL, _observationInfo.shiftM,
             _settings.imagePadding, alignment, _settings.useIDG);
       }
+
+      // Set correct centre shifts for facets
+      for (auto entry = _imagingTable.begin(); entry != _imagingTable.end();
+           ++entry) {
+        (*entry).centreShiftX =
+            (*entry).facet->GetUntrimmedBoundingBox().Centre().x -
+            _settings.trimmedImageWidth / 2;
+        (*entry).centreShiftY =
+            (*entry).facet->GetUntrimmedBoundingBox().Centre().y -
+            _settings.trimmedImageHeight / 2;
+      }
     }
 
     for (size_t i = 0; i != _imagingTable.SquaredGroupCount(); ++i) {
@@ -1212,9 +1223,7 @@ void WSClean::clipSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
   const bool isImaginary = (imageIndex == 1);
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
-    // TODO: modify FacetImage::CopyToFacet to accept a buffer
     facetImage.CopyToFacet({fullImage.data()});
-    // Spectral term 0
     // TODO:
     // - check polarization
     // - check freqIndex --> provisionally set to outputChannelIndex
