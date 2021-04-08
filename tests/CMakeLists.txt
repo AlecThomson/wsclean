@@ -70,7 +70,7 @@ add_custom_target(coverage
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
 )
 
-# (Integration) tests below can be executed with "make checkwscleancommands"
+# System tests below can be executed with "make checkwscleancommands"
 
 # Test the facet based and non-facet based predict
 add_custom_target(checkpredict
@@ -85,6 +85,6 @@ add_custom_target(checkpredict
 )
 add_dependencies(checkpredict wsclean)
 
-add_custom_target(checkwscleancommands
+add_custom_target(checksystem
   DEPENDS checkpredict
 )
