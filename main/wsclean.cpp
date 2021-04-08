@@ -955,6 +955,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (_settings.deconvolutionMGain != 1.0) {
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
+            // TODO: maybe consider swapping the order?
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
               for (const ImagingTable::EntryPtr& entry : sqGroup) {

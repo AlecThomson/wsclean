@@ -3,6 +3,10 @@ image: ubuntu:20.04
 stages:
  - format
  - build
+<<<<<<< HEAD
+=======
+ # Temporary stage to test facets
+>>>>>>> 820a6fe3a469b3784457be5da762aea1814b4a98
  - test-facets
 
 before_script:
