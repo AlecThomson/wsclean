@@ -44,6 +44,13 @@ class WSClean {
 
   void RunClean();
 
+  /**
+   * Entry point for performing a single prediction for an existing model image.
+   *
+   * In case of a facet-based prediction, the provided model images are assumed
+   * to have the same size, so that the image size of the full image can be
+   * inferred from the first entry in the _imagingTable in an early stage.
+   */
   void RunPredict();
 
  private:
@@ -148,16 +155,16 @@ class WSClean {
                          bool isPSF, Image& fullImage,
                          schaapcommon::facets::FacetImage& facetImage);
   /**
-   * @brief Clip model image into facets and save them into fits files
+   * Partition model image into facets and save them into fits files
    */
-  void clipModelIntoFacets(const ImagingTable& table);
+  void partitionModelIntoFacets(const ImagingTable& table);
 
   /**
-   * @brief Clip image into facets for a single (Facet)Group
+   * Partition image into facets for a single (Facet)Group
    */
-  void clipSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
-                       CachedImageSet& imageCache, const Image& fullImage,
-                       schaapcommon::facets::FacetImage& facetImage);
+  void partitionSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
+                            CachedImageSet& imageCache, const Image& fullImage,
+                            schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;

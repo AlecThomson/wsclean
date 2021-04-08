@@ -371,12 +371,12 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
 void WSClean::predict(const ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Converting model image to visibilities ==\n";
-  Image modelImageReal, modelImageImaginary;
-  modelImageReal =
+  Image modelImageReal =
       entry.facet == nullptr
           ? Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight)
           : Image(entry.facet->GetTrimmedBoundingBox().Width(),
                   entry.facet->GetTrimmedBoundingBox().Height());
+  Image modelImageImaginary;
 
   if (entry.polarization == aocommon::Polarization::YX) {
     _modelImages.LoadFacet(modelImageReal.data(), aocommon::Polarization::XY,
@@ -760,9 +760,6 @@ void WSClean::RunPredict() {
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
     if (!_facets.empty()) {
-      // All provided model images are assumed to have the same size,
-      // so that the image size of the full image can be inferred from the first
-      // entry in the _imagingTable
       std::string prefix =
           ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
                                    _imagingTable[0].outputChannelIndex,
@@ -781,14 +778,11 @@ void WSClean::RunPredict() {
       }
 
       // Set correct centre shifts for facets
-      for (auto entry = _imagingTable.begin(); entry != _imagingTable.end();
-           ++entry) {
-        (*entry).centreShiftX =
-            (*entry).facet->GetUntrimmedBoundingBox().Centre().x -
-            _settings.trimmedImageWidth / 2;
-        (*entry).centreShiftY =
-            (*entry).facet->GetUntrimmedBoundingBox().Centre().y -
-            _settings.trimmedImageHeight / 2;
+      for (auto& entry : _imagingTable) {
+        entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
+                             _settings.trimmedImageWidth / 2;
+        entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
+                             _settings.trimmedImageHeight / 2;
       }
     }
 
@@ -955,13 +949,12 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (isFinished) {
           writeModelImages(groupTable);
         } else {
-          clipModelIntoFacets(groupTable);
+          partitionModelIntoFacets(groupTable);
         }
 
         if (_settings.deconvolutionMGain != 1.0) {
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
-            // TODO: maybe consider swapping the order?
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
               for (const ImagingTable::EntryPtr& entry : sqGroup) {
@@ -1188,7 +1181,7 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   }
 }
 
-void WSClean::clipModelIntoFacets(const ImagingTable& table) {
+void WSClean::partitionModelIntoFacets(const ImagingTable& table) {
   if (!_facets.empty()) {
     Logger::Info << "Clipping model image into facets...\n";
     // Allocate full image
@@ -1201,30 +1194,24 @@ void WSClean::clipModelIntoFacets(const ImagingTable& table) {
          ++facetGroupIndex) {
       const ImagingTable clipGroup = table.GetFacetGroup(facetGroupIndex);
       const size_t imageCount = clipGroup.Front().imageCount;
-      // TODO:
-      // - check polarization
-      // - check channel index
       _modelImages.Load(fullImage.data(), clipGroup.Front().polarization,
                         clipGroup.Front().outputChannelIndex, false);
       for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
-        clipSingleGroup(clipGroup, imageIndex, _modelImages, fullImage,
-                        facetImage);
+        partitionSingleGroup(clipGroup, imageIndex, _modelImages, fullImage,
+                             facetImage);
       }
     }
   }
 }
 
-void WSClean::clipSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
-                              CachedImageSet& imageCache,
-                              const Image& fullImage,
-                              schaapcommon::facets::FacetImage& facetImage) {
+void WSClean::partitionSingleGroup(
+    const ImagingTable& facetGroup, size_t imageIndex,
+    CachedImageSet& imageCache, const Image& fullImage,
+    schaapcommon::facets::FacetImage& facetImage) {
   const bool isImaginary = (imageIndex == 1);
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
-    // TODO:
-    // - check polarization
-    // - check freqIndex --> provisionally set to outputChannelIndex
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1356,18 +1343,17 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  // TODO: check this loop carefully
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
     ImagingTable independentGroup = groupTable.GetIndependentGroup(groupIndex);
-    // readExistingModelImages is independent of number of facets, provide facet
-    // 0
-    readExistingModelImages(independentGroup.GetFacet(0).Front());
-    clipModelIntoFacets(independentGroup);
+    // For facet-based prediciton: independentGroup contains only a list facets
+    // beyond this point. The "full" model image can be inferred from the first
+    // entry in the independentGroup table
+    readExistingModelImages(independentGroup[0]);
+    partitionModelIntoFacets(independentGroup);
 
-    for (auto entry = independentGroup.begin(); entry != independentGroup.end();
-         ++entry) {
-      predict(*entry);
+    for (const auto& entry : independentGroup) {
+      predict(entry);
     }
   }  // end of polarization loop
 
