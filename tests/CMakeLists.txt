@@ -61,6 +61,17 @@ add_custom_target(checkintegration
   COMMAND integrationtest
 )
 
+add_custom_target(check
+  DEPENDS checkunit;checkintegration
+)
+
+add_custom_target(coverage
+  DEPENDS check
+  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
+)
+
+# (Integration) tests below can be executed with "make checkwscleancommands"
+
 # Test the facet based and non-facet based predict
 add_custom_target(checkpredict
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -74,11 +85,6 @@ add_custom_target(checkpredict
 )
 add_dependencies(checkpredict wsclean)
 
-add_custom_target(check
-  DEPENDS checkunit;checkintegration
-)
-
-add_custom_target(coverage
-  DEPENDS check
-  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
+add_custom_target(checkwscleancommands
+  DEPENDS checkpredict
 )

@@ -43,7 +43,7 @@ wsclean ${common} -facet-regions ${facetfile} ${MWA_MOCK_FACET}
 if ! command -v taql &> /dev/null
 then
   echo "taql could not be found, install DP3 to run this check"
-  exit
+  exit 1
 else
   # DP3 needed for taql
   taql "select from MWA_MOCK_FULL.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,3e-3))" > taql.out

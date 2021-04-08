@@ -3,7 +3,7 @@ image: ubuntu:20.04
 stages:
  - format
  - build
- - test-facets
+ - tests
 
 before_script:
  - apt-get update -qq
@@ -44,33 +44,40 @@ build-without-everybeam:
     - make
     - make doc
     - make install
-    - make check
-    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
-    # gcovr to enable line coverage highlighting in MRs
-    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
-    # gcovr to create badge
-    - gcovr --add-tracefile run-unit.json
+    # - make check
+    # - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
+    # # gcovr to enable line coverage highlighting in MRs
+    # - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    # # gcovr to create badge
+    # - gcovr --add-tracefile run-unit.json
   artifacts:
     paths:
       - build
     reports:
       cobertura: build/coverage.xml
 
-build-with-everybeam:
-  stage: build
-  script:
-    - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-    - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
-    - cd $CI_PROJECT_DIR && mkdir build && cd build
-    - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
-    - make
-    - make install
-    - make check
+# build-with-everybeam:
+#   stage: build
+#   script:
+#     - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
+#     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
+#     - cd $CI_PROJECT_DIR && mkdir build && cd build
+#     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
+#     - make
+#     - make install
+#     - make check
 
-test-facet-based-predict:
-  stage: test-facets
+test-wsclean-commands:
+  stage: tests
   needs: [build-without-everybeam]
   when: manual
+  before_script:
+    # Install aoflagger
+    - mkdir -p /opt/aoflagger/build && cd /opt/aoflagger && git clone https://gitlab.com/aroffringa/aoflagger.git src
+    - cd build && cmake ../src && make -j4 install
+    # Install DP3
+    - mkdir -p /opt/dp3/build && cd /opt/dp3 && git clone https://git.astron.nl/RD/DP3.git
+    - cd build/ && cmake ../DP3 && make install -j4
   script:
-    - cd build
-    - make checkpredict
+    - cd $CI_PROJECT_DIR/build
+    - make checkwscleancommands
