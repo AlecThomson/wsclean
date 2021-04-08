@@ -765,7 +765,7 @@ void WSClean::RunPredict() {
                                    _imagingTable[0].outputChannelIndex,
                                    _imagingTable[0].outputIntervalIndex, 1);
       FitsReader reader(prefix + "-model.fits");
-      (void)overrideImageSettings(reader);
+      overrideImageSettings(reader);
 
       for (schaapcommon::facets::Facet& facet : _facets) {
         const size_t alignment = 4;
