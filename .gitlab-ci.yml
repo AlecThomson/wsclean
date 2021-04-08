@@ -70,6 +70,7 @@ build-with-everybeam:
 test-facet-based-predict:
   stage: test-facets
   needs: [build-without-everybeam]
+  when: manual
   script:
     - cd build
     - make checkpredict
