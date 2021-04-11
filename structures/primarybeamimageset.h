@@ -147,6 +147,9 @@ class PrimaryBeamImageSet {
   }
 
   void ApplyStokesI(float* stokesI, double beam_limit) const {
+    // The beam will be compared to a squared quantity (matrix norm), so square
+    // it:
+    beam_limit = beam_limit * beam_limit;
     if (_beamImages.size() == 8) {
       // If Iu is uncorrected and Ic is corrected:
       // Iu = B Ic B^*
