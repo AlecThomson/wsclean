@@ -133,6 +133,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -247,6 +248,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
@@ -421,6 +423,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -580,8 +583,6 @@ void WSClean::RunClean() {
   bool hasCenter = false;
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
-  schaapcommon::facets::Pixel lowerLeft;
-  schaapcommon::facets::Pixel upperRight;
   for (schaapcommon::facets::Facet& facet : _facets) {
     const size_t alignment = 4;
     facet.CalculatePixels(
@@ -598,21 +599,9 @@ void WSClean::RunClean() {
       // contain the centerPixel
       hasCenter = facet.Contains(centerPixel);
     }
-
-    upperRight.x = std::max(upperRight.x, bbox.Max().x);
-    upperRight.y = std::max(upperRight.x, bbox.Max().y);
-    lowerLeft.x = std::max(lowerLeft.x, bbox.Min().x);
-    lowerLeft.y = std::max(lowerLeft.y, bbox.Min().y);
   }
 
-  // Raise warning if the lower-left and upper-right facet pixel do not match
-  // image size. This is not a rock-solid check, for example, "facet coverage"
-  // might be missing in upper-left and lower right corners.
-  if (lowerLeft != schaapcommon::facets::Pixel(0, 0) ||
-      upperRight != schaapcommon::facets::Pixel(_settings.trimmedImageWidth,
-                                                _settings.trimmedImageHeight)) {
-    Logger::Warn << "Facets do not fully cover the main image.\n";
-  }
+  // FIXME: raise warning if facets do not cover the entire image, see AST-429
 
   // Center pixel should be present in one of the facets for the deconvolution
   if (!_facets.empty() && _settings.deconvolutionIterationCount > 0 &&
@@ -813,6 +802,9 @@ void WSClean::RunPredict() {
             _observationInfo.shiftL, _observationInfo.shiftM,
             _settings.imagePadding, alignment, _settings.useIDG);
       }
+
+      // FIXME: raise warning if facets do not cover the entire image, see
+      // AST-429
 
       // Set correct centre shifts for facets
       for (auto& entry : _imagingTable) {
