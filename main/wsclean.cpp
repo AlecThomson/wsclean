@@ -576,6 +576,12 @@ void WSClean::performReordering(bool isPredictMode) {
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+
+  bool hasCenter = false;
+  schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
+                                          _settings.trimmedImageHeight / 2);
+  schaapcommon::facets::Pixel lowerLeft;
+  schaapcommon::facets::Pixel upperRight;
   for (schaapcommon::facets::Facet& facet : _facets) {
     const size_t alignment = 4;
     facet.CalculatePixels(
@@ -584,6 +590,37 @@ void WSClean::RunClean() {
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM,
         _settings.imagePadding, alignment, _settings.useIDG);
+
+    const schaapcommon::facets::BoundingBox bbox =
+        facet.GetTrimmedBoundingBox();
+    if (!hasCenter && bbox.Contains(centerPixel)) {
+      // Point-in-poly test only evaluated if bounding box does
+      // contain the centerPixel
+      hasCenter = facet.Contains(centerPixel);
+    }
+
+    upperRight.x = std::max(upperRight.x, bbox.Max().x);
+    upperRight.y = std::max(upperRight.x, bbox.Max().y);
+    lowerLeft.x = std::max(lowerLeft.x, bbox.Min().x);
+    lowerLeft.y = std::max(lowerLeft.y, bbox.Min().y);
+  }
+
+  // Raise warning if the lower-left and upper-right facet pixel do not match
+  // image size. This is not a rock-solid check, for example, "facet coverage"
+  // might be missing in upper-left and lower right corners.
+  if (lowerLeft != schaapcommon::facets::Pixel(0, 0) ||
+      upperRight != schaapcommon::facets::Pixel(_settings.trimmedImageWidth,
+                                                _settings.trimmedImageHeight)) {
+    Logger::Warn << "Facets do not fully cover the main image.\n";
+  }
+
+  // Center pixel should be present in one of the facets for the deconvolution
+  if (!_facets.empty() && _settings.deconvolutionIterationCount > 0 &&
+      !hasCenter) {
+    throw std::runtime_error(
+        "The center pixel of the full image is not found in one of the facets. "
+        "Make sure your facet file defines a facet that covers the center "
+        "pixel of the main image.");
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -948,11 +985,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         const bool isFinished = !reachedMajorThreshold;
         if (isFinished) {
           writeModelImages(groupTable);
-        } else {
-          partitionModelIntoFacets(groupTable);
         }
 
         if (_settings.deconvolutionMGain != 1.0) {
+          partitionModelIntoFacets(groupTable);
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
             // TODO: maybe consider swapping the order?
