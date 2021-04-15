@@ -212,7 +212,7 @@ void PartitionedMS::ReadModel(std::complex<float>* buffer) {
          _modelFileMap + rowLength * _currentRow, rowLength);
 }
 
-void PartitionedMS::WriteModel(size_t rowId,
+void PartitionedMS::WriteModel(size_t facetIndex, size_t rowId,
                                const std::complex<float>* buffer) {
 #ifdef REDUNDANT_VALIDATION
   if (!_partHeader.hasModel)
@@ -225,9 +225,16 @@ void PartitionedMS::WriteModel(size_t rowId,
 
   // In case the value was not sampled in this pass, it has been set to infinite
   // and should not overwrite the current value in the set.
-  for (size_t i = 0; i != _partHeader.channelCount * _polarizationCountInFile;
-       ++i) {
-    if (std::isfinite(buffer[i].real())) modelWritePtr[i] = buffer[i];
+  if (facetIndex == 0) {
+    for (size_t i = 0; i != _partHeader.channelCount * _polarizationCountInFile;
+         ++i) {
+      if (std::isfinite(buffer[i].real())) modelWritePtr[i] = buffer[i];
+    }
+  } else {
+    for (size_t i = 0; i != _partHeader.channelCount * _polarizationCountInFile;
+         ++i) {
+      if (std::isfinite(buffer[i].real())) modelWritePtr[i] += buffer[i];
+    }
   }
 }
 
