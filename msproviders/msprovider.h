@@ -179,39 +179,22 @@ class MSProvider {
   MSProvider(const MSProvider&) {}
   void operator=(const MSProvider&) {}
 
-  // TODO: remove
-  // template <bool addAssign>
-  static void assignToMS(std::complex<float>* dest,
-                         std::complex<float> source) {
-    // if constexpr (addAssign)
-    *dest += source;
-    // else
-    // *dest = source;
-  }
-
-  // C++ 11 compatible static if conditional
-  // from C++ 17 onwards, we could use if constexpr
+  // C++ 11 compatible static if conditional: if
+  // template parameter is true, do an addition-assignment
+  // NOTE: from C++ 17 onwards, we could use if constexpr
   template <bool add, typename std::enable_if<add, int>::type = 42>
   static void AddOrAssign(std::complex<float>* dest,
                           std::complex<float> source) {
     *dest += source;
   }
 
+  // C++ 11 compatible static if conditional: if
+  // template parameter is false, do an assignment
+  // NOTE: from C++ 17 onwards, we could use if constexpr
   template <bool add, typename std::enable_if<!add, int>::type = 42>
   static void AddOrAssign(std::complex<float>* dest,
                           std::complex<float> source) {
     *dest = source;
-  }
-
-  template <bool facetIndex, typename std::enable_if<facetIndex>::type = 42>
-  void top_level_method() {
-    std::cout << "In top level generic" << std::endl;
-  }
-
-  // template<typename fake>
-  template <bool facetIndex, typename std::enable_if<!facetIndex>::type = 42>
-  void top_level_method() {
-    std::cout << "In top level, specialized" << std::endl;
   }
 };
 
