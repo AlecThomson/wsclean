@@ -45,25 +45,39 @@ cp -r $MWA_MOCK_MS $MWA_MOCK_FULL
 echo "===== Predicting full image ====="
 wsclean ${predict_settings} ${MWA_MOCK_FULL}
 
-echo "===== Copy to new MeasurementSet ====="
-DPPP msin=${MWA_MOCK_FULL} msin.datacolumn="MODEL_DATA" msout=${MWA_MOCK_FACET} msout.datacolumn="DATA" msout.overwrite=true steps=[]
+# echo "===== Copy to new MeasurementSet ====="
+# DPPP msin=${MWA_MOCK_FULL} msin.datacolumn="MODEL_DATA" msout=${MWA_MOCK_FACET} msout.datacolumn="DATA" msout.overwrite=true steps=[]
+# cp -r ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
+
+cp -r ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
+taql "UPDATE ${MWA_MOCK_FACET} SET DATA=MODEL_DATA"
+taql "ALTER TABLE ${MWA_MOCK_FACET} DROP COLUMN MODEL_DATA"
+
+# # TODO: taql such that model data column is guaranteed to be 0
 
 echo "===== Facet based imaging cycle ====="
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
-for i in 0 1 2 3
-do
-  wsclean -save-facet-visibilities $i -use-wgridder ${major_cycle} -facet-regions ${facetfile} -name facet-imaging ${rectdims} ${MWA_MOCK_FACET}
 
-  if [ "$i" -ne 1 ]; then
-    # Visibilities for these empty facets should be close to 0
-    taql 'select from MWA_MOCK_FACET.ms where all (MODEL_DATA>4e-3)' > taql.out
-  else
-    # Modeled visibilities for this facet should be close to the input data
-    taql "select from MWA_MOCK_FACET.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.DATA,t2.MODEL_DATA, 4e-3))" > taql.out
-  fi
+wsclean -use-wgridder -no-reorder ${major_cycle} -facet-regions ${facetfile} -name facet-imaging ${rectdims} ${MWA_MOCK_FACET}
 
-  diff taql.out taql.ref  ||  (echo "Failed in comparison for facet $i" && exit 1)
-done
+taql "select from MWA_MOCK_FACET.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.DATA,t2.MODEL_DATA, 4e-3))" > taql.out
+
+diff taql.out taql.ref  ||  exit 1
+
+# for i in 0 1 2 3
+# do
+#   wsclean -save-facet-visibilities $i -use-wgridder ${major_cycle} -facet-regions ${facetfile} -name facet-imaging ${rectdims} ${MWA_MOCK_FACET}
+
+#   if [ "$i" -ne 1 ]; then
+#     # Visibilities for these empty facets should be close to 0
+#     taql 'select from MWA_MOCK_FACET.ms where all (MODEL_DATA>4e-3)' > taql.out
+#   else
+#     # Modeled visibilities for this facet should be close to the input data
+#     taql "select from MWA_MOCK_FACET.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.DATA,t2.MODEL_DATA, 4e-3))" > taql.out
+#   fi
+
+#   diff taql.out taql.ref  ||  (echo "Failed in comparison for facet $i" && exit 1)
+# done
 
 rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
