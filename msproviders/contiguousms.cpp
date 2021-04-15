@@ -227,7 +227,8 @@ void ContiguousMS::ReadModel(std::complex<float>* buffer) {
            _polOut);
 }
 
-void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer) {
+void ContiguousMS::WriteModel(size_t facetIndex, size_t rowId,
+                              const std::complex<float>* buffer) {
   if (!_isModelColumnPrepared) prepareModelColumn();
 
   size_t msRowId = _idToMSRow[rowId];
@@ -241,9 +242,15 @@ void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer) {
     endChannel = _bandData[dataDescId].ChannelCount();
   }
 
+  // const bool addToMS = (facetIndex == 0) ? false : true;
   _modelColumn->get(msRowId, _modelArray);
-  reverseCopyData<false>(_modelArray, startChannel, endChannel,
-                         _inputPolarizations, buffer, _polOut);
+  if (facetIndex == 0) {
+    reverseCopyData<false>(_modelArray, startChannel, endChannel,
+                           _inputPolarizations, buffer, _polOut);
+  } else {
+    reverseCopyData<true>(_modelArray, startChannel, endChannel,
+                          _inputPolarizations, buffer, _polOut);
+  }
   _modelColumn->put(msRowId, _modelArray);
 }
 
