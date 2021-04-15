@@ -242,8 +242,8 @@ void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer) {
   }
 
   _modelColumn->get(msRowId, _modelArray);
-  reverseCopyData(_modelArray, startChannel, endChannel, _inputPolarizations,
-                  buffer, _polOut);
+  reverseCopyData<false>(_modelArray, startChannel, endChannel,
+                         _inputPolarizations, buffer, _polOut);
   _modelColumn->put(msRowId, _modelArray);
 }
 

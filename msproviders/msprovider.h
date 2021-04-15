@@ -12,6 +12,7 @@
 #include <complex>
 #include <set>
 #include <vector>
+#include <type_traits>
 
 namespace casacore {
 class MeasurementSet;
@@ -110,6 +111,7 @@ class MSProvider {
     return std::isfinite(c.real()) && std::isfinite(c.imag());
   }
 
+  template <bool add>
   static void reverseCopyData(
       casacore::Array<std::complex<float>>& dest, size_t startChannel,
       size_t endChannel,
@@ -175,6 +177,41 @@ class MSProvider {
  private:
   MSProvider(const MSProvider&) {}
   void operator=(const MSProvider&) {}
+
+  // TODO: remove
+  // template <bool addAssign>
+  static void assignToMS(std::complex<float>* dest,
+                         std::complex<float> source) {
+    // if constexpr (addAssign)
+    *dest += source;
+    // else
+    // *dest = source;
+  }
+
+  // C++ 11 compatible static if conditional
+  // from C++ 17 onwards, we could use if constexpr
+  template <bool add, typename std::enable_if<add, int>::type = 42>
+  static void AddOrAssign(std::complex<float>* dest,
+                          std::complex<float> source) {
+    *dest += source;
+  }
+
+  template <bool add, typename std::enable_if<!add, int>::type = 42>
+  static void AddOrAssign(std::complex<float>* dest,
+                          std::complex<float> source) {
+    *dest = source;
+  }
+
+  template <bool facetIndex, typename std::enable_if<facetIndex>::type = 42>
+  void top_level_method() {
+    std::cout << "In top level generic" << std::endl;
+  }
+
+  // template<typename fake>
+  template <bool facetIndex, typename std::enable_if<!facetIndex>::type = 42>
+  void top_level_method() {
+    std::cout << "In top level, specialized" << std::endl;
+  }
 };
 
 #endif

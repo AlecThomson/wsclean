@@ -732,8 +732,9 @@ void PartitionedMS::unpartition(
                 if (!modelFiles[fileIndex]->good())
                   throw std::runtime_error(
                       "Error reading from temporary model data file");
-                reverseCopyData(modelDataArray, partStartCh, partEndCh,
-                                msPolarizations, modelDataBuffer.data(), *p);
+                reverseCopyData<false>(modelDataArray, partStartCh, partEndCh,
+                                       msPolarizations, modelDataBuffer.data(),
+                                       *p);
 
                 ++fileIndex;
               }
