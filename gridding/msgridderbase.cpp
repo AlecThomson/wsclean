@@ -394,12 +394,14 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
                                       const std::complex<float>* buffer) const {
-  if (_settings.saveFacetVisibilities != std::numeric_limits<size_t>::max()) {
-    if (_settings.saveFacetVisibilities == _facetIndex)
-      msProvider.WriteModel(_facetIndex, rowId, buffer);
-  } else {
-    msProvider.WriteModel(_facetIndex, rowId, buffer);
-  }
+  // if (_settings.saveFacetVisibilities != std::numeric_limits<size_t>::max())
+  // {
+  //   if (_settings.saveFacetVisibilities == _facetIndex)
+  //     msProvider.WriteModel(_facetIndex, rowId, buffer);
+  // } else {
+  //   msProvider.WriteModel(_facetIndex, rowId, buffer);
+  // }
+  msProvider.WriteModel(_facetIndex, rowId, buffer);
 }
 
 template <size_t PolarizationCount>
