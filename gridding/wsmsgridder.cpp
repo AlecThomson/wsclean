@@ -245,8 +245,9 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
                       "Prediction write lane containing full row data");
   lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
                                                          _laneBufferSize);
+  // TODO: should add band
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
-                          &msData);
+                          &msData, &selectedBandData);
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _cpuCount; ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
@@ -320,14 +321,14 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData) {
+    const MSData* msData, const MultiBandData* bandData) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
   PredictionWorkItem workItem;
   while (buffer.read(workItem)) {
     writeVisibilities(*(msData->msProvider), workItem.rowId,
-                      workItem.data.get());
+                      (*bandData)[workItem.dataDescId], workItem.data.get());
   }
 }
 

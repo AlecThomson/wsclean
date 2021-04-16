@@ -160,6 +160,7 @@ class MSGridderBase : public MeasurementSetGridder {
    * MSProvider::WriteModel()
    */
   void writeVisibilities(MSProvider& msProvider, size_t rowId,
+                         const BandData& curBand,
                          const std::complex<float>* buffer) const;
 
   double _maxW, _minW;

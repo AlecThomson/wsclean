@@ -406,9 +406,10 @@ void IdgMsGridder::predictRow(IDGPredictionRow& row) {
 
 void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
+  const BandData& curBand(_selectedBands[dataDescId]);
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   for (auto i : available_row_ids) {
-    writeVisibilities(*_outputProvider, i.first, i.second);
+    writeVisibilities(*_outputProvider, i.first, curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();

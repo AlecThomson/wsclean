@@ -393,6 +393,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 }
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
+                                      const BandData& curBand,
                                       const std::complex<float>* buffer) const {
   const bool addToMS = (_facetIndex == 0) ? false : true;
   msProvider.WriteModel(rowId, buffer, addToMS);
