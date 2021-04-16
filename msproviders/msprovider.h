@@ -61,8 +61,13 @@ class MSProvider {
 
   virtual void ReadModel(std::complex<float>* buffer) = 0;
 
-  virtual void WriteModel(size_t facetIndex, size_t rowId,
-                          const std::complex<float>* buffer) = 0;
+  /**
+   * Write model visibilities to MS. If addToMS is true,
+   * add-assign to existing model visibilities, if false,
+   * overwrite existing model visibilities.
+   */
+  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer,
+                          bool addToMS) = 0;
 
   virtual void WriteImagingWeights(size_t rowId, const float* buffer) = 0;
 

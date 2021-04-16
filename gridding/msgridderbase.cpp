@@ -394,7 +394,8 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
                                       const std::complex<float>* buffer) const {
-  msProvider.WriteModel(_facetIndex, rowId, buffer);
+  const bool addToMS = (_facetIndex == 0) ? false : true;
+  msProvider.WriteModel(rowId, buffer, addToMS);
 }
 
 template <size_t PolarizationCount>
