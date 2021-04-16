@@ -159,9 +159,9 @@ class MSGridderBase : public MeasurementSetGridder {
    * @brief Write (modelled) visibilities to MS, provides an interface to
    * MSProvider::WriteModel()
    */
+  template <size_t PolarizationCount>
   void writeVisibilities(MSProvider& msProvider, size_t rowId,
-                         const BandData& curBand,
-                         const std::complex<float>* buffer) const;
+                         const BandData& curBand, std::complex<float>* buffer);
 
   double _maxW, _minW;
   double _theoreticalBeamSize;

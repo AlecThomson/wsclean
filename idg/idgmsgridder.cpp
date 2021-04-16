@@ -409,7 +409,7 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   const BandData& curBand(_selectedBands[dataDescId]);
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   for (auto i : available_row_ids) {
-    writeVisibilities(*_outputProvider, i.first, curBand, i.second);
+    writeVisibilities<4>(*_outputProvider, i.first, curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
