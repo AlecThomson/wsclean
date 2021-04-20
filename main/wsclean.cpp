@@ -1380,10 +1380,10 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
          ++facetGroupIndex) {
       const ImagingTable facetGroup =
           independentGroup.GetFacetGroup(facetGroupIndex);
-      // For facet-based prediction: 'group' contains only a list of facets
-      // beyond this point. The meta data for the "full" model image can be
-      // inferred from the first entry in the group table
-      readExistingModelImages(facetGroup[0]);
+      // For facet-based prediction: facetGroup contains only a list of facets
+      // from the same (full) image. The meta data for the full model image can
+      // be inferred from the first entry in the facetGroup table
+      readExistingModelImages(facetGroup.Front());
       partitionModelIntoFacets(facetGroup);
 
       for (const auto& entry : facetGroup) {
