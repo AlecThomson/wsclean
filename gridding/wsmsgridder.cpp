@@ -274,7 +274,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
 
     msData.msProvider->NextRow();
   }
-
+  msData.msProvider->Reset();
   for (size_t i = 0; i != uvws.size(); ++i) {
     PredictionWorkItem newItem;
     newItem.uvw = uvws[i];

@@ -491,7 +491,9 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
+    std::cout << "READ/WEIGHT VISIBILITIES: READING META" << std::endl;
     msProvider.ReadMeta(metaData);
+    std::cout << "READ/WEIGHT VISIBILITIES: DONE READING META" << std::endl;
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
