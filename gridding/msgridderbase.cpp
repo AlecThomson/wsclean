@@ -92,14 +92,46 @@ MSGridderBase::MSData::MSData()
 MSGridderBase::MSData::~MSData() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
-    : MeasurementSetGridder(),
-      _theoreticalBeamSize(0.0),
-      _actualInversionWidth(0),
+    : _actualInversionWidth(0),
       _actualInversionHeight(0),
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
       _metaDataCache(nullptr),
       _settings(settings),
+      _phaseCentreRA(0.0),
+      _phaseCentreDec(0.0),
+      _phaseCentreDL(0.0),
+      _phaseCentreDM(0.0),
+      _facetIndex(0),
+      _imageWidth(0),
+      _imageHeight(0),
+      _trimWidth(0),
+      _trimHeight(0),
+      _nwWidth(0),
+      _nwHeight(0),
+      _nwFactor(1.0),
+      _pixelSizeX((1.0 / 60.0) * M_PI / 180.0),
+      _pixelSizeY((1.0 / 60.0) * M_PI / 180.0),
+      _wGridSize(0),
+      _actualWGridSize(0),
+      _measurementSets(),
+      _dataColumnName("DATA"),
+      _doImagePSF(false),
+      _doSubtractModel(false),
+      _addToModel(false),
+      _smallInversion(false),
+      _wLimit(0.0),
+      _precalculatedWeightInfo(nullptr),
+      _polarization(aocommon::Polarization::StokesI),
+      _isComplex(false),
+      _weighting(WeightMode::UniformWeighted),
+      _isFirstIteration(false),
+      _antialiasingKernelSize(7),
+      _overSamplingFactor(63),
+      _visibilityWeightingMode(NormalVisibilityWeighting),
+      _gridMode(KaiserBesselKernel),
+      _storeImagingWeights(false),
+      _theoreticalBeamSize(0.0),
       _hasFrequencies(false),
       _freqHigh(0.0),
       _freqLow(0.0),
@@ -109,9 +141,11 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
-      _visibilityWeightSum(0.0) {}
+      _visibilityWeightSum(0.0) {
+  ComputeRaDec();
+}
 
-MSGridderBase::~MSGridderBase() {}
+// MSGridderBase::~MSGridderBase() {}
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
                                           double absMemLimit) {

@@ -1287,14 +1287,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string modeStr = argv[argi];
       boost::to_lower(modeStr);
       if (modeStr == "normal")
-        settings.visibilityWeightingMode =
-            MeasurementSetGridder::NormalVisibilityWeighting;
+        settings.visibilityWeightingMode = NormalVisibilityWeighting;
       else if (modeStr == "squared")
-        settings.visibilityWeightingMode =
-            MeasurementSetGridder::SquaredVisibilityWeighting;
+        settings.visibilityWeightingMode = SquaredVisibilityWeighting;
       else if (modeStr == "unit")
-        settings.visibilityWeightingMode =
-            MeasurementSetGridder::UnitVisibilityWeighting;
+        settings.visibilityWeightingMode = UnitVisibilityWeighting;
       else
         throw std::runtime_error("Unknown weighting mode: " + modeStr);
     } else if (param == "direct-ft") {

@@ -4,7 +4,10 @@
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
-#include "../gridding/measurementsetgridder.h"
+// #include "../gridding/msgridderbase.h"
+
+#include "../gridding/visibilityweightingmode.h"
+#include "../structures/weightmode.h"
 
 #include "../structures/msselection.h"
 
@@ -98,7 +101,7 @@ class Settings {
   bool saveATerms;
   enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode;
   enum GridModeEnum gridMode;
-  enum MeasurementSetGridder::VisibilityWeightingMode visibilityWeightingMode;
+  enum VisibilityWeightingMode visibilityWeightingMode;
   double baselineDependentAveragingInWavelengths;
   bool simulateNoise;
   double simulatedNoiseStdDev;
@@ -283,7 +286,7 @@ inline Settings::Settings()
       saveATerms(false),
       idgMode(IDG_DEFAULT),
       gridMode(KaiserBesselKernel),
-      visibilityWeightingMode(MeasurementSetGridder::NormalVisibilityWeighting),
+      visibilityWeightingMode(NormalVisibilityWeighting),
       baselineDependentAveragingInWavelengths(0.0),
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),
