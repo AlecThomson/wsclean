@@ -162,7 +162,6 @@ void ContiguousMS::ReadMeta(double& u, double& v, double& w,
 
 void ContiguousMS::ReadMeta(MetaData& metaData) {
   readMeta();
-  std::cout << "Row nr in ContiguousMS::ReadMeta " << _row << std::endl;
 
   casacore::Vector<double> uvwArray = _uvwColumn(_row);
   metaData.uInM = uvwArray(0);

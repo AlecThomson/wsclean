@@ -149,7 +149,6 @@ void PartitionedMS::ReadMeta(double& u, double& v, double& w,
                              size_t& dataDescId) {
   if (!_metaPtrIsOk) _metaFile.seekg(-MetaRecord::BINARY_SIZE, std::ios::cur);
   _metaPtrIsOk = false;
-  std::cout << "Row nr in PartitionedMS::ReadMeta " << _currentRow << std::endl;
 
   MetaRecord record;
   record.read(_metaFile);

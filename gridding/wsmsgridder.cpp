@@ -245,7 +245,6 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
                       "Prediction write lane containing full row data");
   lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
                                                          _laneBufferSize);
-  // TODO: should add band
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
                           &msData, &selectedBandData);
   std::vector<std::thread> calcThreads;
