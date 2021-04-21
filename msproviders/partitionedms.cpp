@@ -184,16 +184,16 @@ void PartitionedMS::ReadData(std::complex<float>* buffer) {
   }
 #ifndef NDEBUG
   size_t pos = size_t(_dataFile.tellg()) - sizeof(PartHeader);
-  size_t fact = _partHeader.hasModel ? 2 : 1;
-  if (pos != fact * _currentRow * _partHeader.channelCount *
-                 sizeof(std::complex<float>)) {
+  if (pos != _currentInputRow * _partHeader.channelCount *
+                 _polarizationCountInFile * sizeof(std::complex<float>)) {
     std::ostringstream s;
     s << "Not on right pos: " << pos << " instead of "
-      << fact * _currentRow * _partHeader.channelCount *
-             sizeof(std::complex<float>)
+      << _currentInputRow * _partHeader.channelCount *
+             _polarizationCountInFile * sizeof(std::complex<float>)
       << " (row "
-      << (pos / (fact * _partHeader.channelCount * sizeof(std::complex<float>)))
-      << " instead of " << _currentRow << ")";
+      << (pos / (_partHeader.channelCount * _polarizationCountInFile *
+                 sizeof(std::complex<float>)))
+      << " instead of " << _currentInputRow << ")";
     throw std::runtime_error(s.str());
   }
 #endif

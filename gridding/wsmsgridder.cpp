@@ -326,16 +326,23 @@ void WSMSGridder::predictWriteThread(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
   PredictionWorkItem workItem;
-  std::priority_queue<PredictionWorkItem> items;
+  auto comparison = [](const PredictionWorkItem& lhs,
+                       const PredictionWorkItem& rhs) -> bool {
+    return lhs.rowId > rhs.rowId;
+  };
+  std::priority_queue<PredictionWorkItem, std::vector<PredictionWorkItem>,
+                      decltype(comparison)>
+      queue(comparison);
   size_t nextRowId = 0;
   while (buffer.read(workItem)) {
-    items.emplace(std::move(workItem));
-    while (items.top().rowId == nextRowId) {
-      writeVisibilities(*(msData->msProvider), items.top().data.get());
-      items.pop();
+    queue.emplace(std::move(workItem));
+    while (queue.top().rowId == nextRowId) {
+      writeVisibilities(*(msData->msProvider), queue.top().data.get());
+      queue.pop();
       ++nextRowId;
     }
   }
+  assert(queue.empty());
 }
 
 void WSMSGridder::Invert() {

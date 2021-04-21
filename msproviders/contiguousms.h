@@ -111,7 +111,6 @@ class ContiguousMS : public MSProvider {
   casacore::Array<bool> _flagArray;
 
   void prepareModelColumn();
-  void readMeta() {}
   void readData() {
     if (!_isDataRead) {
       _dataColumn.get(_inputRow, _dataArray);

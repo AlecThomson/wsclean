@@ -178,8 +178,6 @@ double ContiguousMS::StartTime() {
 
 void ContiguousMS::ReadMeta(double& u, double& v, double& w,
                             size_t& dataDescId) {
-  readMeta();
-
   casacore::Vector<double> uvwArray = _uvwColumn(_inputRow);
   u = uvwArray(0);
   v = uvwArray(1);
@@ -188,8 +186,6 @@ void ContiguousMS::ReadMeta(double& u, double& v, double& w,
 }
 
 void ContiguousMS::ReadMeta(MetaData& metaData) {
-  readMeta();
-
   casacore::Vector<double> uvwArray = _uvwColumn(_inputRow);
   metaData.uInM = uvwArray(0);
   metaData.vInM = uvwArray(1);
@@ -202,7 +198,6 @@ void ContiguousMS::ReadMeta(MetaData& metaData) {
 }
 
 void ContiguousMS::ReadData(std::complex<float>* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
@@ -239,7 +234,6 @@ void ContiguousMS::prepareModelColumn() {
 void ContiguousMS::ReadModel(std::complex<float>* buffer) {
   if (!_isModelColumnPrepared) prepareModelColumn();
 
-  readMeta();
   readModel();
   readWeights();
   size_t startChannel, endChannel;
@@ -255,11 +249,8 @@ void ContiguousMS::ReadModel(std::complex<float>* buffer) {
 }
 
 void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
-  assert(msRowId < _isToMSRow.size());
-
   if (!_isModelColumnPrepared) prepareModelColumn();
 
-  size_t msRowId = _idToMSRow[_outputRow];
   size_t startChannel, endChannel;
   if (_selection.HasChannelRange()) {
     startChannel = _selection.ChannelRangeStart();
@@ -269,7 +260,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     endChannel = _bandData[_dataDescId].ChannelCount();
   }
 
-  _modelColumn->get(msRowId, _modelArray);
+  _modelColumn->get(_outputRow, _modelArray);
   if (addToMS) {
     reverseCopyData<true>(_modelArray, startChannel, endChannel,
                           _inputPolarizations, buffer, _polOut);
@@ -277,11 +268,10 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     reverseCopyData<false>(_modelArray, startChannel, endChannel,
                            _inputPolarizations, buffer, _polOut);
   }
-  _modelColumn->put(msRowId, _modelArray);
+  _modelColumn->put(_outputRow, _modelArray);
 }
 
 void ContiguousMS::ReadWeights(std::complex<float>* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
@@ -297,7 +287,6 @@ void ContiguousMS::ReadWeights(std::complex<float>* buffer) {
 }
 
 void ContiguousMS::ReadWeights(float* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
