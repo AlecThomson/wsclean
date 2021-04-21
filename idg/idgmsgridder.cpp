@@ -408,8 +408,13 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   const BandData& curBand(_selectedBands[dataDescId]);
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
+  // TODO: check the following with Andre! Feels like the row counter (NextRow)
+  // and i.first do not necessarily have to match, whereas this assumption is
+  // now implicit in the following loop.
+  _outputProvider->Reset();
   for (auto i : available_row_ids) {
     writeVisibilities<4>(*_outputProvider, i.first, curBand, i.second);
+    _outputProvider->NextRow();
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();

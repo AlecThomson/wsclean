@@ -121,7 +121,6 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
-
   size_t totalNRows = 0;
   for (size_t dataDescId = 0; dataDescId != selectedBands.DataDescCount();
        ++dataDescId) {
@@ -160,14 +159,18 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
                                     visBuffer.data());
 
       Logger::Info << "Writing...\n";
-      for (size_t row = 0; row != nRows; ++row) {
-        writeVisibilities<1>(*(msData.msProvider), row + totalNRows, band,
-                             &visBuffer[row * band.ChannelCount()]);
+      // TODO: carefully check the following with Andre!
+      msData.msProvider->Reset();
+      size_t row_count = 0;
+      while (msData.msProvider->CurrentRowAvailable()) {
+        writeVisibilities<1>(*(msData.msProvider), row_count + totalNRows, band,
+                             &visBuffer[row_count * band.ChannelCount()]);
+        row_count++;
+        msData.msProvider->NextRow();
       }
       totalNRows += nRows;
     }  // end of chunk
   }    // end of all chunks
-
   msData.totalRowsProcessed += totalNRows;
 }
 
