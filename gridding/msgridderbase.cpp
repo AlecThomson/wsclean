@@ -39,7 +39,11 @@ namespace {
 template <size_t PolarizationCount>
 void ApplyConjugatedBeam(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
-                         const aocommon::MC2x2F& gain2) {
+                         const aocommon::MC2x2F& gain2);
+template <>
+void ApplyConjugatedBeam<1>(std::complex<float>* visibilities,
+                            const aocommon::MC2x2F& gain1,
+                            const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
                   aocommon::Trace(gain2);
@@ -58,7 +62,12 @@ void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
 
 template <size_t PolarizationCount>
 void ApplyBeam(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
-               const aocommon::MC2x2F& gain2) {
+               const aocommon::MC2x2F& gain2);
+
+template <>
+void ApplyBeam<1>(std::complex<float>* visibilities,
+                  const aocommon::MC2x2F& gain1,
+                  const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
                   std::conj(aocommon::Trace(gain2));
@@ -75,7 +84,7 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 }  // namespace
-#endif // HAVE_EVERYBEAM
+#endif  // HAVE_EVERYBEAM
 
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
