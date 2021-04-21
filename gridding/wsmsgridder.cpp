@@ -15,6 +15,7 @@
 
 #include <fftw3.h>
 
+#include <cassert>
 #include <queue>
 #include <stdexcept>
 
