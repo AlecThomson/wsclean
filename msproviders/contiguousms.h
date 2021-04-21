@@ -75,7 +75,8 @@ class ContiguousMS : public MSProvider {
   size_t _inputRow;
   size_t _outputRow;
   size_t _rowId;
-  size_t _timestep;
+  size_t _inputTimestep;
+  size_t _outputTimestep;
   double _time;
   int _dataDescId;
   size_t _nAntenna;

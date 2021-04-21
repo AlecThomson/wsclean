@@ -392,10 +392,10 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     SetActualWGridSize(WGridSize());
 }
 
-void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
+void MSGridderBase::writeVisibilities(MSProvider& msProvider,
                                       const std::complex<float>* buffer) const {
   const bool addToMS = (_facetIndex == 0) ? false : true;
-  msProvider.WriteModel(rowId, buffer, addToMS);
+  msProvider.WriteModel(buffer, addToMS);
 }
 
 template <size_t PolarizationCount>
@@ -530,7 +530,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
     }
   }
   if (StoreImagingWeights())
-    msProvider.WriteImagingWeights(rowData.rowId, _scratchWeights.data());
+    msProvider.WriteImagingWeights(_scratchWeights.data());
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(

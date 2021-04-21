@@ -15,6 +15,7 @@
 
 #include <fftw3.h>
 
+#include <queue>
 #include <stdexcept>
 
 WSMSGridder::WSMSGridder(const Settings& settings)
@@ -325,9 +326,15 @@ void WSMSGridder::predictWriteThread(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
   PredictionWorkItem workItem;
+  std::priority_queue<PredictionWorkItem> items;
+  size_t nextRowId = 0;
   while (buffer.read(workItem)) {
-    writeVisibilities(*(msData->msProvider), workItem.rowId,
-                      workItem.data.get());
+    items.emplace(std::move(workItem));
+    while (items.top().rowId == nextRowId) {
+      writeVisibilities(*(msData->msProvider), items.top().data.get());
+      items.pop();
+      ++nextRowId;
+    }
   }
 }
 

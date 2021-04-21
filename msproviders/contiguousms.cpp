@@ -10,7 +10,8 @@ ContiguousMS::ContiguousMS(const string& msPath,
     : _inputRow(0),
       _outputRow(0),
       _rowId(0),
-      _timestep(0),
+      _inputTimestep(0),
+      _outputTimestep(0),
       _time(0.0),
       _dataDescId(dataDescId),
       _nAntenna(0),
@@ -81,10 +82,12 @@ void ContiguousMS::Reset() {
   _rowId = size_t(-1);
   _time = 0.0;
   if (_selection.HasInterval())
-    _timestep = _selection.IntervalStart() - 1;
+    _inputTimestep = _selection.IntervalStart() - 1;
   else
-    _timestep = -1;
+    _inputTimestep = -1;
+  _outputTimestep = _inputTimestep;
   NextInputRow();
+  NextOutputRow();
 }
 
 bool ContiguousMS::CurrentRowAvailable() {
@@ -96,7 +99,7 @@ bool ContiguousMS::CurrentRowAvailable() {
   int dataDescId = _dataDescIdColumn(_inputRow);
   casacore::Vector<double> uvw = _uvwColumn(_inputRow);
 
-  while (!_selection.IsSelected(fieldId, _timestep, a1, a2, uvw) ||
+  while (!_selection.IsSelected(fieldId, _inputTimestep, a1, a2, uvw) ||
          dataDescId != _dataDescId) {
     ++_inputRow;
     if (_inputRow >= _endRow) return false;
@@ -107,7 +110,7 @@ bool ContiguousMS::CurrentRowAvailable() {
     uvw = _uvwColumn(_inputRow);
     dataDescId = _dataDescIdColumn(_inputRow);
     if (_time != _timeColumn(_inputRow)) {
-      ++_timestep;
+      ++_inputTimestep;
       _time = _timeColumn(_inputRow);
     }
 
@@ -139,10 +142,30 @@ void ContiguousMS::NextInputRow() {
     uvw = _uvwColumn(_inputRow);
     dataDescId = _dataDescIdColumn(_inputRow);
     if (_time != _timeColumn(_inputRow)) {
-      ++_timestep;
+      ++_inputTimestep;
       _time = _timeColumn(_inputRow);
     }
-  } while (!_selection.IsSelected(fieldId, _timestep, a1, a2, uvw) ||
+  } while (!_selection.IsSelected(fieldId, _inputTimestep, a1, a2, uvw) ||
+           (dataDescId != _dataDescId));
+}
+
+void ContiguousMS::NextOutputRow() {
+  int fieldId, a1, a2, dataDescId;
+  casacore::Vector<double> uvw;
+  do {
+    ++_outputRow;
+    if (_outputRow >= _endRow) return;
+
+    fieldId = _fieldIdColumn(_outputRow);
+    a1 = _antenna1Column(_outputRow);
+    a2 = _antenna2Column(_outputRow);
+    uvw = _uvwColumn(_outputRow);
+    dataDescId = _dataDescIdColumn(_outputRow);
+    if (_time != _timeColumn(_outputRow)) {
+      ++_outputTimestep;
+      _time = _timeColumn(_outputRow);
+    }
+  } while (!_selection.IsSelected(fieldId, _outputTimestep, a1, a2, uvw) ||
            (dataDescId != _dataDescId));
 }
 

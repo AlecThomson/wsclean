@@ -33,6 +33,8 @@ class TimestepBuffer final : public MSProvider {
     if (_bufferPosition == _buffer.size()) readTimeblock();
   }
 
+  void NextOutputRow() override { _msProvider->NextOutputRow(); }
+
   void Reset() override {
     _msProvider->Reset();
     readTimeblock();
@@ -62,13 +64,13 @@ class TimestepBuffer final : public MSProvider {
               _buffer[_bufferPosition].model.end(), buffer);
   }
 
-  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer,
+  virtual void WriteModel(const std::complex<float>* buffer,
                           bool addToMS) override {
-    _msProvider->WriteModel(rowId, buffer, addToMS);
+    _msProvider->WriteModel(buffer, addToMS);
   }
 
-  virtual void WriteImagingWeights(size_t rowId, const float* buffer) override {
-    _msProvider->WriteImagingWeights(rowId, buffer);
+  virtual void WriteImagingWeights(const float* buffer) override {
+    _msProvider->WriteImagingWeights(buffer);
   }
 
   virtual void ReadWeights(float* buffer) override {

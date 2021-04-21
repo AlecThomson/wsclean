@@ -145,6 +145,8 @@ void PartitionedMS::NextInputRow() {
   }
 }
 
+void PartitionedMS::NextOutputRow() { ++_currentOutputRow; }
+
 void PartitionedMS::ReadMeta(double& u, double& v, double& w,
                              size_t& dataDescId) {
   if (!_metaPtrIsOk) _metaFile.seekg(-MetaRecord::BINARY_SIZE, std::ios::cur);
