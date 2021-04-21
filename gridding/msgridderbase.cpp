@@ -396,6 +396,7 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
                                       const std::complex<float>* buffer) const {
   const bool addToMS = (_facetIndex == 0) ? false : true;
   msProvider.WriteModel(buffer, addToMS);
+  msProvider.NextOutputRow();
 }
 
 template <size_t PolarizationCount>

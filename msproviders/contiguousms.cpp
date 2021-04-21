@@ -8,11 +8,12 @@ ContiguousMS::ContiguousMS(const string& msPath,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum polOut, size_t dataDescId)
     : _inputRow(0),
-      _outputRow(0),
-      _rowId(0),
       _inputTimestep(0),
+      _inputTime(0.0),
+      _outputRow(0),
       _outputTimestep(0),
-      _time(0.0),
+      _outputTime(0.0),
+      _rowId(0),
       _dataDescId(dataDescId),
       _nAntenna(0),
       _isModelColumnPrepared(false),
@@ -78,14 +79,15 @@ void ContiguousMS::open() {
 
 void ContiguousMS::Reset() {
   _inputRow = _startRow - 1;
-  _outputRow = _startRow - 1;
-  _rowId = size_t(-1);
-  _time = 0.0;
+  _inputTime = 0.0;
   if (_selection.HasInterval())
     _inputTimestep = _selection.IntervalStart() - 1;
   else
     _inputTimestep = -1;
+  _outputRow = _inputRow;
+  _outputTime = _inputTime;
   _outputTimestep = _inputTimestep;
+  _rowId = size_t(-1);
   NextInputRow();
   NextOutputRow();
 }
@@ -109,12 +111,11 @@ bool ContiguousMS::CurrentRowAvailable() {
     a2 = _antenna2Column(_inputRow);
     uvw = _uvwColumn(_inputRow);
     dataDescId = _dataDescIdColumn(_inputRow);
-    if (_time != _timeColumn(_inputRow)) {
+    if (_inputTime != _timeColumn(_inputRow)) {
       ++_inputTimestep;
-      _time = _timeColumn(_inputRow);
+      _inputTime = _timeColumn(_inputRow);
     }
 
-    _isMetaRead = false;
     _isDataRead = false;
     _isWeightRead = false;
     _isModelRead = false;
@@ -124,7 +125,6 @@ bool ContiguousMS::CurrentRowAvailable() {
 }
 
 void ContiguousMS::NextInputRow() {
-  _isMetaRead = false;
   _isDataRead = false;
   _isWeightRead = false;
   _isModelRead = false;
@@ -141,9 +141,9 @@ void ContiguousMS::NextInputRow() {
     a2 = _antenna2Column(_inputRow);
     uvw = _uvwColumn(_inputRow);
     dataDescId = _dataDescIdColumn(_inputRow);
-    if (_time != _timeColumn(_inputRow)) {
+    if (_inputTime != _timeColumn(_inputRow)) {
       ++_inputTimestep;
-      _time = _timeColumn(_inputRow);
+      _inputTime = _timeColumn(_inputRow);
     }
   } while (!_selection.IsSelected(fieldId, _inputTimestep, a1, a2, uvw) ||
            (dataDescId != _dataDescId));
@@ -161,9 +161,9 @@ void ContiguousMS::NextOutputRow() {
     a2 = _antenna2Column(_outputRow);
     uvw = _uvwColumn(_outputRow);
     dataDescId = _dataDescIdColumn(_outputRow);
-    if (_time != _timeColumn(_outputRow)) {
+    if (_outputTime != _timeColumn(_outputRow)) {
       ++_outputTimestep;
-      _time = _timeColumn(_outputRow);
+      _outputTime = _timeColumn(_outputRow);
     }
   } while (!_selection.IsSelected(fieldId, _outputTimestep, a1, a2, uvw) ||
            (dataDescId != _dataDescId));
@@ -255,17 +255,18 @@ void ContiguousMS::ReadModel(std::complex<float>* buffer) {
 }
 
 void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
+  assert(msRowId < _isToMSRow.size());
+
   if (!_isModelColumnPrepared) prepareModelColumn();
 
   size_t msRowId = _idToMSRow[_outputRow];
-  size_t dataDescId = _dataDescIdColumn(msRowId);
   size_t startChannel, endChannel;
   if (_selection.HasChannelRange()) {
     startChannel = _selection.ChannelRangeStart();
     endChannel = _selection.ChannelRangeEnd();
   } else {
     startChannel = 0;
-    endChannel = _bandData[dataDescId].ChannelCount();
+    endChannel = _bandData[_dataDescId].ChannelCount();
   }
 
   _modelColumn->get(msRowId, _modelArray);

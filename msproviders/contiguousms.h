@@ -73,14 +73,15 @@ class ContiguousMS : public MSProvider {
   void open();
 
   size_t _inputRow;
-  size_t _outputRow;
-  size_t _rowId;
   size_t _inputTimestep;
+  double _inputTime;
+  size_t _outputRow;
   size_t _outputTimestep;
-  double _time;
-  int _dataDescId;
+  double _outputTime;
+  size_t _rowId;
+  const int _dataDescId;
   size_t _nAntenna;
-  bool _isMetaRead, _isDataRead, _isModelRead, _isWeightRead;
+  bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared;
   size_t _startRow, _endRow;
   std::vector<size_t> _idToMSRow;
@@ -110,12 +111,7 @@ class ContiguousMS : public MSProvider {
   casacore::Array<bool> _flagArray;
 
   void prepareModelColumn();
-  void readMeta() {
-    if (!_isMetaRead) {
-      _dataDescId = _dataDescIdColumn(_inputRow);
-      _isMetaRead = true;
-    }
-  }
+  void readMeta() {}
   void readData() {
     if (!_isDataRead) {
       _dataColumn.get(_inputRow, _dataArray);
