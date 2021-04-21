@@ -28,7 +28,7 @@ class TimestepBuffer final : public MSProvider {
     return !_buffer.empty() || _msProvider->CurrentRowAvailable();
   }
 
-  void NextRow() override {
+  void NextInputRow() override {
     ++_bufferPosition;
     if (_bufferPosition == _buffer.size()) readTimeblock();
   }
@@ -145,7 +145,7 @@ class TimestepBuffer final : public MSProvider {
         _msProvider->ReadWeights(row.weights.data());
         row.rowId = _msProvider->RowId();
 
-        _msProvider->NextRow();
+        _msProvider->NextInputRow();
         ++writePos;
         if (_msProvider->CurrentRowAvailable()) {
           _msProvider->ReadMeta(metaData);

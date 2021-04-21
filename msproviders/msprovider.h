@@ -48,7 +48,9 @@ class MSProvider {
 
   virtual bool CurrentRowAvailable() = 0;
 
-  virtual void NextRow() = 0;
+  virtual void NextInputRow() = 0;
+
+  virtual void NextOutputRow() = 0;
 
   virtual void Reset() = 0;
 
@@ -66,10 +68,9 @@ class MSProvider {
    * add-assign to existing model visibilities, if false,
    * overwrite existing model visibilities.
    */
-  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer,
-                          bool addToMS) = 0;
+  virtual void WriteModel(const std::complex<float>* buffer, bool addToMS) = 0;
 
-  virtual void WriteImagingWeights(size_t rowId, const float* buffer) = 0;
+  virtual void WriteImagingWeights(const float* buffer) = 0;
 
   virtual void ReadWeights(float* buffer) = 0;
 

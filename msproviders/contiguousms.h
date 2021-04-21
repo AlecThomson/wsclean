@@ -31,7 +31,9 @@ class ContiguousMS : public MSProvider {
 
   bool CurrentRowAvailable() final override;
 
-  void NextRow() final override;
+  void NextInputRow() final override;
+
+  void NextOutputRow() final override;
 
   void Reset() final override;
 
@@ -44,14 +46,14 @@ class ContiguousMS : public MSProvider {
 
   void ReadModel(std::complex<float>* buffer) final override;
 
-  void WriteModel(size_t rowId, const std::complex<float>* buffer,
+  void WriteModel(const std::complex<float>* buffer,
                   bool addToMS) final override;
 
   void ReadWeights(std::complex<float>* buffer) final override;
 
   void ReadWeights(float* buffer) final override;
 
-  void WriteImagingWeights(size_t rowId, const float* buffer) final override;
+  void WriteImagingWeights(const float* buffer) final override;
 
   void ReopenRW() final override { _ms->reopenRW(); }
 
@@ -70,7 +72,9 @@ class ContiguousMS : public MSProvider {
  private:
   void open();
 
-  size_t _row, _rowId;
+  size_t _inputRow;
+  size_t _outputRow;
+  size_t _rowId;
   size_t _timestep;
   double _time;
   int _dataDescId;
@@ -107,23 +111,23 @@ class ContiguousMS : public MSProvider {
   void prepareModelColumn();
   void readMeta() {
     if (!_isMetaRead) {
-      _dataDescId = _dataDescIdColumn(_row);
+      _dataDescId = _dataDescIdColumn(_inputRow);
       _isMetaRead = true;
     }
   }
   void readData() {
     if (!_isDataRead) {
-      _dataColumn.get(_row, _dataArray);
+      _dataColumn.get(_inputRow, _dataArray);
       _isDataRead = true;
     }
   }
   void readWeights() {
     if (!_isWeightRead) {
-      _flagColumn.get(_row, _flagArray);
+      _flagColumn.get(_inputRow, _flagArray);
       if (_msHasWeightSpectrum)
-        _weightSpectrumColumn->get(_row, _weightSpectrumArray);
+        _weightSpectrumColumn->get(_inputRow, _weightSpectrumArray);
       else {
-        _weightScalarColumn->get(_row, _weightScalarArray);
+        _weightScalarColumn->get(_inputRow, _weightScalarArray);
         expandScalarWeights(_weightScalarArray, _weightSpectrumArray);
       }
       _isWeightRead = true;
@@ -131,7 +135,7 @@ class ContiguousMS : public MSProvider {
   }
   void readModel() {
     if (!_isModelRead) {
-      _modelColumn->get(_row, _modelArray);
+      _modelColumn->get(_inputRow, _modelArray);
       _isModelRead = true;
     }
   }

@@ -181,7 +181,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
       }
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
 
   if (msData.minW == 1e100) {

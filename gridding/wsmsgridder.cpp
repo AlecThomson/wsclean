@@ -48,7 +48,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
       }
     }
     ++msData.matchingRows;
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
   Logger::Debug << "Visibility count per layer: ";
   for (size_t& count : sampleCount) {
@@ -185,7 +185,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       ++rowsRead;
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
 
   for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
@@ -271,7 +271,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
       ++rowsProcessed;
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
 
   for (size_t i = 0; i != uvws.size(); ++i) {
