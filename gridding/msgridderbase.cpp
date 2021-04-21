@@ -41,7 +41,7 @@ void ApplyBeamToInstrumentVisibilities(std::complex<float>* visibilities,
                                        const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
-                  (aocommon::Trace(gain2));
+                  aocommon::Trace(gain2);
 }
 
 template <>
@@ -60,7 +60,7 @@ void ApplyBeamToModelVisibilities(std::complex<float>* visibilities,
                                   const aocommon::MC2x2F& gain1,
                                   const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * (aocommon::Trace(gain1)) * (*visibilities) *
+  *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
                   std::conj(aocommon::Trace(gain2));
 }
 
