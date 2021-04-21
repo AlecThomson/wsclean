@@ -34,6 +34,7 @@
 
 #include <atomic>
 
+#ifdef HAVE_EVERYBEAM
 namespace {
 template <size_t PolarizationCount>
 void ApplyConjugatedBeam(std::complex<float>* visibilities,
@@ -74,6 +75,7 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 }  // namespace
+#endif // HAVE_EVERYBEAM
 
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
