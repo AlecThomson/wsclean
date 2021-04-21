@@ -426,8 +426,8 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
 
       if (PolarizationCount == 1) {
         // Stokes-I
-        *iter = 0.25f * (gain2[0] + gain2[3]) * (*iter) *
-                std::conj(gain1[0] + gain1[3]);
+        *iter = 0.25f * (gain1[0] + gain1[3]) * (*iter) *
+                std::conj(gain2[0] + gain2[3]);
       } else {
         // All polarizations
         const aocommon::MC2x2F visibilities(iter);
