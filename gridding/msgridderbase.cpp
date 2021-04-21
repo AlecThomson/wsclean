@@ -36,18 +36,18 @@
 
 namespace {
 template <size_t PolarizationCount>
-void ApplyBeamToInstrumentVisibilities(std::complex<float>* visibilities,
-                                       const aocommon::MC2x2F& gain1,
-                                       const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedBeam(std::complex<float>* visibilities,
+                         const aocommon::MC2x2F& gain1,
+                         const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
                   aocommon::Trace(gain2);
 }
 
 template <>
-void ApplyBeamToInstrumentVisibilities<4>(std::complex<float>* visibilities,
-                                          const aocommon::MC2x2F& gain1,
-                                          const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
+                            const aocommon::MC2x2F& gain1,
+                            const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
@@ -56,18 +56,17 @@ void ApplyBeamToInstrumentVisibilities<4>(std::complex<float>* visibilities,
 }
 
 template <size_t PolarizationCount>
-void ApplyBeamToModelVisibilities(std::complex<float>* visibilities,
-                                  const aocommon::MC2x2F& gain1,
-                                  const aocommon::MC2x2F& gain2) {
+void ApplyBeam(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+               const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
                   std::conj(aocommon::Trace(gain2));
 }
 
 template <>
-void ApplyBeamToModelVisibilities<4>(std::complex<float>* visibilities,
-                                     const aocommon::MC2x2F& gain1,
-                                     const aocommon::MC2x2F& gain2) {
+void ApplyBeam<4>(std::complex<float>* visibilities,
+                  const aocommon::MC2x2F& gain1,
+                  const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
@@ -503,7 +502,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 
       const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
-      ApplyBeamToInstrumentVisibilities<PolarizationCount>(iter, gain1, gain2);
+      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
