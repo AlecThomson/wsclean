@@ -54,9 +54,6 @@ class WSMSGridder final : public MSGridderBase {
     std::array<double, 3> uvw;
     std::unique_ptr<std::complex<float>[]> data;
     size_t rowId, dataDescId;
-    bool operator<(const PredictionWorkItem& rhs) const {
-      return rowId < rhs.rowId;
-    }
   };
 
   void gridMeasurementSet(MSData& msData);
