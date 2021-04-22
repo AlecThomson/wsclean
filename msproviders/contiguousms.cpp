@@ -7,13 +7,13 @@ ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum polOut, size_t dataDescId)
-    : _inputRow(0),
-      _inputTimestep(0),
-      _inputTime(0.0),
-      _outputRow(0),
-      _outputTimestep(0),
-      _outputTime(0.0),
-      _rowId(0),
+    : _currentInputRow(0),
+      _currentInputTimestep(0),
+      _currentInputTime(0.0),
+      _currentOutputRow(0),
+      _currentOutputTimestep(0),
+      _currentOutputTime(0.0),
+      _currentRowId(0),
       _dataDescId(dataDescId),
       _nAntenna(0),
       _isModelColumnPrepared(false),
@@ -78,42 +78,42 @@ void ContiguousMS::open() {
 }
 
 void ContiguousMS::Reset() {
-  _inputRow = _startRow - 1;
-  _inputTime = 0.0;
+  _currentInputRow = _startRow - 1;
+  _currentInputTime = 0.0;
   if (_selection.HasInterval())
-    _inputTimestep = _selection.IntervalStart() - 1;
+    _currentInputTimestep = _selection.IntervalStart() - 1;
   else
-    _inputTimestep = -1;
-  _outputRow = _inputRow;
-  _outputTime = _inputTime;
-  _outputTimestep = _inputTimestep;
-  _rowId = size_t(-1);
+    _currentInputTimestep = -1;
+  _currentOutputRow = _currentInputRow;
+  _currentOutputTime = _currentInputTime;
+  _currentOutputTimestep = _currentInputTimestep;
+  _currentRowId = size_t(-1);
   NextInputRow();
   NextOutputRow();
 }
 
 bool ContiguousMS::CurrentRowAvailable() {
-  if (_inputRow >= _endRow) return false;
+  if (_currentInputRow >= _endRow) return false;
 
-  int fieldId = _fieldIdColumn(_inputRow);
-  int a1 = _antenna1Column(_inputRow);
-  int a2 = _antenna2Column(_inputRow);
-  int dataDescId = _dataDescIdColumn(_inputRow);
-  casacore::Vector<double> uvw = _uvwColumn(_inputRow);
+  int fieldId = _fieldIdColumn(_currentInputRow);
+  int a1 = _antenna1Column(_currentInputRow);
+  int a2 = _antenna2Column(_currentInputRow);
+  int dataDescId = _dataDescIdColumn(_currentInputRow);
+  casacore::Vector<double> uvw = _uvwColumn(_currentInputRow);
 
-  while (!_selection.IsSelected(fieldId, _inputTimestep, a1, a2, uvw) ||
+  while (!_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
          dataDescId != _dataDescId) {
-    ++_inputRow;
-    if (_inputRow >= _endRow) return false;
+    ++_currentInputRow;
+    if (_currentInputRow >= _endRow) return false;
 
-    fieldId = _fieldIdColumn(_inputRow);
-    a1 = _antenna1Column(_inputRow);
-    a2 = _antenna2Column(_inputRow);
-    uvw = _uvwColumn(_inputRow);
-    dataDescId = _dataDescIdColumn(_inputRow);
-    if (_inputTime != _timeColumn(_inputRow)) {
-      ++_inputTimestep;
-      _inputTime = _timeColumn(_inputRow);
+    fieldId = _fieldIdColumn(_currentInputRow);
+    a1 = _antenna1Column(_currentInputRow);
+    a2 = _antenna2Column(_currentInputRow);
+    uvw = _uvwColumn(_currentInputRow);
+    dataDescId = _dataDescIdColumn(_currentInputRow);
+    if (_currentInputTime != _timeColumn(_currentInputRow)) {
+      ++_currentInputTimestep;
+      _currentInputTime = _timeColumn(_currentInputRow);
     }
 
     _isDataRead = false;
@@ -129,44 +129,46 @@ void ContiguousMS::NextInputRow() {
   _isWeightRead = false;
   _isModelRead = false;
 
-  ++_rowId;
+  ++_currentRowId;
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
   do {
-    ++_inputRow;
-    if (_inputRow >= _endRow) return;
+    ++_currentInputRow;
+    if (_currentInputRow >= _endRow) return;
 
-    fieldId = _fieldIdColumn(_inputRow);
-    a1 = _antenna1Column(_inputRow);
-    a2 = _antenna2Column(_inputRow);
-    uvw = _uvwColumn(_inputRow);
-    dataDescId = _dataDescIdColumn(_inputRow);
-    if (_inputTime != _timeColumn(_inputRow)) {
-      ++_inputTimestep;
-      _inputTime = _timeColumn(_inputRow);
+    fieldId = _fieldIdColumn(_currentInputRow);
+    a1 = _antenna1Column(_currentInputRow);
+    a2 = _antenna2Column(_currentInputRow);
+    uvw = _uvwColumn(_currentInputRow);
+    dataDescId = _dataDescIdColumn(_currentInputRow);
+    if (_currentInputTime != _timeColumn(_currentInputRow)) {
+      ++_currentInputTimestep;
+      _currentInputTime = _timeColumn(_currentInputRow);
     }
-  } while (!_selection.IsSelected(fieldId, _inputTimestep, a1, a2, uvw) ||
-           (dataDescId != _dataDescId));
+  } while (
+      !_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
+      (dataDescId != _dataDescId));
 }
 
 void ContiguousMS::NextOutputRow() {
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
   do {
-    ++_outputRow;
-    if (_outputRow >= _endRow) return;
+    ++_currentOutputRow;
+    if (_currentOutputRow >= _endRow) return;
 
-    fieldId = _fieldIdColumn(_outputRow);
-    a1 = _antenna1Column(_outputRow);
-    a2 = _antenna2Column(_outputRow);
-    uvw = _uvwColumn(_outputRow);
-    dataDescId = _dataDescIdColumn(_outputRow);
-    if (_outputTime != _timeColumn(_outputRow)) {
-      ++_outputTimestep;
-      _outputTime = _timeColumn(_outputRow);
+    fieldId = _fieldIdColumn(_currentOutputRow);
+    a1 = _antenna1Column(_currentOutputRow);
+    a2 = _antenna2Column(_currentOutputRow);
+    uvw = _uvwColumn(_currentOutputRow);
+    dataDescId = _dataDescIdColumn(_currentOutputRow);
+    if (_currentOutputTime != _timeColumn(_currentOutputRow)) {
+      ++_currentOutputTimestep;
+      _currentOutputTime = _timeColumn(_currentOutputRow);
     }
-  } while (!_selection.IsSelected(fieldId, _outputTimestep, a1, a2, uvw) ||
-           (dataDescId != _dataDescId));
+  } while (
+      !_selection.IsSelected(fieldId, _currentOutputTimestep, a1, a2, uvw) ||
+      (dataDescId != _dataDescId));
 }
 
 double ContiguousMS::StartTime() {
@@ -178,7 +180,7 @@ double ContiguousMS::StartTime() {
 
 void ContiguousMS::ReadMeta(double& u, double& v, double& w,
                             size_t& dataDescId) {
-  casacore::Vector<double> uvwArray = _uvwColumn(_inputRow);
+  casacore::Vector<double> uvwArray = _uvwColumn(_currentInputRow);
   u = uvwArray(0);
   v = uvwArray(1);
   w = uvwArray(2);
@@ -186,15 +188,15 @@ void ContiguousMS::ReadMeta(double& u, double& v, double& w,
 }
 
 void ContiguousMS::ReadMeta(MetaData& metaData) {
-  casacore::Vector<double> uvwArray = _uvwColumn(_inputRow);
+  casacore::Vector<double> uvwArray = _uvwColumn(_currentInputRow);
   metaData.uInM = uvwArray(0);
   metaData.vInM = uvwArray(1);
   metaData.wInM = uvwArray(2);
   metaData.dataDescId = _dataDescId;
-  metaData.fieldId = _fieldIdColumn(_inputRow);
-  metaData.antenna1 = _antenna1Column(_inputRow);
-  metaData.antenna2 = _antenna2Column(_inputRow);
-  metaData.time = _timeColumn(_inputRow);
+  metaData.fieldId = _fieldIdColumn(_currentInputRow);
+  metaData.antenna1 = _antenna1Column(_currentInputRow);
+  metaData.antenna2 = _antenna2Column(_currentInputRow);
+  metaData.time = _timeColumn(_currentInputRow);
 }
 
 void ContiguousMS::ReadData(std::complex<float>* buffer) {
@@ -260,7 +262,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     endChannel = _bandData[_dataDescId].ChannelCount();
   }
 
-  _modelColumn->get(_outputRow, _modelArray);
+  _modelColumn->get(_currentOutputRow, _modelArray);
   if (addToMS) {
     reverseCopyData<true>(_modelArray, startChannel, endChannel,
                           _inputPolarizations, buffer, _polOut);
@@ -268,7 +270,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     reverseCopyData<false>(_modelArray, startChannel, endChannel,
                            _inputPolarizations, buffer, _polOut);
   }
-  _modelColumn->put(_outputRow, _modelArray);
+  _modelColumn->put(_currentOutputRow, _modelArray);
 }
 
 void ContiguousMS::ReadWeights(std::complex<float>* buffer) {
@@ -306,7 +308,7 @@ void ContiguousMS::WriteImagingWeights(const float* buffer) {
     _imagingWeightsColumn.reset(
         new casacore::ArrayColumn<float>(initializeImagingWeightColumn(*_ms)));
   }
-  size_t msRowId = _idToMSRow[_inputRow];
+  size_t msRowId = _idToMSRow[_currentInputRow];
   size_t dataDescId = _dataDescIdColumn(msRowId);
   size_t startChannel, endChannel;
   if (_selection.HasChannelRange()) {

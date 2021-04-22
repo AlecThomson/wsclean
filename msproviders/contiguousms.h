@@ -27,7 +27,7 @@ class ContiguousMS : public MSProvider {
 
   const std::string& DataColumnName() final override { return _dataColumnName; }
 
-  size_t RowId() const final override { return _rowId; }
+  size_t RowId() const final override { return _currentRowId; }
 
   bool CurrentRowAvailable() final override;
 
@@ -72,13 +72,13 @@ class ContiguousMS : public MSProvider {
  private:
   void open();
 
-  size_t _inputRow;
-  size_t _inputTimestep;
-  double _inputTime;
-  size_t _outputRow;
-  size_t _outputTimestep;
-  double _outputTime;
-  size_t _rowId;
+  size_t _currentInputRow;
+  size_t _currentInputTimestep;
+  double _currentInputTime;
+  size_t _currentOutputRow;
+  size_t _currentOutputTimestep;
+  double _currentOutputTime;
+  size_t _currentRowId;
   const int _dataDescId;
   size_t _nAntenna;
   bool _isDataRead, _isModelRead, _isWeightRead;
@@ -113,17 +113,17 @@ class ContiguousMS : public MSProvider {
   void prepareModelColumn();
   void readData() {
     if (!_isDataRead) {
-      _dataColumn.get(_inputRow, _dataArray);
+      _dataColumn.get(_currentInputRow, _dataArray);
       _isDataRead = true;
     }
   }
   void readWeights() {
     if (!_isWeightRead) {
-      _flagColumn.get(_inputRow, _flagArray);
+      _flagColumn.get(_currentInputRow, _flagArray);
       if (_msHasWeightSpectrum)
-        _weightSpectrumColumn->get(_inputRow, _weightSpectrumArray);
+        _weightSpectrumColumn->get(_currentInputRow, _weightSpectrumArray);
       else {
-        _weightScalarColumn->get(_inputRow, _weightScalarArray);
+        _weightScalarColumn->get(_currentInputRow, _weightScalarArray);
         expandScalarWeights(_weightScalarArray, _weightSpectrumArray);
       }
       _isWeightRead = true;
@@ -131,7 +131,7 @@ class ContiguousMS : public MSProvider {
   }
   void readModel() {
     if (!_isModelRead) {
-      _modelColumn->get(_inputRow, _modelArray);
+      _modelColumn->get(_currentInputRow, _modelArray);
       _isModelRead = true;
     }
   }
