@@ -69,8 +69,7 @@ class MSGridderBase {
     return _precalculatedWeightInfo;
   }
   bool IsComplex() const { return _isComplex; }
-  size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
-  size_t OverSamplingFactor() const { return _overSamplingFactor; }
+
   bool HasWLimit() const { return _wLimit != 0.0; }
   double WLimit() const { return _wLimit; }
   enum VisibilityWeightingMode VisibilityWeightingMode() const {
@@ -116,10 +115,6 @@ class MSGridderBase {
     _isFirstIteration = isFirstIteration;
   }
 
-  void SetAntialiasingKernelSize(size_t kernelSize) {
-    _antialiasingKernelSize = kernelSize;
-  }
-  void SetOverSamplingFactor(size_t factor) { _overSamplingFactor = factor; }
   void SetWLimit(double wLimit) { _wLimit = wLimit; }
   void SetVisibilityWeightingMode(enum VisibilityWeightingMode mode) {
     _visibilityWeightingMode = mode;
@@ -137,21 +132,21 @@ class MSGridderBase {
   virtual Image ImageImaginaryResult() = 0;
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
-    ComputeRaDec();
+    computeFacetCentre();
   }
   void SetPhaseCentreDec(const double phaseCentreDec) {
     _phaseCentreDec = phaseCentreDec;
-    ComputeRaDec();
+    computeFacetCentre();
   }
   double PhaseCentreRA() const { return _phaseCentreRA; }
   double PhaseCentreDec() const { return _phaseCentreDec; }
   void SetPhaseCentreDL(const double phaseCentreDL) {
     _phaseCentreDL = phaseCentreDL;
-    ComputeRaDec();
+    computeFacetCentre();
   }
   void SetPhaseCentreDM(const double phaseCentreDM) {
     _phaseCentreDM = phaseCentreDM;
-    ComputeRaDec();
+    computeFacetCentre();
   }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
@@ -176,15 +171,6 @@ class MSGridderBase {
     _trimWidth = trimWidth;
     _trimHeight = trimHeight;
   }
-  bool HasNWSize() const { return _nwWidth != 0 || _nwHeight != 0; }
-  size_t NWWidth() const { return _nwWidth; }
-  size_t NWHeight() const { return _nwHeight; }
-  double NWFactor() const { return _nwFactor; }
-  void SetNWSize(size_t nwWidth, size_t nwHeight) {
-    _nwWidth = nwWidth;
-    _nwHeight = nwHeight;
-  }
-  void SetNWFactor(double factor) { _nwFactor = factor; }
 
   double StartTime() const { return _startTime; }
   bool HasDenormalPhaseCentre() const {
@@ -227,7 +213,7 @@ class MSGridderBase {
 
  protected:
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
-  void ComputeRaDec() {
+  void computeFacetCentre() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
                                           _phaseCentreRA, _phaseCentreDec,
                                           _facetCentreRA, _facetCentreDec);
@@ -358,8 +344,6 @@ class MSGridderBase {
   size_t _facetIndex;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
-  size_t _nwWidth, _nwHeight;
-  double _nwFactor;
   double _pixelSizeX, _pixelSizeY;
   size_t _wGridSize, _actualWGridSize;
   std::vector<MSProvider*> _measurementSets;
@@ -372,7 +356,6 @@ class MSGridderBase {
   WeightMode _weighting;
   bool _isFirstIteration;
   std::vector<MSSelection> _selections;
-  size_t _antialiasingKernelSize, _overSamplingFactor;
   enum VisibilityWeightingMode _visibilityWeightingMode;
   GridModeEnum _gridMode;
   bool _storeImagingWeights;

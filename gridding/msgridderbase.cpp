@@ -107,9 +107,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _imageHeight(0),
       _trimWidth(0),
       _trimHeight(0),
-      _nwWidth(0),
-      _nwHeight(0),
-      _nwFactor(1.0),
       _pixelSizeX((1.0 / 60.0) * M_PI / 180.0),
       _pixelSizeY((1.0 / 60.0) * M_PI / 180.0),
       _wGridSize(0),
@@ -126,8 +123,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _isComplex(false),
       _weighting(WeightMode::UniformWeighted),
       _isFirstIteration(false),
-      _antialiasingKernelSize(7),
-      _overSamplingFactor(63),
       _visibilityWeightingMode(NormalVisibilityWeighting),
       _gridMode(KaiserBesselKernel),
       _storeImagingWeights(false),
@@ -142,7 +137,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0) {
-  ComputeRaDec();
+  computeFacetCentre();
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
