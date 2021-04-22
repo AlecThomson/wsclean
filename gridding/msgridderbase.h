@@ -37,8 +37,6 @@ class MSGridderBase {
   size_t ImageHeight() const { return _imageHeight; }
   double PixelSizeX() const { return _pixelSizeX; }
   double PixelSizeY() const { return _pixelSizeY; }
-  bool HasWGridSize() const { return _wGridSize != 0; }
-  size_t WGridSize() const { return _wGridSize; }
   size_t ActualWGridSize() const { return _actualWGridSize; }
 
   void ClearMeasurementSetList() {
@@ -70,8 +68,6 @@ class MSGridderBase {
   }
   bool IsComplex() const { return _isComplex; }
 
-  bool HasWLimit() const { return _wLimit != 0.0; }
-  double WLimit() const { return _wLimit; }
   enum VisibilityWeightingMode VisibilityWeightingMode() const {
     return _visibilityWeightingMode;
   }
@@ -337,6 +333,7 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
+  bool hasWGridSize() const { return _wGridSize != 0; }
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;

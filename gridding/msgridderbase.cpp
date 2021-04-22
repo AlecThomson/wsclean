@@ -417,8 +417,8 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     Logger::Info << "Theoretic beam = "
                  << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
   }
-  if (HasWLimit()) {
-    _maxW *= (1.0 - WLimit());
+  if (_wLimit != 0.0) {
+    _maxW *= (1.0 - _wLimit);
     if (_maxW < _minW) _maxW = _minW;
   }
 
@@ -461,14 +461,14 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     }
   }
 
-  if (IsFirstIteration() || !HasWGridSize()) {
+  if (IsFirstIteration() || !hasWGridSize()) {
     size_t suggestedGridSize = getSuggestedWGridSize();
-    if (!HasWGridSize())
-      SetActualWGridSize(suggestedGridSize);
+    if (!hasWGridSize())
+      _actualWGridSize = suggestedGridSize;
     else
-      SetActualWGridSize(WGridSize());
+      _actualWGridSize = _wGridSize;
   } else
-    SetActualWGridSize(WGridSize());
+    _actualWGridSize = _wGridSize;
 }
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider,
