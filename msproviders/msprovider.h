@@ -49,7 +49,7 @@ class MSProvider {
   virtual SynchronizedMS MS() = 0;
 
   /**
-   * The name used that data is read from.
+   * The column name from which data is read.
    * Writing is done to a different column.
    */
   virtual const std::string& DataColumnName() = 0;
