@@ -4,7 +4,6 @@
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
-// #include "../gridding/msgridderbase.h"
 
 #include "../gridding/visibilityweightingmode.h"
 #include "../structures/weightmode.h"

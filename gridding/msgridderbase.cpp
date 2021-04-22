@@ -145,8 +145,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
   ComputeRaDec();
 }
 
-// MSGridderBase::~MSGridderBase() {}
-
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
                                           double absMemLimit) {
   static std::atomic<bool> isFirst(true);
