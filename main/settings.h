@@ -99,7 +99,7 @@ class Settings {
   double facetBeamUpdateTime;  // in seconds.
   bool saveATerms;
   enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode;
-  enum GridModeEnum gridMode;
+  enum GridMode gridMode;
   enum VisibilityWeightingMode visibilityWeightingMode;
   double baselineDependentAveragingInWavelengths;
   bool simulateNoise;
@@ -284,7 +284,7 @@ inline Settings::Settings()
       facetBeamUpdateTime(120.0),
       saveATerms(false),
       idgMode(IDG_DEFAULT),
-      gridMode(KaiserBesselKernel),
+      gridMode(GridMode::KaiserBesselKernel),
       visibilityWeightingMode(
           VisibilityWeightingMode::NormalVisibilityWeighting),
       baselineDependentAveragingInWavelengths(0.0),

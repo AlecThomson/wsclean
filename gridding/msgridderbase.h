@@ -1,7 +1,7 @@
 #ifndef MS_GRIDDER_BASE_H
 #define MS_GRIDDER_BASE_H
 
-#include "gridmodeenum.h"
+#include "gridmode.h"
 
 #include <aocommon/polarization.h>
 #include <aocommon/imagecoordinates.h>
@@ -157,8 +157,8 @@ class MSGridderBase {
   virtual size_t ActualInversionWidth() const { return _imageWidth; }
   virtual size_t ActualInversionHeight() const { return _imageHeight; }
 
-  enum GridModeEnum GridMode() const { return _gridMode; }
-  void SetGridMode(GridModeEnum gridMode) { _gridMode = gridMode; }
+  enum GridMode GridMode() const { return _gridMode; }
+  void SetGridMode(enum GridMode gridMode) { _gridMode = gridMode; }
 
   size_t TrimWidth() const { return _trimWidth; }
   size_t TrimHeight() const { return _trimHeight; }
@@ -354,7 +354,7 @@ class MSGridderBase {
   bool _isFirstIteration;
   std::vector<MSSelection> _selections;
   enum VisibilityWeightingMode _visibilityWeightingMode;
-  GridModeEnum _gridMode;
+  enum GridMode _gridMode;
   bool _storeImagingWeights;
   double _theoreticalBeamSize;
 
