@@ -6,7 +6,7 @@
  * (normally stored in the SPECTRUM_WEIGHT column)
  * are applied to the data.
  */
-enum VisibilityWeightingMode {
+enum class VisibilityWeightingMode {
   NormalVisibilityWeighting,
   SquaredVisibilityWeighting,
   UnitVisibilityWeighting

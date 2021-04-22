@@ -123,7 +123,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _isComplex(false),
       _weighting(WeightMode::UniformWeighted),
       _isFirstIteration(false),
-      _visibilityWeightingMode(NormalVisibilityWeighting),
+      _visibilityWeightingMode(
+          VisibilityWeightingMode::NormalVisibilityWeighting),
       _gridMode(KaiserBesselKernel),
       _storeImagingWeights(false),
       _theoreticalBeamSize(0.0),
@@ -556,15 +557,15 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   }
 
   switch (VisibilityWeightingMode()) {
-    case NormalVisibilityWeighting:
+    case VisibilityWeightingMode::NormalVisibilityWeighting:
       // The weight buffer already contains the visibility weights: do nothing
       break;
-    case SquaredVisibilityWeighting:
+    case VisibilityWeightingMode::SquaredVisibilityWeighting:
       // Square the visibility weights
       for (size_t chp = 0; chp != dataSize; ++chp)
         weightBuffer[chp] *= weightBuffer[chp];
       break;
-    case UnitVisibilityWeighting:
+    case VisibilityWeightingMode::UnitVisibilityWeighting:
       // Set the visibility weights to one
       for (size_t chp = 0; chp != dataSize; ++chp) {
         if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;

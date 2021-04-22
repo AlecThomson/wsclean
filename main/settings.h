@@ -285,7 +285,8 @@ inline Settings::Settings()
       saveATerms(false),
       idgMode(IDG_DEFAULT),
       gridMode(KaiserBesselKernel),
-      visibilityWeightingMode(NormalVisibilityWeighting),
+      visibilityWeightingMode(
+          VisibilityWeightingMode::NormalVisibilityWeighting),
       baselineDependentAveragingInWavelengths(0.0),
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),
