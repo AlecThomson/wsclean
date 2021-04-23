@@ -109,7 +109,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _trimHeight(0),
       _pixelSizeX(settings.pixelScaleX),
       _pixelSizeY(settings.pixelScaleY),
-      _wGridSize(0),
+      _wGridSize(settings.nWLayers),
       _actualWGridSize(0),
       _measurementSets(),
       _dataColumnName(settings.dataColumnName),
@@ -138,11 +138,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0) {
   computeFacetCentre();
-
-  if (_settings.nWLayers != 0)
-    _wGridSize = _settings.nWLayers;
-  else
-    _wGridSize = 0;
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
