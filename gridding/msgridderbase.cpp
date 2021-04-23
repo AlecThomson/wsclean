@@ -107,24 +107,23 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _imageHeight(0),
       _trimWidth(0),
       _trimHeight(0),
-      _pixelSizeX((1.0 / 60.0) * M_PI / 180.0),
-      _pixelSizeY((1.0 / 60.0) * M_PI / 180.0),
+      _pixelSizeX(settings.pixelScaleX),
+      _pixelSizeY(settings.pixelScaleY),
       _wGridSize(0),
       _actualWGridSize(0),
       _measurementSets(),
-      _dataColumnName("DATA"),
+      _dataColumnName(settings.dataColumnName),
       _doImagePSF(false),
       _doSubtractModel(false),
       _addToModel(false),
-      _smallInversion(false),
-      _wLimit(0.0),
+      _smallInversion(settings.smallInversion),
+      _wLimit(settings.wLimit / 100.0),
       _precalculatedWeightInfo(nullptr),
       _polarization(aocommon::Polarization::StokesI),
       _isComplex(false),
-      _weighting(WeightMode::UniformWeighted),
+      _weighting(settings.weightMode),
       _isFirstIteration(false),
-      _visibilityWeightingMode(
-          VisibilityWeightingMode::NormalVisibilityWeighting),
+      _visibilityWeightingMode(settings.visibilityWeightingMode),
       _gridMode(GridMode::KaiserBesselKernel),
       _storeImagingWeights(false),
       _theoreticalBeamSize(0.0),
@@ -139,6 +138,11 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0) {
   computeFacetCentre();
+
+  if (_settings.nWLayers != 0)
+    _wGridSize = _settings.nWLayers;
+  else
+    _wGridSize = 0;
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
