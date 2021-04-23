@@ -1,4 +1,5 @@
 #include "msprovider.h"
+#include "independentreader.h"
 
 #include "../io/logger.h"
 
@@ -19,6 +20,10 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
   *dest = source;
 }
 }  // namespace
+
+IndependentReader* MSProvider::GetIndependentReader() {
+  return (_independentReader) ? _independentReader.get() : nullptr;
+}
 
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,
