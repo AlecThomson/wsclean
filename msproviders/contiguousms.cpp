@@ -118,6 +118,20 @@ bool ContiguousMS::CurrentRowAvailable() {
     _isDataRead = false;
     _isWeightRead = false;
     _isModelRead = false;
+
+    // FIXME: inside or outside while loop?
+    if (_independentReader) {
+      MSProvider::MetaData metaData;
+      metaData.time = _currentInputTime;  // or _timeColumn(_currentInputRow)?
+      metaData.uInM = uvw(0);
+      metaData.vInM = uvw(1);
+      metaData.wInM = uvw(2);
+      metaData.dataDescId = dataDescId;
+      metaData.fieldId = fieldId;
+      metaData.antenna1 = a1;
+      metaData.antenna2 = a2;
+      _independentReader->BufferMetaData(metaData);
+    }
   }
 
   return true;
@@ -144,6 +158,21 @@ void ContiguousMS::NextInputRow() {
       ++_currentInputTimestep;
       _currentInputTime = _timeColumn(_currentInputRow);
     }
+
+    // FIXME: inside or outside while loop?
+    if (_independentReader) {
+      MSProvider::MetaData metaData;
+      metaData.time = _currentInputTime;  // or _timeColumn(_currentInputRow)
+      metaData.uInM = uvw(0);
+      metaData.vInM = uvw(1);
+      metaData.wInM = uvw(2);
+      metaData.dataDescId = dataDescId;
+      metaData.fieldId = fieldId;
+      metaData.antenna1 = a1;
+      metaData.antenna2 = a2;
+      _independentReader->BufferMetaData(metaData);
+    }
+
   } while (
       !_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
       (dataDescId != _dataDescId));

@@ -88,10 +88,7 @@ class MSProvider {
   virtual void Reset() = 0;
 
   // FIXME: will replace the above
-  void Reset(bool cacheIndependentReader) {
-    _cacheIndependentReader = cacheIndependentReader;
-    Reset();
-  };
+  void Reset(bool cacheIndependentReader);
 
   /**
    * @{
@@ -274,13 +271,13 @@ class MSProvider {
   size_t _currentInputRow;
   size_t _currentOutputRow;
   bool _cacheIndependentReader;
+  std::unique_ptr<IndependentReader> _independentReader;
 
  private:
   // Copy constructor, _independentReader is initialized with a
   // nullptr
   MSProvider(const MSProvider&);
   void operator=(const MSProvider&) {}
-  std::unique_ptr<IndependentReader> _independentReader;
 };
 
 #endif

@@ -30,6 +30,14 @@ IndependentReader* MSProvider::GetIndependentReader() {
   return (_independentReader) ? _independentReader.get() : nullptr;
 }
 
+void MSProvider::Reset(bool cacheIndependentReader) {
+  _independentReader.reset();
+  if (cacheIndependentReader) {
+    _cacheIndependentReader = new IndependentReader(this);
+  }
+  Reset();
+}
+
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,
                           const std::vector<aocommon::PolarizationEnum>& polsIn,
