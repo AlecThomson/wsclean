@@ -44,15 +44,6 @@ class IndependentReader {
   };
 
  private:
-  struct RowData {
-    // TODO: maybe we don't want to buffer the (model) data
-    // but the meta data only
-    // std::vector<std::complex<float>> data, model;
-    // std::vector<float> weights;
-    MSProvider::MetaData metaData;
-    size_t rowId;
-  };
-
   MSProvider* _msProvider;
 
   size_t _bufferPosition;

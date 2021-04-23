@@ -142,6 +142,12 @@ void PartitionedMS::NextInputRow() {
           std::ios::cur);
     _weightPtrIsOk = true;
   }
+
+  if (_independentReader) {
+    MSProvider::MetaData metaData;
+    ReadMeta(metaData);
+    _independentReader->BufferMetaData(metaData);
+  }
 }
 
 void PartitionedMS::NextOutputRow() { ++_currentOutputRow; }
