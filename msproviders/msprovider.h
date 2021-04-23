@@ -18,6 +18,7 @@ namespace casacore {
 class MeasurementSet;
 }
 class MSSelection;
+class IndependentReader;
 
 /**
  * The abstract MSProvider class is the base class for classes that read and
@@ -37,6 +38,9 @@ class MSProvider {
  public:
   friend class MSRowProvider;
   friend class DirectMSRowProvider;
+  // TODO: derived classes need to become
+  // friend with IndependentReader too
+  friend class IndependentReader;
 
   struct MetaData {
     double uInM, vInM, wInM;
@@ -176,6 +180,8 @@ class MSProvider {
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
       casacore::MeasurementSet& ms);
 
+  IndependentReader* GetIndependentReader();
+
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,
                        size_t endChannel,
@@ -257,11 +263,14 @@ class MSProvider {
     }
   }
 
-  MSProvider() {}
+  MSProvider() : _independentReader(nullptr) {}
 
  private:
   MSProvider(const MSProvider&) {}
   void operator=(const MSProvider&) {}
+  // TODO: should rather be a unique_ptr. Which results
+  // in compiler errors, however.
+  std::shared_ptr<IndependentReader> _independentReader;
 };
 
 #endif
