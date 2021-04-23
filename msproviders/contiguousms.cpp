@@ -1,4 +1,5 @@
 #include "contiguousms.h"
+#include "independentreader.h"
 #include "../io/logger.h"
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
