@@ -72,10 +72,8 @@ class ContiguousMS : public MSProvider {
  private:
   void open();
 
-  size_t _currentInputRow;
   size_t _currentInputTimestep;
   double _currentInputTime;
-  size_t _currentOutputRow;
   size_t _currentOutputTimestep;
   double _currentOutputTime;
   size_t _currentRowId;

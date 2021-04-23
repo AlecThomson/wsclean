@@ -87,6 +87,12 @@ class MSProvider {
    */
   virtual void Reset() = 0;
 
+  // FIXME: will replace the above
+  void Reset(bool cacheIndependentReader) {
+    _cacheIndependentReader = cacheIndependentReader;
+    Reset();
+  };
+
   /**
    * @{
    * Read meta data from the current reading position.
@@ -264,6 +270,10 @@ class MSProvider {
   }
 
   MSProvider();
+
+  size_t _currentInputRow;
+  size_t _currentOutputRow;
+  bool _cacheIndependentReader;
 
  private:
   // Copy constructor, _independentReader is initialized with a
