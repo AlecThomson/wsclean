@@ -48,7 +48,7 @@ class MSProvider {
     double time;
   };
 
-  virtual ~MSProvider() {}
+  virtual ~MSProvider();  // {}
 
   virtual SynchronizedMS MS() = 0;
 
@@ -263,14 +263,14 @@ class MSProvider {
     }
   }
 
-  MSProvider() : _independentReader(nullptr) {}
+  MSProvider();
 
  private:
-  MSProvider(const MSProvider&) {}
+  // Copy constructor, _independentReader is initialized with a
+  // nullptr
+  MSProvider(const MSProvider&);
   void operator=(const MSProvider&) {}
-  // TODO: should rather be a unique_ptr. Which results
-  // in compiler errors, however.
-  std::shared_ptr<IndependentReader> _independentReader;
+  std::unique_ptr<IndependentReader> _independentReader;
 };
 
 #endif

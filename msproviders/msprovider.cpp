@@ -21,6 +21,10 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
 }
 }  // namespace
 
+MSProvider::~MSProvider() {}
+MSProvider::MSProvider() : _independentReader(nullptr) {}
+MSProvider::MSProvider(const MSProvider&) : _independentReader(nullptr) {}
+
 IndependentReader* MSProvider::GetIndependentReader() {
   return (_independentReader) ? _independentReader.get() : nullptr;
 }
