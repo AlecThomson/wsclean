@@ -1,5 +1,5 @@
 #include "partitionedms.h"
-#include "independentreader.h"
+#include "msreader.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -141,12 +141,6 @@ void PartitionedMS::NextInputRow() {
           _partHeader.channelCount * _polarizationCountInFile * sizeof(float),
           std::ios::cur);
     _weightPtrIsOk = true;
-  }
-
-  if (_independentReader) {
-    MSProvider::MetaData metaData;
-    ReadMeta(metaData);
-    _independentReader->BufferMetaData(metaData);
   }
 }
 
