@@ -2,7 +2,7 @@
 #define MSPROVIDERS_TIMESTEP_BUFFER_H
 
 #include "msprovider.h"
-#include "msreader.h"
+#include "../msreaders/msreader.h"
 
 /**
  * This class wraps any MSProvider to make it read whole blocks of rows

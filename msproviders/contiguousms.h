@@ -13,7 +13,11 @@
 
 #include <memory>
 
+class ContiguousMSReader;
+
 class ContiguousMS : public MSProvider {
+  friend class ContiguousMSReader;
+
  public:
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
                const MSSelection& selection, aocommon::PolarizationEnum polOut,
@@ -72,8 +76,10 @@ class ContiguousMS : public MSProvider {
  private:
   void open();
 
+  size_t _currentInputRow;
   size_t _currentInputTimestep;
   double _currentInputTime;
+  size_t _currentOutputRow;
   size_t _currentOutputTimestep;
   double _currentOutputTime;
   size_t _currentRowId;

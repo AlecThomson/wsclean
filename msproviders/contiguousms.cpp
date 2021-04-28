@@ -1,5 +1,5 @@
 #include "contiguousms.h"
-#include "msreader.h"
+// #include "../msreaders/msreader.h"
 #include "../io/logger.h"
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
@@ -8,8 +8,10 @@ ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum polOut, size_t dataDescId)
-    : _currentInputTimestep(0),
+    : _currentInputRow(0),
+      _currentInputTimestep(0),
       _currentInputTime(0.0),
+      _currentOutputRow(0),
       _currentOutputTimestep(0),
       _currentOutputTime(0.0),
       _currentRowId(0),
