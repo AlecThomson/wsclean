@@ -261,10 +261,7 @@ class MSProvider {
     }
   }
 
-  MSProvider();
-
-  size_t _currentInputRow;
-  size_t _currentOutputRow;
+  MSProvider(){};
 
  private:
   MSProvider(const MSProvider&);

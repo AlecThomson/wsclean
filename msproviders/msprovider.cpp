@@ -1,5 +1,5 @@
 #include "msprovider.h"
-#include "msreader.h"
+#include "../msreaders/msreader.h"
 
 #include "../io/logger.h"
 
@@ -22,7 +22,6 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
 }  // namespace
 
 MSProvider::~MSProvider() {}
-MSProvider::MSProvider() : _currentInputRow(0), _currentOutputRow(0) {}
 MSProvider::MSProvider(const MSProvider&) {}
 
 // FIXME: should become pure virtual

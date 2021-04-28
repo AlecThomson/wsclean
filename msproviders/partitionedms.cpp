@@ -1,5 +1,5 @@
 #include "partitionedms.h"
-#include "msreader.h"
+// #include "../msreaders/msreader.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -40,6 +40,8 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _metaFile(getMetaFilename(handle._data->_msPath,
                                 handle._data->_temporaryDirectory, dataDescId)),
       _modelFileMap(0),
+      _currentInputRow(0),
+      _currentOutputRow(0),
       _readPtrIsOk(true),
       _metaPtrIsOk(true),
       _weightPtrIsOk(true),

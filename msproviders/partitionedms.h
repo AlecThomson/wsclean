@@ -162,6 +162,8 @@ class PartitionedMS final : public MSProvider {
   size_t _partIndex;
   std::ifstream _metaFile, _weightFile, _dataFile;
   char* _modelFileMap;
+  size_t _currentInputRow;
+  size_t _currentOutputRow;
   bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
   aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
   aocommon::UVector<std::complex<float>> _modelBuffer;
