@@ -1,5 +1,5 @@
 #include "msprovider.h"
-#include "independentreader.h"
+#include "msreader.h"
 
 #include "../io/logger.h"
 
@@ -22,21 +22,11 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
 }  // namespace
 
 MSProvider::~MSProvider() {}
-MSProvider::MSProvider()
-    : _currentInputRow(0), _currentOutputRow(0), _independentReader(nullptr) {}
-MSProvider::MSProvider(const MSProvider&) : _independentReader(nullptr) {}
+MSProvider::MSProvider() : _currentInputRow(0), _currentOutputRow(0) {}
+MSProvider::MSProvider(const MSProvider&) {}
 
-IndependentReader* MSProvider::GetIndependentReader() {
-  return (_independentReader) ? _independentReader.get() : nullptr;
-}
-
-void MSProvider::Reset(bool cacheIndependentReader) {
-  _independentReader.reset();
-  if (cacheIndependentReader) {
-    _cacheIndependentReader = new IndependentReader(this);
-  }
-  Reset();
-}
+// FIXME: should become pure virtual
+std::unique_ptr<MSReader> MSProvider::GetReader() { return nullptr; };
 
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,

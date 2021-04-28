@@ -18,7 +18,7 @@ namespace casacore {
 class MeasurementSet;
 }
 class MSSelection;
-class IndependentReader;
+class MSReader;
 
 /**
  * The abstract MSProvider class is the base class for classes that read and
@@ -38,9 +38,7 @@ class MSProvider {
  public:
   friend class MSRowProvider;
   friend class DirectMSRowProvider;
-  // TODO: derived classes need to become
-  // friend with IndependentReader too
-  friend class IndependentReader;
+  friend class MSReader;
 
   struct MetaData {
     double uInM, vInM, wInM;
@@ -86,9 +84,6 @@ class MSProvider {
    * Reset both the reading and writing position to the first row.
    */
   virtual void Reset() = 0;
-
-  // FIXME: will replace the above
-  void Reset(bool cacheIndependentReader);
 
   /**
    * @{
@@ -183,7 +178,7 @@ class MSProvider {
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
       casacore::MeasurementSet& ms);
 
-  IndependentReader* GetIndependentReader();
+  virtual std::unique_ptr<MSReader> GetReader();
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,
@@ -270,12 +265,8 @@ class MSProvider {
 
   size_t _currentInputRow;
   size_t _currentOutputRow;
-  bool _cacheIndependentReader;
-  std::unique_ptr<IndependentReader> _independentReader;
 
  private:
-  // Copy constructor, _independentReader is initialized with a
-  // nullptr
   MSProvider(const MSProvider&);
   void operator=(const MSProvider&) {}
 };

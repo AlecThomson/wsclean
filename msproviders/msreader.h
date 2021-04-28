@@ -1,16 +1,16 @@
-#ifndef INDEPENDENTREADER_H
-#define INDEPENDENTREADER_H
+#ifndef MSREADER_H
+#define MSREADER_H
 
 #include "msprovider.h"
 
 /**
- * An IndependentReader provides the capability to read (meta)data
+ * An MSReader provides the capability to read (meta)data
  * independent from the location of the reader position in the MSProvider
  */
-class IndependentReader {
+class MSReader {
  public:
-  IndependentReader(MSProvider* msProvider) : _msProvider(msProvider){};
-  virtual ~IndependentReader(){};
+  MSReader(MSProvider* msProvider) : _msProvider(msProvider){};
+  virtual ~MSReader(){};
 
   // TODO: reading (buffered) meta data at the current output position?
   // (potentially lagging behind the _currentInputPosition)
