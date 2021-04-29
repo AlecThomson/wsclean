@@ -49,8 +49,7 @@ void TimestepBufferReader::WriteImagingWeights(const float* buffer) {
 
 void TimestepBufferReader::readTimeblock() {
   // Beware that the top level _msProvider is
-  // the TimestepBuffer, which in turn has
-  // also has its own _msProvider
+  // the TimestepBuffer, which in turn has its own _msProvider
   TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*_msProvider);
 
   _bufferPosition = 0;
@@ -77,7 +76,7 @@ void TimestepBufferReader::readTimeblock() {
       if (tstepbuffer._readModel) _msReader->ReadModel(row.model.data());
       _msReader->ReadWeights(row.weights.data());
       // TODO: drag into reader?
-      row.rowId = tstepbuffer._msProvider->RowId();
+      row.rowId = _msReader->RowId();
 
       _msReader->NextInputRow();
       ++writePos;

@@ -1,4 +1,5 @@
 #include "contiguousms.h"
+#include "../msreaders/contiguousmsreader.h"
 #include "../io/logger.h"
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
@@ -75,6 +76,11 @@ void ContiguousMS::open() {
   getRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow,
                       std::set<size_t>{size_t(_dataDescId)}, _idToMSRow);
   Reset();
+}
+
+std::unique_ptr<MSReader> ContiguousMS::GetReader() {
+  std::unique_ptr<MSReader> reader(new ContiguousMSReader(this));
+  return reader;
 }
 
 void ContiguousMS::Reset() {

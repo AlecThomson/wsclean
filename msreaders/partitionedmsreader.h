@@ -13,6 +13,8 @@ class PartitionedMSReader final : public MSReader {
         _weightPtrIsOk(true){};
   virtual ~PartitionedMSReader(){};
 
+  size_t RowId() const final override { return _currentInputRow; }
+
   bool CurrentRowAvailable() final override;
 
   void NextInputRow() final override;

@@ -22,10 +22,13 @@ class ContiguousMS : public MSProvider {
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
                const MSSelection& selection, aocommon::PolarizationEnum polOut,
                size_t dataDescIndex);
+  virtual ~ContiguousMS(){};
 
   ContiguousMS(const ContiguousMS&) = delete;
 
   ContiguousMS& operator=(const ContiguousMS&) = delete;
+
+  std::unique_ptr<MSReader> GetReader() final override;
 
   SynchronizedMS MS() final override { return _ms; }
 

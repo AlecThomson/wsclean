@@ -247,6 +247,7 @@ add_library(wsclean-object OBJECT
   msproviders/msprovider.cpp
   msproviders/msrowprovider.cpp
   msproviders/partitionedms.cpp
+  msproviders/timestepbuffer.cpp
   msproviders/synchronizedms.cpp
   # msreaders
   msreaders/msreader.cpp

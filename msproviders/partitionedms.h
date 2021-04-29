@@ -45,6 +45,8 @@ class PartitionedMS final : public MSProvider {
   PartitionedMS(const PartitionedMS&) = delete;
   PartitionedMS& operator=(const PartitionedMS&) = delete;
 
+  std::unique_ptr<MSReader> GetReader() final override;
+
   SynchronizedMS MS() override {
     return SynchronizedMS(_handle._data->_msPath.data());
   }

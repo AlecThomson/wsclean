@@ -12,6 +12,8 @@ class TimestepBufferReader final : public MSReader {
   };
   virtual ~TimestepBufferReader(){};
 
+  size_t RowId() const final override { return _buffer[_bufferPosition].rowId; }
+
   bool CurrentRowAvailable() final override;
 
   void NextInputRow() final override;
