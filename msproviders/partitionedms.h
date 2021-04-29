@@ -17,7 +17,10 @@
 #include <string>
 #include <map>
 
+class PartitionedMSReader;
+
 class PartitionedMS final : public MSProvider {
+ friend class PartitionedMSReader;
  public:
   class Handle;
 
@@ -170,8 +173,8 @@ class PartitionedMS final : public MSProvider {
   std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
   int _fd;
-  aocommon::PolarizationEnum _polarization;
-  size_t _polarizationCountInFile;
+  const aocommon::PolarizationEnum _polarization;
+  const size_t _polarizationCountInFile;
 
   struct MetaHeader {
     uint64_t selectedRowCount;
