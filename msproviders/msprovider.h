@@ -178,7 +178,7 @@ class MSProvider {
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
       casacore::MeasurementSet& ms);
 
-  virtual std::unique_ptr<MSReader> GetReader();
+  virtual std::unique_ptr<MSReader> GetReader() = 0;
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,

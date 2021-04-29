@@ -1,4 +1,5 @@
 #include "partitionedms.h"
+#include "../msreaders/partitionedmsreader.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -116,6 +117,11 @@ void PartitionedMS::Reset() {
   _readPtrIsOk = true;
   _metaPtrIsOk = true;
   _weightPtrIsOk = true;
+}
+
+std::unique_ptr<MSReader> PartitionedMS::GetReader() {
+  std::unique_ptr<MSReader> reader(new PartitionedMSReader(this));
+  return reader;
 }
 
 bool PartitionedMS::CurrentRowAvailable() {

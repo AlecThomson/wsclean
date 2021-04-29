@@ -24,7 +24,11 @@ class TimestepBuffer final : public MSProvider {
     readTimeblock();
   }
 
+  virtual ~TimestepBuffer(){};
+
   SynchronizedMS MS() override { return _msProvider->MS(); }
+
+  std::unique_ptr<MSReader> GetReader() final override;
 
   const std::string& DataColumnName() override {
     return _msProvider->DataColumnName();

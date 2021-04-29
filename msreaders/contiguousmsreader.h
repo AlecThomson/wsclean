@@ -16,6 +16,8 @@ class ContiguousMSReader final : public MSReader {
         _isWeightRead(false){};
   virtual ~ContiguousMSReader(){};
 
+  size_t RowId() const final override { return _currentRowId; }
+
   bool CurrentRowAvailable() final override;
 
   void NextInputRow() final override;

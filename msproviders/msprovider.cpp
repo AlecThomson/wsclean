@@ -24,9 +24,6 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
 MSProvider::~MSProvider() {}
 MSProvider::MSProvider(const MSProvider&) {}
 
-// FIXME: should become pure virtual
-std::unique_ptr<MSReader> MSProvider::GetReader() { return nullptr; };
-
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,
                           const std::vector<aocommon::PolarizationEnum>& polsIn,
