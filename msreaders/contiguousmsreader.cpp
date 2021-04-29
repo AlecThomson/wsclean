@@ -152,6 +152,31 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
       contiguousms._flagArray, contiguousms._polOut);
 }
 
+void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+
+  if (_imagingWeightsColumn == nullptr) {
+    _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
+        MSProvider::initializeImagingWeightColumn(*(contiguousms._ms))));
+  }
+  size_t msRowId = contiguousms._idToMSRow[_currentInputRow];
+  size_t dataDescId = contiguousms._dataDescIdColumn(msRowId);
+  size_t startChannel, endChannel;
+  if (contiguousms._selection.HasChannelRange()) {
+    startChannel = contiguousms._selection.ChannelRangeStart();
+    endChannel = contiguousms._selection.ChannelRangeEnd();
+  } else {
+    startChannel = 0;
+    endChannel = contiguousms._bandData[dataDescId].ChannelCount();
+  }
+
+  _imagingWeightsColumn->get(msRowId, contiguousms._imagingWeightSpectrumArray);
+  MSProvider::reverseCopyWeights(
+      contiguousms._imagingWeightSpectrumArray, startChannel, endChannel,
+      contiguousms._inputPolarizations, buffer, contiguousms._polOut);
+  _imagingWeightsColumn->put(msRowId, contiguousms._imagingWeightSpectrumArray);
+}
+
 void ContiguousMSReader::readData() {
   ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
   if (!_isDataRead) {

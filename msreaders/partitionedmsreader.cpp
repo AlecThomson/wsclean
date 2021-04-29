@@ -157,3 +157,36 @@ void PartitionedMSReader::ReadWeights(float* buffer) {
                                      sizeof(float));
   _weightPtrIsOk = false;
 }
+
+void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
+  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+
+  if (_modelDataFile == nullptr) {
+    std::string partPrefix = PartitionedMS::getPartPrefix(
+        partitionedms._handle._data->_msPath, partitionedms._partIndex,
+        partitionedms._polarization, partitionedms._partHeader.dataDescId,
+        partitionedms._handle._data->_temporaryDirectory);
+    _imagingWeightsFile.reset(
+        new std::fstream(partPrefix + "-imgw.tmp",
+                         std::ios::in | std::ios::out | std::ios::binary));
+  }
+  const size_t chunkSize = partitionedms._partHeader.channelCount *
+                           partitionedms._polarizationCountInFile *
+                           sizeof(float);
+  _imagingWeightsFile->seekg(chunkSize * _currentInputRow, std::ios::beg);
+  _imagingWeightsFile->read(
+      reinterpret_cast<char*>(partitionedms._imagingWeightBuffer.data()),
+      partitionedms._partHeader.channelCount *
+          partitionedms._polarizationCountInFile * sizeof(float));
+  for (size_t i = 0; i != partitionedms._partHeader.channelCount *
+                              partitionedms._polarizationCountInFile;
+       ++i) {
+    if (std::isfinite(buffer[i]))
+      partitionedms._imagingWeightBuffer[i] = buffer[i];
+  }
+  _imagingWeightsFile->seekp(chunkSize * _currentInputRow, std::ios::beg);
+  _imagingWeightsFile->write(
+      reinterpret_cast<const char*>(partitionedms._imagingWeightBuffer.data()),
+      partitionedms._partHeader.channelCount *
+          partitionedms._polarizationCountInFile * sizeof(float));
+}

@@ -30,9 +30,15 @@ class PartitionedMSReader final : public MSReader {
 
   void ReadWeights(float* buffer) final override;
 
+  void WriteImagingWeights(const float* buffer) final override;
+
  private:
   size_t _currentInputRow;
   bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
+
+  // FIXME: why is _modelDataFile needed?
+  std::unique_ptr<std::ofstream> _modelDataFile;
+  std::unique_ptr<std::fstream> _imagingWeightsFile;
 };
 
 #endif

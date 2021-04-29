@@ -99,6 +99,10 @@ class PartitionedMS final : public MSProvider {
                           const class Settings& settings);
 
   class Handle {
+    // FIXME: not sure if we want PartitionedMSReader to be a friend
+    // it's currently needed to access the _data member
+    friend class PartitionedMSReader;
+
    public:
     Handle() = default;
 
