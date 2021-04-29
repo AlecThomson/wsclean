@@ -33,6 +33,8 @@ class ContiguousMSReader final : public MSReader {
 
   void ReadWeights(float* buffer) final override;
 
+  void WriteImagingWeights(const float* buffer) final override;
+
  private:
   size_t _currentInputRow;
   size_t _currentInputTimestep;
@@ -40,6 +42,7 @@ class ContiguousMSReader final : public MSReader {
   size_t _currentRowId;
 
   bool _isDataRead, _isModelRead, _isWeightRead;
+  std::unique_ptr<casacore::ArrayColumn<float>> _imagingWeightsColumn;
 
   void readData();
 

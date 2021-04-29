@@ -56,6 +56,15 @@ class MSReader {
 
   virtual void ReadWeights(std::complex<float>* buffer) = 0;
 
+  /**
+   * Write imaging weights to the current READING position.
+   * Note that despite this is a write operation, the reading position is
+   * used nevertheless. This is because it is written while reading the meta
+   * data inside WSClean, hence it would be inconvenient if the writing position
+   * would be used.
+   */
+  virtual void WriteImagingWeights(const float* buffer) = 0;
+
  protected:
   MSProvider* _msProvider;
 
