@@ -2,7 +2,10 @@
 #define MSPROVIDERS_TIMESTEP_BUFFER_H
 
 #include "msprovider.h"
-#include "../msreaders/msreader.h"
+
+#include <aocommon/uvector.h>
+
+class TimestepBufferReader;
 
 /**
  * This class wraps any MSProvider to make it read whole blocks of rows
@@ -12,6 +15,8 @@
  * a-terms.
  */
 class TimestepBuffer final : public MSProvider {
+  friend class TimestepBufferReader;
+
  public:
   TimestepBuffer(MSProvider* msProvider, bool readModel)
       : _msProvider(msProvider), _bufferPosition(0), _readModel(readModel) {

@@ -252,6 +252,7 @@ add_library(wsclean-object OBJECT
   msreaders/msreader.cpp
   msreaders/contiguousmsreader.cpp
   msreaders/partitionedmsreader.cpp
+  msreaders/timestepbufferreader.cpp
   # end msreaders
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
