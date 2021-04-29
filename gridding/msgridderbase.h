@@ -28,6 +28,8 @@
 #include <mutex>
 #include <memory>
 
+class MSReader;
+
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
@@ -281,6 +283,13 @@ class MSGridderBase {
    */
   template <size_t PolarizationCount>
   void readAndWeightVisibilities(MSProvider& msProvider, InversionRow& rowData,
+                                 const BandData& curBand, float* weightBuffer,
+                                 std::complex<float>* modelBuffer,
+                                 const bool* isSelected);
+
+  // TODO: will replace the above
+  template <size_t PolarizationCount>
+  void readAndWeightVisibilities(MSReader* msReader, InversionRow& rowData,
                                  const BandData& curBand, float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
