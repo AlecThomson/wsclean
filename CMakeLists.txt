@@ -248,8 +248,11 @@ add_library(wsclean-object OBJECT
   msproviders/msrowprovider.cpp
   msproviders/partitionedms.cpp
   msproviders/synchronizedms.cpp
+  # msreaders
   msreaders/msreader.cpp
   msreaders/contiguousmsreader.cpp
+  msreaders/partitionedmsreader.cpp
+  # end msreaders
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp

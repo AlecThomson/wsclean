@@ -20,7 +20,8 @@
 class PartitionedMSReader;
 
 class PartitionedMS final : public MSProvider {
- friend class PartitionedMSReader;
+  friend class PartitionedMSReader;
+
  public:
   class Handle;
 
