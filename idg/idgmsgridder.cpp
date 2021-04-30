@@ -1,5 +1,7 @@
 #include "idgmsgridder.h"
 
+#include "../msreaders/timestepbufferreader.h"
+
 #include <cmath>
 #include <thread>
 
@@ -172,6 +174,7 @@ void IdgMsGridder::Invert() {
 }
 
 void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
+  std::cout << "ARRIVED HERE AT ALL?"<<std::endl;
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
@@ -200,17 +203,35 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   int timeIndex = -1;
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
-  for (TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
-       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
+
+  // for (TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
+  //      timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
+  TimestepBuffer timeBuffer(msData.msProvider, DoSubtractModel());
+  std::cout <<"Made it here"<<std::endl;
+  std::unique_ptr<MSReader> msReaderPtrTMP = timeBuffer.GetReader();
+  std::cout << "Got the MSReader"<<std::endl;
+  msReaderPtrTMP->CurrentRowAvailable();
+  throw std::runtime_error("QUIT HERE");
+  // msReaderPtr->NextInputRow()
+  std::cout << "Going to the loop!"<<std::endl;
+  // std::unique_ptr<MSReader> msReader = timeBuffer.GetReader();
+  for (std::unique_ptr<MSReader> msReaderPtr = timeBuffer.GetReader();
+       msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
+    std::cout << "ATTEMPT TO CAST"<<std::endl;
+    TimestepBufferReader* msReader =
+      static_cast<TimestepBufferReader*>(msReaderPtr.get());
+    std::cout << "HERE IN GRIDDER"<<std::endl;
     MSProvider::MetaData metaData;
-    timestepBuffer.ReadMeta(metaData);
+    // timestepBuffer.ReadMeta(metaData);
+    msReader->ReadMeta(metaData);
 
     if (currentTime != metaData.time) {
       currentTime = metaData.time;
       timeIndex++;
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
-        timestepBuffer.GetUVWsForTimestep(uvws);
+        // timestepBuffer.GetUVWsForTimestep(uvws);
+        msReader->GetUVWsForTimestep(uvws);
         if (aTermMaker->Calculate(
                 aTermBuffer.data(), currentTime,
                 _selectedBands[metaData.dataDescId].CentreFrequency(),
@@ -235,7 +256,8 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
     rowData.dataDescId = metaData.dataDescId;
-    readAndWeightVisibilities<4>(timestepBuffer, rowData, curBand,
+    // readAndWeightVisibilities<4>(timestepBuffer, rowData, curBand,
+    readAndWeightVisibilities<4>(msReaderPtr.get(), rowData, curBand,
                                  weightBuffer.data(), modelBuffer.data(),
                                  isSelected.data());
 
