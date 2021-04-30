@@ -21,7 +21,6 @@ class TimestepBuffer final : public MSProvider {
   TimestepBuffer(MSProvider* msProvider, bool readModel)
       : _msProvider(msProvider), _bufferPosition(0), _readModel(readModel) {
     _msProvider->Reset();
-    readTimeblock();
   }
 
   virtual ~TimestepBuffer(){};

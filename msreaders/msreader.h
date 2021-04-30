@@ -68,6 +68,8 @@ class MSReader {
  protected:
   MSProvider* _msProvider;
 
+  // virtual MSProvider& GetMSProvider() = 0;
+
   static void copyData(std::complex<float>* dest, size_t startChannel,
                        size_t endChannel,
                        const std::vector<aocommon::PolarizationEnum>& polsIn,

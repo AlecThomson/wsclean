@@ -6,14 +6,8 @@
 
 class TimestepBufferReader final : public MSReader {
  public:
-  TimestepBufferReader(MSProvider* msProvider) : MSReader(msProvider) {
-    TimestepBuffer& timestepbuffer = static_cast<TimestepBuffer&>(*_msProvider);
-    timestepbuffer.Reset();
-    timestepbuffer._msProvider->Reset();
-    _msReader = timestepbuffer._msProvider->GetReader().get();
-    std::cout << "Initialized _msReader" << std::endl;
-    readTimeblock();
-  };
+  TimestepBufferReader(MSProvider* msProvider);
+
   virtual ~TimestepBufferReader(){};
 
   size_t RowId() const final override { return _buffer[_bufferPosition].rowId; }
@@ -60,7 +54,7 @@ class TimestepBufferReader final : public MSReader {
  private:
   void readTimeblock();
 
-  MSReader* _msReader;
+  std::unique_ptr<MSReader> _msReader;
 
   size_t _bufferPosition;
   std::vector<TimestepBuffer::RowData> _buffer;

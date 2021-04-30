@@ -364,6 +364,10 @@ class MSGridderBase {
 
   aocommon::UVector<float> _scratchWeights;
 
+  // TODO: will be activated when reading meta data from
+  // ms during degridding
+  // std::unique_ptr<MSReader> _degriddingReader;
+
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
