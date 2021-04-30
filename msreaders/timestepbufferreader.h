@@ -6,13 +6,12 @@
 
 class TimestepBufferReader final : public MSReader {
  public:
-  TimestepBufferReader(MSProvider* msProvider)
-      : MSReader(msProvider) {
+  TimestepBufferReader(MSProvider* msProvider) : MSReader(msProvider) {
     TimestepBuffer& timestepbuffer = static_cast<TimestepBuffer&>(*_msProvider);
     timestepbuffer.Reset();
     timestepbuffer._msProvider->Reset();
     _msReader = timestepbuffer._msProvider->GetReader().get();
-    std::cout << "Initialized _msReader"<<std::endl;
+    std::cout << "Initialized _msReader" << std::endl;
     readTimeblock();
   };
   virtual ~TimestepBufferReader(){};
@@ -38,7 +37,7 @@ class TimestepBufferReader final : public MSReader {
 
   void WriteImagingWeights(const float* buffer) final override;
 
-    /**
+  /**
    * Returns an Array containing the uvws for baselines (antenna1, antenna2)
    * that have antenna1=0, sorted by antenna2.
    * @param uvws should have the correct size on input (nantenna * 3)

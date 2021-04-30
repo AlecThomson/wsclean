@@ -57,7 +57,10 @@ class PartitionedMS final : public MSProvider {
 
   size_t RowId() const override { return _currentInputRow; }
 
-  bool CurrentRowAvailable() override;
+  bool CurrentRowAvailable() final override {
+    throw std::runtime_error(
+        "PartitionedMS::CurrentRowAvailable not implemented anymore");
+  };
 
   void NextInputRow() override;
 

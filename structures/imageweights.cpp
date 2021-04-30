@@ -6,6 +6,7 @@
 #include <aocommon/io/serialistream.h>
 
 #include "../msproviders/msprovider.h"
+#include "../msreaders/msreader.h"
 
 #include "../units/angle.h"
 
@@ -87,12 +88,16 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
     aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels() *
                                           polarizationCount);
 
-    msProvider.Reset();
-    while (msProvider.CurrentRowAvailable()) {
+    // msProvider.Reset();
+    std::unique_ptr<MSReader> msReader = msProvider.GetReader();
+    // while (msProvider.CurrentRowAvailable()) {
+    while (msReader->CurrentRowAvailable()) {
       double uInM, vInM, wInM;
       size_t dataDescId;
-      msProvider.ReadMeta(uInM, vInM, wInM, dataDescId);
-      msProvider.ReadWeights(weightBuffer.data());
+      // msProvider.ReadMeta(uInM, vInM, wInM, dataDescId);
+      // msProvider.ReadWeights(weightBuffer.data());
+      msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
+      msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
         for (float& w : weightBuffer) {
           if (w != 0.0) w = 1.0;
@@ -114,7 +119,8 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
         }
       }
 
-      msProvider.NextInputRow();
+      // msProvider.NextInputRow();
+      msReader->NextInputRow();
     }
   }
 }

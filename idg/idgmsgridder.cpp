@@ -174,7 +174,7 @@ void IdgMsGridder::Invert() {
 }
 
 void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
-  std::cout << "ARRIVED HERE AT ALL?"<<std::endl;
+  std::cout << "ARRIVED HERE AT ALL?" << std::endl;
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
@@ -207,20 +207,20 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   // for (TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
   //      timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
   TimestepBuffer timeBuffer(msData.msProvider, DoSubtractModel());
-  std::cout <<"Made it here"<<std::endl;
+  std::cout << "Made it here" << std::endl;
   std::unique_ptr<MSReader> msReaderPtrTMP = timeBuffer.GetReader();
-  std::cout << "Got the MSReader"<<std::endl;
+  std::cout << "Got the MSReader" << std::endl;
   msReaderPtrTMP->CurrentRowAvailable();
   throw std::runtime_error("QUIT HERE");
   // msReaderPtr->NextInputRow()
-  std::cout << "Going to the loop!"<<std::endl;
+  std::cout << "Going to the loop!" << std::endl;
   // std::unique_ptr<MSReader> msReader = timeBuffer.GetReader();
   for (std::unique_ptr<MSReader> msReaderPtr = timeBuffer.GetReader();
        msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
-    std::cout << "ATTEMPT TO CAST"<<std::endl;
+    std::cout << "ATTEMPT TO CAST" << std::endl;
     TimestepBufferReader* msReader =
-      static_cast<TimestepBufferReader*>(msReaderPtr.get());
-    std::cout << "HERE IN GRIDDER"<<std::endl;
+        static_cast<TimestepBufferReader*>(msReaderPtr.get());
+    std::cout << "HERE IN GRIDDER" << std::endl;
     MSProvider::MetaData metaData;
     // timestepBuffer.ReadMeta(metaData);
     msReader->ReadMeta(metaData);

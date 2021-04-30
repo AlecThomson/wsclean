@@ -36,7 +36,10 @@ class ContiguousMS : public MSProvider {
 
   size_t RowId() const final override { return _currentRowId; }
 
-  bool CurrentRowAvailable() final override;
+  bool CurrentRowAvailable() final override {
+    throw std::runtime_error(
+        "ContiguousMS::CurrentRowAvailable not implemented anymore");
+  };
 
   void NextInputRow() final override;
 

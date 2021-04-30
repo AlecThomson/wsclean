@@ -210,12 +210,13 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   msData.maxBaselineInM = 0.0;
   MultiBandData selectedBand = msData.SelectedBand();
   std::vector<float> weightArray(selectedBand.MaxChannels() * NPolInMSProvider);
-  msData.msProvider->Reset();
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
-  while (msData.msProvider->CurrentRowAvailable()) {
+  msData.msProvider->Reset();
+  std::unique_ptr<MSReader> msReader = msData.msProvider->GetReader();
+  while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
-    msData.msProvider->ReadMeta(metaData);
+    msReader->ReadMeta(metaData);
 
     if (curTimestep != metaData.time) {
       curTimestep = metaData.time;
@@ -233,7 +234,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
     double halfWidth = 0.5 * ImageWidth(), halfHeight = 0.5 * ImageHeight();
     if (wHi > msData.maxW || wLo < msData.minW ||
         baselineInM / curBand.SmallestWavelength() > msData.maxBaselineUVW) {
-      msData.msProvider->ReadWeights(weightArray.data());
+      msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
         const double wavelength = curBand.ChannelWavelength(ch);
@@ -261,7 +262,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
       }
     }
 
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
   }
 
   if (msData.minW == 1e100) {

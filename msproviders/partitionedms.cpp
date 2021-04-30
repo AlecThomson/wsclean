@@ -130,10 +130,6 @@ std::unique_ptr<MSReader> PartitionedMS::GetReader() {
   return reader;
 }
 
-bool PartitionedMS::CurrentRowAvailable() {
-  return _currentInputRow < _metaHeader.selectedRowCount;
-}
-
 void PartitionedMS::NextInputRow() {
   ++_currentInputRow;
   if (_currentInputRow < _metaHeader.selectedRowCount) {
