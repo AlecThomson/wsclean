@@ -35,7 +35,8 @@ class TimestepBuffer final : public MSProvider {
   }
 
   bool CurrentRowAvailable() override {
-    return !_buffer.empty() || _msProvider->CurrentRowAvailable();
+    throw std::runtime_error(
+        "TimestepBuffer::CurrentRowAvailable not implemented anymore");
   }
 
   void NextInputRow() override {
