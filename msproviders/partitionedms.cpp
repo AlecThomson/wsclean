@@ -36,6 +36,9 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
     : _handle(handle),
+      // FIXME: added _dataDescId member so that PartitionedMSReader
+      // can use it. Or should _partHeader.dataDescId be used there?
+      _dataDescId(dataDescId),
       _partIndex(partIndex),
       _metaFile(getMetaFilename(handle._data->_msPath,
                                 handle._data->_temporaryDirectory, dataDescId)),
@@ -48,6 +51,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _polarization(polarization),
       _polarizationCountInFile(
           _polarization == aocommon::Polarization::Instrumental ? 4 : 1) {
+  // FIXME: redundant after migrating to readers
   _metaFile.read(reinterpret_cast<char*>(&_metaHeader), sizeof(MetaHeader));
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
   _metaFile.read(msPath.data(), _metaHeader.filenameLength);
@@ -65,7 +69,9 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   if (!_dataFile.good())
     throw std::runtime_error("Error reading header from file '" + partPrefix +
                              ".tmp'");
+  // END FIXME
 
+  // FIXME: leave conditional here or migrate to reader?
   if (_partHeader.hasModel) {
     _fd = open((partPrefix + "-m.tmp").c_str(), O_RDWR);
     if (_fd == -1)
