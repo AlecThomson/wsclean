@@ -1,13 +1,22 @@
 #include "timestepbufferreader.h"
 #include "../msproviders/timestepbuffer.h"
 
+TimestepBufferReader::TimestepBufferReader(MSProvider* msProvider)
+    : MSReader(msProvider), _bufferPosition(0) {
+  TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*msProvider);
+  _msReader = tstepbuffer._msProvider->GetReader();
+  readTimeblock();
+};
+
 bool TimestepBufferReader::CurrentRowAvailable() {
   return !_buffer.empty() || _msReader->CurrentRowAvailable();
 }
 
 void TimestepBufferReader::NextInputRow() {
   ++_bufferPosition;
-  if (_bufferPosition == _buffer.size()) readTimeblock();
+  if (_bufferPosition == _buffer.size()) {
+    readTimeblock();
+  }
 }
 
 void TimestepBufferReader::ReadMeta(double& u, double& v, double& w,

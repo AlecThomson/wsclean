@@ -391,6 +391,10 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
+  // alstie hangt --> probleem met synchronized ms
+  // if(isDegridding){
+  // _degriddingReader = msData.msProvider->GetReader();
+  // }
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
