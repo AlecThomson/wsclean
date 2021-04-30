@@ -169,12 +169,14 @@ class PartitionedMS final : public MSProvider {
       const std::vector<PartitionedMS::ChannelRange>& channels);
 
   Handle _handle;
-  size_t _partIndex;
+  const size_t _dataDescId;
+  const size_t _partIndex;
   std::ifstream _metaFile, _weightFile, _dataFile;
   char* _modelFileMap;
   size_t _currentInputRow;
   size_t _currentOutputRow;
   bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
+  // FIXME: _weightBuffer and _modelBuffer seem redundant
   aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
   aocommon::UVector<std::complex<float>> _modelBuffer;
   std::unique_ptr<std::ofstream> _modelDataFile;

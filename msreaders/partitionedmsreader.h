@@ -3,14 +3,13 @@
 
 #include "msreader.h"
 
+#include <aocommon/uvector.h>
+
+#include <fstream>
+
 class PartitionedMSReader final : public MSReader {
  public:
-  PartitionedMSReader(MSProvider* msProvider)
-      : MSReader(msProvider),
-        _currentInputRow(0),
-        _readPtrIsOk(true),
-        _metaPtrIsOk(true),
-        _weightPtrIsOk(true){};
+  PartitionedMSReader(MSProvider* msProvider);
   virtual ~PartitionedMSReader(){};
 
   size_t RowId() const final override { return _currentInputRow; }
@@ -38,7 +37,15 @@ class PartitionedMSReader final : public MSReader {
   size_t _currentInputRow;
   bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
 
-  // FIXME: why is _modelDataFile needed?
+  std::ifstream _metaFile, _weightFile, _dataFile;
+
+  // FIXME: _weightBuffer and _modelBuffer seem redundant
+  // (both here and in PartitionedMS class)
+  aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
+  aocommon::UVector<std::complex<float>> _modelBuffer;
+
+  // FIXME: _modelDataFile seems redundant (here and in
+  // PartitionedMS class)
   std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
 };
