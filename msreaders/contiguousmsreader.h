@@ -3,17 +3,12 @@
 
 #include "msreader.h"
 
+class ContiguousMS;
+
 class ContiguousMSReader final : public MSReader {
  public:
-  ContiguousMSReader(MSProvider* msProvider)
-      : MSReader(msProvider),
-        _currentInputRow(0),
-        _currentInputTimestep(0),
-        _currentInputTime(0.0),
-        _currentRowId(0),
-        _isDataRead(false),
-        _isModelRead(false),
-        _isWeightRead(false){};
+  ContiguousMSReader(ContiguousMS* contiguousMS);
+
   virtual ~ContiguousMSReader(){};
 
   size_t RowId() const final override { return _currentRowId; }

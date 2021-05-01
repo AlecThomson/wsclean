@@ -6,7 +6,7 @@
 
 class TimestepBufferReader final : public MSReader {
  public:
-  TimestepBufferReader(MSProvider* msProvider);
+  TimestepBufferReader(TimestepBuffer* timestepBuffer);
 
   virtual ~TimestepBufferReader(){};
 

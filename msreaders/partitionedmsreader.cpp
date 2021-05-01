@@ -3,36 +3,36 @@
 
 #include "../io/logger.h"
 
-PartitionedMSReader::PartitionedMSReader(MSProvider* msProvider)
-    : MSReader(msProvider),
+PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
+    : MSReader(partitionedMS),
       _currentInputRow(0),
       _readPtrIsOk(true),
       _metaPtrIsOk(true),
       _weightPtrIsOk(true) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  // PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
 
   _metaFile.open(PartitionedMS::getMetaFilename(
-                     partitionedms._handle._data->_msPath,
-                     partitionedms._handle._data->_temporaryDirectory,
-                     partitionedms._dataDescId),
+                     partitionedMS->_handle._data->_msPath,
+                     partitionedMS->_handle._data->_temporaryDirectory,
+                     partitionedMS->_dataDescId),
                  std::ios::in);
-  _metaFile.read(reinterpret_cast<char*>(&partitionedms._metaHeader),
+  _metaFile.read(reinterpret_cast<char*>(&partitionedMS->_metaHeader),
                  sizeof(PartitionedMS::MetaHeader));
-  std::vector<char> msPath(partitionedms._metaHeader.filenameLength + 1,
+  std::vector<char> msPath(partitionedMS->_metaHeader.filenameLength + 1,
                            char(0));
-  _metaFile.read(msPath.data(), partitionedms._metaHeader.filenameLength);
-  Logger::Info << "Opening reordered part " << partitionedms._partIndex
-               << " spw " << partitionedms._dataDescId << " for "
+  _metaFile.read(msPath.data(), partitionedMS->_metaHeader.filenameLength);
+  Logger::Info << "Opening reordered part " << partitionedMS->_partIndex
+               << " spw " << partitionedMS->_dataDescId << " for "
                << msPath.data() << '\n';
   std::string partPrefix = PartitionedMS::getPartPrefix(
-      msPath.data(), partitionedms._partIndex, partitionedms._polarization,
-      partitionedms._dataDescId,
-      partitionedms._handle._data->_temporaryDirectory);
+      msPath.data(), partitionedMS->_partIndex, partitionedMS->_polarization,
+      partitionedMS->_dataDescId,
+      partitionedMS->_handle._data->_temporaryDirectory);
   _dataFile.open(partPrefix + ".tmp", std::ios::in);
   if (!_dataFile.good())
     throw std::runtime_error("Error opening temporary data file '" +
                              partPrefix + ".tmp'");
-  _dataFile.read(reinterpret_cast<char*>(&partitionedms._partHeader),
+  _dataFile.read(reinterpret_cast<char*>(&partitionedMS->_partHeader),
                  sizeof(PartitionedMS::PartHeader));
   if (!_dataFile.good())
     throw std::runtime_error("Error reading header from file '" + partPrefix +

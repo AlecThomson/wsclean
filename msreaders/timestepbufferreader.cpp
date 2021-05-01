@@ -1,10 +1,9 @@
 #include "timestepbufferreader.h"
-#include "../msproviders/timestepbuffer.h"
 
-TimestepBufferReader::TimestepBufferReader(MSProvider* msProvider)
-    : MSReader(msProvider), _bufferPosition(0) {
-  TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*msProvider);
-  _msReader = tstepbuffer._msProvider->GetReader();
+TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestepBuffer)
+    : MSReader(timestepBuffer),
+      _msReader(timestepBuffer->_msProvider->GetReader()),
+      _bufferPosition(0) {
   readTimeblock();
 };
 
