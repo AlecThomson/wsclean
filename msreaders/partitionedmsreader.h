@@ -7,9 +7,11 @@
 
 #include <fstream>
 
+class PartitionedMS;
+
 class PartitionedMSReader final : public MSReader {
  public:
-  PartitionedMSReader(MSProvider* msProvider);
+  PartitionedMSReader(PartitionedMS* partitionedMS);
   virtual ~PartitionedMSReader(){};
 
   size_t RowId() const final override { return _currentInputRow; }
