@@ -41,7 +41,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
   msData.matchingRows = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->GetReader();
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
     size_t dataDescId;
@@ -147,7 +147,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
   newItem.data = newItemData.data();
 
   size_t rowsRead = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->GetReader();
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;
@@ -264,7 +264,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
   std::vector<size_t> rowIds, dataIds;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->GetReader();
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;

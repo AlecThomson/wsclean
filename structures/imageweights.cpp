@@ -89,7 +89,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
                                           polarizationCount);
 
     // msProvider.Reset();
-    std::unique_ptr<MSReader> msReader = msProvider.GetReader();
+    std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
     // while (msProvider.CurrentRowAvailable()) {
     while (msReader->CurrentRowAvailable()) {
       double uInM, vInM, wInM;

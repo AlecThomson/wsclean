@@ -125,7 +125,7 @@ void PartitionedMS::Reset() {
   _weightPtrIsOk = true;
 }
 
-std::unique_ptr<MSReader> PartitionedMS::GetReader() {
+std::unique_ptr<MSReader> PartitionedMS::MakeReader() {
   std::unique_ptr<MSReader> reader(new PartitionedMSReader(this));
   return reader;
 }

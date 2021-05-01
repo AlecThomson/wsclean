@@ -28,7 +28,7 @@ class ContiguousMS : public MSProvider {
 
   ContiguousMS& operator=(const ContiguousMS&) = delete;
 
-  std::unique_ptr<MSReader> GetReader() final override;
+  std::unique_ptr<MSReader> MakeReader() final override;
 
   SynchronizedMS MS() final override { return _ms; }
 

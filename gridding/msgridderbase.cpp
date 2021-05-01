@@ -213,7 +213,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
   msData.msProvider->Reset();
-  std::unique_ptr<MSReader> msReader = msData.msProvider->GetReader();
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);
@@ -393,7 +393,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 #endif
   // alstie hangt --> probleem met synchronized ms
   // if(isDegridding){
-  // _degriddingReader = msData.msProvider->GetReader();
+  // _degriddingReader = msData.msProvider->MakeReader();
   // }
 }
 
