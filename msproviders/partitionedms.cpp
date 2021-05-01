@@ -130,29 +130,6 @@ std::unique_ptr<MSReader> PartitionedMS::MakeReader() {
   return reader;
 }
 
-void PartitionedMS::NextInputRow() {
-  ++_currentInputRow;
-  if (_currentInputRow < _metaHeader.selectedRowCount) {
-    if (_readPtrIsOk)
-      _dataFile.seekg(_partHeader.channelCount * _polarizationCountInFile *
-                          sizeof(std::complex<float>),
-                      std::ios::cur);
-    else
-      _readPtrIsOk = true;
-
-    if (_metaPtrIsOk)
-      _metaFile.seekg(MetaRecord::BINARY_SIZE, std::ios::cur);
-    else
-      _metaPtrIsOk = true;
-
-    if (_weightPtrIsOk)
-      _weightFile.seekg(
-          _partHeader.channelCount * _polarizationCountInFile * sizeof(float),
-          std::ios::cur);
-    _weightPtrIsOk = true;
-  }
-}
-
 void PartitionedMS::NextOutputRow() { ++_currentOutputRow; }
 
 void PartitionedMS::ReadMeta(double& u, double& v, double& w,

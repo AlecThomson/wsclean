@@ -94,34 +94,7 @@ void ContiguousMS::Reset() {
   _currentOutputTime = _currentInputTime;
   _currentOutputTimestep = _currentInputTimestep;
   _currentRowId = size_t(-1);
-  NextInputRow();
   NextOutputRow();
-}
-
-void ContiguousMS::NextInputRow() {
-  _isDataRead = false;
-  _isWeightRead = false;
-  _isModelRead = false;
-
-  ++_currentRowId;
-  int fieldId, a1, a2, dataDescId;
-  casacore::Vector<double> uvw;
-  do {
-    ++_currentInputRow;
-    if (_currentInputRow >= _endRow) return;
-
-    fieldId = _fieldIdColumn(_currentInputRow);
-    a1 = _antenna1Column(_currentInputRow);
-    a2 = _antenna2Column(_currentInputRow);
-    uvw = _uvwColumn(_currentInputRow);
-    dataDescId = _dataDescIdColumn(_currentInputRow);
-    if (_currentInputTime != _timeColumn(_currentInputRow)) {
-      ++_currentInputTimestep;
-      _currentInputTime = _timeColumn(_currentInputRow);
-    }
-  } while (
-      !_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
-      (dataDescId != _dataDescId));
 }
 
 void ContiguousMS::NextOutputRow() {

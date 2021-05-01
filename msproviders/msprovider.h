@@ -57,25 +57,6 @@ class MSProvider {
   virtual const std::string& DataColumnName() = 0;
 
   /**
-   * This provides a unique, consecutive number that corresponds to
-   * the current reading position. Note that this number does not have
-   * to map directly to measurement set row indices, because unselected
-   * data does not affect the RowId. @ref MakeIdToMSRowMapping()
-   * can be used to convert this Id to a measurement row number.
-   */
-  virtual size_t RowId() const = 0;
-
-  /**
-   * Returns true as long as there is more data available for reading.
-   */
-  virtual bool CurrentRowAvailable() = 0;
-
-  /**
-   * Move the reading position to the next row.
-   */
-  virtual void NextInputRow() = 0;
-
-  /**
    * Move the model writing position to the next row.
    */
   virtual void NextOutputRow() = 0;

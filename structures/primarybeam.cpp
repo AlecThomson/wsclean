@@ -1,4 +1,5 @@
 #include "primarybeam.h"
+#include "../msreaders/msreader.h"
 
 #include "../main/settings.h"
 
@@ -417,13 +418,13 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
       (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
                                                                           : 1;
   aocommon::UVector<float> weightArr(channelCount * polarizationCount);
-
-  while (msProvider.CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
-    msProvider.ReadMeta(metaData);
+    msReader->ReadMeta(metaData);
     if (metaData.time >= endTime) break;
     const BandData& band(multiband[metaData.dataDescId]);
-    msProvider.ReadWeights(weightArr.data());
+    msReader->ReadWeights(weightArr.data());
 
     for (size_t ch = 0; ch != channelCount; ++ch) {
       double u = metaData.uInM / band.ChannelWavelength(ch),
@@ -432,7 +433,7 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
       double w = weightArr[ch * polarizationCount] * iw;
       baselineWeights.Value(metaData.antenna1, metaData.antenna2) += w;
     }
-    msProvider.NextInputRow();
+    msReader->NextInputRow();
   }
 }
 
@@ -442,20 +443,21 @@ std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
   msProvider.Reset();
   size_t timestepCount = 0;
   double startTime = 0.0, endTime = 0.0;
-  if (msProvider.CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+  if (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData meta;
-    msProvider.ReadMeta(meta);
+    msReader->ReadMeta(meta);
     startTime = meta.time;
     endTime = meta.time;
     ++timestepCount;
-    msProvider.NextInputRow();
-    while (msProvider.CurrentRowAvailable()) {
-      msProvider.ReadMeta(meta);
+    msReader->NextInputRow();
+    while (msReader->CurrentRowAvailable()) {
+      msReader->ReadMeta(meta);
       if (endTime != meta.time) {
         ++timestepCount;
         endTime = meta.time;
       }
-      msProvider.NextInputRow();
+      msReader->NextInputRow();
     }
   }
   if (startTime == endTime) {
