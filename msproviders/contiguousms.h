@@ -34,14 +34,7 @@ class ContiguousMS : public MSProvider {
 
   const std::string& DataColumnName() final override { return _dataColumnName; }
 
-  size_t RowId() const final override { return _currentRowId; }
-
-  bool CurrentRowAvailable() final override {
-    throw std::runtime_error(
-        "ContiguousMS::CurrentRowAvailable not implemented anymore");
-  };
-
-  void NextInputRow() final override;
+  // size_t RowId() const final override { return _currentRowId; }
 
   void NextOutputRow() final override;
 
