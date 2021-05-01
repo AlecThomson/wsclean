@@ -204,7 +204,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
 
   TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
-  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.GetReader();
+  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.MakeReader();
        msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
     TimestepBufferReader* msReader =
         static_cast<TimestepBufferReader*>(msReaderPtr.get());
@@ -361,7 +361,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
 
   TimestepBuffer timestepBuffer(msData.msProvider, false);
-  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.GetReader();
+  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.MakeReader();
        msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
     TimestepBufferReader* msReader =
         static_cast<TimestepBufferReader*>(msReaderPtr.get());

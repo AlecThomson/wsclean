@@ -2,7 +2,7 @@
 
 TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestepBuffer)
     : MSReader(timestepBuffer),
-      _msReader(timestepBuffer->_msProvider->GetReader()),
+      _msReader(timestepBuffer->_msProvider->MakeReader()),
       _bufferPosition(0) {
   readTimeblock();
 };

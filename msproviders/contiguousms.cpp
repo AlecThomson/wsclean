@@ -78,7 +78,7 @@ void ContiguousMS::open() {
   Reset();
 }
 
-std::unique_ptr<MSReader> ContiguousMS::GetReader() {
+std::unique_ptr<MSReader> ContiguousMS::MakeReader() {
   std::unique_ptr<MSReader> reader(new ContiguousMSReader(this));
   return reader;
 }
