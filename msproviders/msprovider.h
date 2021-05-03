@@ -67,44 +67,11 @@ class MSProvider {
   virtual void Reset() = 0;
 
   /**
-   * @{
-   * Read meta data from the current reading position.
-   */
-  virtual void ReadMeta(double& u, double& v, double& w,
-                        size_t& dataDescId) = 0;
-
-  virtual void ReadMeta(MetaData& metaData) = 0;
-  /** @} */
-
-  /**
-   * Read visibility data from current reading position.
-   */
-  virtual void ReadData(std::complex<float>* buffer) = 0;
-
-  /**
-   * Read the model visibilities from the current reading position.
-   */
-  virtual void ReadModel(std::complex<float>* buffer) = 0;
-
-  virtual void ReadWeights(float* buffer) = 0;
-
-  virtual void ReadWeights(std::complex<float>* buffer) = 0;
-
-  /**
    * Write model visibilities to the current writing position. If add is true,
    * the provided data are add-assigned to the existing model visibilities. If
    * false, the existing model visibilities are overwritten.
    */
   virtual void WriteModel(const std::complex<float>* buffer, bool add) = 0;
-
-  /**
-   * Write imaging weights to the current READING position.
-   * Note that despite this is a write operation, the reading position is
-   * used nevertheless. This is because it is written while reading the meta
-   * data inside WSClean, hence it would be inconvenient if the writing position
-   * would be used.
-   */
-  virtual void WriteImagingWeights(const float* buffer) = 0;
 
   /**
    * Prepare the msprovider for writing. This is explicitly required before

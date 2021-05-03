@@ -34,29 +34,12 @@ class ContiguousMS : public MSProvider {
 
   const std::string& DataColumnName() final override { return _dataColumnName; }
 
-  // size_t RowId() const final override { return _currentRowId; }
-
   void NextOutputRow() final override;
 
   void Reset() final override;
 
-  void ReadMeta(double& u, double& v, double& w,
-                size_t& dataDescId) final override;
-
-  void ReadMeta(MetaData& metaData) final override;
-
-  void ReadData(std::complex<float>* buffer) final override;
-
-  void ReadModel(std::complex<float>* buffer) final override;
-
   void WriteModel(const std::complex<float>* buffer,
                   bool addToMS) final override;
-
-  void ReadWeights(std::complex<float>* buffer) final override;
-
-  void ReadWeights(float* buffer) final override;
-
-  void WriteImagingWeights(const float* buffer) final override;
 
   void ReopenRW() final override { _ms->reopenRW(); }
 

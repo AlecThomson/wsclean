@@ -37,45 +37,9 @@ class TimestepBuffer final : public MSProvider {
 
   void Reset() override { _msProvider->Reset(); }
 
-  void ReadMeta(double& u, double& v, double& w, size_t& dataDescId) override {
-    MSProvider::MetaData& m = _buffer[_bufferPosition].metaData;
-    u = m.uInM;
-    v = m.vInM;
-    w = m.wInM;
-    dataDescId = m.dataDescId;
-  }
-
-  void ReadMeta(MSProvider::MetaData& metaData) override {
-    metaData = _buffer[_bufferPosition].metaData;
-  }
-
-  void ReadData(std::complex<float>* buffer) override {
-    std::copy(_buffer[_bufferPosition].data.begin(),
-              _buffer[_bufferPosition].data.end(), buffer);
-  }
-
-  void ReadModel(std::complex<float>* buffer) override {
-    std::copy(_buffer[_bufferPosition].model.begin(),
-              _buffer[_bufferPosition].model.end(), buffer);
-  }
-
   virtual void WriteModel(const std::complex<float>* buffer,
                           bool addToMS) override {
     _msProvider->WriteModel(buffer, addToMS);
-  }
-
-  virtual void WriteImagingWeights(const float* buffer) override {
-    _msProvider->WriteImagingWeights(buffer);
-  }
-
-  virtual void ReadWeights(float* buffer) override {
-    std::copy(_buffer[_bufferPosition].weights.begin(),
-              _buffer[_bufferPosition].weights.end(), buffer);
-  }
-
-  virtual void ReadWeights(std::complex<float>* buffer) override {
-    std::copy(_buffer[_bufferPosition].weights.begin(),
-              _buffer[_bufferPosition].weights.end(), buffer);
   }
 
   /**
@@ -117,43 +81,6 @@ class TimestepBuffer final : public MSProvider {
   size_t NPolarizations() override { return _msProvider->NPolarizations(); }
 
  private:
-  // void readTimeblock() {
-  //   _bufferPosition = 0;
-  //   _buffer.clear();
-  //   MSProvider::MetaData metaData;
-  //   size_t dataSize = _msProvider->NPolarizations() *
-  //   _msProvider->NChannels();
-
-  //   if (_msProvider->CurrentRowAvailable()) {
-  //     _msProvider->ReadMeta(metaData);
-  //     double blockTime = metaData.time, curTime = blockTime;
-  //     size_t writePos = 0;
-  //     do {
-  //       if (_buffer.size() <= writePos) {
-  //         _buffer.emplace_back();
-  //         RowData& newRow = _buffer.back();
-  //         newRow.data.resize(dataSize);
-  //         if (_readModel) newRow.model.resize(dataSize);
-  //         newRow.weights.resize(dataSize);
-  //       }
-  //       RowData& row = _buffer[writePos];
-  //       row.metaData = metaData;
-  //       _msProvider->ReadData(row.data.data());
-  //       if (_readModel) _msProvider->ReadModel(row.model.data());
-  //       _msProvider->ReadWeights(row.weights.data());
-  //       row.rowId = _msProvider->RowId();
-
-  //       // _msProvider->NextInputRow();
-  //       ++writePos;
-  //       if (_msProvider->CurrentRowAvailable()) {
-  //         _msProvider->ReadMeta(metaData);
-  //         curTime = metaData.time;
-  //       }
-  //     } while (_msProvider->CurrentRowAvailable() && blockTime == curTime);
-  //     _buffer.resize(writePos);
-  //   }
-  // }
-
   struct RowData {
     std::vector<std::complex<float>> data, model;
     std::vector<float> weights;
