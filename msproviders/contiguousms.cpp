@@ -8,13 +8,9 @@ ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum polOut, size_t dataDescId)
-    : _currentInputRow(0),
-      _currentInputTimestep(0),
-      _currentInputTime(0.0),
-      _currentOutputRow(0),
+    : _currentOutputRow(0),
       _currentOutputTimestep(0),
       _currentOutputTime(0.0),
-      _currentRowId(0),
       _dataDescId(dataDescId),
       _nAntenna(0),
       _isModelColumnPrepared(false),
@@ -84,16 +80,13 @@ std::unique_ptr<MSReader> ContiguousMS::MakeReader() {
 }
 
 void ContiguousMS::Reset() {
-  _currentInputRow = _startRow - 1;
-  _currentInputTime = 0.0;
+  _currentOutputRow = _startRow - 1;
+  _currentOutputTime = 0.0;
+  // TODO: something similar needed in the ContiguousMSReader class?
   if (_selection.HasInterval())
-    _currentInputTimestep = _selection.IntervalStart() - 1;
+    _currentOutputTimestep = _selection.IntervalStart() - 1;
   else
-    _currentInputTimestep = -1;
-  _currentOutputRow = _currentInputRow;
-  _currentOutputTime = _currentInputTime;
-  _currentOutputTimestep = _currentInputTimestep;
-  _currentRowId = size_t(-1);
+    _currentOutputTimestep = -1;
   NextOutputRow();
 }
 

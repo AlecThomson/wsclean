@@ -40,38 +40,16 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       // can use it. Or should _partHeader.dataDescId be used there?
       _dataDescId(dataDescId),
       _partIndex(partIndex),
-      _metaFile(getMetaFilename(handle._data->_msPath,
-                                handle._data->_temporaryDirectory, dataDescId)),
       _modelFileMap(0),
-      _currentInputRow(0),
       _currentOutputRow(0),
-      _readPtrIsOk(true),
-      _metaPtrIsOk(true),
-      _weightPtrIsOk(true),
       _polarization(polarization),
       _polarizationCountInFile(
           _polarization == aocommon::Polarization::Instrumental ? 4 : 1) {
-  // FIXME: redundant after migrating to readers
-  _metaFile.read(reinterpret_cast<char*>(&_metaHeader), sizeof(MetaHeader));
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
-  _metaFile.read(msPath.data(), _metaHeader.filenameLength);
-  Logger::Info << "Opening reordered part " << partIndex << " spw "
-               << dataDescId << " for " << msPath.data() << '\n';
   std::string partPrefix =
       getPartPrefix(msPath.data(), partIndex, polarization, dataDescId,
                     handle._data->_temporaryDirectory);
 
-  _dataFile.open(partPrefix + ".tmp", std::ios::in);
-  if (!_dataFile.good())
-    throw std::runtime_error("Error opening temporary data file '" +
-                             partPrefix + ".tmp'");
-  _dataFile.read(reinterpret_cast<char*>(&_partHeader), sizeof(PartHeader));
-  if (!_dataFile.good())
-    throw std::runtime_error("Error reading header from file '" + partPrefix +
-                             ".tmp'");
-  // END FIXME
-
-  // FIXME: leave conditional here or migrate to reader?
   if (_partHeader.hasModel) {
     _fd = open((partPrefix + "-m.tmp").c_str(), O_RDWR);
     if (_fd == -1)
@@ -95,13 +73,6 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       }
     }
   }
-
-  _weightFile.open(partPrefix + "-w.tmp", std::ios::in);
-  if (!_weightFile.good())
-    throw std::runtime_error("Error opening temporary data weight file '" +
-                             partPrefix + "-w.tmp'");
-  _weightBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
-  _modelBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
 }
 
 PartitionedMS::~PartitionedMS() {
@@ -111,18 +82,6 @@ PartitionedMS::~PartitionedMS() {
     if (length != 0) munmap(_modelFileMap, length);
   }
   if (_partHeader.hasModel) close(_fd);
-}
-
-void PartitionedMS::Reset() {
-  _currentInputRow = 0;
-  _currentOutputRow = 0;
-  _metaFile.seekg(sizeof(MetaHeader) + _metaHeader.filenameLength,
-                  std::ios::beg);
-  _dataFile.seekg(sizeof(PartHeader), std::ios::beg);
-  _weightFile.seekg(0, std::ios::beg);
-  _readPtrIsOk = true;
-  _metaPtrIsOk = true;
-  _weightPtrIsOk = true;
 }
 
 std::unique_ptr<MSReader> PartitionedMS::MakeReader() {
