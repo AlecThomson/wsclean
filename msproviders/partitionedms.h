@@ -57,7 +57,7 @@ class PartitionedMS final : public MSProvider {
 
   void NextOutputRow() override;
 
-  void Reset() override;
+  void Reset() final override { _currentOutputRow = 0; };
 
   void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 
@@ -82,7 +82,8 @@ class PartitionedMS final : public MSProvider {
 
   class Handle {
     // FIXME: not sure if we want PartitionedMSReader to be a friend
-    // it's currently needed to access the _data member
+    // it's currently needed to access the _data member.
+    // Maybe move to PartitionedMSReader?
     friend class PartitionedMSReader;
 
    public:
@@ -151,14 +152,9 @@ class PartitionedMS final : public MSProvider {
   Handle _handle;
   const size_t _dataDescId;
   const size_t _partIndex;
-  std::ifstream _metaFile, _weightFile, _dataFile;
   char* _modelFileMap;
-  size_t _currentInputRow;
   size_t _currentOutputRow;
-  bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
-  // FIXME: _weightBuffer and _modelBuffer seem redundant
-  aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
-  aocommon::UVector<std::complex<float>> _modelBuffer;
+  aocommon::UVector<float> _imagingWeightBuffer;
   std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
   int _fd;

@@ -19,7 +19,7 @@ class TimestepBuffer final : public MSProvider {
 
  public:
   TimestepBuffer(MSProvider* msProvider, bool readModel)
-      : _msProvider(msProvider), _bufferPosition(0), _readModel(readModel) {
+      : _msProvider(msProvider), _readModel(readModel) {
     _msProvider->Reset();
   }
 
@@ -40,26 +40,6 @@ class TimestepBuffer final : public MSProvider {
   virtual void WriteModel(const std::complex<float>* buffer,
                           bool addToMS) override {
     _msProvider->WriteModel(buffer, addToMS);
-  }
-
-  /**
-   * Returns an Array containing the uvws for baselines (antenna1, antenna2)
-   * that have antenna1=0, sorted by antenna2.
-   * @param uvws should have the correct size on input (nantenna * 3)
-   */
-  void GetUVWsForTimestep(aocommon::UVector<double>& uvws) {
-    for (size_t i = 0; i != _buffer.size(); ++i) {
-      if (_buffer[i].metaData.antenna1 == 0) {
-        size_t index = _buffer[i].metaData.antenna2 * 3;
-        if (index >= _buffer.size()) _buffer.resize(index + 3);
-        uvws[index + 0] = _buffer[i].metaData.uInM;
-        uvws[index + 1] = _buffer[i].metaData.vInM;
-        uvws[index + 2] = _buffer[i].metaData.wInM;
-      }
-    }
-    uvws[0] = 0.0;
-    uvws[1] = 0.0;
-    uvws[2] = 0.0;
   }
 
   void ReopenRW() override { _msProvider->ReopenRW(); }
@@ -90,8 +70,6 @@ class TimestepBuffer final : public MSProvider {
 
   MSProvider* _msProvider;
 
-  size_t _bufferPosition;
-  std::vector<RowData> _buffer;
   bool _readModel;
 };
 

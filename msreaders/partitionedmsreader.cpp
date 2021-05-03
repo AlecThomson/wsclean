@@ -9,8 +9,6 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
       _readPtrIsOk(true),
       _metaPtrIsOk(true),
       _weightPtrIsOk(true) {
-  // PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
-
   _metaFile.open(PartitionedMS::getMetaFilename(
                      partitionedMS->_handle._data->_msPath,
                      partitionedMS->_handle._data->_temporaryDirectory,
@@ -42,9 +40,6 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
   if (!_weightFile.good())
     throw std::runtime_error("Error opening temporary data weight file '" +
                              partPrefix + "-w.tmp'");
-  // FIXME: seem redundant
-  // _weightBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
-  // _modelBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
 };
 
 bool PartitionedMSReader::CurrentRowAvailable() {
