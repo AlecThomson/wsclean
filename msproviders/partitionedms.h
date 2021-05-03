@@ -59,21 +59,7 @@ class PartitionedMS final : public MSProvider {
 
   void Reset() override;
 
-  void ReadMeta(double& u, double& v, double& w, size_t& dataDescId) override;
-
-  void ReadMeta(MetaData& metaData) override;
-
-  void ReadData(std::complex<float>* buffer) override;
-
-  void ReadModel(std::complex<float>* buffer) override;
-
   void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
-
-  void WriteImagingWeights(const float* buffer) override;
-
-  void ReadWeights(float* buffer) override;
-
-  void ReadWeights(std::complex<float>* buffer) override;
 
   void ReopenRW() override {}
 
