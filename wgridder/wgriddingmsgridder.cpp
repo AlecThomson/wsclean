@@ -135,7 +135,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
     aocommon::UVector<double> uvwBuffer(maxNRows * 3);
     // Iterate over chunks until all data has been gridded
-    msData.msProvider->Reset();
+    msData.msProvider->ResetWritePosition();
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     while (msReader->CurrentRowAvailable()) {
       size_t nRows = 0;

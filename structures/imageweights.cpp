@@ -88,14 +88,10 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
     aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels() *
                                           polarizationCount);
 
-    // msProvider.Reset();
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
-    // while (msProvider.CurrentRowAvailable()) {
     while (msReader->CurrentRowAvailable()) {
       double uInM, vInM, wInM;
       size_t dataDescId;
-      // msProvider.ReadMeta(uInM, vInM, wInM, dataDescId);
-      // msProvider.ReadWeights(weightBuffer.data());
       msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
       msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
@@ -119,7 +115,6 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
         }
       }
 
-      // msProvider.NextInputRow();
       msReader->NextInputRow();
     }
   }

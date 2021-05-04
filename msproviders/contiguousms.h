@@ -36,7 +36,7 @@ class ContiguousMS : public MSProvider {
 
   void NextOutputRow() final override;
 
-  void Reset() final override;
+  void ResetWritePosition() final override;
 
   void WriteModel(const std::complex<float>* buffer,
                   bool addToMS) final override;
