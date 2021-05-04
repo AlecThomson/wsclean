@@ -485,7 +485,7 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
 }
 
 template <size_t PolarizationCount>
-void MSGridderBase::readAndWeightVisibilities(MSReader* msReader,
+void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
                                               InversionRow& rowData,
                                               const BandData& curBand,
                                               float* weightBuffer,
@@ -504,12 +504,12 @@ void MSGridderBase::readAndWeightVisibilities(MSReader* msReader,
       rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
     }
   } else {
-    msReader->ReadData(rowData.data);
+    msReader.ReadData(rowData.data);
   }
-  rowData.rowId = msReader->RowId();
+  rowData.rowId = msReader.RowId();
 
   if (DoSubtractModel()) {
-    msReader->ReadModel(modelBuffer);
+    msReader.ReadModel(modelBuffer);
     std::complex<float>* modelIter = modelBuffer;
     for (std::complex<float>* iter = rowData.data;
          iter != rowData.data + dataSize; ++iter) {
@@ -521,7 +521,7 @@ void MSGridderBase::readAndWeightVisibilities(MSReader* msReader,
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
-    msReader->ReadMeta(metaData);
+    msReader.ReadMeta(metaData);
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -552,7 +552,7 @@ void MSGridderBase::readAndWeightVisibilities(MSReader* msReader,
   }
 #endif
 
-  msReader->ReadWeights(weightBuffer);
+  msReader.ReadWeights(weightBuffer);
 
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
@@ -605,16 +605,16 @@ void MSGridderBase::readAndWeightVisibilities(MSReader* msReader,
     }
   }
   if (StoreImagingWeights())
-    msReader->WriteImagingWeights(_scratchWeights.data());
+    msReader.WriteImagingWeights(_scratchWeights.data());
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(
-    MSReader* msReader, InversionRow& newItem, const BandData& curBand,
+    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<4>(
-    MSReader* msReader, InversionRow& newItem, const BandData& curBand,
+    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 

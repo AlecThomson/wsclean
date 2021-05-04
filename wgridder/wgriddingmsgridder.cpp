@@ -73,7 +73,6 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
                                                      band.ChannelCount());
     aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 
-    // FIXME: probably a reset just to be sure that outputRow is set to 0?
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     aocommon::UVector<std::complex<float>> newItemData(band.ChannelCount());
     InversionRow newRowData;
@@ -96,7 +95,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1>(msReader.get(), newRowData, band,
+          readAndWeightVisibilities<1>(*(msReader.get()), newRowData, band,
                                        weightBuffer.data(), modelBuffer.data(),
                                        isSelected.data());
 
@@ -136,7 +135,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
     aocommon::UVector<double> uvwBuffer(maxNRows * 3);
     // Iterate over chunks until all data has been gridded
-    // FIXME: probably a reset just to be sure that outputRow is set to 0
+    msData.msProvider->Reset();
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     while (msReader->CurrentRowAvailable()) {
       size_t nRows = 0;
