@@ -142,7 +142,8 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
 }
 
 void ContiguousMSReader::ReadWeights(std::complex<float>* buffer) {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  const ContiguousMS& contiguousms =
+      static_cast<const ContiguousMS&>(*_msProvider);
 
   readData();
   readWeights();
@@ -162,7 +163,8 @@ void ContiguousMSReader::ReadWeights(std::complex<float>* buffer) {
 }
 
 void ContiguousMSReader::ReadWeights(float* buffer) {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  const ContiguousMS& contiguousms =
+      static_cast<const ContiguousMS&>(*_msProvider);
 
   readData();
   readWeights();

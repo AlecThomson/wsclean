@@ -149,11 +149,10 @@ class PartitionedMS final : public MSProvider {
       std::map<size_t, size_t>& dataDescIds,
       const std::vector<PartitionedMS::ChannelRange>& channels);
 
-  Handle _handle;
+  const Handle _handle;
   const size_t _partIndex;
   char* _modelFileMap;
   size_t _currentOutputRow;
-  aocommon::UVector<float> _imagingWeightBuffer;
   std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
   int _fd;
