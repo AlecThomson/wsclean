@@ -16,7 +16,7 @@ The text below was written by Leonardo Saavedra from NRAO.
 .. note::
    Be aware that these instructions are not for the latest WSClean version.
 
-Some WSClean are provided by RHEL 7.6, but you have to install the latest fftw and casacore.
+Some WSClean dependencies are provided by RHEL 7.6, but you have to install the latest fftw and casacore.
 
 * http://www.fftw.org/
 * https://sourceforge.net/p/wsclean
