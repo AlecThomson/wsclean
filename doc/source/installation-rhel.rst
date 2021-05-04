@@ -37,7 +37,7 @@ Download the packages
     Be aware that these instructions refer to the old SourceForge version of WSClean.
     It is highly recommended to use newer versions from GitLab.
 
-For this example I am going to install under ``*/export/home/vivaldi/local*``
+For this example I am going to install under ``/export/local``
 
 Install fftw
 ------------
@@ -47,7 +47,7 @@ Install fftw
   cd ~/wsclean
   tar xzvf fftw-3.3.8.tar.gz
   cd fftw-3.3.8/
-  ./configure --prefix=/export/home/vivaldi/local  --enable-threads --enable-openmp  --enable-shared
+  ./configure --prefix=/export/local  --enable-threads --enable-openmp  --enable-shared
   make
   make install
 
@@ -56,13 +56,13 @@ Install Casacore
 
 .. code-block:: bash
 
-  export LD_LIBRARY_PATH=/export/home/vivaldi/local/lib:$LD_LIBRARY_PATH
+  export LD_LIBRARY_PATH=/export/local/lib:$LD_LIBRARY_PATH
   cd ~/wsclean
   tar xzvf v3.1.1.tar.gz
   cd casacore-3.1.1/
   mkdir build
   cd build
-  cmake ../ -DCMAKE_PREFIX_PATH=/export/home/vivaldi/local/
+  cmake ../ -DCMAKE_PREFIX_PATH=/export/local/
   make -j `nproc`
   vim cmake_install.cmake <-- modified CMAKE_INSTALL_PREFIX
   make install
@@ -77,7 +77,7 @@ Install WSClean 2.7
   cd wsclean-2.7/
   mkdir build
   cd build/
-  cmake ../ -DCMAKE_PREFIX_PATH=/export/home/vivaldi/local/
+  cmake ../ -DCMAKE_PREFIX_PATH=/export/local/
   make -j `nproc`
   vim cmake_install.cmake <-- modified CMAKE_INSTALL_PREFIX
   make install
@@ -88,7 +88,7 @@ Check WSClean
 .. code-block:: bash
 
   pwd
-  /export/home/vivaldi/local/bin
+  /export/local/bin
   ./wsclean -version
 
   WSClean version 2.7.0 (2019-04-19)
