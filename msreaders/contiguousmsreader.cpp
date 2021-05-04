@@ -124,7 +124,6 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
 void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
   ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
 
-  // TODO: Read/WriteModel operate on the MSProvider columns. Correct?
   if (!contiguousms._isModelColumnPrepared) contiguousms.prepareModelColumn();
 
   readModel();

@@ -36,9 +36,6 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
     : _handle(handle),
-      // FIXME: added _dataDescId member so that PartitionedMSReader
-      // can use it. Or should _partHeader.dataDescId be used there?
-      _dataDescId(dataDescId),
       _partIndex(partIndex),
       _modelFileMap(0),
       _currentOutputRow(0),

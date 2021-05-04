@@ -12,7 +12,7 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
   _metaFile.open(PartitionedMS::getMetaFilename(
                      partitionedMS->_handle._data->_msPath,
                      partitionedMS->_handle._data->_temporaryDirectory,
-                     partitionedMS->_dataDescId),
+                     partitionedMS->_partHeader.dataDescId),
                  std::ios::in);
   // meta and data header were read in PartitionedMS constructor, skip
   // doing this again by correct the buffer position in _metaFile and _dataFile
@@ -22,11 +22,11 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
   _metaFile.read(msPath.data(), partitionedMS->_metaHeader.filenameLength);
   Logger::Info << "PartitionedMSReader: Opening reordered part "
                << partitionedMS->_partIndex << " spw "
-               << partitionedMS->_dataDescId << " for " << msPath.data()
-               << '\n';
+               << partitionedMS->_partHeader.dataDescId << " for "
+               << msPath.data() << '\n';
   std::string partPrefix = PartitionedMS::getPartPrefix(
       msPath.data(), partitionedMS->_partIndex, partitionedMS->_polarization,
-      partitionedMS->_dataDescId,
+      partitionedMS->_partHeader.dataDescId,
       partitionedMS->_handle._data->_temporaryDirectory);
   _dataFile.open(partPrefix + ".tmp", std::ios::in);
   if (!_dataFile.good())
@@ -189,7 +189,7 @@ void PartitionedMSReader::ReadWeights(float* buffer) {
 void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
   PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
 
-  if (_modelDataFile == nullptr) {
+  if (_imagingWeightsFile == nullptr) {
     std::string partPrefix = PartitionedMS::getPartPrefix(
         partitionedms._handle._data->_msPath, partitionedms._partIndex,
         partitionedms._polarization, partitionedms._partHeader.dataDescId,

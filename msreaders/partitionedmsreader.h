@@ -41,13 +41,7 @@ class PartitionedMSReader final : public MSReader {
 
   std::ifstream _metaFile, _weightFile, _dataFile;
 
-  // FIXME: both _weightBuffer and _modelBuffer seem redundant
-  // and have been removed. Check with Andre
   aocommon::UVector<float> _imagingWeightBuffer;
-
-  // FIXME: _modelDataFile seems redundant (here and in
-  // PartitionedMS class)
-  std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
 };
 

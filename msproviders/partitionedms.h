@@ -150,7 +150,6 @@ class PartitionedMS final : public MSProvider {
       const std::vector<PartitionedMS::ChannelRange>& channels);
 
   Handle _handle;
-  const size_t _dataDescId;
   const size_t _partIndex;
   char* _modelFileMap;
   size_t _currentOutputRow;

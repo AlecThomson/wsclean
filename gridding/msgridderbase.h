@@ -282,7 +282,7 @@ class MSGridderBase {
    * to the relevant sums (visibility count, weight sum, etc.).
    */
   template <size_t PolarizationCount>
-  void readAndWeightVisibilities(MSReader* msReader, InversionRow& rowData,
+  void readAndWeightVisibilities(MSReader& msReader, InversionRow& rowData,
                                  const BandData& curBand, float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
