@@ -361,6 +361,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
 
   TimestepBuffer timestepBuffer(msData.msProvider, false);
+  timestepBuffer.ResetWritePosition();
   for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.MakeReader();
        msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
     TimestepBufferReader& msReader =

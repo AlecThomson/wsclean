@@ -71,7 +71,7 @@ void ContiguousMS::open() {
 
   getRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow,
                       std::set<size_t>{size_t(_dataDescId)}, _idToMSRow);
-  Reset();
+  ResetWritePosition();
 }
 
 std::unique_ptr<MSReader> ContiguousMS::MakeReader() {
@@ -79,7 +79,7 @@ std::unique_ptr<MSReader> ContiguousMS::MakeReader() {
   return reader;
 }
 
-void ContiguousMS::Reset() {
+void ContiguousMS::ResetWritePosition() {
   _currentOutputRow = _startRow - 1;
   _currentOutputTime = 0.0;
   // TODO: something similar needed in the ContiguousMSReader class?

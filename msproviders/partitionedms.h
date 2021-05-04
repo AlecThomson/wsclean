@@ -57,7 +57,7 @@ class PartitionedMS final : public MSProvider {
 
   void NextOutputRow() override;
 
-  void Reset() final override { _currentOutputRow = 0; };
+  void ResetWritePosition() final override { _currentOutputRow = 0; };
 
   void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 

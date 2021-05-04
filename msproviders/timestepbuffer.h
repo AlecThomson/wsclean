@@ -20,7 +20,7 @@ class TimestepBuffer final : public MSProvider {
  public:
   TimestepBuffer(MSProvider* msProvider, bool readModel)
       : _msProvider(msProvider), _readModel(readModel) {
-    _msProvider->Reset();
+    _msProvider->ResetWritePosition();
   }
 
   virtual ~TimestepBuffer(){};
@@ -35,7 +35,7 @@ class TimestepBuffer final : public MSProvider {
 
   void NextOutputRow() override { _msProvider->NextOutputRow(); }
 
-  void Reset() override { _msProvider->Reset(); }
+  void ResetWritePosition() override { _msProvider->ResetWritePosition(); }
 
   virtual void WriteModel(const std::complex<float>* buffer,
                           bool addToMS) override {

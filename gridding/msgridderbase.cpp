@@ -212,7 +212,6 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   std::vector<float> weightArray(selectedBand.MaxChannels() * NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
-  msData.msProvider->Reset();
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;

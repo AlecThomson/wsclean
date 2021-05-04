@@ -343,7 +343,7 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kMWATelescope:
     case everybeam::TelescopeType::kOSKARTelescope:
       // Loop over the intervalCounts
-      msProvider.Reset();
+      msProvider.ResetWritePosition();
       for (size_t intervalIndex = 0; intervalIndex != intervalCount;
            ++intervalIndex) {
         // Find the mid time step
@@ -440,7 +440,7 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
 std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
     MSProvider& msProvider) {
   Logger::Debug << "Counting timesteps...\n";
-  msProvider.Reset();
+  msProvider.ResetWritePosition();
   size_t timestepCount = 0;
   double startTime = 0.0, endTime = 0.0;
   std::unique_ptr<MSReader> msReader = msProvider.MakeReader();

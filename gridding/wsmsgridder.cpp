@@ -239,6 +239,7 @@ void WSMSGridder::workThreadPerSample(
 
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
+  msData.msProvider->ResetWritePosition();
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 

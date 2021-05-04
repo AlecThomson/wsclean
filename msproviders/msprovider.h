@@ -62,9 +62,9 @@ class MSProvider {
   virtual void NextOutputRow() = 0;
 
   /**
-   * Reset both the reading and writing position to the first row.
+   * Reset both the writing position to the first row.
    */
-  virtual void Reset() = 0;
+  virtual void ResetWritePosition() = 0;
 
   /**
    * Write model visibilities to the current writing position. If add is true,
