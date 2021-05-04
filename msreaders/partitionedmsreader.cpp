@@ -44,12 +44,12 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
 bool PartitionedMSReader::CurrentRowAvailable() {
   const PartitionedMS& partitionedms =
       static_cast<const PartitionedMS&>(*_msProvider);
-
   return _currentInputRow < partitionedms._metaHeader.selectedRowCount;
 }
 
 void PartitionedMSReader::NextInputRow() {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
   ++_currentInputRow;
   if (_currentInputRow < partitionedms._metaHeader.selectedRowCount) {
@@ -107,7 +107,8 @@ void PartitionedMSReader::ReadMeta(MSProvider::MetaData& metaData) {
 }
 
 void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
   if (!_readPtrIsOk) {
     _dataFile.seekg(-partitionedms._partHeader.channelCount *
@@ -141,7 +142,8 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
 }
 
 void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
 #ifndef NDEBUG
   if (!partitionedms._partHeader.hasModel)
@@ -155,7 +157,8 @@ void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
 }
 
 void PartitionedMSReader::ReadWeights(std::complex<float>* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
   if (!_weightPtrIsOk)
     _weightFile.seekg(-partitionedms._partHeader.channelCount * sizeof(float),
@@ -173,7 +176,8 @@ void PartitionedMSReader::ReadWeights(std::complex<float>* buffer) {
 }
 
 void PartitionedMSReader::ReadWeights(float* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
   if (!_weightPtrIsOk)
     _weightFile.seekg(-partitionedms._partHeader.channelCount *
@@ -187,7 +191,8 @@ void PartitionedMSReader::ReadWeights(float* buffer) {
 }
 
 void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<const PartitionedMS&>(*_msProvider);
 
   if (_imagingWeightsFile == nullptr) {
     std::string partPrefix = PartitionedMS::getPartPrefix(
@@ -203,18 +208,17 @@ void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
                            sizeof(float);
   _imagingWeightsFile->seekg(chunkSize * _currentInputRow, std::ios::beg);
   _imagingWeightsFile->read(
-      reinterpret_cast<char*>(partitionedms._imagingWeightBuffer.data()),
+      reinterpret_cast<char*>(_imagingWeightBuffer.data()),
       partitionedms._partHeader.channelCount *
           partitionedms._polarizationCountInFile * sizeof(float));
   for (size_t i = 0; i != partitionedms._partHeader.channelCount *
                               partitionedms._polarizationCountInFile;
        ++i) {
-    if (std::isfinite(buffer[i]))
-      partitionedms._imagingWeightBuffer[i] = buffer[i];
+    if (std::isfinite(buffer[i])) _imagingWeightBuffer[i] = buffer[i];
   }
   _imagingWeightsFile->seekp(chunkSize * _currentInputRow, std::ios::beg);
   _imagingWeightsFile->write(
-      reinterpret_cast<const char*>(partitionedms._imagingWeightBuffer.data()),
+      reinterpret_cast<const char*>(_imagingWeightBuffer.data()),
       partitionedms._partHeader.channelCount *
           partitionedms._polarizationCountInFile * sizeof(float));
 }
