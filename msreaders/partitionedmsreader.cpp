@@ -14,27 +14,26 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
                      partitionedMS->_handle._data->_temporaryDirectory,
                      partitionedMS->_dataDescId),
                  std::ios::in);
-  _metaFile.read(reinterpret_cast<char*>(&partitionedMS->_metaHeader),
-                 sizeof(PartitionedMS::MetaHeader));
+  // meta and data header were read in PartitionedMS constructor, skip
+  // doing this again by correct the buffer position in _metaFile and _dataFile
   std::vector<char> msPath(partitionedMS->_metaHeader.filenameLength + 1,
                            char(0));
+  _metaFile.seekg(sizeof(PartitionedMS::MetaHeader), std::ios::beg);
   _metaFile.read(msPath.data(), partitionedMS->_metaHeader.filenameLength);
-  Logger::Info << "Opening reordered part " << partitionedMS->_partIndex
-               << " spw " << partitionedMS->_dataDescId << " for "
-               << msPath.data() << '\n';
+  Logger::Info << "PartitionedMSReader: Opening reordered part "
+               << partitionedMS->_partIndex << " spw "
+               << partitionedMS->_dataDescId << " for " << msPath.data()
+               << '\n';
   std::string partPrefix = PartitionedMS::getPartPrefix(
       msPath.data(), partitionedMS->_partIndex, partitionedMS->_polarization,
       partitionedMS->_dataDescId,
       partitionedMS->_handle._data->_temporaryDirectory);
   _dataFile.open(partPrefix + ".tmp", std::ios::in);
   if (!_dataFile.good())
-    throw std::runtime_error("Error opening temporary data file '" +
-                             partPrefix + ".tmp'");
-  _dataFile.read(reinterpret_cast<char*>(&partitionedMS->_partHeader),
-                 sizeof(PartitionedMS::PartHeader));
-  if (!_dataFile.good())
-    throw std::runtime_error("Error reading header from file '" + partPrefix +
-                             ".tmp'");
+    throw std::runtime_error(
+        "PartitionedMSReader: Error opening temporary data file '" +
+        partPrefix + ".tmp'");
+  _dataFile.seekg(sizeof(PartitionedMS::PartHeader), std::ios::beg);
 
   _weightFile.open(partPrefix + "-w.tmp", std::ios::in);
   if (!_weightFile.good())

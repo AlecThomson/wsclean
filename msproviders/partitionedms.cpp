@@ -45,26 +45,26 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _polarization(polarization),
       _polarizationCountInFile(
           _polarization == aocommon::Polarization::Instrumental ? 4 : 1) {
-  // We need to read some info from the meta- and the datafile headers.
-  // This can't be delegated to the reader as long as _modelFileMap stays
-  // inside the PartitionedMS class
+  // Headers are read and set in the PartitionedMS class - since needed by the
+  // write functions - whereas the underlying input stream members are
+  // initialized in the PartitionedMSReader.
   std::ifstream metaFileTmp(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
 
   metaFileTmp.read(reinterpret_cast<char*>(&_metaHeader), sizeof(MetaHeader));
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
   metaFileTmp.read(msPath.data(), _metaHeader.filenameLength);
-  Logger::Info << "Opening reordered part " << partIndex << " spw "
-               << dataDescId << " for " << msPath.data() << '\n';
+  Logger::Info << "PartitionedMS: Opening reordered part " << partIndex
+               << " spw " << dataDescId << " for " << msPath.data() << '\n';
   std::string partPrefix =
       getPartPrefix(msPath.data(), partIndex, polarization, dataDescId,
                     handle._data->_temporaryDirectory);
 
-  std::ifstream dataFileTmp;
-  dataFileTmp.open(partPrefix + ".tmp", std::ios::in);
+  std::ifstream dataFileTmp(partPrefix + ".tmp", std::ios::in);
   if (!dataFileTmp.good())
-    throw std::runtime_error("Error opening temporary data file '" +
-                             partPrefix + ".tmp'");
+    throw std::runtime_error(
+        "PartitionedMS: Error opening temporary data file '" + partPrefix +
+        ".tmp'");
   dataFileTmp.read(reinterpret_cast<char*>(&_partHeader), sizeof(PartHeader));
   if (!dataFileTmp.good())
     throw std::runtime_error("Error reading header from file '" + partPrefix +
