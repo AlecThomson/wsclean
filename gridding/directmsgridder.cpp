@@ -152,7 +152,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
                        dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
 
-    readAndWeightVisibilities<1>(*(msReader.get()), newItem, curBand,
+    readAndWeightVisibilities<1>(*msReader, newItem, curBand,
                                  weightBuffer.data(), modelBuffer.data(),
                                  isSelected.data());
     InversionSample sample;

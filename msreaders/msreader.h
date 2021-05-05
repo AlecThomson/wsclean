@@ -4,8 +4,14 @@
 #include "../msproviders/msprovider.h"
 
 /**
- * An MSReader provides the capability to read (meta)data
- * independent from the location of the reader position in the MSProvider
+ * The abstract MSReader class is the base class for classes that read
+ * visibilities. Derived classes are usually instantiated via
+ * MSProvider::MakeReader(). This class is designed such that each instance of
+ * a reader provides independent read access to the underlying visibilities.
+ *
+ * This class maintains a reading position, that goes sequentially through the
+ * data. The interface of this class is implemented in @ref ContiguousMSReader
+ * and @ref PartitionedMSReader.
  */
 class MSReader {
  public:
@@ -68,14 +74,13 @@ class MSReader {
  protected:
   MSProvider* _msProvider;
 
-  // virtual MSProvider& GetMSProvider() = 0;
-
   static void copyData(std::complex<float>* dest, size_t startChannel,
                        size_t endChannel,
                        const std::vector<aocommon::PolarizationEnum>& polsIn,
                        const casacore::Array<std::complex<float>>& data,
                        aocommon::PolarizationEnum polOut);
 
+ private:
   template <typename NumType>
   static bool isCFinite(const std::complex<NumType>& c) {
     return std::isfinite(c.real()) && std::isfinite(c.imag());

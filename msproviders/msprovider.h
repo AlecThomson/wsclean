@@ -22,17 +22,19 @@ class MSReader;
 
 /**
  * The abstract MSProvider class is the base class for classes that read and
- * write the visibilities. An MSProvider knows which rows are selected and
- * doesn't read or write to unselected rows. It provides the visibilities
- * weighted with the visibility weight and converts the visibilities to a
- * requested polarization. The @ref ContiguousMS and
+ * write the visibilities. Write functionality is directly provided by classes
+ * that derive from MSProvider, whereas reading functionality is provided a
+ * separate class (MSReader), which can be instantiated with @ref
+ * MSProvider::MakeReader. An MSProvider knows which rows are selected and
+ * doesn't write to unselected rows. This information on selected rows is also
+ * passed to the @ref MSReader. MSProvider provides the visibilities weighted
+ * with the visibility weight and converts the visibilities to a requested
+ * polarization. The @ref ContiguousMS and
  * @ref PartitionedMS classes implement the MSProvider interface.
  *
- * The class maintains two indices: one for reading and one for writing. Both
- * operations must go sequentially through the data, but reading may be at a
- * different position than writing. This for example allows reading some (meta)
- * data ahead, buffering those, calculate the corresponding visibilities and
- * write them back.
+ * The class maintains an index for the write position. The index for the
+ * reading position is maintained by the closely connected @ref MSReader class.
+ * Writing (and reading) goes sequentially through the data.
  */
 class MSProvider {
  public:
@@ -46,7 +48,7 @@ class MSProvider {
     double time;
   };
 
-  virtual ~MSProvider();  // {}
+  virtual ~MSProvider();
 
   virtual SynchronizedMS MS() = 0;
 
