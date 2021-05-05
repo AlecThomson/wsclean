@@ -56,8 +56,8 @@ void TimestepBufferReader::WriteImagingWeights(const float* buffer) {
 }
 
 void TimestepBufferReader::readTimeblock() {
-  // Beware that the top level _msProvider is
-  // the TimestepBuffer, which in turn has its own _msProvider
+  // Beware that the _msProvider data member is a TimestepBuffer,
+  // which in turn has its own _msProvider
   TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*_msProvider);
 
   _bufferPosition = 0;
