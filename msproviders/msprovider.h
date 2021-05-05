@@ -64,7 +64,7 @@ class MSProvider {
   virtual void NextOutputRow() = 0;
 
   /**
-   * Reset both the writing position to the first row.
+   * Reset the writing position to the first row.
    */
   virtual void ResetWritePosition() = 0;
 
@@ -211,7 +211,7 @@ class MSProvider {
     }
   }
 
-  MSProvider(){};
+  MSProvider() {}
 
  private:
   MSProvider(const MSProvider&);

@@ -83,7 +83,6 @@ void TimestepBufferReader::readTimeblock() {
       _msReader->ReadData(row.data.data());
       if (tstepbuffer._readModel) _msReader->ReadModel(row.model.data());
       _msReader->ReadWeights(row.weights.data());
-      // TODO: drag into reader?
       row.rowId = _msReader->RowId();
 
       _msReader->NextInputRow();

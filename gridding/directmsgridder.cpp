@@ -140,7 +140,6 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
 
   std::vector<size_t> idToMSRow;
   msData.msProvider->MakeIdToMSRowMapping(idToMSRow);
-  msData.msProvider->ResetWritePosition();
   size_t rowIndex = 0;
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {

@@ -204,19 +204,19 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
 
   TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
-  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.MakeReader();
-       msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
-    TimestepBufferReader* msReader =
-        static_cast<TimestepBufferReader*>(msReaderPtr.get());
+  for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
+       msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
+    TimestepBufferReader& timestepReader =
+        static_cast<TimestepBufferReader&>(*msReader);
     MSProvider::MetaData metaData;
-    msReader->ReadMeta(metaData);
+    timestepReader.ReadMeta(metaData);
 
     if (currentTime != metaData.time) {
       currentTime = metaData.time;
       timeIndex++;
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
-        msReader->GetUVWsForTimestep(uvws);
+        timestepReader.GetUVWsForTimestep(uvws);
         if (aTermMaker->Calculate(
                 aTermBuffer.data(), currentTime,
                 _selectedBands[metaData.dataDescId].CentreFrequency(),
@@ -241,7 +241,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
     rowData.dataDescId = metaData.dataDescId;
-    readAndWeightVisibilities<4>(*(msReaderPtr.get()), rowData, curBand,
+    readAndWeightVisibilities<4>(*msReader, rowData, curBand,
                                  weightBuffer.data(), modelBuffer.data(),
                                  isSelected.data());
 
@@ -362,22 +362,22 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
 
   TimestepBuffer timestepBuffer(msData.msProvider, false);
   timestepBuffer.ResetWritePosition();
-  for (std::unique_ptr<MSReader> msReaderPtr = timestepBuffer.MakeReader();
-       msReaderPtr->CurrentRowAvailable(); msReaderPtr->NextInputRow()) {
-    TimestepBufferReader& msReader =
-        static_cast<TimestepBufferReader&>(*msReaderPtr.get());
+  for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
+       msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
+    TimestepBufferReader& timestepReader =
+        static_cast<TimestepBufferReader&>(*msReader);
 
     MSProvider::MetaData metaData;
-    msReader.ReadMeta(metaData);
+    timestepReader.ReadMeta(metaData);
 
-    const size_t provRowId = msReader.RowId();
+    const size_t provRowId = timestepReader.RowId();
     if (currentTime != metaData.time) {
       currentTime = metaData.time;
       timeIndex++;
 
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
-        msReader.GetUVWsForTimestep(uvws);
+        timestepReader.GetUVWsForTimestep(uvws);
         if (aTermMaker->Calculate(
                 aTermBuffer.data(), currentTime,
                 _selectedBands[metaData.dataDescId].CentreFrequency(),
