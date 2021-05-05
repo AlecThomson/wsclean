@@ -43,8 +43,8 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _polarizationCountInFile(
           _polarization == aocommon::Polarization::Instrumental ? 4 : 1) {
   // Headers are read and set in the PartitionedMS class - since needed by the
-  // write functions - whereas the underlying input stream members are
-  // initialized in the PartitionedMSReader.
+  // write functions. Corresponding input stream members are intialized in the
+  // PartitionedMSReader constructor.
   std::ifstream metaFileTmp(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
 

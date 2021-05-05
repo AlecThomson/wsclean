@@ -168,7 +168,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
         isSelected[ch] = _gridder->IsInLayerRange(w);
       }
 
-      readAndWeightVisibilities<1>(*(msReader.get()), newItem, curBand,
+      readAndWeightVisibilities<1>(*msReader, newItem, curBand,
                                    weightBuffer.data(), modelBuffer.data(),
                                    isSelected.data());
 

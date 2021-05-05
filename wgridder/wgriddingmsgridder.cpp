@@ -95,7 +95,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1>(*(msReader.get()), newRowData, band,
+          readAndWeightVisibilities<1>(*msReader, newRowData, band,
                                        weightBuffer.data(), modelBuffer.data(),
                                        isSelected.data());
 
