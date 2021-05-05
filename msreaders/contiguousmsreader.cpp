@@ -3,13 +3,20 @@
 
 ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousMS)
     : MSReader(contiguousMS),
-      _currentInputRow(0),
-      _currentInputTimestep(0),
       _currentInputTime(0.0),
-      _currentRowId(0),
       _isDataRead(false),
       _isModelRead(false),
-      _isWeightRead(false){};
+      _isWeightRead(false) {
+  const ContiguousMS& contiguousms =
+      static_cast<const ContiguousMS&>(*_msProvider);
+  _currentInputRow = contiguousms._startRow - 1;
+  if (contiguousms._selection.HasInterval())
+    _currentInputTimestep = contiguousms._selection.IntervalStart() - 1;
+  else
+    _currentInputTimestep = -1;
+  _currentRowId = size_t(-1);
+  NextInputRow();
+};
 
 bool ContiguousMSReader::CurrentRowAvailable() {
   const ContiguousMS& contiguousms =
