@@ -19,20 +19,14 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
   // meta and data header were read in PartitionedMS constructor
   _metaFile.seekg(sizeof(PartitionedMS::MetaHeader), std::ios::beg);
   _metaFile.read(msPath.data(), partitionedMS->_metaHeader.filenameLength);
-  Logger::Info << "PartitionedMSReader: Opening reordered part "
-               << partitionedMS->_partIndex << " spw "
-               << partitionedMS->_partHeader.dataDescId << " for "
-               << msPath.data() << '\n';
   std::string partPrefix = PartitionedMS::getPartPrefix(
       msPath.data(), partitionedMS->_partIndex, partitionedMS->_polarization,
       partitionedMS->_partHeader.dataDescId,
       partitionedMS->_handle._data->_temporaryDirectory);
   _dataFile.open(partPrefix + ".tmp", std::ios::in);
   if (!_dataFile.good())
-    throw std::runtime_error(
-        "PartitionedMSReader: Error opening temporary data file '" +
-        partPrefix + ".tmp'");
-  // Set stream position beyond header
+    throw std::runtime_error("Error opening temporary data file in '" +
+                             partPrefix + ".tmp'");
   _dataFile.seekg(sizeof(PartitionedMS::PartHeader), std::ios::beg);
 
   _weightFile.open(partPrefix + "-w.tmp", std::ios::in);
