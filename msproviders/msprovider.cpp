@@ -1,5 +1,5 @@
 #include "msprovider.h"
-#include "../msreaders/msreader.h"
+#include "msreaders/msreader.h"
 
 #include "../io/logger.h"
 

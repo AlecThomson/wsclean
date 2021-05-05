@@ -5,7 +5,7 @@
 #include "../math/calculatefftsize.h"
 
 #include "../msproviders/msprovider.h"
-#include "../msreaders/msreader.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include "../structures/imageweights.h"
 

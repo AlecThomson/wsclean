@@ -1,5 +1,5 @@
 #include "contiguousmsreader.h"
-#include "../msproviders/contiguousms.h"
+#include "../contiguousms.h"
 
 ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousMS)
     : MSReader(contiguousMS),

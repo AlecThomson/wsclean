@@ -1,7 +1,5 @@
 #include "partitionedmsreader.h"
-#include "../msproviders/partitionedms.h"
-
-#include "../io/logger.h"
+#include "../partitionedms.h"
 
 PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
     : MSReader(partitionedMS),

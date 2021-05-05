@@ -1,6 +1,6 @@
 #include "idgmsgridder.h"
 
-#include "../msreaders/timestepbufferreader.h"
+#include "../msproviders/msreaders/timestepbufferreader.h"
 
 #include <cmath>
 #include <thread>

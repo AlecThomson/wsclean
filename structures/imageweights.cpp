@@ -6,7 +6,7 @@
 #include <aocommon/io/serialistream.h>
 
 #include "../msproviders/msprovider.h"
-#include "../msreaders/msreader.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include "../units/angle.h"
 

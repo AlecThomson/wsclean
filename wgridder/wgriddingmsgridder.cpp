@@ -3,7 +3,7 @@
 
 #include "wgriddinggridder_simple.h"
 
-#include "../msreaders/msreader.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include "../io/logger.h"
 

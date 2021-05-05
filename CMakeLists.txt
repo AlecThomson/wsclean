@@ -249,10 +249,10 @@ add_library(wsclean-object OBJECT
   msproviders/partitionedms.cpp
   msproviders/timestepbuffer.cpp
   msproviders/synchronizedms.cpp
-  msreaders/msreader.cpp
-  msreaders/contiguousmsreader.cpp
-  msreaders/partitionedmsreader.cpp
-  msreaders/timestepbufferreader.cpp
+  msproviders/msreaders/msreader.cpp
+  msproviders/msreaders/contiguousmsreader.cpp
+  msproviders/msreaders/partitionedmsreader.cpp
+  msproviders/msreaders/timestepbufferreader.cpp
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp

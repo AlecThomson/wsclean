@@ -1,5 +1,5 @@
 #include "primarybeam.h"
-#include "../msreaders/msreader.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include "../main/settings.h"
 

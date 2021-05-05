@@ -1,8 +1,8 @@
-#ifndef MSREADERS_TIMESTEPBUFFERREADER_H
-#define MSREADERS_TIMESTEPBUFFERREADER_H
+#ifndef MSPROVIDERS_MSREADERS_TIMESTEPBUFFERREADER_H
+#define MSPROVIDERS_MSREADERS_TIMESTEPBUFFERREADER_H
 
 #include "msreader.h"
-#include "../msproviders/timestepbuffer.h"
+#include "../timestepbuffer.h"
 
 class TimestepBufferReader final : public MSReader {
  public:

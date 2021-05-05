@@ -1,5 +1,5 @@
 #include "partitionedms.h"
-#include "../msreaders/partitionedmsreader.h"
+#include "msreaders/partitionedmsreader.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"

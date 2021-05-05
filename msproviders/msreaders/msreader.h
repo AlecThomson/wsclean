@@ -1,7 +1,7 @@
-#ifndef MSREADERS_MSREADER_H
-#define MSREADERS_MSREADER_H
+#ifndef MSPROVIDERS_MSREADERS_MSREADER_H
+#define MSPROVIDERS_MSREADERS_MSREADER_H
 
-#include "../msproviders/msprovider.h"
+#include "../msprovider.h"
 
 /**
  * The abstract MSReader class is the base class for classes that read

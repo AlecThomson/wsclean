@@ -1,5 +1,5 @@
 #include "contiguousms.h"
-#include "../msreaders/contiguousmsreader.h"
+#include "msreaders/contiguousmsreader.h"
 #include "../io/logger.h"
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
