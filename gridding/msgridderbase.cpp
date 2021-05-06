@@ -394,8 +394,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   }
 #endif
 
-  // FIXME: remove
-  // alstie hangt --> probleem met synchronized ms
   if (isDegridding) {
     _degriddingReader = msData.msProvider->MakeReader();
   } else {
