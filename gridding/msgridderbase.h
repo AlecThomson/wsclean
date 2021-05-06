@@ -254,7 +254,7 @@ class MSGridderBase {
 
   void initializeMeasurementSet(MSGridderBase::MSData& msData,
                                 MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized, bool isDegridding);
+                                bool isCacheInitialized, bool isPredict);
 
   void calculateOverallMetaData(const MSData* msDataVector);
 

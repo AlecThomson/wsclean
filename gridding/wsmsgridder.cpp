@@ -345,7 +345,7 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (queue.top().rowId == nextRowId) {
-      writeVisibilities<1>(*(msData->msProvider),
+      writeVisibilities<1>(*msData->msProvider,
                            (*bandData)[queue.top().dataDescId],
                            queue.top().data.get());
 

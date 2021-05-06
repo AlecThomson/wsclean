@@ -419,7 +419,6 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   const BandData& curBand(_selectedBands[dataDescId]);
-  // FIXME: reset needed here?
   for (auto i : available_row_ids) {
     writeVisibilities<4>(*_outputProvider, curBand, i.second);
   }
