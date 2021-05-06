@@ -79,7 +79,7 @@ void IdgMsGridder::Invert() {
     _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+    initializeMSDataVector(msDataVector, false);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -298,7 +298,7 @@ void IdgMsGridder::Predict(Image image) {
     }
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+    initializeMSDataVector(msDataVector, true);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {

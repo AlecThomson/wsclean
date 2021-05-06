@@ -183,7 +183,7 @@ void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
 
 void WGriddingMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, false);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);
@@ -241,7 +241,7 @@ void WGriddingMSGridder::Invert() {
 
 void WGriddingMSGridder::Predict(Image image) {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, true);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);

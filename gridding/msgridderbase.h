@@ -33,7 +33,7 @@ class MSReader;
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
-  virtual ~MSGridderBase(){};
+  virtual ~MSGridderBase();
 
   size_t ImageWidth() const { return _imageWidth; }
   size_t ImageHeight() const { return _imageHeight; }
@@ -254,7 +254,7 @@ class MSGridderBase {
 
   void initializeMeasurementSet(MSGridderBase::MSData& msData,
                                 MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized);
+                                bool isCacheInitialized, bool isDegridding);
 
   void calculateOverallMetaData(const MSData* msDataVector);
 
@@ -309,7 +309,8 @@ class MSGridderBase {
 
   double totalWeight() const { return _totalWeight; }
 
-  void initializeMSDataVector(std::vector<MSData>& msDataVector);
+  void initializeMSDataVector(std::vector<MSData>& msDataVector,
+                              bool isDegridder);
 
   std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
@@ -357,9 +358,7 @@ class MSGridderBase {
 
   aocommon::UVector<float> _scratchWeights;
 
-  // TODO: will be activated when reading meta data from
-  // ms during degridding
-  // std::unique_ptr<MSReader> _degriddingReader;
+  std::unique_ptr<MSReader> _degriddingReader;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

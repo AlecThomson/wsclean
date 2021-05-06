@@ -355,7 +355,7 @@ void WSMSGridder::predictWriteThread(
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, false);
 
   _gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight,
                                  _actualPixelSizeX, _actualPixelSizeY,
@@ -489,7 +489,7 @@ void WSMSGridder::Predict(Image real, Image imaginary) {
     throw std::runtime_error("Imaginary specified in non-complex prediction");
 
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, true);
 
   _gridder = std::unique_ptr<GridderType>(
       new GridderType(_actualInversionWidth, _actualInversionHeight,

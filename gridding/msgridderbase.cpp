@@ -87,6 +87,8 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
 }  // namespace
 #endif  // HAVE_EVERYBEAM
 
+MSGridderBase::~MSGridderBase(){};
+
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
 
@@ -287,7 +289,7 @@ template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
 template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
 
 void MSGridderBase::initializeMSDataVector(
-    std::vector<MSGridderBase::MSData>& msDataVector) {
+    std::vector<MSGridderBase::MSData>& msDataVector, bool isDegridding) {
   if (MeasurementSetCount() == 0)
     throw std::runtime_error(
         "Something is wrong during inversion: no measurement sets given to "
@@ -301,7 +303,7 @@ void MSGridderBase::initializeMSDataVector(
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
-                             hasCache);
+                             hasCache, isDegridding);
   }
 
   calculateOverallMetaData(msDataVector.data());
@@ -309,7 +311,8 @@ void MSGridderBase::initializeMSDataVector(
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
-                                             bool isCacheInitialized) {
+                                             bool isCacheInitialized,
+                                             bool isDegridding) {
   MSProvider& msProvider = MeasurementSet(msData.msIndex);
   msData.msProvider = &msProvider;
   SynchronizedMS ms(msProvider.MS());
@@ -390,10 +393,14 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
+
+  // FIXME: remove
   // alstie hangt --> probleem met synchronized ms
-  // if(isDegridding){
-  // _degriddingReader = msData.msProvider->MakeReader();
-  // }
+  if (isDegridding) {
+    _degriddingReader = msData.msProvider->MakeReader();
+  } else {
+    _degriddingReader.reset();
+  }
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
