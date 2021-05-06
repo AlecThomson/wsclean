@@ -483,12 +483,67 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     _actualWGridSize = _wGridSize;
 }
 
+template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(MSProvider& msProvider,
-                                      const std::complex<float>* buffer) const {
+                                      const BandData& curBand,
+                                      std::complex<float>* buffer) {
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    MSProvider::MetaData metaData;
+    _degriddingReader->ReadMeta(metaData);
+    _degriddingReader->NextInputRow();
+    _pointResponse->UpdateTime(metaData.time);
+    if (_pointResponse->HasTimeUpdate()) {
+      if (auto phasedArray =
+              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
+                  _pointResponse.get())) {
+        phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
+      }
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        _pointResponse->CalculateAllStations(
+            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+            metaData.fieldId);
+      }
+    }
+
+    std::complex<float>* iter = buffer;
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
+      const size_t offset1 = offset + metaData.antenna1 * 4u;
+      const size_t offset2 = offset + metaData.antenna2 * 4u;
+
+      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+
+      if (PolarizationCount == 1) {
+        // Stokes-I
+        *iter = 0.25f * (gain1[0] + gain1[3]) * (*iter) *
+                std::conj(gain2[0] + gain2[3]);
+      } else {
+        // All polarizations
+        const aocommon::MC2x2F visibilities(iter);
+        const aocommon::MC2x2F result =
+            gain1.Multiply(visibilities).MultiplyHerm(gain2);
+        result.AssignTo(iter);
+      }
+      iter += PolarizationCount;
+    }
+  }
+#endif
+
   const bool addToMS = (_facetIndex != 0);
   msProvider.WriteModel(buffer, addToMS);
   msProvider.NextOutputRow();
 }
+
+template void MSGridderBase::writeVisibilities<1>(MSProvider& msProvider,
+                                                  const BandData& curBand,
+                                                  std::complex<float>* buffer);
+
+template void MSGridderBase::writeVisibilities<4>(MSProvider& msProvider,
+                                                  const BandData& curBand,
+                                                  std::complex<float>* buffer);
 
 template <size_t PolarizationCount>
 void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,

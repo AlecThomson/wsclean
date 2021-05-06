@@ -291,8 +291,9 @@ class MSGridderBase {
    * @brief Write (modelled) visibilities to MS, provides an interface to
    * MSProvider::WriteModel()
    */
-  void writeVisibilities(MSProvider& msProvider,
-                         const std::complex<float>* buffer) const;
+  template <size_t PolarizationCount>
+  void writeVisibilities(MSProvider& msProvider, const BandData& curBand,
+                         std::complex<float>* buffer);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
