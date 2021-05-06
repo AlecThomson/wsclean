@@ -515,18 +515,7 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
 
       const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
-
-      if (PolarizationCount == 1) {
-        // Stokes-I
-        *iter = 0.25f * (gain1[0] + gain1[3]) * (*iter) *
-                std::conj(gain2[0] + gain2[3]);
-      } else {
-        // All polarizations
-        const aocommon::MC2x2F visibilities(iter);
-        const aocommon::MC2x2F result =
-            gain1.Multiply(visibilities).MultiplyHerm(gain2);
-        result.AssignTo(iter);
-      }
+      ApplyBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
