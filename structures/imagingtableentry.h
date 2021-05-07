@@ -20,6 +20,7 @@ struct ImagingTableEntry {
 
   struct MSInfo {
     std::vector<MSBandInfo> bands;
+    std::vector<std::string> antennaNames;
   };
 
   ImagingTableEntry();
