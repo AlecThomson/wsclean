@@ -29,6 +29,11 @@
 #include <memory>
 
 class MSReader;
+namespace schaapcommon{
+    namespace h5parm{
+     class H5Parm;
+  }
+}
 
 class MSGridderBase {
  public:
@@ -368,6 +373,8 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedResponse;
 #endif
+ // FIXME: maybe not needed to have a _h5parm member variable
+ std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
 };
 
 #endif

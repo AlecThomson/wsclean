@@ -22,6 +22,8 @@
 #include <aocommon/matrix2x2.h>
 #endif
 
+#include <schaapcommon/h5parm/h5parm.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
@@ -401,7 +403,14 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 #endif
 
   if (!_settings.facetSolutionFile.empty()) {
-    // TODO: initialize H5Parm
+    if(_settings.facetSolutionTables.empty()){
+      throw std::runtime_error("Specify the solution table name(s) with -soltab-names=soltabname1[OPTIONAL,soltabname2]");
+    }
+    _h5parm.reset(new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
+    // Check that soltab names are correctly specified
+    for (const std::string& solTabName : _settings.facetSolutionTables){
+      auto solTab = _h5parm->GetSolTab(solTabName);
+    }
   }
 
   if (isPredict) {
@@ -576,10 +585,10 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
     }
   }
 
-#ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
+#ifdef HAVE_EVERYBEAM
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -607,8 +616,15 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
-  }
 #endif
+  }else if(_h5parm){
+    MSProvider::MetaData metaData;
+    msReader.ReadMeta(metaData);
+    const std::vector<double> freqs(curBand.begin(), curBand.end());
+    JonesParameters jonesParameters(freqs, {metaData.time}, , _facetIndex)
+  }
+
+
 
   msReader.ReadWeights(weightBuffer);
 
