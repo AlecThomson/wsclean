@@ -346,6 +346,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
+  if (_settings.applyFacetBeam && !_settings.facetSolutionFile.empty()) {
+    throw std::runtime_error(
+        "-apply-facet-beam and -apply-facet-solutions cannot be specified "
+        "simultaneously. Please select either one of these options.");
+  }
+
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     // Hard-coded for now
@@ -393,6 +399,10 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
+
+  if (!_settings.facetSolutionFile.empty()) {
+    // TODO: initialize H5Parm
+  }
 
   if (isPredict) {
     _degriddingReader = msData.msProvider->MakeReader();

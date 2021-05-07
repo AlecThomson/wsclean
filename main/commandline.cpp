@@ -13,6 +13,8 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/radeccoord.h>
 
+#include <schaapcommon/h5parm/jonesparameters.h>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
 
@@ -1274,6 +1276,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "aterm-kernel-size") {
       ++argi;
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
+    } else if (param == "apply-facet-solutions") {
+      ++argi;
+      settings.facetSolutionFile = argv[argi];
+    } else if (param == "soltab-names") {
+      ++argi;
+      settings.facetSolutionTables =
+          schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {
