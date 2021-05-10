@@ -1757,14 +1757,6 @@ void WSClean::makeImagingTableEntry(
   entry.msData.resize(_settings.filenames.size());
   for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
     entry.msData[msIndex].bands.resize(_msBands[msIndex].DataDescCount());
-    // FIXME: we only need to read these in case solutions from a H5Parm file are to be
-    // applied
-    const casacore::MeasurementSet ms(_settings.filenames[msIndex]);
-    casacore::ROMSAntennaColumns antenna(ms.antenna());
-    entry.msData[msIndex].antennaNames.resize(antenna.nrow());
-    for (unsigned int i = 0; i < antenna.nrow(); ++i) {
-       entry.msData[msIndex].antennaNames[i] = antenna.name()(i);
-    }
   }
 }
 

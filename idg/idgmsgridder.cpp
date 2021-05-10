@@ -523,6 +523,8 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // including non-selected antennas. Later this can be made more efficient.
   size_t nStations = msData.msProvider->MS()->antenna().nrow();
 
+  setAntennaNames(*(msData.msProvider->MS()));
+
   std::vector<std::vector<double>> bands;
   for (size_t i = 0; i != _selectedBands.BandCount(); ++i) {
     bands.push_back(std::vector<double>(_selectedBands[i].begin(),

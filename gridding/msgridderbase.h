@@ -29,11 +29,11 @@
 #include <memory>
 
 class MSReader;
-namespace schaapcommon{
-    namespace h5parm{
-     class H5Parm;
-  }
+namespace schaapcommon {
+namespace h5parm {
+class H5Parm;
 }
+}  // namespace schaapcommon
 
 class MSGridderBase {
  public:
@@ -98,6 +98,7 @@ class MSGridderBase {
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
   }
+
   /**
    * If this is the first gridder iteration, the gridder may output more
    * information.
@@ -200,6 +201,7 @@ class MSGridderBase {
   }
 
  protected:
+  void setAntennaNames(const casacore::MeasurementSet& ms);
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
 
   struct MSData {
@@ -334,6 +336,7 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
+  std::vector<std::string> _antennaNames;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;
@@ -373,8 +376,8 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedResponse;
 #endif
- // FIXME: maybe not needed to have a _h5parm member variable
- std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
+  // FIXME: maybe not needed to have a _h5parm member variable
+  std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
 };
 
 #endif

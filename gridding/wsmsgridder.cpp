@@ -124,6 +124,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());
+  setAntennaNames(*(msData.msProvider->MS()));
   aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
   aocommon::UVector<bool> isSelected(selectedBand.MaxChannels());
 
@@ -240,6 +241,7 @@ void WSMSGridder::workThreadPerSample(
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
+  setAntennaNames(*(msData.msProvider->MS()));
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 

@@ -108,6 +108,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _facetIndex(0),
+      _antennaNames(),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -143,6 +144,14 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0) {
   computeFacetCentre();
+}
+
+void MSGridderBase::setAntennaNames(const casacore::MeasurementSet& ms) {
+  _antennaNames.clear();
+  casacore::ROMSAntennaColumns antenna(ms.antenna());
+  for (unsigned int i = 0; i < antenna.nrow(); ++i) {
+    _antennaNames.push_back(antenna.name()(i));
+  }
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
@@ -403,12 +412,20 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 #endif
 
   if (!_settings.facetSolutionFile.empty()) {
-    if(_settings.facetSolutionTables.empty()){
-      throw std::runtime_error("Specify the solution table name(s) with -soltab-names=soltabname1[OPTIONAL,soltabname2]");
+    if (_settings.facetSolutionTables.empty()) {
+      throw std::runtime_error(
+          "Specify the solution table name(s) with "
+          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
     }
-    _h5parm.reset(new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
+    if (_antennaNames.empty()) {
+      throw std::runtime_error(
+          "Antenna names have to be specified in order to apply H5Parm "
+          "solutions.");
+    }
+    _h5parm.reset(
+        new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
     // Check that soltab names are correctly specified
-    for (const std::string& solTabName : _settings.facetSolutionTables){
+    for (const std::string& solTabName : _settings.facetSolutionTables) {
       auto solTab = _h5parm->GetSolTab(solTabName);
     }
   }
@@ -617,14 +634,14 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       iter += PolarizationCount;
     }
 #endif
-  }else if(_h5parm){
+  } else if (_h5parm) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
     const std::vector<double> freqs(curBand.begin(), curBand.end());
-    JonesParameters jonesParameters(freqs, {metaData.time}, , _facetIndex)
+    // TODO: print out the _antennaNames down here.
+    // JonesParameters jonesParameters(freqs, {metaData.time}, _antennaNames,
+    // _facetIndex)
   }
-
-
 
   msReader.ReadWeights(weightBuffer);
 

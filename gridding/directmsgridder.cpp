@@ -141,6 +141,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
   std::vector<size_t> idToMSRow;
   msData.msProvider->MakeIdToMSRowMapping(idToMSRow);
   size_t rowIndex = 0;
+  setAntennaNames(*(msData.msProvider->MS()));
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
