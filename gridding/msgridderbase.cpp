@@ -23,6 +23,9 @@
 #endif
 
 #include <schaapcommon/h5parm/h5parm.h>
+#include <schaapcommon/h5parm/soltab.h>
+
+#include <casacore/casa/Arrays/Cube.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -36,6 +39,8 @@
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <atomic>
+
+using schaapcommon::h5parm::JonesParameters;
 
 #ifdef HAVE_EVERYBEAM
 namespace {
@@ -142,7 +147,9 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
-      _visibilityWeightSum(0.0) {
+      _visibilityWeightSum(0.0),
+      _h5parm(nullptr),
+      _solTabs(std::make_pair(nullptr, nullptr)) {
   computeFacetCentre();
 }
 
@@ -412,11 +419,11 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 #endif
 
   if (!_settings.facetSolutionFile.empty()) {
-    if (_settings.facetSolutionTables.empty()) {
-      throw std::runtime_error(
-          "Specify the solution table name(s) with "
-          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
-    }
+    // if (_settings.facetSolutionTables.empty()) {
+    //   throw std::runtime_error(
+    //       "Specify the solution table name(s) with "
+    //       "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
+    // }
     if (_antennaNames.empty()) {
       throw std::runtime_error(
           "Antenna names have to be specified in order to apply H5Parm "
@@ -425,8 +432,34 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     _h5parm.reset(
         new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
     // Check that soltab names are correctly specified
-    for (const std::string& solTabName : _settings.facetSolutionTables) {
-      auto solTab = _h5parm->GetSolTab(solTabName);
+    // for (const std::string& solTabName : _settings.facetSolutionTables) {
+    //   auto solTab = _h5parm->GetSolTab(solTabName);
+    // }
+
+    if (_settings.facetSolutionTables.size() == 1) {
+      _solTabs = std::make_pair(
+          &_h5parm->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
+      _correctType =
+          JonesParameters::StringToCorrectType(_solTabs.first->GetType());
+    } else if (_settings.facetSolutionTables.size() == 2) {
+      _solTabs =
+          std::make_pair(&_h5parm->GetSolTab(_settings.facetSolutionTables[0]),
+                         &_h5parm->GetSolTab(_settings.facetSolutionTables[1]));
+      if (_solTabs.first->GetType() != "amplitude") {
+        throw std::runtime_error("Type of solution table 0 is " +
+                                 _solTabs.first->GetType() +
+                                 ", should be 'amplitude'");
+      }
+      if (_solTabs.second->GetType() != "phase") {
+        throw std::runtime_error("Type of solution table 1 is " +
+                                 _solTabs.first->GetType() +
+                                 ", should be 'phase'");
+      }
+      _correctType = JonesParameters::CorrectType::FULLJONES;
+    } else {
+      throw std::runtime_error(
+          "Specify the solution table name(s) with "
+          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
     }
   }
 
@@ -638,9 +671,17 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
     const std::vector<double> freqs(curBand.begin(), curBand.end());
-    // TODO: print out the _antennaNames down here.
-    // JonesParameters jonesParameters(freqs, {metaData.time}, _antennaNames,
-    // _facetIndex)
+    auto soltab = _h5parm->GetSolTab(_settings.facetSolutionTables[0]);
+
+    const std::vector<std::string> antennas{_antennaNames[metaData.antenna1],
+                                            _antennaNames[metaData.antenna2]};
+    // JonesParameters jonesParameters(freqs,
+    // std::vector<double>{metaData.time}, _antennaNames,
+    JonesParameters jonesParameters(
+        freqs, std::vector<double>{metaData.time}, antennas, _correctType,
+        JonesParameters::InterpolationType::NEAREST, _facetIndex,
+        _solTabs.first, _solTabs.second);
+    const auto parms = jonesParameters.GetParms();
   }
 
   msReader.ReadWeights(weightBuffer);

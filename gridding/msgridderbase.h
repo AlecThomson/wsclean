@@ -23,6 +23,8 @@
 #include <EveryBeam/pointresponse/pointresponse.h>
 #endif
 
+#include <schaapcommon/h5parm/jonesparameters.h>
+
 #include <aocommon/uvector.h>
 
 #include <mutex>
@@ -32,7 +34,8 @@ class MSReader;
 namespace schaapcommon {
 namespace h5parm {
 class H5Parm;
-}
+class SolTab;
+}  // namespace h5parm
 }  // namespace schaapcommon
 
 class MSGridderBase {
@@ -378,6 +381,9 @@ class MSGridderBase {
 #endif
   // FIXME: maybe not needed to have a _h5parm member variable
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
+  std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
+      _solTabs;
+  schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
 };
 
 #endif
