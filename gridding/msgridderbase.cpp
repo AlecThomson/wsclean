@@ -150,6 +150,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0),
+      _cachedParmResponse(),
       _h5parm(nullptr),
       _solTabs(std::make_pair(nullptr, nullptr)),
       _h5TimeIndex(std::make_pair(std::numeric_limits<size_t>::max(),
@@ -402,8 +403,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     _telescope = everybeam::Load(*ms, options);
     _pointResponse = _telescope->GetPointResponse(msProvider.StartTime());
     _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
-    _cachedResponse.resize(msData.bandData.MaxChannels() *
-                           _pointResponse->GetAllStationsBufferSize());
+    _cachedBeamResponse.resize(msData.bandData.MaxChannels() *
+                               _pointResponse->GetAllStationsBufferSize());
   } else {
     if (_settings.applyFacetBeam) {
       throw std::runtime_error(
@@ -411,7 +412,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
           "regions file was specified.");
     }
     _pointResponse = nullptr;
-    _cachedResponse.resize(0);
+    _cachedBeamResponse.resize(0);
   }
 #else
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
@@ -558,7 +559,8 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
       }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
-            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            &_cachedBeamResponse[ch *
+                                 _pointResponse->GetAllStationsBufferSize()],
             _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
             metaData.fieldId);
       }
@@ -570,13 +572,16 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
       const size_t offset1 = offset + metaData.antenna1 * 4u;
       const size_t offset2 = offset + metaData.antenna2 * 4u;
 
-      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+      const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
 #endif
+
+  if (_h5parm) {
+  }
 
   const bool addToMS = (_facetIndex != 0);
   msProvider.WriteModel(buffer, addToMS);
@@ -625,10 +630,10 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
     }
   }
 
+#ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
-#ifdef HAVE_EVERYBEAM
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -638,7 +643,8 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
-            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            &_cachedBeamResponse[ch *
+                                 _pointResponse->GetAllStationsBufferSize()],
             _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
             metaData.fieldId);
       }
@@ -651,19 +657,20 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       const size_t offset1 = offset + metaData.antenna1 * 4u;
       const size_t offset2 = offset + metaData.antenna2 * 4u;
 
-      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+      const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
+  }
 #endif
-  } else if (_h5parm) {
+
+  if (_h5parm) {
     if (_antennaNames.empty()) {
       throw std::runtime_error(
           "Antenna names have to be specified in order to apply H5Parm "
           "solutions.");
     }
-
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
     // Only update the cached response if one of the time indices in the soltabs
@@ -675,9 +682,9 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       // FIXME: leads to a small overhead, but this is because _antennaNames are
       // not known in initializeMeasurementSet
       if (_correctType != JonesParameters::CorrectType::FULLJONES) {
-        _cachedResponse.resize(freqs.size() * _antennaNames.size() * 2u);
+        _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * 2u);
       } else {
-        _cachedResponse.resize(freqs.size() * _antennaNames.size() * 4u);
+        _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * 4u);
       }
 
       JonesParameters jonesParameters(
@@ -686,11 +693,12 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
           _facetIndex, _solTabs.first, _solTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
-      // FIXME: following assignment basically assumes that the data layout
-      // of parms is contiguous in mem, ordered as [station * parms * nchannels]
-      // Check this
-      _cachedResponse.assign(&parms(0, 0, 0),
-                             &parms(0, 0, 0) + _cachedResponse.size());
+      // FIXME: following assignment assumes that the data layout
+      // of parms is contiguous in mem, ordered as [station1:pol1:chan1, ...,
+      // station1:poln:chan1, ... station2:poln:chan1, stationm:poln:chan1,
+      // station2:pol1:chan2, ..., stationn:polm:chank] Check this!
+      _cachedParmResponse.assign(&parms(0, 0, 0),
+                                 &parms(0, 0, 0) + _cachedParmResponse.size());
 
       _h5TimeIndex.first = _solTabs.first->GetTimeIndex(metaData.time);
       if (_solTabs.second) {
@@ -713,14 +721,14 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       if (nparm == 2) {
         ApplyConjugatedBeam<PolarizationCount>(
             iter,
-            aocommon::MC2x2F(_cachedResponse[offset1], 0, 0,
-                             _cachedResponse[offset1 + 1]),
-            aocommon::MC2x2F(_cachedResponse[offset2], 0, 0,
-                             _cachedResponse[offset2 + 1]));
+            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
+                             _cachedParmResponse[offset1 + 1]),
+            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
+                             _cachedParmResponse[offset2 + 1]));
       } else {
         ApplyConjugatedBeam<PolarizationCount>(
-            iter, aocommon::MC2x2F(&_cachedResponse[offset1]),
-            aocommon::MC2x2F(&_cachedResponse[offset2]));
+            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
+            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
       }
       iter += PolarizationCount;
     }

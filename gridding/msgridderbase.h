@@ -377,8 +377,9 @@ class MSGridderBase {
   // _telescope attribute needed to keep the telecope in _point_response alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
-  aocommon::UVector<std::complex<float>> _cachedResponse;
+  aocommon::UVector<std::complex<float>> _cachedBeamResponse;
 #endif
+  aocommon::UVector<std::complex<float>> _cachedParmResponse;
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
   std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
       _solTabs;
