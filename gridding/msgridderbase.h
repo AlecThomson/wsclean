@@ -379,11 +379,11 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedResponse;
 #endif
-  // FIXME: maybe not needed to have a _h5parm member variable
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
   std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
       _solTabs;
   schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
+  std::pair<size_t, size_t> _h5TimeIndex;
 };
 
 #endif
