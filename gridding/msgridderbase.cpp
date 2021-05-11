@@ -545,11 +545,87 @@ template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(MSProvider& msProvider,
                                       const BandData& curBand,
                                       std::complex<float>* buffer) {
+  bool updateRowInH5Parm = true;
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    updateRowInH5Parm = false;
+  }
+#endif
+
+  if (_h5parm) {
+    if (_antennaNames.empty()) {
+      throw std::runtime_error(
+          "Antenna names have to be specified in order to apply H5Parm "
+          "solutions.");
+    }
+    MSProvider::MetaData metaData;
+    _degriddingReader->ReadMeta(metaData);
+    if (updateRowInH5Parm) {
+      _degriddingReader->NextInputRow();
+    }
+
+    const size_t nparm =
+        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+
+    // Only update the cached response if one of the time indices in the soltabs
+    // changed
+    if (_solTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+        (_solTabs.second &&
+         _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
+      const std::vector<double> freqs(curBand.begin(), curBand.end());
+      // FIXME: leads to a small overhead, but this is because _antennaNames are
+      // not known in initializeMeasurementSet
+      _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * nparm);
+
+      JonesParameters jonesParameters(
+          freqs, std::vector<double>{metaData.time}, _antennaNames,
+          _correctType, JonesParameters::InterpolationType::NEAREST,
+          _facetIndex, _solTabs.first, _solTabs.second, false, 0.0f, 0u,
+          JonesParameters::MissingAntennaBehavior::kUnit);
+      const auto parms = jonesParameters.GetParms();
+      // FIXME: following assignment assumes that the data layout
+      // of parms is contiguous in memory, ordered as [station1:pol1:chan1, ...,
+      // station1:poln:chan1, ... station2:poln:chan1, stationm:poln:chan1,
+      // station2:pol1:chan2, ..., stationn:polm:chank] Check this!
+      _cachedParmResponse.assign(&parms(0, 0, 0),
+                                 &parms(0, 0, 0) + _cachedParmResponse.size());
+
+      _h5TimeIndex.first = _solTabs.first->GetTimeIndex(metaData.time);
+      if (_solTabs.second) {
+        _h5TimeIndex.second = _solTabs.second->GetTimeIndex(metaData.time);
+      }
+    }
+
+    std::complex<float>* iter = buffer;
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      // TODO: template this on nparm for efficiency?
+      const size_t offset = ch * _antennaNames.size() * nparm;
+      const size_t offset1 = offset + metaData.antenna1 * nparm;
+      const size_t offset2 = offset + metaData.antenna2 * nparm;
+
+      if (nparm == 2) {
+        ApplyBeam<PolarizationCount>(
+            iter,
+            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
+                             _cachedParmResponse[offset1 + 1]),
+            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
+                             _cachedParmResponse[offset2 + 1]));
+      } else {
+        ApplyBeam<PolarizationCount>(
+            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
+            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+      }
+      iter += PolarizationCount;
+    }
+  }
+
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     _degriddingReader->ReadMeta(metaData);
-    _degriddingReader->NextInputRow();
+    if (!updateRowInH5Parm) {
+      _degriddingReader->NextInputRow();
+    }
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -579,9 +655,6 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
     }
   }
 #endif
-
-  if (_h5parm) {
-  }
 
   const bool addToMS = (_facetIndex != 0);
   msProvider.WriteModel(buffer, addToMS);
@@ -673,6 +746,10 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
     }
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
+
+    const size_t nparm =
+        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+
     // Only update the cached response if one of the time indices in the soltabs
     // changed
     if (_solTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
@@ -681,11 +758,7 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       // FIXME: leads to a small overhead, but this is because _antennaNames are
       // not known in initializeMeasurementSet
-      if (_correctType != JonesParameters::CorrectType::FULLJONES) {
-        _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * 2u);
-      } else {
-        _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * 4u);
-      }
+      _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * nparm);
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, _antennaNames,
@@ -705,9 +778,6 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
         _h5TimeIndex.second = _solTabs.second->GetTimeIndex(metaData.time);
       }
     }
-
-    const size_t nparm =
-        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
     std::complex<float>* iter = rowData.data;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
