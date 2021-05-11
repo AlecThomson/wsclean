@@ -34,6 +34,7 @@
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
 
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -42,7 +43,6 @@
 
 using schaapcommon::h5parm::JonesParameters;
 
-#ifdef HAVE_EVERYBEAM
 namespace {
 template <size_t PolarizationCount>
 void ApplyConjugatedBeam(std::complex<float>* visibilities,
@@ -92,7 +92,6 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 }  // namespace
-#endif  // HAVE_EVERYBEAM
 
 MSGridderBase::~MSGridderBase(){};
 
@@ -158,7 +157,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 
 void MSGridderBase::setAntennaNames(const casacore::MeasurementSet& ms) {
   _antennaNames.clear();
-  const casacore::MSAntennaColumns antenna(ms.antenna());
+  casacore::ROMSAntennaColumns antenna(ms.antenna());
   for (unsigned int i = 0; i < antenna.nrow(); ++i) {
     _antennaNames.push_back(antenna.name()(i));
   }

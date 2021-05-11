@@ -206,6 +206,16 @@ class MSGridderBase {
  protected:
   void setAntennaNames(const casacore::MeasurementSet& ms);
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
+  bool fullJonesCorrection() const {
+    if (!_h5parm) {
+      return false;
+    } else {
+      return (_correctType ==
+              schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
+                 ? true
+                 : false;
+    }
+  }
 
   struct MSData {
    public:
