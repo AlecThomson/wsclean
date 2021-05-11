@@ -17,12 +17,10 @@
 #include <EveryBeam/pointresponse/phasedarraypoint.h>
 #endif
 
-// Only needed for EB related options
+// Only needed for EB/H5Parm related options
 #include "../io/findmwacoefffile.h"
 #include <limits>
 #include <aocommon/matrix2x2.h>
-
-#include <aocommon/matrix2x2diag.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/soltab.h>
@@ -160,7 +158,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 
 void MSGridderBase::setAntennaNames(const casacore::MeasurementSet& ms) {
   _antennaNames.clear();
-  casacore::ROMSAntennaColumns antenna(ms.antenna());
+  const casacore::MSAntennaColumns antenna(ms.antenna());
   for (unsigned int i = 0; i < antenna.nrow(); ++i) {
     _antennaNames.push_back(antenna.name()(i));
   }
@@ -369,12 +367,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
-  if (_settings.applyFacetBeam && !_settings.facetSolutionFile.empty()) {
-    throw std::runtime_error(
-        "-apply-facet-beam and -apply-facet-solutions cannot be specified "
-        "simultaneously. Please select either one of these options.");
-  }
-
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     // Hard-coded for now
@@ -443,7 +435,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
       }
       if (_solTabs.second->GetType() != "phase") {
         throw std::runtime_error("Type of solution table 1 is " +
-                                 _solTabs.first->GetType() +
+                                 _solTabs.second->GetType() +
                                  ", should be 'phase'");
       }
       _correctType = JonesParameters::CorrectType::FULLJONES;
