@@ -711,15 +711,17 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       const size_t offset2 = offset + metaData.antenna2 * nparm;
 
       if (nparm == 2) {
-        gain1 = aocommon::MC2x2F(_cachedResponse[offset1], 0,
-                                 _cachedResponse[offset1 + 1], 0);
-        gain2 = aocommon::MC2x2F(_cachedResponse[offset2], 0,
-                                 _cachedResponse[offset2 + 1], 0);
+        ApplyConjugatedBeam<PolarizationCount>(
+            iter,
+            aocommon::MC2x2F(_cachedResponse[offset1], 0, 0,
+                             _cachedResponse[offset1 + 1]),
+            aocommon::MC2x2F(_cachedResponse[offset2], 0, 0,
+                             _cachedResponse[offset2 + 1]));
       } else {
-        gain1 = aocommon::MC2x2F(&_cachedResponse[offset1]);
-        gain2 = aocommon::MC2x2F(&_cachedResponse[offset2]);
+        ApplyConjugatedBeam<PolarizationCount>(
+            iter, aocommon::MC2x2F(&_cachedResponse[offset1]),
+            aocommon::MC2x2F(&_cachedResponse[offset2]));
       }
-      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
