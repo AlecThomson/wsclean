@@ -15,12 +15,14 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/pointresponse/phasedarraypoint.h>
+#endif
 
 // Only needed for EB related options
 #include "../io/findmwacoefffile.h"
 #include <limits>
 #include <aocommon/matrix2x2.h>
-#endif
+
+#include <aocommon/matrix2x2diag.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/soltab.h>
@@ -91,6 +93,16 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
       gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
   result.AssignTo(visibilities);
 }
+
+// pol = 1, diag correction: apply scalar
+void ApplyDiagParm(std::complex<float>* visibilities,
+                   const aocommon::MC2x2FDiag& gain1,
+                   const aocommon::MC2x2FDiag& gain2) {
+  // Stokes-I
+  *visibilities = 0.25f * std::conj(gain1[0] + gain1[1]) * (*visibilities) *
+                  (gain2[0] + gain2[1]);
+}
+
 }  // namespace
 #endif  // HAVE_EVERYBEAM
 
@@ -419,22 +431,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 #endif
 
   if (!_settings.facetSolutionFile.empty()) {
-    // if (_settings.facetSolutionTables.empty()) {
-    //   throw std::runtime_error(
-    //       "Specify the solution table name(s) with "
-    //       "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
-    // }
-    if (_antennaNames.empty()) {
-      throw std::runtime_error(
-          "Antenna names have to be specified in order to apply H5Parm "
-          "solutions.");
-    }
     _h5parm.reset(
         new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
-    // Check that soltab names are correctly specified
-    // for (const std::string& solTabName : _settings.facetSolutionTables) {
-    //   auto solTab = _h5parm->GetSolTab(solTabName);
-    // }
 
     if (_settings.facetSolutionTables.size() == 1) {
       _solTabs = std::make_pair(
@@ -668,6 +666,12 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
     }
 #endif
   } else if (_h5parm) {
+    if (_antennaNames.empty()) {
+      throw std::runtime_error(
+          "Antenna names have to be specified in order to apply H5Parm "
+          "solutions.");
+    }
+
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
     const std::vector<double> freqs(curBand.begin(), curBand.end());
@@ -675,13 +679,30 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
 
     const std::vector<std::string> antennas{_antennaNames[metaData.antenna1],
                                             _antennaNames[metaData.antenna2]};
-    // JonesParameters jonesParameters(freqs,
-    // std::vector<double>{metaData.time}, _antennaNames,
     JonesParameters jonesParameters(
         freqs, std::vector<double>{metaData.time}, antennas, _correctType,
         JonesParameters::InterpolationType::NEAREST, _facetIndex,
         _solTabs.first, _solTabs.second);
+
     const auto parms = jonesParameters.GetParms();
+    std::complex<float>* iter = rowData.data;
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      // TODO: template this for efficiency?
+      aocommon::MC2x2F gain1;
+      aocommon::MC2x2F gain2;
+      if (_correctType != JonesParameters::CorrectType::FULLJONES) {
+        gain1 = aocommon::MC2x2F(parms(0, 0, ch), 0, parms(1, 0, ch), 0);
+        gain2 = aocommon::MC2x2F(parms(0, 1, ch), 0, parms(1, 1, ch), 0);
+      } else {
+        gain1 = aocommon::MC2x2F(parms(0, 0, ch), parms(1, 0, ch),
+                                 parms(2, 0, ch), parms(3, 0, ch));
+        gain2 = aocommon::MC2x2F(parms(0, 1, ch), parms(1, 1, ch),
+                                 parms(2, 1, ch), parms(3, 1, ch));
+      }
+
+      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+      iter += PolarizationCount;
+    }
   }
 
   msReader.ReadWeights(weightBuffer);
