@@ -241,9 +241,9 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
     rowData.dataDescId = metaData.dataDescId;
-    readAndWeightVisibilities<4>(*msReader, rowData, curBand,
-                                 weightBuffer.data(), modelBuffer.data(),
-                                 isSelected.data());
+    readAndWeightVisibilities<4>(*msReader, msData.antennaNames, rowData,
+                                 curBand, weightBuffer.data(),
+                                 modelBuffer.data(), isSelected.data());
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
     rowData.uvw[2] = -metaData.wInM;  //
@@ -351,6 +351,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   msData.msProvider->ReopenRW();
 
   _outputProvider = msData.msProvider;
+  _antennaNames = msData.antennaNames;
 
   aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
                                                 4);
@@ -420,7 +421,7 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
-    writeVisibilities<4>(*_outputProvider, curBand, i.second);
+    writeVisibilities<4>(*_outputProvider, _antennaNames, curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
@@ -522,8 +523,6 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // TODO for now we map the ms antennas directly to the gridder's antenna,
   // including non-selected antennas. Later this can be made more efficient.
   size_t nStations = msData.msProvider->MS()->antenna().nrow();
-
-  setAntennaNames(*(msData.msProvider->MS()));
 
   std::vector<std::vector<double>> bands;
   for (size_t i = 0; i != _selectedBands.BandCount(); ++i) {

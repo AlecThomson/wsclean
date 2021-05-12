@@ -53,7 +53,6 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
 
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
-  setAntennaNames(*(msData.msProvider->MS()));
 
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBands.MaxChannels());
@@ -96,9 +95,9 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1>(*msReader, newRowData, band,
-                                       weightBuffer.data(), modelBuffer.data(),
-                                       isSelected.data());
+          readAndWeightVisibilities<1>(*msReader, msData.antennaNames,
+                                       newRowData, band, weightBuffer.data(),
+                                       modelBuffer.data(), isSelected.data());
 
           std::copy_n(newRowData.data, band.ChannelCount(),
                       &visBuffer[nRows * band.ChannelCount()]);
@@ -122,7 +121,6 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
-  setAntennaNames(*(msData.msProvider->MS()));
   const MultiBandData selectedBands(msData.SelectedBand());
 
   size_t totalNRows = 0;
@@ -164,7 +162,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        writeVisibilities<1>(*msData.msProvider, band,
+        writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,
                              &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;

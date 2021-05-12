@@ -124,7 +124,6 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());
-  setAntennaNames(*(msData.msProvider->MS()));
   aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
   aocommon::UVector<bool> isSelected(selectedBand.MaxChannels());
 
@@ -169,9 +168,9 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
         isSelected[ch] = _gridder->IsInLayerRange(w);
       }
 
-      readAndWeightVisibilities<1>(*msReader, newItem, curBand,
-                                   weightBuffer.data(), modelBuffer.data(),
-                                   isSelected.data());
+      readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
+                                   curBand, weightBuffer.data(),
+                                   modelBuffer.data(), isSelected.data());
 
       if (HasDenormalPhaseCentre()) {
         const double shiftFactor = -2.0 * M_PI *
@@ -241,7 +240,6 @@ void WSMSGridder::workThreadPerSample(
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
-  setAntennaNames(*(msData.msProvider->MS()));
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
@@ -342,7 +340,7 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (queue.top().rowId == nextRowId) {
-      writeVisibilities<1>(*msData->msProvider,
+      writeVisibilities<1>(*msData->msProvider, msData->antennaNames,
                            (*bandData)[queue.top().dataDescId],
                            queue.top().data.get());
 

@@ -91,6 +91,7 @@ class IdgMsGridder : public MSGridderBase {
   aocommon::UVector<float> _taper_subgrid;
   aocommon::UVector<float> _taper_grid;
   MSProvider* _outputProvider;
+  std::vector<std::string> _antennaNames;
   MultiBandData _selectedBands;
   idg::api::Type _proxyType;
   int _buffersize;

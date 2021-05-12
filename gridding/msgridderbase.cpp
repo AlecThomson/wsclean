@@ -96,7 +96,7 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
 MSGridderBase::~MSGridderBase(){};
 
 MSGridderBase::MSData::MSData()
-    : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
+    : msIndex(0), matchingRows(0), totalRowsProcessed(0), antennaNames() {}
 
 MSGridderBase::MSData::~MSData() {}
 
@@ -112,7 +112,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _facetIndex(0),
-      _antennaNames(),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -155,12 +154,14 @@ MSGridderBase::MSGridderBase(const Settings& settings)
   computeFacetCentre();
 }
 
-void MSGridderBase::setAntennaNames(const casacore::MeasurementSet& ms) {
-  _antennaNames.clear();
+std::vector<std::string> MSGridderBase::getAntennaNames(
+    const casacore::MeasurementSet& ms) {
+  std::vector<std::string> antennaNames;
   casacore::ROMSAntennaColumns antenna(ms.antenna());
   for (unsigned int i = 0; i < antenna.nrow(); ++i) {
-    _antennaNames.push_back(antenna.name()(i));
+    antennaNames.push_back(antenna.name()(i));
   }
+  return antennaNames;
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
@@ -337,6 +338,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   msData.msProvider = &msProvider;
   SynchronizedMS ms(msProvider.MS());
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
+
+  msData.antennaNames = getAntennaNames(*ms);
 
   initializeBandData(*ms, msData);
 
@@ -533,9 +536,9 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 }
 
 template <size_t PolarizationCount>
-void MSGridderBase::writeVisibilities(MSProvider& msProvider,
-                                      const BandData& curBand,
-                                      std::complex<float>* buffer) {
+void MSGridderBase::writeVisibilities(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer) {
   bool updateRowInH5Parm = true;
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
@@ -544,11 +547,6 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
 #endif
 
   if (_h5parm) {
-    if (_antennaNames.empty()) {
-      throw std::runtime_error(
-          "Antenna names have to be specified in order to apply H5Parm "
-          "solutions.");
-    }
     MSProvider::MetaData metaData;
     _degriddingReader->ReadMeta(metaData);
     if (updateRowInH5Parm) {
@@ -564,14 +562,12 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
         (_solTabs.second &&
          _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      // FIXME: leads to a small overhead, but this is because _antennaNames are
-      // not known in initializeMeasurementSet
-      _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * nparm);
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparm);
 
       JonesParameters jonesParameters(
-          freqs, std::vector<double>{metaData.time}, _antennaNames,
-          _correctType, JonesParameters::InterpolationType::NEAREST,
-          _facetIndex, _solTabs.first, _solTabs.second, false, 0.0f, 0u,
+          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          JonesParameters::InterpolationType::NEAREST, _facetIndex,
+          _solTabs.first, _solTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
       // FIXME: following assignment assumes that the data layout
@@ -590,7 +586,7 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
     std::complex<float>* iter = buffer;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       // TODO: template this on nparm for efficiency?
-      const size_t offset = ch * _antennaNames.size() * nparm;
+      const size_t offset = ch * antennaNames.size() * nparm;
       const size_t offset1 = offset + metaData.antenna1 * nparm;
       const size_t offset2 = offset + metaData.antenna2 * nparm;
 
@@ -652,21 +648,19 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1>(MSProvider& msProvider,
-                                                  const BandData& curBand,
-                                                  std::complex<float>* buffer);
+template void MSGridderBase::writeVisibilities<1>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4>(MSProvider& msProvider,
-                                                  const BandData& curBand,
-                                                  std::complex<float>* buffer);
+template void MSGridderBase::writeVisibilities<4>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
 
 template <size_t PolarizationCount>
-void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
-                                              InversionRow& rowData,
-                                              const BandData& curBand,
-                                              float* weightBuffer,
-                                              std::complex<float>* modelBuffer,
-                                              const bool* isSelected) {
+void MSGridderBase::readAndWeightVisibilities(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& rowData, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
     std::fill_n(rowData.data, dataSize, 1.0);
@@ -730,11 +724,6 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
 #endif
 
   if (_h5parm) {
-    if (_antennaNames.empty()) {
-      throw std::runtime_error(
-          "Antenna names have to be specified in order to apply H5Parm "
-          "solutions.");
-    }
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
 
@@ -747,14 +736,12 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
         (_solTabs.second &&
          _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      // FIXME: leads to a small overhead, but this is because _antennaNames are
-      // not known in initializeMeasurementSet
-      _cachedParmResponse.resize(freqs.size() * _antennaNames.size() * nparm);
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparm);
 
       JonesParameters jonesParameters(
-          freqs, std::vector<double>{metaData.time}, _antennaNames,
-          _correctType, JonesParameters::InterpolationType::NEAREST,
-          _facetIndex, _solTabs.first, _solTabs.second, false, 0.0f, 0u,
+          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          JonesParameters::InterpolationType::NEAREST, _facetIndex,
+          _solTabs.first, _solTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
       // FIXME: following assignment assumes that the data layout
@@ -775,7 +762,7 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       // TODO: template this on nparm for efficiency?
       aocommon::MC2x2F gain1;
       aocommon::MC2x2F gain2;
-      const size_t offset = ch * _antennaNames.size() * nparm;
+      const size_t offset = ch * antennaNames.size() * nparm;
       const size_t offset1 = offset + metaData.antenna1 * nparm;
       const size_t offset2 = offset + metaData.antenna2 * nparm;
 
@@ -852,14 +839,14 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(
-    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
-    float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<4>(
-    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
-    float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
 
 template <size_t PolarizationCount>
 void MSGridderBase::rotateVisibilities(const BandData& bandData,

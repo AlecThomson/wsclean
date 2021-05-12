@@ -204,7 +204,6 @@ class MSGridderBase {
   }
 
  protected:
-  void setAntennaNames(const casacore::MeasurementSet& ms);
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
   bool fullJonesCorrection() const {
     if (!_h5parm) {
@@ -229,6 +228,7 @@ class MSGridderBase {
     double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM;
     size_t rowStart, rowEnd;
     double integrationTime;
+    std::vector<std::string> antennaNames;
 
     MultiBandData SelectedBand() const {
       return MultiBandData(bandData, startChannel, endChannel);
@@ -270,8 +270,10 @@ class MSGridderBase {
    * to the relevant sums (visibility count, weight sum, etc.).
    */
   template <size_t PolarizationCount>
-  void readAndWeightVisibilities(MSReader& msReader, InversionRow& rowData,
-                                 const BandData& curBand, float* weightBuffer,
+  void readAndWeightVisibilities(MSReader& msReader,
+                                 const std::vector<std::string>& antennaNames,
+                                 InversionRow& rowData, const BandData& curBand,
+                                 float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
 
@@ -280,8 +282,9 @@ class MSGridderBase {
    * MSProvider::WriteModel()
    */
   template <size_t PolarizationCount>
-  void writeVisibilities(MSProvider& msProvider, const BandData& curBand,
-                         std::complex<float>* buffer);
+  void writeVisibilities(MSProvider& msProvider,
+                         const std::vector<std::string>& antennaNames,
+                         const BandData& curBand, std::complex<float>* buffer);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -310,6 +313,8 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
+  static std::vector<std::string> getAntennaNames(
+      const casacore::MeasurementSet& ms);
   void computeFacetCentre() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
                                           _phaseCentreRA, _phaseCentreDec,
@@ -349,7 +354,6 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
-  std::vector<std::string> _antennaNames;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;

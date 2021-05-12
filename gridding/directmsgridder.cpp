@@ -141,7 +141,6 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
   std::vector<size_t> idToMSRow;
   msData.msProvider->MakeIdToMSRowMapping(idToMSRow);
   size_t rowIndex = 0;
-  setAntennaNames(*(msData.msProvider->MS()));
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
@@ -152,9 +151,9 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
                        dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
 
-    readAndWeightVisibilities<1>(*msReader, newItem, curBand,
-                                 weightBuffer.data(), modelBuffer.data(),
-                                 isSelected.data());
+    readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
+                                 curBand, weightBuffer.data(),
+                                 modelBuffer.data(), isSelected.data());
     InversionSample sample;
     for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
       const double wl = curBand.ChannelWavelength(ch);
