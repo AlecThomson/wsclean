@@ -553,7 +553,7 @@ void MSGridderBase::writeVisibilities(
       _degriddingReader->NextInputRow();
     }
 
-    const size_t nparm =
+    const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
     // Only update the cached response if one of the time indices in the soltabs
@@ -562,7 +562,7 @@ void MSGridderBase::writeVisibilities(
         (_solTabs.second &&
          _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparm);
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
@@ -570,10 +570,10 @@ void MSGridderBase::writeVisibilities(
           _solTabs.first, _solTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
-      // FIXME: following assignment assumes that the data layout
-      // of parms is contiguous in memory, ordered as [station1:pol1:chan1, ...,
-      // station1:poln:chan1, ... station2:poln:chan1, stationm:poln:chan1,
-      // station2:pol1:chan2, ..., stationn:polm:chank] Check this!
+      // Assumes that the data layout parms is contiguous in mem, ordered as
+      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
+      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
+      // stationn:polm:chank]
       _cachedParmResponse.assign(&parms(0, 0, 0),
                                  &parms(0, 0, 0) + _cachedParmResponse.size());
 
@@ -584,25 +584,30 @@ void MSGridderBase::writeVisibilities(
     }
 
     std::complex<float>* iter = buffer;
-    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      // TODO: template this on nparm for efficiency?
-      const size_t offset = ch * antennaNames.size() * nparm;
-      const size_t offset1 = offset + metaData.antenna1 * nparm;
-      const size_t offset2 = offset + metaData.antenna2 * nparm;
+    if (nparms == 2) {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
 
-      if (nparm == 2) {
         ApplyBeam<PolarizationCount>(
             iter,
             aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
                              _cachedParmResponse[offset1 + 1]),
             aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
                              _cachedParmResponse[offset2 + 1]));
-      } else {
+        iter += PolarizationCount;
+      }
+    } else {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
         ApplyBeam<PolarizationCount>(
             iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
             aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        iter += PolarizationCount;
       }
-      iter += PolarizationCount;
     }
   }
 
@@ -727,7 +732,7 @@ void MSGridderBase::readAndWeightVisibilities(
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
 
-    const size_t nparm =
+    const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
     // Only update the cached response if one of the time indices in the soltabs
@@ -736,7 +741,7 @@ void MSGridderBase::readAndWeightVisibilities(
         (_solTabs.second &&
          _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparm);
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
@@ -744,10 +749,10 @@ void MSGridderBase::readAndWeightVisibilities(
           _solTabs.first, _solTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
-      // FIXME: following assignment assumes that the data layout
-      // of parms is contiguous in mem, ordered as [station1:pol1:chan1, ...,
-      // station1:poln:chan1, ... station2:poln:chan1, stationm:poln:chan1,
-      // station2:pol1:chan2, ..., stationn:polm:chank] Check this!
+      // Assumes that the data layout parms is contiguous in mem, ordered as
+      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
+      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
+      // stationn:polm:chank]
       _cachedParmResponse.assign(&parms(0, 0, 0),
                                  &parms(0, 0, 0) + _cachedParmResponse.size());
 
@@ -757,28 +762,32 @@ void MSGridderBase::readAndWeightVisibilities(
       }
     }
 
+    // Conditional could be templated once C++ supports partial function
+    // specialization
     std::complex<float>* iter = rowData.data;
-    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      // TODO: template this on nparm for efficiency?
-      aocommon::MC2x2F gain1;
-      aocommon::MC2x2F gain2;
-      const size_t offset = ch * antennaNames.size() * nparm;
-      const size_t offset1 = offset + metaData.antenna1 * nparm;
-      const size_t offset2 = offset + metaData.antenna2 * nparm;
-
-      if (nparm == 2) {
+    if (nparms == 2) {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
         ApplyConjugatedBeam<PolarizationCount>(
             iter,
             aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
                              _cachedParmResponse[offset1 + 1]),
             aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
                              _cachedParmResponse[offset2 + 1]));
-      } else {
+        iter += PolarizationCount;
+      }
+    } else {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
         ApplyConjugatedBeam<PolarizationCount>(
             iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
             aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        iter += PolarizationCount;
       }
-      iter += PolarizationCount;
     }
   }
 
