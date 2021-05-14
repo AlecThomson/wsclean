@@ -205,16 +205,6 @@ class MSGridderBase {
 
  protected:
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
-  bool fullJonesCorrection() const {
-    if (!_h5parm) {
-      return false;
-    } else {
-      return (_correctType ==
-              schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
-                 ? true
-                 : false;
-    }
-  }
 
   struct MSData {
    public:
@@ -396,7 +386,7 @@ class MSGridderBase {
   aocommon::UVector<std::complex<float>> _cachedParmResponse;
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
   std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
-      _solTabs;
+      _h5SolTabs;
   schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
   std::pair<size_t, size_t> _h5TimeIndex;
 };

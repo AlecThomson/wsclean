@@ -148,7 +148,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _visibilityWeightSum(0.0),
       _cachedParmResponse(),
       _h5parm(nullptr),
-      _solTabs(std::make_pair(nullptr, nullptr)),
+      _h5SolTabs(std::make_pair(nullptr, nullptr)),
       _h5TimeIndex(std::make_pair(std::numeric_limits<size_t>::max(),
                                   std::numeric_limits<size_t>::max())) {
   computeFacetCentre();
@@ -158,8 +158,10 @@ std::vector<std::string> MSGridderBase::getAntennaNames(
     const casacore::MeasurementSet& ms) {
   std::vector<std::string> antennaNames;
   casacore::ROMSAntennaColumns antenna(ms.antenna());
-  for (unsigned int i = 0; i < antenna.nrow(); ++i) {
-    antennaNames.push_back(antenna.name()(i));
+  const casacore::ROScalarColumn<casacore::String> antennaNamesCasa =
+      antenna.name();
+  for (size_t i = 0; i < antenna.nrow(); ++i) {
+    antennaNames.push_back(antennaNamesCasa(i));
   }
   return antennaNames;
 }
@@ -422,22 +424,22 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
 
     if (_settings.facetSolutionTables.size() == 1) {
-      _solTabs = std::make_pair(
+      _h5SolTabs = std::make_pair(
           &_h5parm->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
       _correctType =
-          JonesParameters::StringToCorrectType(_solTabs.first->GetType());
+          JonesParameters::StringToCorrectType(_h5SolTabs.first->GetType());
     } else if (_settings.facetSolutionTables.size() == 2) {
-      _solTabs =
+      _h5SolTabs =
           std::make_pair(&_h5parm->GetSolTab(_settings.facetSolutionTables[0]),
                          &_h5parm->GetSolTab(_settings.facetSolutionTables[1]));
-      if (_solTabs.first->GetType() != "amplitude") {
+      if (_h5SolTabs.first->GetType() != "amplitude") {
         throw std::runtime_error("Type of solution table 0 is " +
-                                 _solTabs.first->GetType() +
+                                 _h5SolTabs.first->GetType() +
                                  ", should be 'amplitude'");
       }
-      if (_solTabs.second->GetType() != "phase") {
+      if (_h5SolTabs.second->GetType() != "phase") {
         throw std::runtime_error("Type of solution table 1 is " +
-                                 _solTabs.second->GetType() +
+                                 _h5SolTabs.second->GetType() +
                                  ", should be 'phase'");
       }
       _correctType = JonesParameters::CorrectType::FULLJONES;
@@ -539,35 +541,28 @@ template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
-  bool updateRowInH5Parm = true;
-#ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-    updateRowInH5Parm = false;
-  }
-#endif
-
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _degriddingReader->ReadMeta(metaData);
-    if (updateRowInH5Parm) {
+    if (!_settings.applyFacetBeam) {
       _degriddingReader->NextInputRow();
     }
 
     const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
-    // Only update the cached response if one of the time indices in the soltabs
-    // changed
-    if (_solTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
-        (_solTabs.second &&
-         _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
+    // Only update the cached solutions if one of the time indices in the
+    // soltabs changed
+    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
+                                  _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
           JonesParameters::InterpolationType::NEAREST, _facetIndex,
-          _solTabs.first, _solTabs.second, false, 0.0f, 0u,
+          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
       // Assumes that the data layout parms is contiguous in mem, ordered as
@@ -577,9 +572,9 @@ void MSGridderBase::writeVisibilities(
       _cachedParmResponse.assign(&parms(0, 0, 0),
                                  &parms(0, 0, 0) + _cachedParmResponse.size());
 
-      _h5TimeIndex.first = _solTabs.first->GetTimeIndex(metaData.time);
-      if (_solTabs.second) {
-        _h5TimeIndex.second = _solTabs.second->GetTimeIndex(metaData.time);
+      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
+      if (_h5SolTabs.second) {
+        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
       }
     }
 
@@ -615,9 +610,7 @@ void MSGridderBase::writeVisibilities(
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     _degriddingReader->ReadMeta(metaData);
-    if (!updateRowInH5Parm) {
-      _degriddingReader->NextInputRow();
-    }
+    _degriddingReader->NextInputRow();
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -737,16 +730,16 @@ void MSGridderBase::readAndWeightVisibilities(
 
     // Only update the cached response if one of the time indices in the soltabs
     // changed
-    if (_solTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
-        (_solTabs.second &&
-         _solTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
+    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
+                                  _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
           JonesParameters::InterpolationType::NEAREST, _facetIndex,
-          _solTabs.first, _solTabs.second, false, 0.0f, 0u,
+          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
       // Assumes that the data layout parms is contiguous in mem, ordered as
@@ -756,9 +749,9 @@ void MSGridderBase::readAndWeightVisibilities(
       _cachedParmResponse.assign(&parms(0, 0, 0),
                                  &parms(0, 0, 0) + _cachedParmResponse.size());
 
-      _h5TimeIndex.first = _solTabs.first->GetTimeIndex(metaData.time);
-      if (_solTabs.second) {
-        _h5TimeIndex.second = _solTabs.second->GetTimeIndex(metaData.time);
+      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
+      if (_h5SolTabs.second) {
+        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
       }
     }
 

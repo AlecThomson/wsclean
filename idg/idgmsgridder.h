@@ -82,8 +82,10 @@ class IdgMsGridder : public MSGridderBase {
     double uvw[3];
     size_t dataDescId, antenna1, antenna2, timeIndex, rowId;
   };
-  void predictRow(IDGPredictionRow& row);
-  void computePredictionBuffer(size_t dataDescId);
+  void predictRow(IDGPredictionRow& row,
+                  const std::vector<std::string>& antennaNames);
+  void computePredictionBuffer(size_t dataDescId,
+                               const std::vector<std::string>& antennaNames);
 
   std::unique_ptr<idg::api::BufferSet> _bufferset;
   size_t _subgridSize;
@@ -91,7 +93,6 @@ class IdgMsGridder : public MSGridderBase {
   aocommon::UVector<float> _taper_subgrid;
   aocommon::UVector<float> _taper_grid;
   MSProvider* _outputProvider;
-  std::vector<std::string> _antennaNames;
   MultiBandData _selectedBands;
   idg::api::Type _proxyType;
   int _buffersize;

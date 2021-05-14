@@ -351,7 +351,6 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   msData.msProvider->ReopenRW();
 
   _outputProvider = msData.msProvider;
-  _antennaNames = msData.antennaNames;
 
   aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
                                                 4);
@@ -401,27 +400,29 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
     row.timeIndex = timeIndex;
     row.dataDescId = metaData.dataDescId;
     row.rowId = provRowId;
-    predictRow(row);
+    predictRow(row, msData.antennaNames);
   }
 
   for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
-    computePredictionBuffer(d);
+    computePredictionBuffer(d, msData.antennaNames);
 }
 
-void IdgMsGridder::predictRow(IDGPredictionRow& row) {
+void IdgMsGridder::predictRow(IDGPredictionRow& row,
+                              const std::vector<std::string>& antennaNames) {
   while (_bufferset->get_degridder(row.dataDescId)
              ->request_visibilities(row.rowId, row.timeIndex, row.antenna1,
                                     row.antenna2, row.uvw)) {
-    computePredictionBuffer(row.dataDescId);
+    computePredictionBuffer(row.dataDescId, antennaNames);
   }
 }
 
-void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
+void IdgMsGridder::computePredictionBuffer(
+    size_t dataDescId, const std::vector<std::string>& antennaNames) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
-    writeVisibilities<4>(*_outputProvider, _antennaNames, curBand, i.second);
+    writeVisibilities<4>(*_outputProvider, antennaNames, curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
