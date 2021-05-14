@@ -328,14 +328,13 @@ void CommandLine::printHelp() {
          "   -apply-primary-beam when not gridding with the beam.\n"
          "-aterm-kernel-size\n"
          "   Kernel size reserved for aterms by IDG.\n"
-         "-apply-facet-solutions <path-to-file>\n"
+         "-apply-facet-solutions <path-to-file> <name1[,name2]>\n"
          "   Apply solutions from the provided (h5) file per facet "
          "when gridding facet based images.\n"
          "   Provided file is assumed to be in H5Parm format.\n"
-         "-soltab-names <name1[,name2]>\n"
-         "   Comma separated list of strings specifying which sol tabs from "
-         "the provided H5Parm file are used.\n"
-         "   Only works in conjunction with -apply-facet-solutions.\n"
+         "   Filename is followed by a comma separated list of strings "
+         "specifying which "
+         "sol tabs from the provided H5Parm file are used.\n"
          "-apply-facet-beam\n"
          "   Apply beam gains to facet center when gridding "
          "facet based images\n"
@@ -1287,7 +1286,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "apply-facet-solutions") {
       ++argi;
       settings.facetSolutionFile = argv[argi];
-    } else if (param == "soltab-names") {
       ++argi;
       settings.facetSolutionTables =
           schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);

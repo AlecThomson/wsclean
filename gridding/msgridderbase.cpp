@@ -158,10 +158,10 @@ std::vector<std::string> MSGridderBase::getAntennaNames(
     const casacore::MeasurementSet& ms) {
   std::vector<std::string> antennaNames;
   casacore::ROMSAntennaColumns antenna(ms.antenna());
-  const casacore::ROScalarColumn<casacore::String> antennaNamesCasa =
+  const casacore::ROScalarColumn<casacore::String> antannaNameColumn =
       antenna.name();
   for (size_t i = 0; i < antenna.nrow(); ++i) {
-    antennaNames.push_back(antennaNamesCasa(i));
+    antennaNames.push_back(antannaNameColumn(i));
   }
   return antennaNames;
 }
@@ -544,6 +544,8 @@ void MSGridderBase::writeVisibilities(
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _degriddingReader->ReadMeta(metaData);
+    // When the facet beam is applied, the row will be incremented later in this
+    // function
     if (!_settings.applyFacetBeam) {
       _degriddingReader->NextInputRow();
     }
