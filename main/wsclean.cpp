@@ -1240,12 +1240,14 @@ void WSClean::partitionSingleGroup(
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
+    // FIXME: this causes problems in predict runs
     // Apply average direction dependent correction before storing
     const float invM =
         1.0f /
         std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
                   _msGridderMetaCache[facetEntry.index]->averageH5Correction);
-    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    // FIXME: activating this line results in trash
+    // if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
