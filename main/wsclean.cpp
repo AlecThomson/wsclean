@@ -261,9 +261,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 GriddingResult& result, bool updateBeamInfo,
                                 bool isInitialInversion) {
   size_t joinedChannelIndex = entry.outputChannelIndex;
-  std::cout << "you were here, weren't you?! " << entry.facetIndex << std::endl;
-  std::cout << "Spit out the result value, if you dare "
-            << result.cache->averageBeamCorrection << std::endl;
 
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
@@ -1243,6 +1240,12 @@ void WSClean::partitionSingleGroup(
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
+    // Apply average direction dependent correction before storing
+    const float invM =
+        1.0f /
+        std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
+                  _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1572,6 +1575,15 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
+    // Apply corrections to residual image only
+    if (!isPSF) {
+      const float invM =
+          1.0f /
+          std::sqrt(
+              _msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
+              _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+      if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    }
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not
     // overlap though.

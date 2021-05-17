@@ -768,7 +768,8 @@ void MSGridderBase::readAndWeightVisibilities(
       const std::complex<float> A =
           0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
-      _metaDataCache->averageBeamCorrection += std::conj(A) * weight * A;
+      _metaDataCache->averageBeamCorrection +=
+          (std::conj(A) * weight * A).real();
 
       iter += PolarizationCount;
       // FIXME: following line already exploits that the only admissible
@@ -832,7 +833,8 @@ void MSGridderBase::readAndWeightVisibilities(
         const std::complex<float> A =
             0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->averageH5Correction += std::conj(A) * weight * A;
+        _metaDataCache->averageH5Correction +=
+            (std::conj(A) * weight * A).real();
 
         iter += PolarizationCount;
         weightIter += PolarizationCount;
@@ -850,7 +852,8 @@ void MSGridderBase::readAndWeightVisibilities(
         const std::complex<float> A =
             0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->averageH5Correction += std::conj(A) * weight * A;
+        _metaDataCache->averageH5Correction +=
+            (std::conj(A) * weight * A).real();
 
         iter += PolarizationCount;
         weightIter += PolarizationCount;
