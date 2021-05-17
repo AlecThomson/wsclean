@@ -261,6 +261,9 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 GriddingResult& result, bool updateBeamInfo,
                                 bool isInitialInversion) {
   size_t joinedChannelIndex = entry.outputChannelIndex;
+  std::cout << "you were here, weren't you?! " << entry.facetIndex << std::endl;
+  std::cout << "Spit out the result value, if you dare "
+            << result.cache->averageBeamCorrection << std::endl;
 
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *

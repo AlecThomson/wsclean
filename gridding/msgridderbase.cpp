@@ -691,8 +691,49 @@ void MSGridderBase::readAndWeightVisibilities(
     }
   }
 
+  msReader.ReadWeights(weightBuffer);
+
+  // Any visibilities that are not gridded in this pass
+  // should not contribute to the weight sum, so set these
+  // to have zero weight.
+  for (size_t ch = 0; ch != dataSize; ++ch) {
+    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
+  }
+
+  switch (VisibilityWeightingMode()) {
+    case VisibilityWeightingMode::NormalVisibilityWeighting:
+      // The weight buffer already contains the visibility weights: do nothing
+      break;
+    case VisibilityWeightingMode::SquaredVisibilityWeighting:
+      // Square the visibility weights
+      for (size_t chp = 0; chp != dataSize; ++chp)
+        weightBuffer[chp] *= weightBuffer[chp];
+      break;
+    case VisibilityWeightingMode::UnitVisibilityWeighting:
+      // Set the visibility weights to one
+      for (size_t chp = 0; chp != dataSize; ++chp) {
+        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
+      }
+      break;
+  }
+
+  // Precompute imaging weights
+  _scratchWeights.resize(curBand.ChannelCount());
+  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+    const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
+    const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
+    _scratchWeights[ch] = GetImageWeights()->GetWeight(u, v);
+  }
+  if (StoreImagingWeights())
+    msReader.WriteImagingWeights(_scratchWeights.data());
+
+  // FIXME: safe, but probably not needed
+  _metaDataCache->averageBeamCorrection = 1.0;
+  _metaDataCache->averageH5Correction = 1.0;
+
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    _metaDataCache->averageBeamCorrection = 0.0;
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
     _pointResponse->UpdateTime(metaData.time);
@@ -713,6 +754,7 @@ void MSGridderBase::readAndWeightVisibilities(
 
     // rowData.data contains the visibilities
     std::complex<float>* iter = rowData.data;
+    float* weightIter = weightBuffer;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
       const size_t offset1 = offset + metaData.antenna1 * 4u;
@@ -721,7 +763,17 @@ void MSGridderBase::readAndWeightVisibilities(
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+
+      // Update beam correction value
+      const std::complex<float> A =
+          0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+      const float weight = *weightIter * _scratchWeights[ch];
+      _metaDataCache->averageBeamCorrection += std::conj(A) * weight * A;
+
       iter += PolarizationCount;
+      // FIXME: following line already exploits that the only admissible
+      // PolarizationCount is 1. Check this.
+      weightIter += PolarizationCount;
     }
   }
 #endif
@@ -729,6 +781,7 @@ void MSGridderBase::readAndWeightVisibilities(
   if (_h5parm) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
+    _metaDataCache->averageH5Correction = 0.0;
 
     const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
@@ -763,70 +816,56 @@ void MSGridderBase::readAndWeightVisibilities(
     // Conditional could be templated once C++ supports partial function
     // specialization
     std::complex<float>* iter = rowData.data;
+    float* weightIter = weightBuffer;
     if (nparms == 2) {
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyConjugatedBeam<PolarizationCount>(
-            iter,
-            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
-                             _cachedParmResponse[offset1 + 1]),
-            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
-                             _cachedParmResponse[offset2 + 1]));
+        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
+                                     _cachedParmResponse[offset1 + 1]);
+        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
+                                     _cachedParmResponse[offset2 + 1]);
+        ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+
+        // Update beam correction value
+        const std::complex<float> A =
+            0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+        const float weight = *weightIter * _scratchWeights[ch];
+        _metaDataCache->averageH5Correction += std::conj(A) * weight * A;
+
         iter += PolarizationCount;
+        weightIter += PolarizationCount;
       }
     } else {
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyConjugatedBeam<PolarizationCount>(
-            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
-            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
+        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+
+        // Update beam correction value
+        const std::complex<float> A =
+            0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+        const float weight = *weightIter * _scratchWeights[ch];
+        _metaDataCache->averageH5Correction += std::conj(A) * weight * A;
+
         iter += PolarizationCount;
+        weightIter += PolarizationCount;
       }
     }
-  }
-
-  msReader.ReadWeights(weightBuffer);
-
-  // Any visibilities that are not gridded in this pass
-  // should not contribute to the weight sum, so set these
-  // to have zero weight.
-  for (size_t ch = 0; ch != dataSize; ++ch) {
-    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
-  }
-
-  switch (VisibilityWeightingMode()) {
-    case VisibilityWeightingMode::NormalVisibilityWeighting:
-      // The weight buffer already contains the visibility weights: do nothing
-      break;
-    case VisibilityWeightingMode::SquaredVisibilityWeighting:
-      // Square the visibility weights
-      for (size_t chp = 0; chp != dataSize; ++chp)
-        weightBuffer[chp] *= weightBuffer[chp];
-      break;
-    case VisibilityWeightingMode::UnitVisibilityWeighting:
-      // Set the visibility weights to one
-      for (size_t chp = 0; chp != dataSize; ++chp) {
-        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
-      }
-      break;
   }
 
   // Calculate imaging weights
   std::complex<float>* dataIter = rowData.data;
   float* weightIter = weightBuffer;
-  _scratchWeights.resize(curBand.ChannelCount());
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    double u = rowData.uvw[0] / curBand.ChannelWavelength(ch),
-           v = rowData.uvw[1] / curBand.ChannelWavelength(ch),
-           imageWeight = GetImageWeights()->GetWeight(u, v);
-    _scratchWeights[ch] = imageWeight;
-
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      double cumWeight = *weightIter * imageWeight;
+      const double cumWeight = *weightIter * _scratchWeights[ch];
+      // FIXME: refactor above as
+      // *weightIter *= _scratchWeights[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         _visibilityWeightSum += *weightIter;
@@ -835,14 +874,13 @@ void MSGridderBase::readAndWeightVisibilities(
         // Total weight includes imaging weights
         _totalWeight += cumWeight;
       }
+      // FIXME: following is obsolete with *weightIter *= _scratchWeights[ch];
       *weightIter = cumWeight;
       *dataIter *= *weightIter;
       ++dataIter;
       ++weightIter;
     }
   }
-  if (StoreImagingWeights())
-    msReader.WriteImagingWeights(_scratchWeights.data());
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(
