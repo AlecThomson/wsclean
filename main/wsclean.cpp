@@ -1246,10 +1246,8 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     if (!isPredictOnly) {
       // Apply average direction dependent correction before storing
       const float invM =
-          1.0f /
-          std::sqrt(
-              _msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
-              _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+          1.0f / std::sqrt(_msGridderMetaCache[facetEntry.index]->beamSum *
+                           _msGridderMetaCache[facetEntry.index]->h5Sum);
       if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
@@ -1582,9 +1580,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
     const float invM =
-        1.0f /
-        std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
-                  _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+        1.0f / std::sqrt(_msGridderMetaCache[facetEntry.index]->beamSum *
+                         _msGridderMetaCache[facetEntry.index]->h5Sum);
     if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not

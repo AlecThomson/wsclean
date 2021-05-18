@@ -15,10 +15,8 @@ struct MetaDataCache {
   };
   std::vector<Entry> msDataVector;
   std::unique_ptr<class AverageBeam> averageBeam;
-  // FIXME: find better name?
-  // FIXME: assumes one value per call to (de)gridder?!
-  float averageBeamCorrection;
-  float averageH5Correction;
+  float beamSum;
+  float h5Sum;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

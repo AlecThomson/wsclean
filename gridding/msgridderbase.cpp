@@ -727,15 +727,11 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchWeights.data());
 
-  // FIXME: safe, but probably not needed
-  _metaDataCache->averageBeamCorrection = 1.0;
-  _metaDataCache->averageH5Correction = 1.0;
-
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-    _metaDataCache->averageBeamCorrection = 0.0;
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
+
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -768,8 +764,7 @@ void MSGridderBase::readAndWeightVisibilities(
       const std::complex<float> A =
           0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
-      _metaDataCache->averageBeamCorrection +=
-          (std::conj(A) * weight * A).real();
+      _metaDataCache->beamSum += (std::conj(A) * weight * A).real();
 
       iter += PolarizationCount;
       // FIXME: following line already exploits that the only admissible
@@ -782,7 +777,6 @@ void MSGridderBase::readAndWeightVisibilities(
   if (_h5parm) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
-    _metaDataCache->averageH5Correction = 0.0;
 
     const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
@@ -833,8 +827,7 @@ void MSGridderBase::readAndWeightVisibilities(
         const std::complex<float> A =
             0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->averageH5Correction +=
-            (std::conj(A) * weight * A).real();
+        _metaDataCache->h5Sum += (std::conj(A) * weight * A).real();
 
         iter += PolarizationCount;
         weightIter += PolarizationCount;
@@ -852,8 +845,7 @@ void MSGridderBase::readAndWeightVisibilities(
         const std::complex<float> A =
             0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->averageH5Correction +=
-            (std::conj(A) * weight * A).real();
+        _metaDataCache->h5Sum += (std::conj(A) * weight * A).real();
 
         iter += PolarizationCount;
         weightIter += PolarizationCount;
