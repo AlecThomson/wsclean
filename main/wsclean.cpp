@@ -1246,8 +1246,7 @@ void WSClean::partitionSingleGroup(
         1.0f /
         std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
                   _msGridderMetaCache[facetEntry.index]->averageH5Correction);
-    // FIXME: activating this line results in trash
-    // if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1577,15 +1576,11 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
-    // Apply corrections to residual image only
-    if (!isPSF) {
-      const float invM =
-          1.0f /
-          std::sqrt(
-              _msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
-              _msGridderMetaCache[facetEntry.index]->averageH5Correction);
-      if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
-    }
+    const float invM =
+        1.0f /
+        std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
+                  _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not
     // overlap though.
