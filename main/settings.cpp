@@ -65,6 +65,15 @@ void Settings::Validate() const {
     if (parallelGridding != 1)
       throw std::runtime_error(
           "Parallel gridding can not be combined with IDG");
+    if (applyFacetBeam)
+      throw std::runtime_error(
+          "IDG cannot apply facet based beam corrections. Remove facet related "
+          "command line arguments and use -grid-with-beam "
+          "instead.");
+    if (!facetSolutionFile.empty())
+      throw std::runtime_error(
+          "IDG cannot apply facet based direction dependent corrections. "
+          "Remove -apply-facet-solution from the command line instruction.");
   }
   if (gridWithBeam && !useIDG)
     throw std::runtime_error(

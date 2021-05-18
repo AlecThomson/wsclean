@@ -979,7 +979,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         }
 
         if (_settings.deconvolutionMGain != 1.0) {
-          partitionModelIntoFacets(groupTable);
+          partitionModelIntoFacets(groupTable, false);
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
             // TODO: maybe consider swapping the order?
@@ -1209,7 +1209,8 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   }
 }
 
-void WSClean::partitionModelIntoFacets(const ImagingTable& table) {
+void WSClean::partitionModelIntoFacets(const ImagingTable& table,
+                                       bool isPredictOnly) {
   if (!_facets.empty()) {
     Logger::Info << "Clipping model image into facets...\n";
     // Allocate full image
@@ -1226,27 +1227,31 @@ void WSClean::partitionModelIntoFacets(const ImagingTable& table) {
                         clipGroup.Front().outputChannelIndex, false);
       for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
         partitionSingleGroup(clipGroup, imageIndex, _modelImages, fullImage,
-                             facetImage);
+                             facetImage, isPredictOnly);
       }
     }
   }
 }
 
-void WSClean::partitionSingleGroup(
-    const ImagingTable& facetGroup, size_t imageIndex,
-    CachedImageSet& imageCache, const Image& fullImage,
-    schaapcommon::facets::FacetImage& facetImage) {
+void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
+                                   size_t imageIndex,
+                                   CachedImageSet& imageCache,
+                                   const Image& fullImage,
+                                   schaapcommon::facets::FacetImage& facetImage,
+                                   bool isPredictOnly) {
   const bool isImaginary = (imageIndex == 1);
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
-    // FIXME: this causes problems in predict runs
-    // Apply average direction dependent correction before storing
-    const float invM =
-        1.0f /
-        std::sqrt(_msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
-                  _msGridderMetaCache[facetEntry.index]->averageH5Correction);
-    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    if (!isPredictOnly) {
+      // Apply average direction dependent correction before storing
+      const float invM =
+          1.0f /
+          std::sqrt(
+              _msGridderMetaCache[facetEntry.index]->averageBeamCorrection *
+              _msGridderMetaCache[facetEntry.index]->averageH5Correction);
+      if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1390,7 +1395,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       // from the same (full) image. The meta data for the full model image can
       // be inferred from the first entry in the facetGroup table
       readExistingModelImages(facetGroup.Front());
-      partitionModelIntoFacets(facetGroup);
+      partitionModelIntoFacets(facetGroup, true);
 
       for (const auto& entry : facetGroup) {
         predict(entry);
