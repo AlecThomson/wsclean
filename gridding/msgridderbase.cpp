@@ -146,7 +146,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0),
-      _degriddingReader(nullptr),
+      _predictReader(nullptr),
       _cachedParmResponse(),
       _h5parm(nullptr),
       _h5SolTabs(std::make_pair(nullptr, nullptr)),
@@ -201,7 +201,8 @@ int64_t MSGridderBase::getAvailableMemory(double memFraction,
   return memory;
 }
 
-void MSGridderBase::SetPointResponse(const MSGridderBase::MSData& msData) {
+void MSGridderBase::initializePointResponse(
+    const MSGridderBase::MSData& msData) {
   SynchronizedMS ms(msData.msProvider->MS());
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
@@ -253,8 +254,8 @@ void MSGridderBase::SetPointResponse(const MSGridderBase::MSData& msData) {
 #endif
 }
 
-void MSGridderBase::SetDegriddingReader(MSProvider& msProvider) {
-  _degriddingReader = msProvider.MakeReader();
+void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
+  _predictReader = msProvider.MakeReader();
 }
 
 void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
@@ -545,11 +546,11 @@ void MSGridderBase::writeVisibilities(
     const BandData& curBand, std::complex<float>* buffer) {
   if (_h5parm) {
     MSProvider::MetaData metaData;
-    _degriddingReader->ReadMeta(metaData);
+    _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
     // function
     if (!_settings.applyFacetBeam) {
-      _degriddingReader->NextInputRow();
+      _predictReader->NextInputRow();
     }
 
     const size_t nparms =
@@ -613,8 +614,8 @@ void MSGridderBase::writeVisibilities(
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
-    _degriddingReader->ReadMeta(metaData);
-    _degriddingReader->NextInputRow();
+    _predictReader->ReadMeta(metaData);
+    _predictReader->NextInputRow();
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =

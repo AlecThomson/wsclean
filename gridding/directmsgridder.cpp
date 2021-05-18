@@ -127,7 +127,7 @@ template <typename num_t>
 void DirectMSGridder<num_t>::invertMeasurementSet(
     const MSGridderBase::MSData& msData, ProgressBar& progress,
     size_t msIndex) {
-  SetPointResponse(msData);
+  StartMeasurementSet(msData, false);
   const MultiBandData selectedBand(msData.SelectedBand());
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());

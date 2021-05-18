@@ -121,7 +121,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
 
 void WSMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBand(msData.SelectedBand());
-  SetPointResponse(msData);
+  StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());
@@ -244,8 +244,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
-  SetPointResponse(msData);
-  SetDegriddingReader(*msData.msProvider);
+  StartMeasurementSet(msData, true);
 
   size_t rowsProcessed = 0;
 

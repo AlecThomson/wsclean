@@ -187,7 +187,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
     return;
 #endif
 
-  SetPointResponse(msData);
+  StartMeasurementSet(msData, false);
 
   aocommon::UVector<float> weightBuffer(_selectedBands.MaxChannels() * 4);
   aocommon::UVector<std::complex<float>> modelBuffer(
@@ -353,8 +353,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   msData.msProvider->ReopenRW();
 
   _outputProvider = msData.msProvider;
-  SetPointResponse(msData);
-  SetDegriddingReader(*_outputProvider);
+  StartMeasurementSet(msData, true);
 
   aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
                                                 4);

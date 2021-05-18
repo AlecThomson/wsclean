@@ -237,17 +237,16 @@ class MSGridderBase {
   };
 
   /**
-   * Sets the @param _telescope and the @param _pointResponse data members if
-   * needed and if EveryBeam is available.
+   * Initializes MS related data members, i.e. the @param _telescope and the
+   * @param _pointResponse data in case a beam is applied on the facets and
+   * EveryBeam is available and the @param _predictReader data member in case
+   * @param isPredict is true.
    */
-  void SetPointResponse(const MSGridderBase::MSData& msData);
-
-  /**
-   * Set the @param _degriddingReader data member. Setter is only needed for
-   * writing the predicted visibilities.
-   *
-   */
-  void SetDegriddingReader(MSProvider& msProvider);
+  void StartMeasurementSet(const MSGridderBase::MSData& msData,
+                           bool isPredict) {
+    initializePointResponse(msData);
+    if (isPredict) initializePredictReader(*msData.msProvider);
+  }
 
   /**
    * Read the visibilities from the msprovider, and apply weights and flags.
@@ -353,6 +352,9 @@ class MSGridderBase {
   bool hasWGridSize() const { return _wGridSize != 0; }
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
+  void initializePointResponse(const MSGridderBase::MSData& msData);
+  void initializePredictReader(MSProvider& msProvider);
+
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
@@ -387,7 +389,7 @@ class MSGridderBase {
 
   aocommon::UVector<float> _scratchWeights;
 
-  std::unique_ptr<MSReader> _degriddingReader;
+  std::unique_ptr<MSReader> _predictReader;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

@@ -53,7 +53,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
 
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
-  SetPointResponse(msData);
+  StartMeasurementSet(msData, false);
 
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBands.MaxChannels());
@@ -123,8 +123,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
-  SetPointResponse(msData);
-  SetDegriddingReader(*msData.msProvider);
+  StartMeasurementSet(msData, true);
 
   size_t totalNRows = 0;
   for (size_t dataDescId = 0; dataDescId != selectedBands.DataDescCount();
