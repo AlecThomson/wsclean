@@ -79,7 +79,7 @@ void IdgMsGridder::Invert() {
     _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector, false);
+    initializeMSDataVector(msDataVector);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -186,6 +186,8 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
                                 idg::api::BufferSetType::gridding))
     return;
 #endif
+
+  SetPointResponse(msData);
 
   aocommon::UVector<float> weightBuffer(_selectedBands.MaxChannels() * 4);
   aocommon::UVector<std::complex<float>> modelBuffer(
@@ -298,7 +300,7 @@ void IdgMsGridder::Predict(Image image) {
     }
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector, true);
+    initializeMSDataVector(msDataVector);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -351,6 +353,8 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   msData.msProvider->ReopenRW();
 
   _outputProvider = msData.msProvider;
+  SetPointResponse(msData);
+  SetDegriddingReader(*_outputProvider);
 
   aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
                                                 4);

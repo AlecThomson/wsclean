@@ -121,6 +121,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
 
 void WSMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBand(msData.SelectedBand());
+  SetPointResponse(msData);
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());
@@ -243,6 +244,9 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
+  SetPointResponse(msData);
+  SetDegriddingReader(*msData.msProvider);
+
   size_t rowsProcessed = 0;
 
   aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize + _cpuCount),
@@ -353,7 +357,7 @@ void WSMSGridder::predictWriteThread(
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector, false);
+  initializeMSDataVector(msDataVector);
 
   _gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight,
                                  _actualPixelSizeX, _actualPixelSizeY,
@@ -487,7 +491,7 @@ void WSMSGridder::Predict(Image real, Image imaginary) {
     throw std::runtime_error("Imaginary specified in non-complex prediction");
 
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector, true);
+  initializeMSDataVector(msDataVector);
 
   _gridder = std::unique_ptr<GridderType>(
       new GridderType(_actualInversionWidth, _actualInversionHeight,

@@ -53,6 +53,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
 
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
+  SetPointResponse(msData);
 
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBands.MaxChannels());
@@ -122,6 +123,8 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
+  SetPointResponse(msData);
+  SetDegriddingReader(*msData.msProvider);
 
   size_t totalNRows = 0;
   for (size_t dataDescId = 0; dataDescId != selectedBands.DataDescCount();
@@ -183,7 +186,7 @@ void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
 
 void WGriddingMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector, false);
+  initializeMSDataVector(msDataVector);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);
@@ -241,7 +244,7 @@ void WGriddingMSGridder::Invert() {
 
 void WGriddingMSGridder::Predict(Image image) {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector, true);
+  initializeMSDataVector(msDataVector);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);

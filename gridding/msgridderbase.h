@@ -237,6 +237,19 @@ class MSGridderBase {
   };
 
   /**
+   * Sets the @param _telescope and the @param _pointResponse data members if
+   * needed and if EveryBeam is available.
+   */
+  void SetPointResponse(const MSGridderBase::MSData& msData);
+
+  /**
+   * Set the @param _degriddingReader data member. Setter is only needed for
+   * writing the predicted visibilities.
+   *
+   */
+  void SetDegriddingReader(MSProvider& msProvider);
+
+  /**
    * Read the visibilities from the msprovider, and apply weights and flags.
    *
    * This function applies both the selected method of visibility weighting
@@ -291,8 +304,7 @@ class MSGridderBase {
 
   double totalWeight() const { return _totalWeight; }
 
-  void initializeMSDataVector(std::vector<MSData>& msDataVector,
-                              bool isDegridder);
+  void initializeMSDataVector(std::vector<MSData>& msDataVector);
 
   std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
@@ -335,7 +347,7 @@ class MSGridderBase {
 
   void initializeMeasurementSet(MSGridderBase::MSData& msData,
                                 MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized, bool isPredict);
+                                bool isCacheInitialized);
 
   void calculateOverallMetaData(const MSData* msDataVector);
   bool hasWGridSize() const { return _wGridSize != 0; }
