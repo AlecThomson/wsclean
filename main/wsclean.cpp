@@ -1248,9 +1248,11 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
         // Apply average direction dependent correction before storing
         float m = 1.0;
         if (_settings.applyFacetBeam)
-          m *= _msGridderMetaCache[facetEntry.index]->beamSum;
+          m *= (_msGridderMetaCache[facetEntry.index]->beamSum /
+                facetEntry.imageWeight);
         if (!_settings.facetSolutionFile.empty())
-          m *= _msGridderMetaCache[facetEntry.index]->h5Sum;
+          m *= (_msGridderMetaCache[facetEntry.index]->h5Sum /
+                facetEntry.imageWeight);
         facetImage *= {1.0f / std::sqrt(m)};
       }
     }
@@ -1583,12 +1585,15 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
+
     if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
       float m = 1.0;
       if (_settings.applyFacetBeam)
-        m *= _msGridderMetaCache[facetEntry.index]->beamSum;
+        m *= (_msGridderMetaCache[facetEntry.index]->beamSum /
+              facetEntry.imageWeight);
       if (!_settings.facetSolutionFile.empty())
-        m *= _msGridderMetaCache[facetEntry.index]->h5Sum;
+        m *= (_msGridderMetaCache[facetEntry.index]->h5Sum /
+              facetEntry.imageWeight);
       facetImage *= {1.0f / std::sqrt(m)};
     }
 
