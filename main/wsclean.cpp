@@ -1248,12 +1248,12 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
         // Apply average direction dependent correction before storing
         float m = 1.0;
         if (_settings.applyFacetBeam)
-          m *= (_msGridderMetaCache[facetEntry.index]->beamSum /
-                facetEntry.imageWeight);
+          m *= _msGridderMetaCache[facetEntry.index]->beamSum /
+               facetEntry.imageWeight;
         if (!_settings.facetSolutionFile.empty())
-          m *= (_msGridderMetaCache[facetEntry.index]->h5Sum /
-                facetEntry.imageWeight);
-        facetImage *= {1.0f / std::sqrt(m)};
+          m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
+               facetEntry.imageWeight;
+        facetImage *= 1.0f / std::sqrt(m);
       }
     }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
@@ -1589,12 +1589,12 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
       float m = 1.0;
       if (_settings.applyFacetBeam)
-        m *= (_msGridderMetaCache[facetEntry.index]->beamSum /
-              facetEntry.imageWeight);
+        m *= _msGridderMetaCache[facetEntry.index]->beamSum /
+             facetEntry.imageWeight;
       if (!_settings.facetSolutionFile.empty())
-        m *= (_msGridderMetaCache[facetEntry.index]->h5Sum /
-              facetEntry.imageWeight);
-      facetImage *= {1.0f / std::sqrt(m)};
+        m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
+             facetEntry.imageWeight;
+      facetImage *= 1.0f / std::sqrt(m);
     }
 
     // TODO with our current stitching implementation, facets should always be

@@ -862,7 +862,6 @@ void MSGridderBase::readAndWeightVisibilities(
         // Total weight includes imaging weights
         _totalWeight += cumWeight;
       }
-      // FIXME: following is obsolete with *weightIter *= _scratchWeights[ch];
       *weightIter = cumWeight;
       *dataIter *= *weightIter;
       ++dataIter;
