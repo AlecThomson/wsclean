@@ -45,20 +45,19 @@ using schaapcommon::h5parm::JonesParameters;
 
 namespace {
 template <size_t PolarizationCount>
-void ApplyConjugatedBeam(std::complex<float>* visibilities,
+void ApplyConjugatedGain(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
                          const aocommon::MC2x2F& gain2);
 template <>
-void ApplyConjugatedBeam<1>(std::complex<float>* visibilities,
+void ApplyConjugatedGain<1>(std::complex<float>* visibilities,
                             const aocommon::MC2x2F& gain1,
                             const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
-                  aocommon::Trace(gain2);
+  *visibilities = 0.25f * conj(Trace(gain1)) * (*visibilities) * Trace(gain2);
 }
 
 template <>
-void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
+void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
                             const aocommon::MC2x2F& gain1,
                             const aocommon::MC2x2F& gain2) {
   // All polarizations
@@ -69,20 +68,19 @@ void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
 }
 
 template <size_t PolarizationCount>
-void ApplyBeam(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
                const aocommon::MC2x2F& gain2);
 
 template <>
-void ApplyBeam<1>(std::complex<float>* visibilities,
+void ApplyGain<1>(std::complex<float>* visibilities,
                   const aocommon::MC2x2F& gain1,
                   const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
-                  std::conj(aocommon::Trace(gain2));
+  *visibilities = 0.25f * Trace(gain1) * (*visibilities) * conj(Trace(gain2));
 }
 
 template <>
-void ApplyBeam<4>(std::complex<float>* visibilities,
+void ApplyGain<4>(std::complex<float>* visibilities,
                   const aocommon::MC2x2F& gain1,
                   const aocommon::MC2x2F& gain2) {
   // All polarizations
@@ -590,7 +588,7 @@ void MSGridderBase::writeVisibilities(
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
 
-        ApplyBeam<PolarizationCount>(
+        ApplyGain<PolarizationCount>(
             iter,
             aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
                              _cachedParmResponse[offset1 + 1]),
@@ -603,7 +601,7 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyBeam<PolarizationCount>(
+        ApplyGain<PolarizationCount>(
             iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
             aocommon::MC2x2F(&_cachedParmResponse[offset2]));
         iter += PolarizationCount;
@@ -640,7 +638,7 @@ void MSGridderBase::writeVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyBeam<PolarizationCount>(iter, gain1, gain2);
+      ApplyGain<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
@@ -758,17 +756,15 @@ void MSGridderBase::readAndWeightVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+      ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-      // Update beam correction value
-      const std::complex<float> A =
-          0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+      const std::complex<float> g =
+          0.25f * Trace(gain2) * std::conj(Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
-      _metaDataCache->beamSum += (std::conj(A) * weight * A).real();
+      _metaDataCache->beamSum += (conj(g) * weight * g).real();
 
+      // Only admissible PolarizationCount for applying the facet beam is 1.
       iter += PolarizationCount;
-      // FIXME: following line already exploits that the only admissible
-      // PolarizationCount is 1. Check this.
       weightIter += PolarizationCount;
     }
   }
@@ -821,14 +817,14 @@ void MSGridderBase::readAndWeightVisibilities(
                                      _cachedParmResponse[offset1 + 1]);
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
-        ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-        // Update beam correction value
-        const std::complex<float> A =
-            0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->h5Sum += (std::conj(A) * weight * A).real();
+        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
+        // Only admissible PolarizationCount for applying gains from solution
+        // file is 1.
         iter += PolarizationCount;
         weightIter += PolarizationCount;
       }
@@ -839,14 +835,14 @@ void MSGridderBase::readAndWeightVisibilities(
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
-        ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-        // Update beam correction value
-        const std::complex<float> A =
-            0.25f * aocommon::Trace(gain2) * std::conj(aocommon::Trace(gain1));
+        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->h5Sum += (std::conj(A) * weight * A).real();
+        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
+        // Only admissible PolarizationCount for applying gains from solution
+        // file is 1.
         iter += PolarizationCount;
         weightIter += PolarizationCount;
       }
@@ -859,8 +855,6 @@ void MSGridderBase::readAndWeightVisibilities(
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     for (size_t p = 0; p != PolarizationCount; ++p) {
       const double cumWeight = *weightIter * _scratchWeights[ch];
-      // FIXME: refactor above as
-      // *weightIter *= _scratchWeights[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         _visibilityWeightSum += *weightIter;

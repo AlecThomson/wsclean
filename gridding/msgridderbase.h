@@ -198,16 +198,6 @@ class MSGridderBase {
 
   void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) {
     _metaDataCache = std::move(cache);
-    // FIXME: check whether (re)setting the sum values is allowed here
-    // If no beam or h5 solution is applied, set "Sum" value(s) to 1.0
-    _metaDataCache->beamSum =
-        (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty())
-            ? 0.0
-            : 1.0;
-    _metaDataCache->h5Sum = (!_settings.facetSolutionFile.empty() &&
-                             !_settings.facetRegionFilename.empty())
-                                ? 0.0
-                                : 1.0;
   }
   std::unique_ptr<MetaDataCache> AcquireMetaDataCache() {
     return std::move(_metaDataCache);

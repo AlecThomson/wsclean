@@ -1244,11 +1244,15 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
     if (!isPredictOnly) {
-      // Apply average direction dependent correction before storing
-      const float invM =
-          1.0f / std::sqrt(_msGridderMetaCache[facetEntry.index]->beamSum *
-                           _msGridderMetaCache[facetEntry.index]->h5Sum);
-      if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+      if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+        // Apply average direction dependent correction before storing
+        float m = 1.0;
+        if (_settings.applyFacetBeam)
+          m *= _msGridderMetaCache[facetEntry.index]->beamSum;
+        if (!_settings.facetSolutionFile.empty())
+          m *= _msGridderMetaCache[facetEntry.index]->h5Sum;
+        facetImage *= {1.0f / std::sqrt(m)};
+      }
     }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
@@ -1579,10 +1583,15 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
-    const float invM =
-        1.0f / std::sqrt(_msGridderMetaCache[facetEntry.index]->beamSum *
-                         _msGridderMetaCache[facetEntry.index]->h5Sum);
-    if (std::abs(invM - 1.0f) > 1e-6) facetImage *= {invM};
+    if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+      float m = 1.0;
+      if (_settings.applyFacetBeam)
+        m *= _msGridderMetaCache[facetEntry.index]->beamSum;
+      if (!_settings.facetSolutionFile.empty())
+        m *= _msGridderMetaCache[facetEntry.index]->h5Sum;
+      facetImage *= {1.0f / std::sqrt(m)};
+    }
+
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not
     // overlap though.

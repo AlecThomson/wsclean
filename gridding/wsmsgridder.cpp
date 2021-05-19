@@ -391,8 +391,6 @@ void WSMSGridder::Invert() {
 
     _gridder->StartInversionPass(pass);
 
-    // FIXME:
-    // ResetDDSumValues();
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
       MSData& msData = msDataVector[i];
 
