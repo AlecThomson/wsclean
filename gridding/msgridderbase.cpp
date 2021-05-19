@@ -758,8 +758,7 @@ void MSGridderBase::readAndWeightVisibilities(
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-      const std::complex<float> g =
-          0.25f * Trace(gain2) * std::conj(Trace(gain1));
+      const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
       _metaDataCache->beamSum += (conj(g) * weight * g).real();
 
