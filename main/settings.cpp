@@ -78,6 +78,10 @@ void Settings::Validate() const {
     if (parallelGridding != 1)
       throw std::runtime_error(
           "Parallel gridding can not be combined with IDG");
+    if (applyPrimaryBeam)
+      throw std::runtime_error(
+          "IDG currently does not support -apply-primary-beam. Use a-term correction with "
+          "-grid-with-beam instead.");
     if (applyFacetBeam)
       throw std::runtime_error(
           "IDG cannot apply facet based beam corrections. Remove facet related "
