@@ -672,6 +672,7 @@ void WSClean::RunClean() {
                                           _infoForMFS, "image.fits",
                                           intervalIndex, *pol, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                !_settings.facetSolutionFile.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty()))
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -687,6 +688,7 @@ void WSClean::RunClean() {
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, *pol, false, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                !_settings.facetSolutionFile.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty())) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -709,6 +711,7 @@ void WSClean::RunClean() {
                                             _infoForMFS, "image.fits",
                                             intervalIndex, *pol, true);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                  !_settings.facetSolutionFile.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty()))
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -724,6 +727,7 @@ void WSClean::RunClean() {
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, *pol, true, false);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                  !_settings.facetSolutionFile.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty())) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -1073,7 +1077,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
                                     _observationInfo.phaseCentreDec);
       if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-          _settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+          !_settings.facetSolutionFile.empty() || _settings.gridWithBeam ||
+          !_settings.atermConfigFilename.empty()) {
         _deconvolution.SavePBSourceList(groupTable,
                                         _observationInfo.phaseCentreRA,
                                         _observationInfo.phaseCentreDec);
@@ -1471,6 +1476,7 @@ void WSClean::runFirstInversion(
   if (isLastPol) {
     ImageFilename imageName =
         ImageFilename(entry.outputChannelIndex, entry.outputIntervalIndex);
+    // FIXME: probably no check !_settings.facetSolutionFile.empty() here?!
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList;
       initializeMSList(entry, msList);
