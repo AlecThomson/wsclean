@@ -1476,7 +1476,6 @@ void WSClean::runFirstInversion(
   if (isLastPol) {
     ImageFilename imageName =
         ImageFilename(entry.outputChannelIndex, entry.outputIntervalIndex);
-    // FIXME: probably no check !_settings.facetSolutionFile.empty() here?!
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList;
       initializeMSList(entry, msList);
