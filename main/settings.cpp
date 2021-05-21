@@ -92,6 +92,13 @@ void Settings::Validate() const {
           "IDG cannot apply facet based direction dependent corrections. "
           "Remove -apply-facet-solution from the command line instruction.");
   }
+
+  if (!facetSolutionFile.empty() && saveSourceList)
+    throw std::runtime_error(
+        "Applying direction dependent solutions to facets in combination with "
+        "saving the clean components as a text file currently not supported. "
+        "Please remove -save-source-list from the command line");
+
   if (gridWithBeam && !useIDG)
     throw std::runtime_error(
         "Can't grid with the beam without IDG: specify '-use-idg' to use IDG.");
