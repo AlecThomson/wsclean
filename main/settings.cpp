@@ -81,8 +81,7 @@ void Settings::Validate() const {
     if (applyPrimaryBeam)
       throw std::runtime_error(
           "IDG currently does not support -apply-primary-beam. Use a-term "
-          "correction with "
-          "-grid-with-beam instead.");
+          "correction with -grid-with-beam instead.");
     if (applyFacetBeam)
       throw std::runtime_error(
           "IDG cannot apply facet based beam corrections. Remove facet related "
