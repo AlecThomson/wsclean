@@ -147,7 +147,7 @@ void Settings::Validate() const {
 
   if (deconvolutionChannelCount != 0 &&
       deconvolutionChannelCount != channelsOut &&
-      spectralFittingMode == NoSpectralFitting)
+      spectralFittingMode == SpectralFittingMode::NoFitting)
     throw std::runtime_error(
         "You have requested to deconvolve with a decreased number of channels "
         "(-deconvolution-channels), but you have not enabled spectral fitting. "

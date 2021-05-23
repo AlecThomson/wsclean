@@ -3,11 +3,9 @@
 
 #include <aocommon/uvector.h>
 
-enum SpectralFittingMode {
-  NoSpectralFitting,
-  PolynomialSpectralFitting,
-  LogPolynomialSpectralFitting
-};
+#include "../structures/image.h"
+
+enum class SpectralFittingMode { NoFitting, Polynomial, LogPolynomial };
 
 class SpectralFitter {
  public:
@@ -23,9 +21,14 @@ class SpectralFitter {
     _nTerms = nTerms;
   }
 
-  void FitAndEvaluate(num_t* values) const;
+  void FitAndEvaluate(num_t* values, size_t x, size_t y,
+                      aocommon::UVector<num_t>& scratch) const {
+    Fit(scratch, values, x, y);
+    Evaluate(values, scratch);
+  }
 
-  void Fit(aocommon::UVector<num_t>& terms, const num_t* values) const;
+  void Fit(aocommon::UVector<num_t>& terms, const num_t* values, size_t x,
+           size_t y) const;
 
   void Evaluate(num_t* values, const aocommon::UVector<num_t>& terms) const;
 
@@ -57,12 +60,19 @@ class SpectralFitter {
 
   double ReferenceFrequency() const { return _referenceFrequency; }
 
+  void SetForcedImages(std::vector<Image>&& images) {
+    _forcedTerms = std::move(images);
+  }
+
+  bool IsForced() const { return !_forcedTerms.empty(); }
+
  private:
   enum SpectralFittingMode _mode;
   size_t _nTerms;
   aocommon::UVector<double> _frequencies;
   aocommon::UVector<num_t> _weights;
   double _referenceFrequency;
+  std::vector<Image> _forcedTerms;
 };
 
 #endif
