@@ -121,6 +121,8 @@ The spectral index map may be the result of earlier runs or from fitting between
 
 Together with :doc:`multiscale cleaning <multiscale_cleaning>` and :doc:`source list output <component_list>`, this mode allows building (text) models of sources with accurate spectral index information. 
 
+This method is currently being written up into an article -- to be submitted somewhere in 2021.
+
 Fit normal or logarithmic polynomials?
 --------------------------------------
 
