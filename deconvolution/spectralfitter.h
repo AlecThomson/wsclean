@@ -2,6 +2,7 @@
 #define SPECTRAL_FITTER_H
 
 #include <aocommon/uvector.h>
+#include <vector>
 
 #include "../structures/image.h"
 
