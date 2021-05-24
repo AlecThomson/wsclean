@@ -473,20 +473,20 @@ template<size_t N> class multi_iter
       if (nshares==1) return;
       if (nshares==0) throw std::runtime_error("can't run with zero threads");
       if (myshare>=nshares) throw std::runtime_error("impossible share requested");
-      auto [lo, hi] = calcShare(nshares, myshare, rem);
-      size_t todo = hi-lo;
+      auto share = calcShare(nshares, myshare, rem);
+      size_t todo = share.second-share.first;
 
       size_t chunk = rem;
       for (size_t i2=0, i=pos.size()-1; i2<pos.size(); ++i2,--i)
         {
         chunk /= shp[i];
-        size_t n_advance = lo/chunk;
+        size_t n_advance = share.first/chunk;
         pos[i] += n_advance;
         p_ii += ptrdiff_t(n_advance)*str_i[i];
         p_oi += ptrdiff_t(n_advance)*str_o[i];
-        lo -= n_advance*chunk;
+        share.first -= n_advance*chunk;
         }
-      MR_assert(lo==0, "must not happen");
+      MR_assert(share.first==0, "must not happen");
       rem = todo;
       }
     void advance(size_t n)
@@ -787,7 +787,7 @@ DUCC0_NOINLINE void general_nd(const fmav<T> &in, fmav<T> &out,
     {
     size_t len=in.shape(axes[iax]);
     if ((!plan) || (len!=plan->length()))
-      plan = std::make_unique<Tplan>(len);
+      plan = std::unique_ptr<Tplan>(new Tplan(len));
 
     execParallel(
       util::thread_count(nthreads, in, axes[iax], native_simd<T0>::size()),
@@ -797,21 +797,21 @@ DUCC0_NOINLINE void general_nd(const fmav<T> &in, fmav<T> &out,
         const auto &tin(iax==0? in : out);
         multi_iter<vlen> it(tin, out, axes[iax], sched.num_threads(), sched.thread_num());
 #ifndef DUCC0_NO_SIMD
-        if constexpr (vlen>1)
+        DUCC0_IFCONSTEXPR (vlen>1)
           while (it.remaining()>=vlen)
             {
             it.advance(vlen);
             auto tdatav = reinterpret_cast<add_vec_t<T, vlen> *>(storage.data());
             exec(it, tin, out, tdatav, *plan, fct);
             }
-        if constexpr (simd_exists<T0,vlen/2>)
+        DUCC0_IFCONSTEXPR (simd_exists<T0,vlen/2>())
           if (it.remaining()>=vlen/2)
             {
             it.advance(vlen/2);
             auto tdatav = reinterpret_cast<add_vec_t<T, vlen/2> *>(storage.data());
             exec(it, tin, out, tdatav, *plan, fct);
             }
-        if constexpr (simd_exists<T0,vlen/4>)
+        DUCC0_IFCONSTEXPR (simd_exists<T0,vlen/4>())
           if (it.remaining()>=vlen/4)
             {
             it.advance(vlen/4);
@@ -966,7 +966,7 @@ template<typename T> DUCC0_NOINLINE void general_r2c(
   const fmav<T> &in, fmav<Cmplx<T>> &out, size_t axis, bool forward, T fct,
   size_t nthreads)
   {
-  auto plan = std::make_unique<pocketfft_r<T>>(in.shape(axis));
+  auto plan = std::unique_ptr<pocketfft_r<T>>(new pocketfft_r<T>(in.shape(axis)));
   size_t len=in.shape(axis);
   execParallel(
     util::thread_count(nthreads, in, axis, native_simd<T>::size()),
@@ -975,7 +975,7 @@ template<typename T> DUCC0_NOINLINE void general_r2c(
     auto storage = alloc_tmp<T,T>(in, len, plan->bufsize());
     multi_iter<vlen> it(in, out, axis, sched.num_threads(), sched.thread_num());
 #ifndef DUCC0_NO_SIMD
-    if constexpr (vlen>1)
+    DUCC0_IFCONSTEXPR (vlen>1)
       while (it.remaining()>=vlen)
         {
         it.advance(vlen);
@@ -998,7 +998,7 @@ template<typename T> DUCC0_NOINLINE void general_r2c(
           for (size_t j=0; j<vlen; ++j)
             vout[it.oofs(j,ii)].Set(tdatav[i][j]);
         }
-    if constexpr (simd_exists<T,vlen/2>)
+    DUCC0_IFCONSTEXPR (simd_exists<T,vlen/2>)
       if (it.remaining()>=vlen/2)
         {
         it.advance(vlen/2);
@@ -1021,7 +1021,7 @@ template<typename T> DUCC0_NOINLINE void general_r2c(
           for (size_t j=0; j<vlen/2; ++j)
             vout[it.oofs(j,ii)].Set(tdatav[i][j]);
         }
-    if constexpr (simd_exists<T,vlen/4>)
+    DUCC0_IFCONSTEXPR (simd_exists<T,vlen/4>)
       if (it.remaining()>=vlen/4)
         {
         it.advance(vlen/4);
@@ -1069,7 +1069,7 @@ template<typename T> DUCC0_NOINLINE void general_c2r(
   const fmav<Cmplx<T>> &in, fmav<T> &out, size_t axis, bool forward, T fct,
   size_t nthreads)
   {
-  auto plan = std::make_unique<pocketfft_r<T>>(out.shape(axis));
+  auto plan = std::unique_ptr<pocketfft_r<T>>(new pocketfft_r<T>(out.shape(axis)));
   size_t len=out.shape(axis);
   execParallel(
     util::thread_count(nthreads, in, axis, native_simd<T>::size()),
@@ -1078,7 +1078,7 @@ template<typename T> DUCC0_NOINLINE void general_c2r(
       auto storage = alloc_tmp<T,T>(out, len, plan->bufsize());
       multi_iter<vlen> it(in, out, axis, sched.num_threads(), sched.thread_num());
 #ifndef DUCC0_NO_SIMD
-      if constexpr (vlen>1)
+      DUCC0_IFCONSTEXPR (vlen>1)
         while (it.remaining()>=vlen)
           {
           it.advance(vlen);
@@ -1108,7 +1108,7 @@ template<typename T> DUCC0_NOINLINE void general_c2r(
           plan->exec(tdatav, fct, false);
           copy_output(it, tdatav, out);
           }
-      if constexpr (simd_exists<T,vlen/2>)
+      DUCC0_IFCONSTEXPR (simd_exists<T,vlen/2>)
         if (it.remaining()>=vlen/2)
           {
           it.advance(vlen/2);
@@ -1138,7 +1138,7 @@ template<typename T> DUCC0_NOINLINE void general_c2r(
           plan->exec(tdatav, fct, false);
           copy_output(it, tdatav, out);
           }
-      if constexpr (simd_exists<T,vlen/4>)
+      DUCC0_IFCONSTEXPR (simd_exists<T,vlen/4>)
         if (it.remaining()>=vlen/4)
           {
           it.advance(vlen/4);

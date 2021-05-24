@@ -30,9 +30,7 @@
 #include <atomic>
 #include <vector>
 #include <exception>
-#if __has_include(<pthread.h>)
 #include <pthread.h>
-#endif
 #include "ducc0/infra/misc_utils.h"
 #endif
 
@@ -261,7 +259,6 @@ class thread_pool
 inline thread_pool &get_pool()
   {
   static thread_pool pool;
-#if __has_include(<pthread.h>)
   static std::once_flag f;
   call_once(f,
     []{
@@ -271,7 +268,6 @@ inline thread_pool &get_pool()
       +[]{ get_pool().restart(); }    // child
       );
     });
-#endif
 
   return pool;
   }
@@ -476,8 +472,8 @@ void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
   execParallel(nthreads, [&](Scheduler &sched)
     {
     auto tid = sched.thread_num();
-    auto [lo, hi] = calcShare(nthreads, tid, work_lo, work_hi);
-    func(lo, hi);
+    auto share = calcShare(nthreads, tid, work_lo, work_hi);
+    func(share.first, share.second);
     });
   }
 void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
@@ -487,8 +483,8 @@ void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
   execParallel(nthreads, [&](Scheduler &sched)
     {
     auto tid = sched.thread_num();
-    auto [lo, hi] = calcShare(nthreads, tid, work_lo, work_hi);
-    func(tid, lo, hi);
+    auto share = calcShare(nthreads, tid, work_lo, work_hi);
+    func(tid, share.first, share.second);
     });
   }
 

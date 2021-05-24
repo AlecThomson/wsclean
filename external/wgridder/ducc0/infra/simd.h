@@ -53,22 +53,23 @@ namespace ducc0 {
 
 namespace detail_simd {
 
-template<typename T> constexpr inline bool vectorizable = false;
-template<> constexpr inline bool vectorizable<float> = true;
-template<> constexpr inline bool vectorizable<double> = true;
-template<> constexpr inline bool vectorizable<int8_t> = true;
-template<> constexpr inline bool vectorizable<uint8_t> = true;
-template<> constexpr inline bool vectorizable<int16_t> = true;
-template<> constexpr inline bool vectorizable<uint16_t> = true;
-template<> constexpr inline bool vectorizable<int32_t> = true;
-template<> constexpr inline bool vectorizable<uint32_t> = true;
-template<> constexpr inline bool vectorizable<int64_t> = true;
-template<> constexpr inline bool vectorizable<uint64_t> = true;
+template<typename T> constexpr inline bool vectorizable() { return false; }
+template<> constexpr inline bool vectorizable<float>() { return true; }
+template<> constexpr inline bool vectorizable<double>() { return true; }
+template<> constexpr inline bool vectorizable<int8_t>() { return true; }
+template<> constexpr inline bool vectorizable<uint8_t>() { return true; }
+template<> constexpr inline bool vectorizable<int16_t>() { return true; }
+template<> constexpr inline bool vectorizable<uint16_t>() { return true; }
+template<> constexpr inline bool vectorizable<int32_t>() { return true; }
+template<> constexpr inline bool vectorizable<uint32_t>() { return true; }
+template<> constexpr inline bool vectorizable<int64_t>() { return true; }
+template<> constexpr inline bool vectorizable<uint64_t>() { return true; }
 
-template<typename T, size_t len> constexpr inline bool simd_exists = false;
+template<typename T, size_t len> constexpr inline bool simd_exists() { return false; }
 
-template<typename T, size_t reglen> constexpr size_t vlen
-  = vectorizable<T> ? reglen/sizeof(T) : 1;
+template<typename T, size_t reglen> constexpr size_t vlen() {
+  return vectorizable<T>() ? reglen/sizeof(T) : 1;
+}
 
 template<typename T, size_t len> class helper_;
 template<typename T, size_t len> struct vmask_
@@ -256,6 +257,32 @@ template<typename T> class pseudoscalar
     const T &operator[] (size_t /*i*/) const { return v; }
     T &operator[](size_t /*i*/) { return v; }
   };
+
+// fallback definition to prevent undefined template instatiations
+template<typename T, size_t S> class helper_
+  {
+  private:
+    static constexpr size_t len = S;
+  public:
+    using Tv = pseudoscalar<T>;
+    using Tm = bool;
+    
+    static Tv loadu(const T *ptr) { return *ptr; }
+    static void storeu(T *ptr, Tv v) { *ptr = v[0]; }
+
+    static Tv from_scalar(T v) { return v; }
+    static Tv abs(Tv v) { return v.abs(); }
+    static Tv max(Tv v1, Tv v2) { return v1.max(v2); }
+    static Tv blend(Tm m, Tv v1, Tv v2) { return m ? v1 : v2; }
+    static Tv sqrt(Tv v) { return v.sqrt(); }
+    static Tm gt (Tv v1, Tv v2) { return v1>v2; }
+    static Tm ge (Tv v1, Tv v2) { return v1>=v2; }
+    static Tm lt (Tv v1, Tv v2) { return v1<v2; }
+    static Tm ne (Tv v1, Tv v2) { return v1!=v2; }
+    static Tm mask_and (Tm v1, Tm v2) { return v1&&v2; }
+    static size_t maskbits(Tm v) { return v; }
+  };
+
 template<typename T> class helper_<T,1>
   {
   private:
@@ -335,7 +362,7 @@ template<> class helper_<float,16>
   };
 #endif
 #if defined(__AVX__)
-template<> constexpr inline bool simd_exists<double,4> = true;
+template<> constexpr inline bool simd_exists<double,4>() { return true; }
 template<> class helper_<double,4>
   {
   private:
@@ -360,7 +387,7 @@ template<> class helper_<double,4>
     static Tm mask_and (Tm v1, Tm v2) { return _mm256_and_pd(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm256_movemask_pd(v)); }
   };
-template<> constexpr inline bool simd_exists<float,8> = true;
+template<> constexpr inline bool simd_exists<float,8>() { return true; }
 template<> class helper_<float,8>
   {
   private:
@@ -387,7 +414,7 @@ template<> class helper_<float,8>
   };
 #endif
 #if defined(__SSE2__)
-template<> constexpr inline bool simd_exists<double,2> = true;
+template<> constexpr inline bool simd_exists<double,2>() { return true; }
 template<> class helper_<double,2>
   {
   private:
@@ -419,7 +446,7 @@ template<> class helper_<double,2>
     static Tm mask_and (Tm v1, Tm v2) { return _mm_and_pd(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm_movemask_pd(v)); }
   };
-template<> constexpr inline bool simd_exists<float,4> = true;
+template<> constexpr inline bool simd_exists<float,4>() { return true; }
 template<> class helper_<float,4>
   {
   private:
@@ -454,11 +481,11 @@ template<> class helper_<float,4>
 #endif
 
 #if defined(__AVX512F__)
-template<typename T> using native_simd = vtp<T,vlen<T,64>>;
+template<typename T> using native_simd = vtp<T,vlen<T,64>()>;
 #elif defined(__AVX__)
-template<typename T> using native_simd = vtp<T,vlen<T,32>>;
+template<typename T> using native_simd = vtp<T,vlen<T,32>()>;
 #elif defined(__SSE2__)
-template<typename T> using native_simd = vtp<T,vlen<T,16>>;
+template<typename T> using native_simd = vtp<T,vlen<T,16>()>;
 #else
 template<typename T> using native_simd = vtp<T,1>;
 #endif

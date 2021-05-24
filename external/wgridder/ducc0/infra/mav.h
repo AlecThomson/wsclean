@@ -146,7 +146,7 @@ class fmav_info
   public:
     fmav_info() : shp(1,0), str(1,0), sz(0) {}
     fmav_info(const shape_t &shape_, const stride_t &stride_)
-      : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>()))
+      : shp(shape_), str(stride_), sz(std::accumulate(shp.begin(),shp.end(),size_t(1),std::multiplies<size_t>()))
       {
       MR_assert(shp.size()>0, "at least 1D required");
       MR_assert(shp.size()==str.size(), "dimensions mismatch");
@@ -221,7 +221,7 @@ template<size_t ndim> class mav_info
         { shp[i]=0; str[i]=0; }
       }
     mav_info(const shape_t &shape_, const stride_t &stride_)
-      : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>())) {}
+      : shp(shape_), str(stride_), sz(std::accumulate(shp.begin(),shp.end(),size_t(1),std::multiplies<size_t>())) {}
     mav_info(const shape_t &shape_)
       : mav_info(shape_, shape2stride(shape_)) {}
     void assign(const mav_info &other)
@@ -327,7 +327,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         }
       }
 
-    auto subdata(const shape_t &i0, const shape_t &extent) const
+    std::tuple<shape_t, stride_t, ptrdiff_t> subdata(const shape_t &i0, const shape_t &extent) const
       {
       auto ndim = tinfo::ndim();
       shape_t nshp(ndim);
@@ -358,7 +358,10 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       }
 
   public:
-    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
+    using tbuf::vraw;
+    using tbuf::craw;
+    using tbuf::vdata;
+    using tbuf::cdata;
     fmav() {}
     fmav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
@@ -431,12 +434,18 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
 
     fmav subarray(const shape_t &i0, const shape_t &extent)
       {
-      auto [nshp, nstr, nofs] = subdata(i0, extent);
+      auto sd = subdata(i0, extent);
+      auto nshp = std::get<0>(sd);
+      auto nstr = std::get<1>(sd);
+      auto nofs = std::get<2>(sd);
       return fmav(nshp, nstr, tbuf::d+nofs, *this);
       }
     fmav subarray(const shape_t &i0, const shape_t &extent) const
       {
-      auto [nshp, nstr, nofs] = subdata(i0, extent);
+      auto sd = subdata(i0, extent);
+      auto nshp = std::get<0>(sd);
+      auto nstr = std::get<1>(sd);
+      auto nofs = std::get<2>(sd);
       return fmav(nshp, nstr, tbuf::d+nofs, *this);
       }
     template<typename Func> void apply(Func func)
@@ -503,57 +512,66 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
   protected:
     using tinfo = mav_info<ndim>;
     using tbuf = membuf<T>;
-    using tinfo::shp, tinfo::str;
+    using tinfo::shp;
+    using tinfo::str;
 
   public:
     using typename tinfo::shape_t;
     using typename tinfo::stride_t;
 
   protected:
+    template<size_t idim, typename Func, bool Condition> struct applyHelperCond;
+    template<size_t idim, typename Func> struct applyHelperCond<idim,Func,true> {
+      static void call(mav& m, ptrdiff_t idx, Func func) {
+        for (size_t i=0; i<m.shp[idim]; ++i)
+          m.applyHelper<idim+1, Func>(idx+i*m.str[idim], func);
+      }
+    };
+    template<size_t idim, typename Func> struct applyHelperCond<idim,Func,false> {
+      static void call(mav& m, ptrdiff_t idx, Func func) {
+        T *d2 = m.vdata();
+        for (size_t i=0; i<m.shp[idim]; ++i)
+          func(d2[idx+i*m.str[idim]]);
+      }
+    };
     template<size_t idim, typename Func> void applyHelper(ptrdiff_t idx, Func func)
       {
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, Func>(idx+i*str[idim], func);
-      else
-        {
-        T *d2 = vdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
+        applyHelperCond<idim, Func, (idim+1<ndim)>::call(*this, idx, func);
       }
-    template<size_t idim, typename Func> void applyHelper(ptrdiff_t idx, Func func) const
-      {
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, Func>(idx+i*str[idim], func);
-      else
-        {
-        const T *d2 = cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
+      
+    template<size_t idim, typename T2, typename Func, bool Condition> struct applyHelper2Cond;
+    template<typename T2, typename Func> struct applyHelper2Cond<0,T2,Func,true> {
+      static void call(mav& m, ptrdiff_t, ptrdiff_t,
+                       const mav<T2,ndim> &other, Func) {
+        MR_assert(m.conformable(other), "dimension mismatch");
       }
+    };
+    template<size_t idim, typename T2, typename Func> struct applyHelper2Cond<idim,T2,Func,true> {
+      static void call(mav& m, ptrdiff_t idx, ptrdiff_t idx2,
+                       const mav<T2,ndim> &other, Func func) {
+        for (size_t i=0; i<m.shp[idim]; ++i)
+          m.applyHelper<idim+1, T2, Func>(idx+i*m.str[idim],
+                                        idx2+i*other.str[idim], other, func);
+      }
+    };
+    template<size_t idim, typename T2, typename Func> struct applyHelper2Cond<idim,T2,Func,false> {
+      static void call(mav& m, ptrdiff_t idx, ptrdiff_t idx2,
+                       const mav<T2,ndim> &other, Func func) {
+        T *d2 = m.vdata();
+        const T2 *d3 = other.cdata();
+        for (size_t i=0; i<m.shp[idim]; ++i)
+          func(d2[idx+i*m.str[idim]],d3[idx2+i*other.str[idim]]);
+      }
+    };
+    
     template<size_t idim, typename T2, typename Func>
       void applyHelper(ptrdiff_t idx, ptrdiff_t idx2,
                        const mav<T2,ndim> &other, Func func)
       {
-      if constexpr (idim==0)
-        MR_assert(conformable(other), "dimension mismatch");
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, T2, Func>(idx+i*str[idim],
-                                        idx2+i*other.str[idim], other, func);
-      else
-        {
-        T *d2 = vdata();
-        const T2 *d3 = other.cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]],d3[idx2+i*other.str[idim]]);
-        }
+        applyHelper2Cond<idim, T2, Func, (idim+1<ndim)>::call(*this, idx, idx2, other, func);
       }
 
-    template<size_t nd2> auto subdata(const shape_t &i0, const shape_t &extent) const
+    template<size_t nd2> std::tuple<std::array<size_t, nd2>, std::array<ptrdiff_t, nd2>, ptrdiff_t> subdata(const shape_t &i0, const shape_t &extent) const
       {
       array<size_t, nd2> nshp;
       array<ptrdiff_t, nd2> nstr;
@@ -580,8 +598,14 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       }
 
   public:
-    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
-    using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
+    using tbuf::vraw;
+    using tbuf::craw;
+    using tbuf::vdata;
+    using tbuf::cdata;
+    using tinfo::contiguous;
+    using tinfo::size;
+    using tinfo::idx;
+    using tinfo::conformable;
 
     mav() {}
     mav(const T *d_, const shape_t &shp_, const stride_t &str_)
@@ -652,12 +676,18 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       { apply([val](T &v){v=val;}); }
     template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent)
       {
-      auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
+      auto sd = subdata<nd2>(i0, extent);
+      auto nshp = std::get<0>(sd);
+      auto nstr = std::get<1>(sd);
+      auto nofs = std::get<2>(sd);
       return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
       }
     template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent) const
       {
-      auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
+      auto sd = subdata<nd2>(i0, extent);
+      auto nshp = std::get<0>(sd);
+      auto nstr = std::get<1>(sd);
+      auto nofs = std::get<2>(sd);
       return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
       }
 

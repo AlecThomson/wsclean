@@ -18,4 +18,6 @@
 #define DUCC0_PREFETCH_W(addr)
 #endif
 
+#define DUCC0_IFCONSTEXPR if
+
 #endif

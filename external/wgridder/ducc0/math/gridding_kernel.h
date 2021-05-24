@@ -127,7 +127,7 @@ class KernelCorrection
     vector<double> corfunc(size_t n, double dx, int nthreads=1) const
       {
       vector<double> res(n);
-      execStatic(n, nthreads, 0, [&](auto &sched)
+      execStatic(n, nthreads, 0, [&](Scheduler &sched)
         {
         while (auto rng=sched.getNext()) for(auto i=rng.lo; i<rng.hi; ++i)
           res[i] = corfunc(i*dx);
@@ -216,7 +216,7 @@ template<size_t W, typename Tsimd> class TemplateKernel
     [[gnu::always_inline]] void eval2s(T x, T y, T z, size_t nth, Tsimd * DUCC0_RESTRICT res) const
       {
       z = (z-nth)*2+(W-1);
-      if constexpr (nvec==1)
+      DUCC0_IFCONSTEXPR (nvec==1)
         {
         auto tvalx = coeff[0];
         auto tvaly = coeff[0];
@@ -252,7 +252,7 @@ template<size_t W, typename Tsimd> class TemplateKernel
       }
     [[gnu::always_inline]] void eval2(T x, T y, Tsimd * DUCC0_RESTRICT res) const
       {
-      if constexpr (nvec==1)
+      DUCC0_IFCONSTEXPR (nvec==1)
         {
         auto tvalx = coeff[0];
         auto tvaly = coeff[0];
@@ -282,7 +282,7 @@ template<size_t W, typename Tsimd> class TemplateKernel
       }
     [[gnu::always_inline]] void eval3(T x, T y, T z, Tsimd * DUCC0_RESTRICT res) const
       {
-      if constexpr (nvec==1)
+      DUCC0_IFCONSTEXPR (nvec==1)
         {
         auto tvalx = coeff[0];
         auto tvaly = coeff[0];
@@ -578,7 +578,7 @@ template<typename T> T esknew (T v, T beta, T e0)
   return tmp2*exp(beta*(pow(tmp*tmp2, e0)-1));
   }
 
-auto selectKernel(size_t idx)
+std::shared_ptr<HornerKernel> selectKernel(size_t idx)
   {
   MR_assert(idx<KernelDB.size(), "no appropriate kernel found");
   auto supp = KernelDB[idx].W;
@@ -596,7 +596,7 @@ template<typename T> constexpr inline size_t Wmax()
 
 /*! Returns the best matching 2-parameter ES kernel for the given oversampling
     factor and error. */
-template<typename T> auto selectKernel(double ofactor, double epsilon)
+template<typename T> std::shared_ptr<HornerKernel> selectKernel(double ofactor, double epsilon)
   {
   size_t Wmin = Wmax<T>();
   size_t idx = KernelDB.size();
@@ -609,13 +609,13 @@ template<typename T> auto selectKernel(double ofactor, double epsilon)
       }
   return selectKernel(idx);
   }
-template<typename T> auto selectKernel(double ofactor, double epsilon, size_t idx)
+template<typename T> std::shared_ptr<HornerKernel> selectKernel(double ofactor, double epsilon, size_t idx)
   {
   return (idx<KernelDB.size()) ?
     selectKernel(idx) : selectKernel<T>(ofactor, epsilon);
   }
 
-template<typename T> auto getAvailableKernels(double epsilon,
+template<typename T> vector<size_t> getAvailableKernels(double epsilon,
   double ofactor_min=1.1, double ofactor_max=2.6)
   {
   vector<double> ofc(20, ofactor_max);
