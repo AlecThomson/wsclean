@@ -61,27 +61,29 @@ class CodeLocation
 inline ::std::ostream &operator<<(::std::ostream &os, const CodeLocation &loc)
   { return loc.print(os); }
 
-template<typename ...Args>
-void streamDump__(::std::ostream &os, Args&&... args)
-  { (os << ... << args); }
+void streamDump__(std::ostream&)
+  { }
+template<typename T, typename ...Args>
+void streamDump__(std::ostream &os, T&& arg0, Args&&... args)
+  { os << std::forward<T>(arg0); streamDump__(os, std::forward<Args>(args)...); }
 template<typename ...Args>
 [[noreturn]] DUCC0_NOINLINE void fail__(Args&&... args)
   {
-  ::std::ostringstream msg; \
-  ::ducc0::detail_error_handling::streamDump__(msg, args...); \
-    throw ::std::runtime_error(msg.str()); \
+    std::ostringstream msg;
+    ducc0::detail_error_handling::streamDump__(msg, std::forward<Args>(args)...);
+    throw std::runtime_error(msg.str());
   }
 
 #define MR_fail(...) \
-  do { \
-    ::ducc0::detail_error_handling::fail__(DUCC0_ERROR_HANDLING_LOC_, "\n", ##__VA_ARGS__, "\n"); \
-    } while(0)
+  { \
+    /*::ducc0::detail_error_handling::fail__(DUCC0_ERROR_HANDLING_LOC_, "\n", ##__VA_ARGS__, "\n");*/ \
+  }
 
 #define MR_assert(cond,...) \
-  do { \
+  { \
     if (cond); \
     else { MR_fail("Assertion failure\n", ##__VA_ARGS__); } \
-    } while(0)
+  }
 
 }}
 

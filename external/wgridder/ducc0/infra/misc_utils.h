@@ -28,9 +28,7 @@ namespace ducc0 {
 
 namespace detail_misc_utils {
 
-using namespace std;
-
-template<typename T> auto calcShare(size_t nshares, size_t myshare,
+template<typename T> std::pair<T, T> calcShare(size_t nshares, size_t myshare,
   const T &begin, const T &end)
   {
   auto nwork = end-begin;
@@ -38,10 +36,10 @@ template<typename T> auto calcShare(size_t nshares, size_t myshare,
   auto additional = nwork%nshares;
   auto lo = begin + (myshare*nbase + ((myshare<additional) ? myshare : additional));
   auto hi = lo+nbase+(myshare<additional);
-  return make_tuple(lo, hi);
+  return std::make_pair(lo, hi);
   }
 
-template<typename T> auto calcShare(size_t nshares, size_t myshare, const T &end)
+template<typename T> std::pair<T, T> calcShare(size_t nshares, size_t myshare, const T &end)
   { return calcShare(nshares, myshare, T(0), end); }
 
 }

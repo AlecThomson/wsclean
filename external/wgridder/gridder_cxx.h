@@ -47,8 +47,13 @@ namespace detail_gridder {
 
 using namespace std;
 
+template<typename T> constexpr
+T const& const_min(T const& a, T const& b) {
+  return a < b ? a : b;
+}
+
 template<typename T> constexpr size_t simdlen()
-  { return min<size_t>(8, native_simd<T>::size()); }
+  { return const_min<size_t>(8, native_simd<T>::size()); }
 
 template<typename T> using mysimd = simd<T,simdlen<T>()>;
 
@@ -101,7 +106,7 @@ template<typename T, typename F> [[gnu::hot]] void expi(vector<complex<T>> &res,
   }
 
 template<typename T, size_t len> complex<T> hsum_cmplx(simd<T, len> vr, simd<T, len> vi)
-  { return complex<T>(reduce(vr, plus<>()), reduce(vi, plus<>())); }
+  { return complex<T>(reduce(vr, plus<T>()), reduce(vi, plus<T>())); }
 
 #if (defined(__AVX__))
 #if 1
@@ -362,7 +367,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       double nm1 = (-x-y)/(sqrt(tmp)+1); // more accurate form of sqrt(1-x-y)-1
       double phs = w*(nm1+nshift);
       if (adjoint) phs *= -1;
-      if constexpr (is_same<Tcalc, double>::value)
+      DUCC0_IFCONSTEXPR (is_same<Tcalc, double>::value)
         return twopi*phs;
       // we are reducing accuracy, so let's better do range reduction first
       return twopi*(phs-floor(phs));
@@ -794,7 +799,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
           parent->getpix(in.u, in.v, ufrac, vfrac, iu0, iv0);
           auto x0 = -ufrac*2+(supp-1);
           auto y0 = -vfrac*2+(supp-1);
-          if constexpr(wgrid)
+          DUCC0_IFCONSTEXPR(wgrid)
             tkrn.eval2s(Tacc(x0), Tacc(y0), Tacc(xdw*(w0-in.w)), nth, &buf.simd[0]);
           else
             tkrn.eval2(Tacc(x0), Tacc(y0), &buf.simd[0]);
@@ -887,7 +892,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
           parent->getpix(in.u, in.v, ufrac, vfrac, iu0, iv0);
           auto x0 = -ufrac*2+(supp-1);
           auto y0 = -vfrac*2+(supp-1);
-          if constexpr(wgrid)
+          DUCC0_IFCONSTEXPR(wgrid)
             tkrn.eval2s(Tcalc(x0), Tcalc(y0), Tcalc(xdw*(w0-in.w)), nth, &buf.simd[0]);
           else
             tkrn.eval2(Tcalc(x0), Tcalc(y0), &buf.simd[0]);
@@ -912,7 +917,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       double fct = imflip*(bcoord.u*lshift + bcoord.v*mshift + bcoord.w*nshift);
       expi(phases, buf, [&](size_t i) {
                       auto tmp = fct*bl.ffact(rcr.ch_begin+i);
-                      if constexpr (is_same<double, Tcalc>::value)
+                      DUCC0_IFCONSTEXPR (is_same<double, Tcalc>::value)
                         return Tcalc(twopi*tmp);
                       // we are reducing accuracy,
                       // so let's better do range reduction first
@@ -930,7 +935,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
         constexpr auto vlen=mysimd<Tacc>::size();
         constexpr auto NVEC((SUPP+vlen-1)/vlen);
         HelperX2g2<SUPP,wgrid> hlp(this, grid, locks, w0, dw);
-        constexpr auto jump = hlp.lineJump();
+        const auto jump = hlp.lineJump();
         const auto * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
         vector<complex<Tcalc>> phases;
@@ -960,7 +965,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                   v*=phases[ch-rcr.ch_begin];
                 v*=wgt(row, ch);
 
-                if constexpr (NVEC==1)
+                DUCC0_IFCONSTEXPR (NVEC==1)
                   {
                   mysimd<Tacc> vr=v.real()*kv[0], vi=v.imag()*imflip*kv[0];
                   for (size_t cu=0; cu<SUPP; ++cu)
@@ -1006,7 +1011,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       {
       checkShape(grid.shape(), {nu, nv});
 
-      if constexpr (is_same<Tacc, double>::value)
+      DUCC0_IFCONSTEXPR (is_same<Tacc, double>::value)
         switch(supp)
           {
           case  9: x2grid_c_helper< 9, wgrid>(grid, p0, w0); return;
@@ -1038,7 +1043,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         constexpr size_t vlen=mysimd<Tcalc>::size();
         constexpr size_t NVEC((SUPP+vlen-1)/vlen);
         HelperG2x2<SUPP,wgrid> hlp(this, grid, w0, dw);
-        constexpr int jump = hlp.lineJump();
+        const int jump = hlp.lineJump();
         const auto * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
         vector<complex<Tcalc>> phases;
@@ -1064,7 +1069,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                 auto coord = bcoord*bl.ffact(ch);
                 hlp.prep(coord, nth);
                 mysimd<Tcalc> rr=0, ri=0;
-                if constexpr (NVEC==1)
+                DUCC0_IFCONSTEXPR (NVEC==1)
                   {
                   for (size_t cu=0; cu<SUPP; ++cu)
                     {
@@ -1111,7 +1116,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       {
       checkShape(grid.shape(), {nu, nv});
 
-      if constexpr (is_same<Tcalc, double>::value)
+      DUCC0_IFCONSTEXPR (is_same<Tcalc, double>::value)
         switch(supp)
           {
           case  9: grid2x_c_helper< 9, wgrid>(grid, p0, w0); return;
@@ -1293,7 +1298,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         }
       }
 
-    auto getNuNv()
+    size_t getNuNv()
       {
       timers.push("parameter calculation");
 
