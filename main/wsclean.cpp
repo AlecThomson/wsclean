@@ -1161,7 +1161,7 @@ void WSClean::saveRestoredImagesForGroup(
     if (curPol == *_settings.polarizations.rbegin()) {
       ImageFilename imageName =
           ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
-      bool hasPBImages = false;
+      bool applyH5OnBeam = false;
 
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
@@ -1176,24 +1176,17 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-        hasPBImages = true;
-        // FIXME REMOVE
-        // primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
-        // if (_settings.savePsfPb)
-        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
-        // if (_settings.deconvolutionIterationCount != 0) {
-        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
-        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
-        // }
-
         if (!_settings.facetSolutionFile.empty()) {
+          applyH5OnBeam = true;
           // A loop over the facet group table is needed to correct the
           // beam images for the h5 solutions
           for (const ImagingTableEntry& facetEntry : table) {
             const float weightedH5Sum =
                 _msGridderMetaCache.at(facetEntry.index)->h5Sum /
                 facetEntry.imageWeight;
-            ;
+            std::cout << "Weighted sum " << weightedH5Sum << std::endl;
+            std::cout << "Sqrt " << 1.0f / std::sqrt(weightedH5Sum)
+                      << std::endl;
             primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
                                        tableEntry, true, weightedH5Sum);
             if (_settings.savePsfPb)
@@ -1221,17 +1214,13 @@ void WSClean::saveRestoredImagesForGroup(
         }
       }
 
-      if (!_settings.facetSolutionFile.empty()) {
-        correctImagesH5(writer.Writer(), tableEntry, imageName, "image",
-                        hasPBImages);
+      if (!_settings.facetSolutionFile.empty() && !applyH5OnBeam) {
+        correctImagesH5(writer.Writer(), table, imageName, "image");
         if (_settings.savePsfPb)
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "psf",
-                          hasPBImages);
+          correctImagesH5(writer.Writer(), table, imageName, "psf");
         if (_settings.deconvolutionIterationCount != 0) {
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "residual",
-                          hasPBImages);
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "model",
-                          hasPBImages);
+          correctImagesH5(writer.Writer(), table, imageName, "residual");
+          correctImagesH5(writer.Writer(), table, imageName, "model");
         }
       }
     }
@@ -1976,11 +1965,9 @@ WSCFitsWriter WSClean::createWSCFitsWriter(
 }
 
 void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
-                              const ImagingTableEntry& entry,
+                              const ImagingTable& table,
                               const ImageFilename& imageName,
-                              const std::string& filenameKind,
-                              bool hasPBImages) const {
-  const std::string postFix = (hasPBImages) ? "-pb" : "";
+                              const std::string& filenameKind) const {
   aocommon::PolarizationEnum pol = *_settings.polarizations.begin();
 
   if (pol == aocommon::Polarization::StokesI) {
@@ -1992,19 +1979,23 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     else
       prefix = stokesIName.GetPrefix(_settings);
 
-    aocommon::FitsReader reader(prefix + "-" + filenameKind + postFix +
-                                ".fits");
-    std::cout << "File name that's going to be opened "
-              << prefix + "-" + filenameKind + postFix + ".fits" << std::endl;
+    aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
     Image image(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 
-    // Requires std::map::at in order to comply with constness of member
-    // function
-    const float m =
-        _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
-    std::cout << "Correction done with " << 1.0f / std::sqrt(m) << std::endl;
-    image *= 1.0f / std::sqrt(m);
+    schaapcommon::facets::FacetImage facetImage(
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+    for (const ImagingTableEntry& entry : table) {
+      facetImage.SetFacet(*entry.facet, true);
+      // Requires std::map::at in order to comply with constness of member
+      // function
+      const float weightedH5Sum =
+          _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
+
+      std::vector<float*> imagePtr{image.data()};
+      facetImage.MultiplyImageOnFacet(imagePtr,
+                                      1.0f / std::sqrt(weightedH5Sum));
+    }
 
     // Always write to -pb.fits
     writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.data());

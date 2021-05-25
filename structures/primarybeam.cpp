@@ -11,6 +11,8 @@
 
 #include "../io/findmwacoefffile.h"
 
+#include <schaapcommon/facets/facetimage.h>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -75,20 +77,19 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
                                 float weightedH5Sum) {
   PrimaryBeamImageSet beamImages = load(imageName, _settings);
 
-  // TODO: apply H5 corrections here if needed
   if (requiresH5Correction) {
+    if (!entry.facet) throw std::invalid_argument("Entry facet is nullptr.");
+
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     facetImage.SetFacet(*entry.facet, true);
     for (size_t i = 0; i != beamImages.NImages(); ++i) {
-      facetImage.MultiplyImageOnFacet({beamImage[i].data()}, weightedH5Sum);
+      std::vector<float*> imagePtr{beamImages[i].data()};
+      facetImage.MultiplyImageOnFacet(imagePtr,
+                                      1.0f / std::sqrt(weightedH5Sum));
     }
-
-    // for(size_t i = 0; i != beamImages.NImages(); ++i){
-    // GET IMAGE?!
-    // Overwrite the existing beam images with the corrected beam data
-    // TODO: entry becomes a new input param
-    // }
+    // std::cout << "applied correction "<<1.0f /
+    // std::sqrt(weightedH5Sum)<<std::endl;
     writeBeamImages(imageName, beamImages, _settings, entry, _phaseCentreRA,
                     _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
   }
@@ -249,21 +250,6 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
 
     writeBeamImages(imageName, beamImages, _settings, entry, _phaseCentreRA,
                     _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
-
-    // // Save the 16 beam images as fits files
-    // aocommon::FitsWriter writer;
-    // writer.SetImageDimensions(_settings.trimmedImageWidth,
-    //                           _settings.trimmedImageHeight, _phaseCentreRA,
-    //                           _phaseCentreDec, _settings.pixelScaleX,
-    //                           _settings.pixelScaleY);
-    // writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
-    // for (size_t i = 0; i != 16; ++i) {
-    //   writer.SetFrequency(entry.CentralFrequency(),
-    //                       entry.bandEndFrequency - entry.bandStartFrequency);
-    //   writer.Write(imageName.GetBeamPrefix(_settings) + "-" +
-    //                    std::to_string(i) + ".fits",
-    //                beamImages[i].data());
-    // }
   }
 }
 
