@@ -69,29 +69,29 @@ void PrimaryBeam::AddMS(std::unique_ptr<class MSDataDescription> description) {
   _msList.emplace_back(std::move(description));
 }
 
-void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
-                                const ImageFilename& imageName,
-                                const std::string& filenameKind,
-                                const ImagingTableEntry& entry,
-                                bool requiresH5Correction,
-                                float weightedH5Sum) {
+void PrimaryBeam::CorrectImages(
+    aocommon::FitsWriter& writer, const ImageFilename& imageName,
+    const std::string& filenameKind, const ImagingTable& table,
+    const std::map<size_t, std::unique_ptr<MetaDataCache>>& metaCache,
+    bool requiresH5Correction) {
   PrimaryBeamImageSet beamImages = load(imageName, _settings);
 
   if (requiresH5Correction) {
-    if (!entry.facet) throw std::invalid_argument("Entry facet is nullptr.");
-
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
-    facetImage.SetFacet(*entry.facet, true);
     for (size_t i = 0; i != beamImages.NImages(); ++i) {
       std::vector<float*> imagePtr{beamImages[i].data()};
-      facetImage.MultiplyImageOnFacet(imagePtr,
-                                      1.0f / std::sqrt(weightedH5Sum));
+      for (const ImagingTableEntry& entry : table) {
+        facetImage.SetFacet(*entry.facet, true);
+        const float m = metaCache.at(entry.index)->h5Sum / entry.imageWeight;
+        facetImage.MultiplyImagesInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+      }
     }
-    // std::cout << "applied correction "<<1.0f /
-    // std::sqrt(weightedH5Sum)<<std::endl;
-    writeBeamImages(imageName, beamImages, _settings, entry, _phaseCentreRA,
-                    _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
+    // Pass table.Front() central frequency and start/end frequency
+    // are equal inside a FacetGroup
+    writeBeamImages(imageName, beamImages, _settings, table.Front(),
+                    _phaseCentreRA, _phaseCentreDec, _phaseCentreDL,
+                    _phaseCentreDM);
   }
 
   if (_settings.polarizations.size() == 1 || filenameKind == "psf") {
@@ -256,7 +256,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
 PrimaryBeamImageSet PrimaryBeam::MakeImage(
     const ImagingTableEntry& entry,
     std::shared_ptr<ImageWeights> imageWeights) {
-  std::vector<std::unique_ptr<MSProvider> > providers;
+  std::vector<std::unique_ptr<MSProvider>> providers;
   for (size_t i = 0; i != _msList.size(); ++i) {
     providers.emplace_back(_msList[i]->GetProvider());
     _msProviders.push_back(

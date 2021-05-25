@@ -11,6 +11,8 @@
 
 #include "../msproviders/msprovider.h"
 
+#include "../scheduling/metadatacache.h"
+
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/polarization.h>
@@ -73,11 +75,11 @@ class PrimaryBeam {
    * @param weightedH5Sum Piecewise constant H5 solution that is to be applied
    * on the beam image.
    */
-  void CorrectImages(class aocommon::FitsWriter& writer,
-                     const ImageFilename& imageName,
-                     const std::string& filenameKind,
-                     const ImagingTableEntry& entry, bool requiresH5Correction,
-                     float weightedH5Sum = 0.0);
+  void CorrectImages(
+      class aocommon::FitsWriter& writer, const ImageFilename& imageName,
+      const std::string& filenameKind, const ImagingTable& table,
+      const std::map<size_t, std::unique_ptr<MetaDataCache>>& metaCache,
+      bool requiresH5Correction);
 
  private:
   const Settings& _settings;

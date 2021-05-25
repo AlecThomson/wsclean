@@ -1176,44 +1176,27 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+        bool requiresH5Correction = false;
         if (!_settings.facetSolutionFile.empty()) {
           applyH5OnBeam = true;
-          // A loop over the facet group table is needed to correct the
-          // beam images for the h5 solutions
-          for (const ImagingTableEntry& facetEntry : table) {
-            const float weightedH5Sum =
-                _msGridderMetaCache.at(facetEntry.index)->h5Sum /
-                facetEntry.imageWeight;
-            std::cout << "Weighted sum " << weightedH5Sum << std::endl;
-            std::cout << "Sqrt " << 1.0f / std::sqrt(weightedH5Sum)
-                      << std::endl;
-            primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
-                                       tableEntry, true, weightedH5Sum);
-            if (_settings.savePsfPb)
-              primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
-                                         tableEntry, true, weightedH5Sum);
-            if (_settings.deconvolutionIterationCount != 0) {
-              primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                         tableEntry, true, weightedH5Sum);
-              primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
-                                         tableEntry, true, weightedH5Sum);
-            }
-          }
-        } else {
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
-                                     tableEntry, false);
-          if (_settings.savePsfPb)
-            primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
-                                       tableEntry, false);
-          if (_settings.deconvolutionIterationCount != 0) {
-            primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                       tableEntry, false);
-            primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
-                                       tableEntry, false);
-          }
+          requiresH5Correction = true;
+        }
+        primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
+                                   _msGridderMetaCache, requiresH5Correction);
+        if (_settings.savePsfPb)
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
+                                     _msGridderMetaCache, requiresH5Correction);
+        if (_settings.deconvolutionIterationCount != 0) {
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
+                                     table, _msGridderMetaCache,
+                                     requiresH5Correction);
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
+                                     _msGridderMetaCache, requiresH5Correction);
         }
       }
 
+      // Apply the H5 solutions to the facets, in case no beam correction
+      // was requested
       if (!_settings.facetSolutionFile.empty() && !applyH5OnBeam) {
         correctImagesH5(writer.Writer(), table, imageName, "image");
         if (_settings.savePsfPb)
@@ -1985,16 +1968,14 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
 
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+    std::vector<float*> imagePtr{image.data()};
     for (const ImagingTableEntry& entry : table) {
       facetImage.SetFacet(*entry.facet, true);
       // Requires std::map::at in order to comply with constness of member
       // function
-      const float weightedH5Sum =
+      const float m =
           _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
-
-      std::vector<float*> imagePtr{image.data()};
-      facetImage.MultiplyImageOnFacet(imagePtr,
-                                      1.0f / std::sqrt(weightedH5Sum));
+      facetImage.MultiplyImagesInsideFacet(imagePtr, 1.0f / std::sqrt(m));
     }
 
     // Always write to -pb.fits
