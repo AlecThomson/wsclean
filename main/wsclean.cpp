@@ -1102,9 +1102,7 @@ void WSClean::saveRestoredImagesForGroup(
     const ImagingTable& table,
     std::unique_ptr<PrimaryBeam>& primaryBeam) const {
   const ImagingTableEntry tableEntry = table.Front();
-  // Just a hard exception for now
-  if (tableEntry.facetIndex != 0)
-    throw std::runtime_error("Expected a facetIndex of 0 here");
+  assert(tableEntry.facetIndex == 0);
 
   // Restore model to residual and save image
   size_t currentChannelIndex = tableEntry.outputChannelIndex;
@@ -1161,7 +1159,7 @@ void WSClean::saveRestoredImagesForGroup(
     if (curPol == *_settings.polarizations.rbegin()) {
       ImageFilename imageName =
           ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
-      bool applyH5OnBeam = false;
+      bool applyH5OnBeamImages = false;
 
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
@@ -1178,7 +1176,8 @@ void WSClean::saveRestoredImagesForGroup(
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
         bool requiresH5Correction = false;
         if (!_settings.facetSolutionFile.empty()) {
-          applyH5OnBeam = true;
+          // H5 corrections will be applied on the beam images
+          applyH5OnBeamImages = true;
           requiresH5Correction = true;
         }
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
@@ -1195,9 +1194,9 @@ void WSClean::saveRestoredImagesForGroup(
         }
       }
 
-      // Apply the H5 solutions to the facets, in case no beam correction
-      // was requested
-      if (!_settings.facetSolutionFile.empty() && !applyH5OnBeam) {
+      // Apply the H5 solutions to the facets. In case a H5 solution file is
+      // provided, but no primary beam correction was applied
+      if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
         correctImagesH5(writer.Writer(), table, imageName, "image");
         if (_settings.savePsfPb)
           correctImagesH5(writer.Writer(), table, imageName, "psf");
@@ -1975,7 +1974,7 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
       // function
       const float m =
           _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
-      facetImage.MultiplyImagesInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+      facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
     }
 
     // Always write to -pb.fits

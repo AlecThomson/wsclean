@@ -66,14 +66,15 @@ class PrimaryBeam {
    * requiresH5Correction is true. In that case, the beam images are overwritten
    * by their corrected counterparts.
    *
-   * @param writer TODO
-   * @param imageName TODO
-   * @param filenameKind TODO
-   * @param entry (facet)Entry in the imaging table
+   * @param writer FitsWriter
+   * @param imageName Image name object from which prefixes or polarization can
+   * be derived.
+   * @param filenameKind string specifying which image will be corrected
+   * @param table Imaging table of a single FacetGroup
+   * @param metaCache MSGridder meta data cache, containing image weights an
+   * (summed) H5 facet solutions.
    * @param requiresH5Correction Correct beam images for piecewise constant h5
    * solution?
-   * @param weightedH5Sum Piecewise constant H5 solution that is to be applied
-   * on the beam image.
    */
   void CorrectImages(
       class aocommon::FitsWriter& writer, const ImageFilename& imageName,

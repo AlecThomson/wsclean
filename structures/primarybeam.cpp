@@ -40,10 +40,9 @@ void writeBeamImages(const ImageFilename& imageName,
       settings.trimmedImageWidth, settings.trimmedImageHeight, phaseCentreRA,
       phaseCentreDec, settings.pixelScaleX, settings.pixelScaleY);
   writer.SetPhaseCentreShift(phaseCentreDL, phaseCentreDM);
-  // for (size_t i = 0; i != 16; ++i) {
+  writer.SetFrequency(entry.CentralFrequency(),
+                      entry.bandEndFrequency - entry.bandStartFrequency);
   for (size_t i = 0; i != beamImages.NImages(); ++i) {
-    writer.SetFrequency(entry.CentralFrequency(),
-                        entry.bandEndFrequency - entry.bandStartFrequency);
     writer.Write(
         imageName.GetBeamPrefix(settings) + "-" + std::to_string(i) + ".fits",
         beamImages[i].data());
@@ -84,10 +83,10 @@ void PrimaryBeam::CorrectImages(
       for (const ImagingTableEntry& entry : table) {
         facetImage.SetFacet(*entry.facet, true);
         const float m = metaCache.at(entry.index)->h5Sum / entry.imageWeight;
-        facetImage.MultiplyImagesInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+        facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
       }
     }
-    // Pass table.Front() central frequency and start/end frequency
+    // Pass table.Front(), since central frequency and start/end frequency
     // are equal inside a FacetGroup
     writeBeamImages(imageName, beamImages, _settings, table.Front(),
                     _phaseCentreRA, _phaseCentreDec, _phaseCentreDL,
