@@ -115,7 +115,7 @@ This is much faster than the previous command, and equally precise. Setting the 
 Forced spectral indices
 -----------------------
 
-Spectral fitting is useful to reduce the degrees of freedom in deconvolution. It does not always produce accurate, physical spectral indices. This can both be because the bandwidth is relatively too small, sources are very complex causing degeneracies or both. WSClean version 2.12 has therefore a method called 'forced spectrum fitting'. In this mode, a pre-existing spectral index map is used during the deconvolution, and the resulting spectra of model components are forced onto this spectral index map.
+Spectral fitting is useful to reduce the degrees of freedom in deconvolution. It does not always produce accurate, physical spectral indices. This can either be because the bandwidth is too small, sources are very complex causing degeneracies, or both. WSClean version 2.12 has therefore a method called 'forced spectrum fitting'. In this mode, a pre-existing spectral index map is used during the deconvolution, and the resulting spectra of the model components are forced onto this spectral index map.
 
 The spectral index map may be the result of earlier runs or from fitting between data from other bandwidths / telescopes. An added advantage is that those maps can be smoothed to limit the effect of noise and imaging artefacts. The mode is enabled with combining ``-force-spectrum <fits filename>`` with ``-fit-log-pol 2``. The fits file should have the same dimensions and coordinate system as used for the imaging, and each pixel should hold a spectral index value. This mode should currently not be used together with the ``-deconvolution-channels`` option.
 
