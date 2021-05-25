@@ -14,7 +14,7 @@ void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
     // We need to find a such that
     // y[i] = a f(x[i], terms), with f the shape.
     // The least-squares fit is:
-    // a = sum (y[i] f[i]) / (f[i]^2)
+    // a = sum (y[i] w[i] f[i]) / sum (w[i] f[i]^2)
     terms[0] = 1.0;
     for (size_t term = 1; term != _nTerms; ++term) {
       const Image& termImage = _forcedTerms[term - 1];

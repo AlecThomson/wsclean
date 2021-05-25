@@ -323,8 +323,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
           // TODO this is incorrect, but why is the residual without
           // Cotton-Schwab still OK ? Should test
           // tools->SubtractImage(individualConvolvedImages[imgIndex], psf,
-          // _width, _height, x,
-          // y, componentValues[imgIndex]);
+          // _width, _height, x, y, componentValues[imgIndex]);
 
           // Adjust model
           addComponentToModel(modelSet[imgIndex], scaleWithPeak,

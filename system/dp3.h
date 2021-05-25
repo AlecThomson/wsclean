@@ -1,5 +1,5 @@
-#ifndef NDP3_H
-#define NDP3_H
+#ifndef SYSTEM_DP3_H
+#define SYSTEM_DP3_H
 
 #include <fstream>
 #include <boost/filesystem/operations.hpp>

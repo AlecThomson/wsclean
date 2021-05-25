@@ -171,6 +171,14 @@ void Settings::Validate() const {
   if (saveSourceList && deconvolutionIterationCount == 0)
     throw std::runtime_error("A source list cannot be saved without cleaning.");
 
+  if (!forcedSpectrumFilename.empty() &&
+      (spectralFittingMode != SpectralFittingMode::LogPolynomial ||
+       spectralFittingTerms != 2))
+    throw std::runtime_error(
+        "When using forced spectrum mode, currently it is required to fit "
+        "logarithmic polynomials (i.e. spectral index + further terms). This "
+        "implies you have to specify -fit-spectral-log-pol 2.");
+
   checkPolarizations();
 }
 
