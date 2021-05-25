@@ -31,7 +31,7 @@ class SpectralFitter {
    * a specified image.
    *
    * @param [out] terms will hold the fitted terms. The meaning of these terms
-   * depend on the fitted curve type, and are relative to the reference
+   * depends on the fitted curve type, and are relative to the reference
    * frequency.
    * @param values array of size @ref NFrequencies() with the values to be
    * fitted. values[i] should correspond Frequency(i) and Weight(i).
