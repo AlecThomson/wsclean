@@ -57,7 +57,7 @@ class WSClean {
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<class PrimaryBeam>& primaryBeam);
   void saveRestoredImagesForGroup(
-      const ImagingTableEntry& tableEntry,
+      const ImagingTable& table,
       std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 

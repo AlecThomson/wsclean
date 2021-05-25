@@ -57,9 +57,27 @@ class PrimaryBeam {
                       const ImagingTableEntry& entry,
                       std::shared_ptr<class ImageWeights> imageWeights);
 
+  /**
+   * @brief Correct images for the primary beam by multiplying the input image
+   * by the (simplified) inverse of the beam. Before the beam is applied, the
+   * beam is corrected by solutions obtained from an H5 solution file if @param
+   * requiresH5Correction is true. In that case, the beam images are overwritten
+   * by their corrected counterparts.
+   *
+   * @param writer TODO
+   * @param imageName TODO
+   * @param filenameKind TODO
+   * @param entry (facet)Entry in the imaging table
+   * @param requiresH5Correction Correct beam images for piecewise constant h5
+   * solution?
+   * @param weightedH5Sum Piecewise constant H5 solution that is to be applied
+   * on the beam image.
+   */
   void CorrectImages(class aocommon::FitsWriter& writer,
                      const ImageFilename& imageName,
-                     const std::string& filenameKind);
+                     const std::string& filenameKind,
+                     const ImagingTableEntry& entry, bool requiresH5Correction,
+                     float weightedH5Sum = 0.0);
 
  private:
   const Settings& _settings;

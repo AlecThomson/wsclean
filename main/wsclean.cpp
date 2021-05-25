@@ -1070,10 +1070,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                    << " major iterations were performed.\n";
     }
 
-    for (const ImagingTableEntry& joinedEntry : groupTable) {
-      if (joinedEntry.facetIndex == 0) {
-        saveRestoredImagesForGroup(joinedEntry, primaryBeam);
-      }
+    for (size_t facetGroupIndex = 0;
+         facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
+      const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
+      saveRestoredImagesForGroup(facetGroup, primaryBeam);
     }
 
     if (_settings.saveSourceList) {
@@ -1099,8 +1099,13 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 }
 
 void WSClean::saveRestoredImagesForGroup(
-    const ImagingTableEntry& tableEntry,
+    const ImagingTable& table,
     std::unique_ptr<PrimaryBeam>& primaryBeam) const {
+  const ImagingTableEntry tableEntry = table.Front();
+  // Just a hard exception for now
+  if (tableEntry.facetIndex != 0)
+    throw std::runtime_error("Expected a facetIndex of 0 here");
+
   // Restore model to residual and save image
   size_t currentChannelIndex = tableEntry.outputChannelIndex;
 
@@ -1157,6 +1162,7 @@ void WSClean::saveRestoredImagesForGroup(
       ImageFilename imageName =
           ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
       bool hasPBImages = false;
+
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
@@ -1171,12 +1177,47 @@ void WSClean::saveRestoredImagesForGroup(
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
         hasPBImages = true;
-        primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
-        if (_settings.savePsfPb)
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
-        if (_settings.deconvolutionIterationCount != 0) {
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
+        // FIXME REMOVE
+        // primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
+        // if (_settings.savePsfPb)
+        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
+        // if (_settings.deconvolutionIterationCount != 0) {
+        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
+        //   primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
+        // }
+
+        if (!_settings.facetSolutionFile.empty()) {
+          // A loop over the facet group table is needed to correct the
+          // beam images for the h5 solutions
+          for (const ImagingTableEntry& facetEntry : table) {
+            const float weightedH5Sum =
+                _msGridderMetaCache.at(facetEntry.index)->h5Sum /
+                facetEntry.imageWeight;
+            ;
+            primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
+                                       tableEntry, true, weightedH5Sum);
+            if (_settings.savePsfPb)
+              primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
+                                         tableEntry, true, weightedH5Sum);
+            if (_settings.deconvolutionIterationCount != 0) {
+              primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
+                                         tableEntry, true, weightedH5Sum);
+              primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
+                                         tableEntry, true, weightedH5Sum);
+            }
+          }
+        } else {
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
+                                     tableEntry, false);
+          if (_settings.savePsfPb)
+            primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
+                                       tableEntry, false);
+          if (_settings.deconvolutionIterationCount != 0) {
+            primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
+                                       tableEntry, false);
+            primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
+                                       tableEntry, false);
+          }
         }
       }
 
@@ -1953,6 +1994,8 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
 
     aocommon::FitsReader reader(prefix + "-" + filenameKind + postFix +
                                 ".fits");
+    std::cout << "File name that's going to be opened "
+              << prefix + "-" + filenameKind + postFix + ".fits" << std::endl;
     Image image(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 
@@ -1960,6 +2003,7 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     // function
     const float m =
         _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
+    std::cout << "Correction done with " << 1.0f / std::sqrt(m) << std::endl;
     image *= 1.0f / std::sqrt(m);
 
     // Always write to -pb.fits
