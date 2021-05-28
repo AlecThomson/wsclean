@@ -27,13 +27,9 @@ class IdgMsGridder : public MSGridderBase {
 
   virtual void Invert() final override;
 
-  virtual void Predict(Image real) final override;
+  virtual void Predict(std::vector<Image>&& images) final override;
 
-  virtual void Predict(Image real, Image imaginary) final override;
-
-  virtual Image ImageRealResult() final override;
-
-  virtual Image ImageImaginaryResult() final override;
+  virtual std::vector<Image> ResultImages() final override;
 
   static void SavePBCorrectedImages(class aocommon::FitsWriter& writer,
                                     const class ImageFilename& filename,
