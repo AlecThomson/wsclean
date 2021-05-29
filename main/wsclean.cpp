@@ -170,9 +170,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
 
-  bool isLastPol = entry.polarization == *_settings.polarizations.rbegin();
-  if (isLastPol &&
-      (_settings.gridWithBeam || !_settings.atermConfigFilename.empty())) {
+  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
