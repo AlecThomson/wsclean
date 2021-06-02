@@ -48,25 +48,25 @@ class IdgMsGridder : public MSGridderBase {
     return 1;  // TODO
   }
 
-  void gridMeasurementSet(MSGridderBase::MSData& msData);
+  void gridMeasurementSet(const MSGridderBase::MSData& msData);
   void gridThreadFunction();
 
-  void predictMeasurementSet(MSGridderBase::MSData& msData);
+  void predictMeasurementSet(const MSGridderBase::MSData& msData);
   void readConfiguration();
 
   void setIdgType();
 
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<class everybeam::aterms::ATermBase> getATermMaker(
-      MSGridderBase::MSData& msData);
+      const MSGridderBase::MSData& msData);
   bool prepareForMeasurementSet(
-      MSGridderBase::MSData& msData,
+      const MSGridderBase::MSData& msData,
       std::unique_ptr<everybeam::aterms::ATermBase>& aTermMaker,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
 #else
   bool prepareForMeasurementSet(
-      MSGridderBase::MSData& msData,
+      const MSGridderBase::MSData& msData,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
 #endif  // HAVE_EVERYBEAM

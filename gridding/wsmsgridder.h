@@ -24,7 +24,7 @@ class WSMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(std::vector<Image>&& image) override;
+  virtual void Predict(std::vector<Image>&& images) override;
 
   virtual std::vector<Image> ResultImages() override {
     if (IsComplex())

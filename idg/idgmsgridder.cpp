@@ -75,8 +75,8 @@ void IdgMsGridder::Invert() {
   initializeMSDataVector(msDataVector);
 
   double max_w = 0;
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
+  for (const MSData& msData : msDataVector) {
+    max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
   const double shiftl = PhaseCentreDL();
@@ -97,9 +97,9 @@ void IdgMsGridder::Invert() {
     _bufferset->init_compute_avg_beam(
         idg::api::compute_flags::compute_and_grid);
     resetVisibilityCounters();
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
+    for (const MSData& msData : msDataVector) {
       // Adds the gridding result to _image member
-      gridMeasurementSet(msDataVector[i]);
+      gridMeasurementSet(msData);
     }
     _bufferset->finalize_compute_avg_beam();
     _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
@@ -137,8 +137,8 @@ void IdgMsGridder::Invert() {
       // Compute avg beam
       Logger::Debug << "Computing average beam.\n";
       _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
-      for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-        gridMeasurementSet(msDataVector[i]);
+      for (const MSData& msData : msDataVector) {
+        gridMeasurementSet(msData);
       }
       _bufferset->finalize_compute_avg_beam();
       Logger::Debug << "Finished computing average beam.\n";
@@ -147,9 +147,9 @@ void IdgMsGridder::Invert() {
     }
 
     resetVisibilityCounters();
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
+    for (const MSData& msData : msDataVector) {
       // Adds the gridding result to _image member
-      gridMeasurementSet(msDataVector[i]);
+      gridMeasurementSet(msData);
     }
     _image.assign(4 * width * height, 0.0);
     _bufferset->get_image(_image.data());
@@ -159,7 +159,7 @@ void IdgMsGridder::Invert() {
   // Can be accessed by subsequent calls to ResultImages()
 }
 
-void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
+void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
@@ -289,8 +289,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
   initializeMSDataVector(msDataVector);
 
   double max_w = 0;
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
+  for (const MSData& msData : msDataVector) {
+    max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
   const double shiftl = PhaseCentreDL();
@@ -301,8 +301,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
                    shiftp, _options);
   _bufferset->set_image(_image.data(), do_scale);
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    predictMeasurementSet(msDataVector[i]);
+  for (const MSData& msData : msDataVector) {
+    predictMeasurementSet(msData);
   }
 }
 
@@ -322,7 +322,7 @@ void IdgMsGridder::setIdgType() {
   }
 }
 
-void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
+void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
@@ -497,7 +497,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
 
 #ifdef HAVE_EVERYBEAM
 bool IdgMsGridder::prepareForMeasurementSet(
-    MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
+    const MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #else
@@ -578,7 +578,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
 #ifdef HAVE_EVERYBEAM
 std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
-    MSGridderBase::MSData& msData) {
+    const MSGridderBase::MSData& msData) {
   SynchronizedMS ms = msData.msProvider->MS();
   size_t nr_stations = ms->antenna().nrow();
   aocommon::UVector<std::complex<float>> aTermBuffer;
