@@ -282,8 +282,13 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
     std::vector<Image>& images = polImagePair.second;
     const PolarizationEnum polarization = polImagePair.first;
     for (size_t i = 0; i != images.size(); ++i) {
-      images[i] *= _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
-                   entry.siCorrection;
+      // IDG performs normalization on the dirty images, so only normalize if
+      // not using IDG
+      const double psfFactor =
+          _settings.useIDG
+              ? 1.0
+              : _infoPerChannel[joinedChannelIndex].psfNormalizationFactor;
+      if (!_settings.useIDG) images[i] *= psfFactor * entry.siCorrection;
       const bool isImaginary = i == 1;
       storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry,
                              polarization, isImaginary, images[i].data());
