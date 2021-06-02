@@ -417,7 +417,7 @@ std::vector<Image> IdgMsGridder::ResultImages() {
     }
   } else {
     size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-    images.emplace_back(height, width);
+    images.emplace_back(width, height);
     std::copy_n(_image.data() + polIndex * width * height, width * height,
                 images[0].data());
   }

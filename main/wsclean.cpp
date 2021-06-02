@@ -352,7 +352,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
                                      size_t joinedChannelIndex,
                                      const ImagingTableEntry& entry,
-                                     aocommon::PolarizationEnum polarization,
+                                     PolarizationEnum polarization,
                                      bool isImaginary, const float* image) {
   if (polarization == Polarization::YX &&
       _settings.polarizations.count(Polarization::XY) != 0) {
@@ -1324,7 +1324,7 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
 }
 
 void WSClean::initializeModelImages(const ImagingTableEntry& entry,
-                                    aocommon::PolarizationEnum polarization) {
+                                    PolarizationEnum polarization) {
   _modelImages.SetFitsWriter(
       createWSCFitsWriter(entry, polarization, false, true, false).Writer());
 
@@ -1346,7 +1346,7 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry,
 }
 
 void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
-                                      aocommon::PolarizationEnum polarization) {
+                                      PolarizationEnum polarization) {
   // load image(s) from disk and store them in the model-image cache.
   for (size_t i = 0; i != entry.imageCount; ++i) {
     std::string prefix = ImageFilename::GetPrefix(
@@ -1453,8 +1453,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
         groupTable.GetIndependentGroup(groupIndex);
 
     // Initialize the model images before entering the gridding loop. This is
-    // necessary because in IDG mode, requesting polarization I will require all
-    // model images to be read already.
+    // necessary because in IDG mode, predicting Stokes I will require all
+    // model images to have been initialized.
     for (size_t facetGroupIndex = 0;
          facetGroupIndex != independentGroup.FacetGroupCount();
          ++facetGroupIndex) {
