@@ -108,18 +108,6 @@ void IdgMsGridder::Invert() {
     _bufferset->get_image(_image.data());
 
     Logger::Debug << "Total weight: " << totalWeight() << '\n';
-
-    double center_pixel_value =
-        _image[height / 2 * width +
-               width / 2];  // TODO check memory layout, is this correct? for
-                            // now it does not matter, because width == height
-
-    if (center_pixel_value) {
-      for (size_t ii = 0; ii != 4 * width * height; ++ii) {
-        _image[ii] /= center_pixel_value;
-      }
-    }
-
   } else {
     // Compute a dirty/residual image
     // with application of the a term
