@@ -1634,7 +1634,8 @@ void WSClean::stitchFacets(const ImagingTable& table,
   if (!_facets.empty()) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
-    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
+                    0.0f);
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage facetImage(
