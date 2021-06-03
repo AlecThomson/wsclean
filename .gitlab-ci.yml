@@ -30,6 +30,8 @@ before_script:
 format:
   stage: format
   script:
+    # Update external/aocommon, which contains format.sh.
+    - git submodule update --init external/aocommon
     - pip3 install clang-format==9.0.0 cmake-format
     # Check formatting of header (*.h), source (*.cpp) and CMake files
     - ./scripts/run-format.sh
