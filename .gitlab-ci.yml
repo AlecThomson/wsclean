@@ -27,6 +27,13 @@ before_script:
     python3-pip
     wget
 
+test-das5:
+  stage: format
+  tags:
+    - das5
+  script:
+    - echo $PWD
+
 format:
   stage: format
   script:
