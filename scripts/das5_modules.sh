@@ -11,4 +11,3 @@ module load boost/1.73-gcc-8.3.0
 module load everybeam/LATEST-gcc-8.3.0
 module load idg/LATEST-gcc-8.3.0-CUDA
 
-export OPENBLAS_NUM_THREADS=1

@@ -95,3 +95,6 @@ add_custom_target(
   COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tFacetDegridding.sh)
 
 add_custom_target(checksystem DEPENDS checkpredict;checkfacetdegridding)
+
+# Collect all tests that should run on das5 in a single target
+add_custom_target(checkintegration-nightly DEPENDS checkpredict;checkfacetdegridding)
