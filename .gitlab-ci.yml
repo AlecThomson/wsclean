@@ -40,7 +40,7 @@ format:
 
 test-das5:
   stage: test
-  needs: []
+  # needs: []
   tags:
     - das5
   before_script:
