@@ -98,4 +98,5 @@ add_custom_target(checksystem DEPENDS checkpredict;checkfacetdegridding)
 
 # Collect all tests that should run on das5 in a single target
 # add_custom_target(checkintegration-nightly DEPENDS checkintegration;checkpredict;checkfacetdegridding)
-add_custom_target(checkintegration-nightly DEPENDS checkpredict;checkfacetdegridding)
+add_custom_target(checkintegration-nightly
+                  DEPENDS checkpredict;checkfacetdegridding)
