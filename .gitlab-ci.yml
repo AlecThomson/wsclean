@@ -32,6 +32,7 @@ format:
   stage: format
   extends: .dependencies
   script:
+    - echo $CI_PIPELINE_SOURCE
     # Update external/aocommon, which contains format.sh.
     - git submodule update --init external/aocommon
     - pip3 install clang-format==9.0.0 cmake-format
@@ -46,6 +47,7 @@ test-das5:
   before_script:
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
+    - echo $CI_PIPELINE_SOURCE
   script:
     - cd ..
     - mkdir -p build && cd build && rm -rf *
@@ -55,7 +57,9 @@ test-das5:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: always
-    - when: manual
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: manual
+      allow_failure: true
 
 # build-without-everybeam:
 #   stage: build
