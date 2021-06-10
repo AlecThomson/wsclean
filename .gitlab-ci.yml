@@ -32,8 +32,15 @@ test-das5:
   stage: format
   tags:
     - das5
+  before_script:
+    - source scripts/das5_modules.sh
+    - echo $OPENBLAS_NUM_THREADS
+    - export WORKDIR=$PWD
   script:
-    - echo $PWD
+    - echo $OPENBLAS_NUM_THREADS
+    - echo $WORKDIR
+    - cmake -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};${EVERYBEAM_ROOT_DIR};${FFTW3_ROOT_DIR}"
+
 
 format:
   stage: format
