@@ -62,10 +62,6 @@ build-without-everybeam:
   artifacts:
     reports:
       cobertura: build/coverage.xml
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - when: always
 
 
 build-with-everybeam:
@@ -78,7 +74,8 @@ build-with-everybeam:
     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
     - make
     - make install
-    - make check
+    # For a push pipeline, run unittests only, otherwise run both unit and integration tests
+    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make checkunit; else make check; fi
 
 test-das5:
   stage: test
