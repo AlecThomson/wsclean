@@ -60,7 +60,8 @@ build-without-everybeam:
     - make
     - make doc
     - make install
-    - make check
+    # For a push pipeline, run unittests only, otherwise run both unit and integration tests
+    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make checkunit; else make check; fi
     - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
     # gcovr to enable line coverage highlighting in MRs
     - gcovr --add-tracefile run-unit.json --xml > coverage.xml
