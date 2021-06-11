@@ -2,7 +2,7 @@ image: ubuntu:20.04
 
 stages:
  - format
-#  - build
+ - build
  - test
 
 .dependencies:
@@ -32,12 +32,53 @@ format:
   stage: format
   extends: .dependencies
   script:
-    - echo $CI_PIPELINE_SOURCE
     # Update external/aocommon, which contains format.sh.
     - git submodule update --init external/aocommon
     - pip3 install clang-format==9.0.0 cmake-format
     # Check formatting of header (*.h), source (*.cpp) and CMake files
     - ./scripts/run-format.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - when: always
+
+build-without-everybeam:
+  stage: build
+  extends: .dependencies
+  script:
+    - pip3 install gcovr
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
+    - make
+    - make doc
+    - make install
+    - make check
+    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
+    # gcovr to enable line coverage highlighting in MRs
+    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    # gcovr to create badge
+    - gcovr --add-tracefile run-unit.json
+  artifacts:
+    reports:
+      cobertura: build/coverage.xml
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - when: always
+
+
+build-with-everybeam:
+  stage: build
+  extends: .dependencies
+  script:
+    - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
+    - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
+    - cd $CI_PROJECT_DIR && mkdir build && cd build
+    - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
+    - make
+    - make install
+    - make check
 
 test-das5:
   stage: test
@@ -47,7 +88,6 @@ test-das5:
   before_script:
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
-    - echo $CI_PIPELINE_SOURCE
   script:
     - cd ..
     - mkdir -p build && cd build && rm -rf *
@@ -60,50 +100,3 @@ test-das5:
     - if: $CI_PIPELINE_SOURCE == "push"
       when: manual
       allow_failure: true
-
-# build-without-everybeam:
-#   stage: build
-#   extends: .dependencies
-#   script:
-#     - pip3 install gcovr
-#     - mkdir build
-#     - cd build
-#     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
-#     - make
-#     - make doc
-#     - make install
-#     - make check
-#     - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
-#     # gcovr to enable line coverage highlighting in MRs
-#     - gcovr --add-tracefile run-unit.json --xml > coverage.xml
-#     # gcovr to create badge
-#     - gcovr --add-tracefile run-unit.json
-#   artifacts:
-#     reports:
-#       cobertura: build/coverage.xml
-
-# build-with-everybeam:
-#   stage: build
-#   extends: .dependencies
-#   script:
-#     - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-#     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
-#     - cd $CI_PROJECT_DIR && mkdir build && cd build
-#     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
-#     - make
-#     - make install
-#     - make check
-
-# # Testing job is pretty inefficient, since we can't reuse the image from
-# # an earlier job. Hence, this job should be triggered manually
-# testing:
-#   stage: test
-#   extends: .dependencies
-#   when: manual
-#   script:
-#     - which taql
-#     - mkdir build
-#     - cd build
-#     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
-#     - make -j20
-#     - make checksystem
