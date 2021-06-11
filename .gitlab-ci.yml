@@ -5,6 +5,13 @@ stages:
  - build
  - test
 
+workflow:
+  rules:
+    # don't create a pipeline if its a commit pipeline, on a branch and that branch has open merge requests.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - when: always
+
 .dependencies:
   before_script:
     - apt-get update -qq
@@ -92,7 +99,7 @@ test-das5:
     - make -j4
     - make checkintegration-nightly
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
     - if: $CI_PIPELINE_SOURCE == "push"
       when: manual
