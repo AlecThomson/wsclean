@@ -51,9 +51,10 @@ wsclean -name linearpol -niter 1000000 -auto-threshold 3.0 -pol XX,YY,XY,YX \
 -join-polarizations -join-channels -mgain 0.85 -channels-out 4 -parallel-gridding 16 \
 ${dims} ${ms}
 
-# Missing frequency chunks (MWA set has flagged channels, but only when using 24 channels out)
-# There were many bugs through time that caused this to fail (like dividing by weights, etc.),
-# in which case residual/model/restored images could have nans or aren't cleaned.
+# Successfully running this command indicates that fully flagged channels
+# do not cause the cleaning process to fail (end early, find nans, etc).
+# There have been bugs that caused this to fail (like dividing by weights, etc.).
+# The MWA set flags will only cover a full output channel when using 24 channels out.
 wsclean -interval 10 14 -name broken-bandwidth -niter 1000000 -auto-threshold 3.0 \
 	-nmiter 2 -join-channels -mgain 0.85 -channels-out 24 -parallel-gridding 16 \
 	-multiscale -parallel-deconvolution 512 \
