@@ -128,8 +128,8 @@ test-system-das5:
     reports:
       junit: build/system_tests.xml
   rules:
-    # - if: $CI_PIPELINE_SOURCE == "schedule"
-    #   when: always
-    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SYSTEM_TEST_PIPELINE == "true"
       when: always
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: manual
       allow_failure: true

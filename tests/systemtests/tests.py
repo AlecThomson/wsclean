@@ -1,6 +1,5 @@
 import pytest
 import os
-import warnings
 from subprocess import check_call
 import shutil
 
@@ -12,7 +11,7 @@ sys.path.append(".")
 import testconfig as tcf
 
 MWA_MS = "MWA-1052736496-averaged.ms"
-MWA_COEFFS = ""
+MWA_COEFFS = "mwa_full_embedded_element_pattern"
 CWD = os.getcwd()
 
 
@@ -24,7 +23,7 @@ def startup():
     os.makedirs(tcf.WORKDIR, exist_ok=True)
     os.chdir(tcf.WORKDIR)
 
-    if not "MS" in os.environ:
+    if not "MWA_MS" in os.environ:
         if not os.path.isfile(f"{MWA_MS}/table.f1"):
             check_call(
                 ["wget", "-q", f"www.astron.nl/citt/ci_data/EveryBeam/{MWA_MS}.tgz"]
@@ -32,7 +31,15 @@ def startup():
             check_call(["tar", "-xf", f"{MWA_MS}.tgz"])
             os.remove(f"{MWA_MS}.tgz")
         os.environ["MWA_MS"] = os.path.join(os.getcwd(), MWA_MS)
-    # Do the same for (beam) coefficients file
+
+    if not "MWA_COEFFS_PATH" in os.environ:
+        if not os.path.isfile(f"{MWA_COEFFS}.h5"):
+            check_call(
+                ["wget", "-q", f"www.astron.nl/citt/EveryBeam/{MWA_COEFFS}.tar.bz2"]
+            )
+            check_call(["tar", "-xf", f"{MWA_COEFFS}.tar.bz2"])
+            os.remove(f"{MWA_COEFFS}.tar.bz2")
+        os.environ["MWA_COEFFS_PATH"] = os.getcwd()
 
     # change to original working directory
     os.chdir(CWD)
@@ -40,11 +47,15 @@ def startup():
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup(request):
-    # Fixture ran only at end of test session
+    # Fixture is run only at end of test session
+    # FIXME: this cleanup fixture seems useful in CI,
+    # but not so in case MWA_MS and MWA_COEFFS_PATH
+    # are specified manually
 
     # Remove measurement set
     def remove_mwa_ms():
         shutil.rmtree(os.environ["MWA_MS"])
+        os.remove(os.path.join(os.environ["MWA_COEFFS_PATH"], f"{MWA_COEFFS}.h5"))
 
     request.addfinalizer(remove_mwa_ms)
 
@@ -60,7 +71,7 @@ def test_dirty_image():
 
 def test_clean_rectangular_unpadded_image():
     # Clean a rectangular unpadded image
-    s = f"wsclean -name clean-rectangular -padding 1 \
+    s = f"./wsclean -name clean-rectangular -padding 1 \
           -auto-threshold 5 -mgain 0.8 -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
@@ -71,7 +82,7 @@ def test_clean_rectangular_unpadded_image():
 #           -mgain 0.8 -multiscale -niter 100000 {tcf.RECTDIMS} {tcf.MS}"
 #     check_call(s.split())
 
-# REQUIRES A LARGER MS
+
 # def test_multiple_intervals():
 #     # Multiple intervals
 #     s = f"wsclean -name intervals -intervals-out 3 {tcf.RECTDIMS} {tcf.MS}"
