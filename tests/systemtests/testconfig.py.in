@@ -1,5 +1,5 @@
 WORKDIR = "@CMAKE_BINARY_DIR@/test_data"
-# LOCAL TESTIN ONLY
+# LOCAL TESTING ONLY
 # WORKDIR = "/var/scratch/maljaars/data/test"
 DIMS = "-size 1024 1024 -scale 1amin"
 RECTDIMS = "-size 1536 1024 -scale 1amin"

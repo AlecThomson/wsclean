@@ -104,5 +104,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/systemtests/testconfig.py.in
 add_custom_target(
   checksystemtests
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND pytest --exitfirst -s -v
-          ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
+  COMMAND
+    pytest --exitfirst -v -s --junitxml=${CMAKE_BINARY_DIR}/system_tests.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)

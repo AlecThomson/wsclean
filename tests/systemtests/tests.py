@@ -13,6 +13,7 @@ import testconfig as tcf
 
 MWA_MS = "MWA-1052736496-averaged.ms"
 MWA_COEFFS = ""
+CWD = os.getcwd()
 
 
 @pytest.fixture(autouse=True)
@@ -25,15 +26,16 @@ def startup():
 
     if not "MS" in os.environ:
         if not os.path.isfile(f"{MWA_MS}/table.f1"):
-            print("Should retrieve MS!")
             check_call(
                 ["wget", "-q", f"www.astron.nl/citt/ci_data/EveryBeam/{MWA_MS}.tgz"]
             )
             check_call(["tar", "-xf", f"{MWA_MS}.tgz"])
             os.remove(f"{MWA_MS}.tgz")
         os.environ["MWA_MS"] = os.path.join(os.getcwd(), MWA_MS)
-
     # Do the same for (beam) coefficients file
+
+    # change to original working directory
+    os.chdir(CWD)
 
 
 @pytest.fixture(scope="session", autouse=True)
