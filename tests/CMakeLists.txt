@@ -99,10 +99,10 @@ add_custom_target(checkintegration-nightly
                   DEPENDS checkintegration;checkpredict;checkfacetdegridding)
 
 # Test a number of wsclean commands, which can be considered system level tests
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/systemtests/testconfig.py.in
+               ${CMAKE_BINARY_DIR}/testconfig.py)
 add_custom_target(
   checksystemtests
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
-  COMMAND
-    ${CMAKE_COMMAND} -E env MS=${CMAKE_BINARY_DIR}/test_data/MWA_MOCK.ms pytest
-    --exitfirst -v ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
+  COMMAND pytest --exitfirst -s -v
+          ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
