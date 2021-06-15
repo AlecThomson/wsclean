@@ -51,7 +51,10 @@ def cleanup(request):
 
 def test_dirty_image():
     # Make dirty image
-    s = f"wsclean -name test-dirty {tcf.DIMS} {os.environ['MWA_MS']}"
+    print(f"Current working directory {os.getcwd()}")
+    print(os.listdir())
+    print(f"MWA MS {os.environ['MWA_MS']}")
+    s = f"./wsclean -name test-dirty {tcf.DIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
