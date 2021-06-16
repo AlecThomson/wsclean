@@ -134,6 +134,9 @@ test-system-das5:
     # Do not run for all scheduled pipelines
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SYSTEM_TESTS == "true"
       when: always
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
     - if: $CI_PIPELINE_SOURCE == "push"
       when: manual
       allow_failure: true

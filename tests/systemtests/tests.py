@@ -188,8 +188,9 @@ def test_nfacets_pol_xx_yy():
 
 
 def test_facet_beam():
+    # Test facet beam, using 4 polarizations
     if os.environ["MWA_COEFFS_PATH"]:
-        s = f"./wsclean -name {name('nfacets-XX_YY-facet-beam')} -apply-facet-beam -pol XX,YY \
+        s = f"./wsclean -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
             -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} \
                 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
         check_call(s.split())
