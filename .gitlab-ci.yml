@@ -119,7 +119,6 @@ test-system-das5:
     - rm -rf reports/* && mkdir -p reports
     - cd ..
     - mkdir -p build && cd build && rm -rf *
-    - cd build
     - cmake -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};${EVERYBEAM_ROOT_DIR};${FFTW3_ROOT_DIR}" ../wsclean
     - make -j4
     - make checksystemtests
