@@ -100,13 +100,9 @@ add_custom_target(checkintegration-nightly
 # ${CMAKE_BINARY_DIR}: It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
 # 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'. (Using 'RESULT', fatal
 # errors won't occur on systems without symlink support.)
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
-  file(
-    CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/systemtests
-    ${CMAKE_BINARY_DIR}/source
-    RESULT DUMMY_RESULT
-    SYMBOLIC)
-endif()
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+          ${CMAKE_CURRENT_SOURCE_DIR}/systemtests ${CMAKE_BINARY_DIR}/source)
 
 # Test a number of wsclean commands, which can be considered system level tests3
 # FIXME: maybe other name for target, e.g. checkwscleancommands?
