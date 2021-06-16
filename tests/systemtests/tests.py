@@ -165,11 +165,11 @@ def test_stop_on_negative_components():
 
 
 @pytest.mark.parametrize(
-    "gridder, name", (["", "shift-ws"], ["-use-wgridder", "shift-wg"])
+    "gridder, test_name", (["", "shift-ws"], ["-use-wgridder", "shift-wg"])
 )
-def test_shift_image(gridder, name):
+def test_shift_image(gridder, test_name):
     # Shift the image with w-stacking and w-gridder gridder
-    s = f"./wsclean {gridder} -name {name(name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {os.environ['MWA_MS']}"
+    s = f"./wsclean {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
