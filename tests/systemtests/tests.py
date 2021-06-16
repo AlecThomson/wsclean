@@ -195,3 +195,6 @@ def test_facet_beam():
 
 # FIXME: compile wsclean with MPI enabled
 # mpirun wsclean-mp -name mpi ${rectdims} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required ${ms}
+def test_mpi():
+    s = f"mpirun ./wsclean-mp -name mpi {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
+    check_call(s.split())
