@@ -17,6 +17,8 @@ file can be invoked via various routes:
 
 - execute "make checksystemtests"  in your build directory
 - execute "[python3 -m] pytest [OPTIONS] source/tests.py" in your build directory
+- execute "./various-tests.sh <MWA_MS> [optional] <MWA_COEFFS_PATH>" from the scripts
+  directory in the repository
 """
 
 MWA_MS = "MWA-1052736496-averaged.ms"
@@ -57,14 +59,15 @@ def startup():
 @pytest.fixture(scope="session", autouse=True)
 def cleanup(request):
     # Fixture is run only at end of test session
-    # FIXME: this cleanup fixture seems useful in CI,
-    # but maybe not so in case MWA_MS and MWA_COEFFS_PATH
-    # are specified manually
+    # NOTE: to avoid unintentional clean-up of the
+    # MWA ms and the coefficients file, make sure
+    # SKIP_CLEANUP is in your environment variables
 
     # Remove measurement set
     def remove_mwa_ms():
-        shutil.rmtree(os.environ["MWA_MS"])
-        os.remove(os.path.join(os.environ["MWA_COEFFS_PATH"], f"{MWA_COEFFS}.h5"))
+        if not "SKIP_CLEANUP" in os.environ:
+            shutil.rmtree(os.environ["MWA_MS"])
+            os.remove(os.path.join(os.environ["MWA_COEFFS_PATH"], f"{MWA_COEFFS}.h5"))
 
     request.addfinalizer(remove_mwa_ms)
 
