@@ -115,6 +115,9 @@ test-system-das5:
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
   script:
+    - echo $CI_PROJECT_DIR
+    - echo $PWD
+    - rm -rf reports/* && mkdir -p reports
     - cd ..
     # - mkdir -p build && cd build && rm -rf *
     - cd build
@@ -122,14 +125,15 @@ test-system-das5:
     - make -j4
     - ls -l
     - make checksystemtests
+    - mv system_tests.xml $CI_PROJECT_DIR/reports/
   artifacts:
     paths:
-      - build/system_tests.xml
+      - reports/system_tests.xml
     reports:
-      junit: build/system_tests.xml
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $SYSTEM_TEST_PIPELINE == "true"
-      when: always
-    - if: $CI_PIPELINE_SOURCE == "push"
-      when: manual
-      allow_failure: true
+      junit: reports/system_tests.xml
+  # rules:
+  #   - if: $CI_PIPELINE_SOURCE == "schedule" && $SYSTEM_TESTS == "true"
+  #     when: always
+  #   - if: $CI_PIPELINE_SOURCE == "push"
+  #     when: manual
+  #     allow_failure: true
