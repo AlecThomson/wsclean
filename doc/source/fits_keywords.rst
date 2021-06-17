@@ -4,7 +4,7 @@ FITS keywords
 Meaning of frequency keywords
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-WSClean uses the standard CRVAL and CDELT keywords for the frequency axis for the central frequency and frequency width of the output channel. Because the frequency axis is the third dimension (the default dimensions are ra, dec, frequency, polarization), this specifically means:
+WSClean uses the standard ``CRVAL`` and ``CDELT`` keywords for the frequency axis. These specify the central frequency and frequency width of the output channel, respectively. Because the frequency axis is the third dimension (the default dimensions are ra, dec, frequency, polarization), this specifically means:
 
 .. code-block:: text
 
