@@ -25,6 +25,29 @@ class GriddingTaskManager {
   virtual ~GriddingTaskManager();
 
   /**
+   * Initialize writer groups. Call this function before scheduling Predict
+   * tasks.
+   *
+   * This function resets the counter for all write groups to zero.
+   * @param nWriterGroups The number of writer groups.
+   */
+  virtual void Start(int nWriterGroups) {
+    _writerGroupCounters.assign(nWriterGroups, 0);
+  }
+
+  /**
+   * Get the counter for a writer group and increment it for the next call.
+   * Each call thus yields a higher value.
+   * Note: Parallel GriddingTaskManager implementations should use proper
+   * locking before using this base implementation.
+   */
+  virtual LockGuard LockWriteGroup(int writerGroupIndex) {
+    static DummyLock dummy;
+    LockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]));
+    return guard;
+  }
+
+  /**
    * Add the given task to the queue of tasks to be run. After finishing
    * the task, the callback is called with the results. The callback will
    * always run in the thread of the caller.
@@ -65,8 +88,38 @@ class GriddingTaskManager {
    */
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
+  int& GetWriterGroupCounter(writerGroupIndex) { return _writerGroupCounters[writerGroupIndex]; }
+
  private:
   std::unique_ptr<MSGridderBase> constructGridder() const;
+
+  std::vector<int> _writerGroupCounters;
 };
+
+
+class LockInterface {
+public:
+  virtual void lock() = 0;
+  virtual void unlock() = 0;
+}
+
+class DummyLock : public LockInterface {
+  void lock() override {}
+  void unlock() override {}
+}
+
+class ThreadingLock : public LockInterface {
+  void lock() override { _mutex.lock(); }
+  void unlock() override { _mutex.unlock(); }
+  std::mutex _mutex;
+}
+
+class WriterGroupLockGuard {
+  LockGuard(LockInterface& lock, int& counter) : _lock(lock), _writerGroupCounter(counter) { _lock.lock(); }
+  ~LockGuard() { ++_writerGroupCounter; _lock.unlock(); }
+  int GetWriteGroupCounter() const { return _writerGroupCounter; }
+  LockInterface& _lock;
+  int& _writerGroupCounter;
+}
 
 #endif

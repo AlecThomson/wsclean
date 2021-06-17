@@ -42,6 +42,16 @@ void ThreadedScheduler::processQueue() {
   }
 }
 
+void ThreadedScheduler::Start(nWriterGroups) {
+  GriddingTaskManager::Start(nWriterGroups);
+  _writerGroupLocks.resize(nWriterGroups);
+}
+
+LockGuard LockWriteGroup(int writerGroupIndex) override {
+  return LockGuard(_writerGroupLocks[writeGroupIndex],
+                   GetWriterGroupCounter(writerGroupIndex));
+}
+
 void ThreadedScheduler::Finish() {
   _taskList.write_end();
   for (std::thread& t : _threadList) t.join();

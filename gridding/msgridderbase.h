@@ -84,6 +84,7 @@ class MSGridderBase {
   bool StoreImagingWeights() const { return _storeImagingWeights; }
 
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
+  void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
@@ -357,6 +358,7 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
+  size_t _facetGroupIndex;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;
