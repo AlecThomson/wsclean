@@ -543,7 +543,8 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 
 template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& msProvider, GriddingTaskManager& griddingTaskManager,
+    const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
   if (_h5parm) {
     MSProvider::MetaData metaData;
@@ -647,8 +648,11 @@ void MSGridderBase::writeVisibilities(
   }
 #endif
 
-  const bool addToMS = (_facetIndex != 0);
-  msProvider.WriteModel(buffer, addToMS);
+  {
+    WriterLockGuard guard = _griddingTaskManager.LockWriterGroup(facetGroupIndex))
+    const bool addToMS = (guard.GetWriterGroupCounter() != 0);
+    msProvider.WriteModel(buffer, addToMS);
+  }
   msProvider.NextOutputRow();
 }
 
