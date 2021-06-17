@@ -118,8 +118,8 @@ class WStackingGridder {
    * due to cache misses.
    */
   WStackingGridder(size_t width, size_t height, double pixelSizeX,
-                       double pixelSizeY, size_t fftThreadCount,
-                       size_t kernelSize = 7, size_t overSamplingFactor = 1023);
+                   double pixelSizeY, size_t fftThreadCount,
+                   size_t kernelSize = 7, size_t overSamplingFactor = 1023);
 
   /** De-allocate imagebuffers and perform other clean-up. */
   ~WStackingGridder() noexcept;
@@ -415,9 +415,9 @@ class WStackingGridder {
   ImageT<num_t> RealImage() { return std::move(_imageData[0]); }
 
   /**
-   * Returns the real image that is always converted to a 32-bit float. It is independent
-   * of the templated type of the class.
-   * It is otherwise equal to @ref RealImage().
+   * Returns the real image that is always converted to a 32-bit float. It is
+   * independent of the templated type of the class. It is otherwise equal to
+   * @ref RealImage().
    */
   Image RealImageFloat();
 
@@ -429,9 +429,9 @@ class WStackingGridder {
   ImageT<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
 
   /**
-   * Returns the imaginary image that is always converted to a 32-bit float. It is independent
-   * of the templated type of the class.
-   * It is otherwise equal to @ref ImaginaryImage().
+   * Returns the imaginary image that is always converted to a 32-bit float. It
+   * is independent of the templated type of the class. It is otherwise equal to
+   * @ref ImaginaryImage().
    */
   Image ImaginaryImageFloat();
 

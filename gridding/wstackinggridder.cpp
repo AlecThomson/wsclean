@@ -8,9 +8,10 @@
 #include <fstream>
 
 template <typename T>
-WStackingGridder<T>::WStackingGridder(
-    size_t width, size_t height, double pixelSizeX, double pixelSizeY,
-    size_t fftThreadCount, size_t kernelSize, size_t overSamplingFactor)
+WStackingGridder<T>::WStackingGridder(size_t width, size_t height,
+                                      double pixelSizeX, double pixelSizeY,
+                                      size_t fftThreadCount, size_t kernelSize,
+                                      size_t overSamplingFactor)
     : _width(width),
       _height(height),
       _pixelSizeX(pixelSizeX),
@@ -56,7 +57,7 @@ WStackingGridder<T>::~WStackingGridder() noexcept {
 
 template <typename T>
 void WStackingGridder<T>::PrepareWLayers(size_t nWLayers, double maxMem,
-                                             double minW, double maxW) {
+                                         double minW, double maxW) {
   _minW = minW;
   _maxW = maxW;
   _nWLayers = nWLayers;
@@ -145,8 +146,8 @@ void WStackingGridder<T>::StartPredictionPass(size_t passIndex) {
   std::mutex mutex;
   std::vector<std::thread> threadGroup;
   for (size_t i = 0; i != std::min(_nFFTThreads, nLayersInPass); ++i)
-    threadGroup.emplace_back(&WStackingGridder<T>::fftToUVThreadFunction,
-                             this, &mutex, &layers);
+    threadGroup.emplace_back(&WStackingGridder<T>::fftToUVThreadFunction, this,
+                             &mutex, &layers);
   for (std::thread &thr : threadGroup) thr.join();
 }
 
@@ -274,8 +275,8 @@ void WStackingGridder<double>::fftToUVThreadFunction(
 }
 
 template <>
-void WStackingGridder<float>::fftToUVThreadFunction(
-    std::mutex *mutex, std::stack<size_t> *tasks) {
+void WStackingGridder<float>::fftToUVThreadFunction(std::mutex *mutex,
+                                                    std::stack<size_t> *tasks) {
   ImageTC<float> fftwIn = ImageTC<float>(_width, _height),
                  fftwOut = ImageTC<float>(_width, _height);
 
@@ -380,7 +381,7 @@ void WStackingGridder<T>::makeKernels() {
 
 template <typename T>
 void WStackingGridder<T>::GetKernel(enum GridMode gridMode, double *kernel,
-                                        size_t oversampling, size_t size) {
+                                    size_t oversampling, size_t size) {
   double alpha = 8.6;
   std::vector<double> v(oversampling * size);
   switch (gridMode) {
@@ -416,9 +417,10 @@ void WStackingGridder<T>::GetKernel(enum GridMode gridMode, double *kernel,
 }
 
 template <typename T>
-void WStackingGridder<T>::makeKaiserBesselKernel(
-    std::vector<double> &kernel, double alpha, size_t overSamplingFactor,
-    bool withSinc) {
+void WStackingGridder<T>::makeKaiserBesselKernel(std::vector<double> &kernel,
+                                                 double alpha,
+                                                 size_t overSamplingFactor,
+                                                 bool withSinc) {
   size_t n = kernel.size(), mid = n / 2;
   std::vector<double> sincKernel(mid + 1);
   const double filterRatio = 1.0 / double(overSamplingFactor);
@@ -440,7 +442,7 @@ void WStackingGridder<T>::makeKaiserBesselKernel(
 
 template <typename T>
 void WStackingGridder<T>::makeRectangularKernel(std::vector<double> &kernel,
-                                                    size_t overSamplingFactor) {
+                                                size_t overSamplingFactor) {
   size_t n = kernel.size(), mid = n / 2;
   const double filterRatio =
       1.0 / double(overSamplingFactor);  // FILTER POINT / TOTAL BANDWIDTH
@@ -455,8 +457,8 @@ void WStackingGridder<T>::makeRectangularKernel(std::vector<double> &kernel,
 
 template <typename T>
 void WStackingGridder<T>::makeGaussianKernel(std::vector<double> &kernel,
-                                                 size_t overSamplingFactor,
-                                                 bool withSinc) {
+                                             size_t overSamplingFactor,
+                                             bool withSinc) {
   size_t n = kernel.size(), mid = n / 2;
   const double filterRatio = 1.0 / double(overSamplingFactor);
   kernel[mid] = 1.0;
@@ -471,8 +473,9 @@ void WStackingGridder<T>::makeGaussianKernel(std::vector<double> &kernel,
 }
 
 template <typename T>
-void WStackingGridder<T>::makeBlackmanNutallKernel(
-    std::vector<double> &kernel, size_t overSamplingFactor, bool withSinc) {
+void WStackingGridder<T>::makeBlackmanNutallKernel(std::vector<double> &kernel,
+                                                   size_t overSamplingFactor,
+                                                   bool withSinc) {
   size_t n = kernel.size(), mid = n / 2;
   const double filterRatio = 1.0 / double(overSamplingFactor);
   kernel[mid] = 1.0;
@@ -507,8 +510,8 @@ double WStackingGridder<T>::bessel0(double x, double precision) {
 
 template <typename T>
 void WStackingGridder<T>::AddDataSample(std::complex<float> sample,
-                                            double uInLambda, double vInLambda,
-                                            double wInLambda) {
+                                        double uInLambda, double vInLambda,
+                                        double wInLambda) {
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex),
                layerRangeEnd = layerRangeStart(_curLayerRangeIndex + 1);
   if (_imageConjugatePart) {
@@ -588,9 +591,8 @@ void WStackingGridder<T>::AddDataSample(std::complex<float> sample,
 
 template <typename T>
 void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
-                                               double uInLambda,
-                                               double vInLambda,
-                                               double wInLambda) {
+                                           double uInLambda, double vInLambda,
+                                           double wInLambda) {
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex),
                layerRangeEnd = layerRangeStart(_curLayerRangeIndex + 1);
 
@@ -614,9 +616,8 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
         if (y < 0) y += _height;
         sample = uvData[x + y * _width];
       } else {
-        sample =
-            std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
-                                  std::numeric_limits<float>::quiet_NaN());
+        sample = std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
+                                     std::numeric_limits<float>::quiet_NaN());
       }
     } else {
       sample = 0.0;
@@ -647,7 +648,7 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
               size_t cx = (x + i + _width - mid) % _width;
               std::complex<num_t> *uvRowPtr = &uvData[cx + cy];
               sample += std::complex<float>(uvRowPtr->real() * kernelValue,
-                                              uvRowPtr->imag() * kernelValue);
+                                            uvRowPtr->imag() * kernelValue);
             }
           }
         } else {
@@ -659,16 +660,15 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
             for (size_t i = 0; i != _kernelSize; ++i) {
               const num_t kernelValue = xKernel[i] * yKernelValue;
               sample += std::complex<float>(uvRowPtr->real() * kernelValue,
-                                              uvRowPtr->imag() * kernelValue);
+                                            uvRowPtr->imag() * kernelValue);
               ++uvRowPtr;
             }
             ++y;
           }
         }
       } else {
-        sample =
-            std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
-                                  std::numeric_limits<float>::quiet_NaN());
+        sample = std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
+                                     std::numeric_limits<float>::quiet_NaN());
       }
     }
     if (isConjugated)
@@ -677,7 +677,7 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
       value = std::conj(sample);
   } else {
     value = std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
-                                  std::numeric_limits<float>::quiet_NaN());
+                                std::numeric_limits<float>::quiet_NaN());
   }
 }
 
@@ -689,8 +689,8 @@ void WStackingGridder<T>::FinalizeImage(double multiplicationFactor) {
 }
 
 template <typename T>
-void WStackingGridder<T>::finalizeImage(
-    double multiplicationFactor, std::vector<ImageT<num_t>> &dataArray) {
+void WStackingGridder<T>::finalizeImage(double multiplicationFactor,
+                                        std::vector<ImageT<num_t>> &dataArray) {
   for (size_t i = 1; i != _nFFTThreads; ++i) {
     num_t *primaryData = dataArray[0].data();
     num_t *endPtr = dataArray[i].data() + (_width * _height);
@@ -970,8 +970,8 @@ void WStackingGridder<T>::copyImageToLayerAndInverseCorrect(
 #ifndef AVOID_CASACORE
 template <typename T>
 void WStackingGridder<T>::AddData(const std::complex<float> *data,
-                                      size_t dataDescId, double uInM,
-                                      double vInM, double wInM) {
+                                  size_t dataDescId, double uInM, double vInM,
+                                  double wInM) {
   const BandData &curBand = _bandData[dataDescId];
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     double wavelength = curBand.ChannelWavelength(ch), u = uInM / wavelength,
@@ -982,8 +982,8 @@ void WStackingGridder<T>::AddData(const std::complex<float> *data,
 
 template <typename T>
 void WStackingGridder<T>::SampleData(std::complex<float> *data,
-                                         size_t dataDescId, double uInM,
-                                         double vInM, double wInM) {
+                                     size_t dataDescId, double uInM,
+                                     double vInM, double wInM) {
   const BandData &curBand(_bandData[dataDescId]);
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     double wavelength = curBand.ChannelWavelength(ch), u = uInM / wavelength,
@@ -991,7 +991,7 @@ void WStackingGridder<T>::SampleData(std::complex<float> *data,
     SampleDataSample(data[ch], u, v, w);
   }
 }
-#endif // AVOID_CASACORE
+#endif  // AVOID_CASACORE
 
 template <>
 Image WStackingGridder<float>::RealImageFloat() {

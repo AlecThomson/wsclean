@@ -6,17 +6,20 @@
 
 int main(int argc, char* argv[]) {
   const size_t width = 4000, height = 4000;
-  const double pixelScale = 1.0 / 60.0 * (M_PI / 180.0);  // one arcmin in radians
-  const size_t threadCount = System::ProcessorCount();    // number of CPUs in system
+  const double pixelScale =
+      1.0 / 60.0 * (M_PI / 180.0);  // one arcmin in radians
+  const size_t threadCount =
+      System::ProcessorCount();  // number of CPUs in system
 
   // Calculate available memory
   const long int pageCount = sysconf(_SC_PHYS_PAGES),
-           pageSize = sysconf(_SC_PAGE_SIZE);
+                 pageSize = sysconf(_SC_PAGE_SIZE);
   const int64_t memSize = (int64_t)pageCount * (int64_t)pageSize;
 
   // Initialize an image with all zero except one pixel
   Image image(width, height, 0.0);
-  const size_t sourceX = width / 2 - width / 17, sourceY = height / 2 - height / 21;
+  const size_t sourceX = width / 2 - width / 17,
+               sourceY = height / 2 - height / 21;
   image[sourceX + sourceY * width] = 100.0;
 
   // Initialize the gridder
@@ -24,8 +27,8 @@ int main(int argc, char* argv[]) {
   // 15) and oversampling factor (here: 201). Often, the default values are good
   // enough and provide a better compromise between accuracy and performance. To
   // get the default values, the last two parameters can be left out.
-  WStackingGridder<float> gridder(width, height, pixelScale, pixelScale, threadCount,
-                           15, 1023);
+  WStackingGridder<float> gridder(width, height, pixelScale, pixelScale,
+                                  threadCount, 15, 1023);
 
   // Prepare the w-layers. This example disables w-term correction by setting
   // the number of w-layers to 1, and therefore this call becomes quite simple.
