@@ -90,29 +90,40 @@ class GriddingTaskManager {
 
   int& GetWriterGroupCounter(writerGroupIndex) { return _writerGroupCounters[writerGroupIndex]; }
 
+  class WriterLockBase {
+  public:
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
+  }
+
  private:
+  class DummyWriterLock : public WriterLockBase{
+    void lock() override final {}
+    void unlock() override final {}
+  };
+
   std::unique_ptr<MSGridderBase> constructGridder() const;
 
   std::vector<int> _writerGroupCounters;
 };
 
 
-class LockInterface {
-public:
-  virtual void lock() = 0;
-  virtual void unlock() = 0;
-}
+// class LockInterface {
+// public:
+//   virtual void lock() = 0;
+//   virtual void unlock() = 0;
+// }
 
-class DummyLock : public LockInterface {
-  void lock() override {}
-  void unlock() override {}
-}
+// class DummyLock : public LockInterface {
+//   void lock() override {}
+//   void unlock() override {}
+// }
 
-class ThreadingLock : public LockInterface {
-  void lock() override { _mutex.lock(); }
-  void unlock() override { _mutex.unlock(); }
-  std::mutex _mutex;
-}
+// class ThreadingLock : public LockInterface {
+//   void lock() override { _mutex.lock(); }
+//   void unlock() override { _mutex.unlock(); }
+//   std::mutex _mutex;
+// }
 
 class WriterGroupLockGuard {
   LockGuard(LockInterface& lock, int& counter) : _lock(lock), _writerGroupCounter(counter) { _lock.lock(); }
