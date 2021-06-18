@@ -55,7 +55,7 @@ class GriddingTaskManager {
       ++_writerGroupCounter;
       _lock.unlock();
     }
-    int GetCounter() const { return _writerGroupCounter; }
+    size_t GetCounter() const { return _writerGroupCounter; }
 
    private:
     WriterLockBase& _lock;
@@ -68,7 +68,7 @@ class GriddingTaskManager {
    * Note: Parallel GriddingTaskManager implementations should use proper
    * locking before using this base implementation.
    */
-  virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) {
+  virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const {
     static DummyWriterLock dummy;
     WriterGroupLockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]);
     return guard;
@@ -103,6 +103,11 @@ class GriddingTaskManager {
   static std::unique_ptr<GriddingTaskManager> Make(
       const class Settings& settings, bool useDirectScheduler = false);
 
+  // FIXME: should become protected, public for debugging only
+  size_t& GetWriterGroupCounter(size_t writerGroupIndex) const {
+    return _writerGroupCounters[writerGroupIndex];
+  }
+
  protected:
   GriddingTaskManager(const class Settings& settings);
 
@@ -115,10 +120,6 @@ class GriddingTaskManager {
    */
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
-  size_t& GetWriterGroupCounter(int writerGroupIndex) {
-    return _writerGroupCounters[writerGroupIndex];
-  }
-
  private:
   class DummyWriterLock : public WriterLockBase {
    public:
@@ -128,38 +129,7 @@ class GriddingTaskManager {
 
   std::unique_ptr<MSGridderBase> constructGridder() const;
 
-  std::vector<size_t> _writerGroupCounters;
+  mutable std::vector<size_t> _writerGroupCounters;
 };
-
-// class LockInterface {
-// public:
-//   virtual void lock() = 0;
-//   virtual void unlock() = 0;
-// }
-
-// class DummyLock : public LockInterface {
-//   void lock() override {}
-//   void unlock() override {}
-// }
-
-// class ThreadingLock : public LockInterface {
-//   void lock() override { _mutex.lock(); }
-//   void unlock() override { _mutex.unlock(); }
-//   std::mutex _mutex;
-// }
-
-// class WriterGroupLockGuard {
-//   WriterGroupLockGuard(LockInterface& lock, int& counter)
-//       : _lock(lock), _writerGroupCounter(counter) {
-//     _lock.lock();
-//   }
-//   ~WriterGroupLockGuard() {
-//     ++_writerGroupCounter;
-//     _lock.unlock();
-//   }
-//   int GetWriteGroupCounter() const { return _writerGroupCounter; }
-//   LockInterface& _lock;
-//   int& _writerGroupCounter;
-// }
 
 #endif

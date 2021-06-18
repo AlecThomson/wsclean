@@ -110,6 +110,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _facetIndex(0),
+      _facetGroupIndex(0),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -544,7 +545,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer) {
+    const BandData& curBand, std::complex<float>* buffer, bool addToMS) {
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
@@ -647,22 +648,28 @@ void MSGridderBase::writeVisibilities(
   }
 #endif
 
-  {
-    GriddingTaskManager::WriterGroupLockGuard guard =
-        _griddingTaskManager->LockWriterGroup(_facetGroupIndex);
-    const bool addToMS = (guard.GetCounter() != 0);
-    msProvider.WriteModel(buffer, addToMS);
-  }
+  // FIXME: to be removed
+  // {
+  //   GriddingTaskManager::WriterGroupLockGuard guard =
+  //       _griddingTaskManager->LockWriterGroup(_facetGroupIndex);
+  //   // AddToMS if guard counter is not the first facet that's being processed
+  //   and the guard counter
+  //   // is larger than 0
+  //   // const bool addToMS = !guard.IsFirstFacet(_facetIndex); //&&
+  //   (guard.GetCounter() != 0) const bool addToMS = !guard.IsFirstFacet();
+  // }
+
+  msProvider.WriteModel(buffer, addToMS);
   msProvider.NextOutputRow();
 }
 
 template void MSGridderBase::writeVisibilities<1>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const BandData& curBand, std::complex<float>* buffer, bool addToMS);
 
 template void MSGridderBase::writeVisibilities<4>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const BandData& curBand, std::complex<float>* buffer, bool addToMS);
 
 template <size_t PolarizationCount>
 void MSGridderBase::readAndWeightVisibilities(

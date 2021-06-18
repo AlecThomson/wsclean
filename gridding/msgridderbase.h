@@ -100,7 +100,7 @@ class MSGridderBase {
     _doSubtractModel = doSubtractModel;
   }
 
-  void SetGriddingTaskManager(GriddingTaskManager* griddingTaskManager) {
+  void SetGriddingTaskManager(const GriddingTaskManager* griddingTaskManager) {
     _griddingTaskManager = griddingTaskManager;
   }
   // FIXME: to be deprecated
@@ -209,6 +209,8 @@ class MSGridderBase {
     return std::move(_metaDataCache);
   }
 
+  size_t GetFacetGroupIndex() const { return _facetGroupIndex; };
+
  protected:
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
 
@@ -292,7 +294,8 @@ class MSGridderBase {
   template <size_t PolarizationCount>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
-                         const BandData& curBand, std::complex<float>* buffer);
+                         const BandData& curBand, std::complex<float>* buffer,
+                         bool addToMS);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -318,6 +321,7 @@ class MSGridderBase {
                                  std::complex<float>* dataIter);
 
   const Settings& _settings;
+  const GriddingTaskManager* _griddingTaskManager;
 
  private:
   static std::vector<std::string> getAntennaNames(
@@ -397,7 +401,6 @@ class MSGridderBase {
   aocommon::UVector<float> _scratchWeights;
 
   std::unique_ptr<MSReader> _predictReader;
-  GriddingTaskManager* _griddingTaskManager;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

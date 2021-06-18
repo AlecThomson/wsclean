@@ -60,6 +60,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   }
   if (task.facet != nullptr) {
     gridder.SetFacetIndex(task.facetIndex);
+    gridder.SetFacetGroupIndex(task.facetGroupIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
     gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),

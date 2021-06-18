@@ -109,9 +109,11 @@ class WSClean {
    * them to zero.
    */
   void initializeModelImages(const ImagingTableEntry& entry,
-                             aocommon::PolarizationEnum polarization);
+                             aocommon::PolarizationEnum polarization,
+                             size_t nFacetGroups);
   void readExistingModelImages(const ImagingTableEntry& entry,
-                               aocommon::PolarizationEnum polarization);
+                               aocommon::PolarizationEnum polarization,
+                               size_t nFacetGroups);
   /**
    * Override the image settings given a FitsReader object.
    * The boolean return value indicates whether the gridder needs
@@ -156,7 +158,8 @@ class WSClean {
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
                          bool isPSF, Image& fullImage,
-                         schaapcommon::facets::FacetImage& facetImage);
+                         schaapcommon::facets::FacetImage& facetImage,
+                         size_t nFacetGroups);
   /**
    * Partition model image into facets and save them into fits files
    */
@@ -215,6 +218,7 @@ class WSClean {
   ObservationInfo _observationInfo;
   std::vector<schaapcommon::facets::Facet> _facets;
   double _lastStartTime;
+  size_t _maxNrMeasurementSets;
 };
 
 #endif
