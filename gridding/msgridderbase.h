@@ -16,6 +16,7 @@
 #include "../main/settings.h"
 
 #include "../scheduling/metadatacache.h"
+#include "../scheduling/griddingtaskmanager.h"
 
 #include "../structures/multibanddata.h"
 
@@ -98,6 +99,11 @@ class MSGridderBase {
   void SetDoSubtractModel(bool doSubtractModel) {
     _doSubtractModel = doSubtractModel;
   }
+
+  void SetGriddingTaskManager(GriddingTaskManager* griddingTaskManager) {
+    _griddingTaskManager = griddingTaskManager;
+  }
+  // FIXME: to be deprecated
   void SetAddToModel(bool addToModel) { _addToModel = addToModel; }
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
@@ -391,6 +397,7 @@ class MSGridderBase {
   aocommon::UVector<float> _scratchWeights;
 
   std::unique_ptr<MSReader> _predictReader;
+  GriddingTaskManager* _griddingTaskManager;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

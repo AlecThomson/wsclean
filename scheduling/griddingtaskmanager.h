@@ -4,7 +4,7 @@
 #include "griddingtask.h"
 #include "griddingresult.h"
 
-#include "../gridding/msgridderbase.h"
+// #include "../gridding/msgridderbase.h"
 
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -20,7 +20,17 @@
 #include <functional>
 #include <vector>
 
+class MSGridderBase;
+
 class GriddingTaskManager {
+ protected:
+  class WriterLockBase {
+   public:
+    WriterLockBase(){};
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
+  };
+
  public:
   virtual ~GriddingTaskManager();
 
@@ -31,9 +41,26 @@ class GriddingTaskManager {
    * This function resets the counter for all write groups to zero.
    * @param nWriterGroups The number of writer groups.
    */
-  virtual void Start(int nWriterGroups) {
+  virtual void Start(size_t nWriterGroups) {
     _writerGroupCounters.assign(nWriterGroups, 0);
   }
+
+  class WriterGroupLockGuard {
+   public:
+    WriterGroupLockGuard(WriterLockBase& lock, size_t& counter)
+        : _lock(lock), _writerGroupCounter(counter) {
+      _lock.lock();
+    }
+    ~WriterGroupLockGuard() {
+      ++_writerGroupCounter;
+      _lock.unlock();
+    }
+    int GetCounter() const { return _writerGroupCounter; }
+
+   private:
+    WriterLockBase& _lock;
+    size_t& _writerGroupCounter;
+  };
 
   /**
    * Get the counter for a writer group and increment it for the next call.
@@ -41,9 +68,9 @@ class GriddingTaskManager {
    * Note: Parallel GriddingTaskManager implementations should use proper
    * locking before using this base implementation.
    */
-  virtual LockGuard LockWriteGroup(int writerGroupIndex) {
-    static DummyLock dummy;
-    LockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]));
+  virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) {
+    static DummyWriterLock dummy;
+    WriterGroupLockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]);
     return guard;
   }
 
@@ -88,25 +115,21 @@ class GriddingTaskManager {
    */
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
-  int& GetWriterGroupCounter(writerGroupIndex) { return _writerGroupCounters[writerGroupIndex]; }
-
-  class WriterLockBase {
-  public:
-    virtual void lock() = 0;
-    virtual void unlock() = 0;
+  size_t& GetWriterGroupCounter(int writerGroupIndex) {
+    return _writerGroupCounters[writerGroupIndex];
   }
 
  private:
-  class DummyWriterLock : public WriterLockBase{
+  class DummyWriterLock : public WriterLockBase {
+   public:
     void lock() override final {}
     void unlock() override final {}
   };
 
   std::unique_ptr<MSGridderBase> constructGridder() const;
 
-  std::vector<int> _writerGroupCounters;
+  std::vector<size_t> _writerGroupCounters;
 };
-
 
 // class LockInterface {
 // public:
@@ -125,12 +148,18 @@ class GriddingTaskManager {
 //   std::mutex _mutex;
 // }
 
-class WriterGroupLockGuard {
-  LockGuard(LockInterface& lock, int& counter) : _lock(lock), _writerGroupCounter(counter) { _lock.lock(); }
-  ~LockGuard() { ++_writerGroupCounter; _lock.unlock(); }
-  int GetWriteGroupCounter() const { return _writerGroupCounter; }
-  LockInterface& _lock;
-  int& _writerGroupCounter;
-}
+// class WriterGroupLockGuard {
+//   WriterGroupLockGuard(LockInterface& lock, int& counter)
+//       : _lock(lock), _writerGroupCounter(counter) {
+//     _lock.lock();
+//   }
+//   ~WriterGroupLockGuard() {
+//     ++_writerGroupCounter;
+//     _lock.unlock();
+//   }
+//   int GetWriteGroupCounter() const { return _writerGroupCounter; }
+//   LockInterface& _lock;
+//   int& _writerGroupCounter;
+// }
 
 #endif
