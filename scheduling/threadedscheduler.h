@@ -17,12 +17,11 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override;
+  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const override;
 
  private:
   class ThreadedWriterLock final : public WriterLockBase {
    public:
-    // ThreadedWriterLock() : WriterLockBase() {};
     ThreadedWriterLock(){};
     void lock() override { _mutex.lock(); }
     void unlock() override { _mutex.unlock(); }
@@ -39,7 +38,7 @@ class ThreadedScheduler final : public GriddingTaskManager {
       _taskList;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
       _readyList;
-  std::vector<ThreadedWriterLock> _writerGroupLocks;
+  mutable std::vector<ThreadedWriterLock> _writerGroupLocks;
 };
 
 #endif

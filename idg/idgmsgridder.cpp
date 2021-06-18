@@ -289,8 +289,9 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
                    shiftp, _options);
   _bufferset->set_image(_image.data(), do_scale);
 
-  for (const MSData& msData : msDataVector) {
-    predictMeasurementSet(msData);
+  // for (const MSData& msData : msDataVector) {
+  for (size_t i = 0; i != msDataVector.size(); ++i) {
+    predictMeasurementSet(msDataVector[i], i);
   }
 }
 
@@ -310,7 +311,8 @@ void IdgMsGridder::setIdgType() {
   }
 }
 
-void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
+void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData,
+                                         size_t msIndex) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
@@ -325,80 +327,89 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
 
   msData.msProvider->ReopenRW();
 
-  _outputProvider = msData.msProvider;
-  StartMeasurementSet(msData, true);
+  {
+    GriddingTaskManager::WriterGroupLockGuard guard =
+        _griddingTaskManager->LockWriterGroup(
+            GetFacetGroupIndex() * MeasurementSetCount() + msIndex);
+    const bool addToMS = (guard.GetCounter() != 0);
+    _outputProvider = msData.msProvider;
+    StartMeasurementSet(msData, true);
 
-  aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
-                                                4);
-  _degriddingWatch.Start();
+    aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
+                                                  4);
+    _degriddingWatch.Start();
 
-  int timeIndex = -1;
-  double currentTime = -1.0;
-  aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
+    int timeIndex = -1;
+    double currentTime = -1.0;
+    aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
 
-  TimestepBuffer timestepBuffer(msData.msProvider, false);
-  timestepBuffer.ResetWritePosition();
-  for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
-       msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
-    TimestepBufferReader& timestepReader =
-        static_cast<TimestepBufferReader&>(*msReader);
+    TimestepBuffer timestepBuffer(msData.msProvider, false);
+    timestepBuffer.ResetWritePosition();
+    for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
+         msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
+      TimestepBufferReader& timestepReader =
+          static_cast<TimestepBufferReader&>(*msReader);
 
-    MSProvider::MetaData metaData;
-    timestepReader.ReadMeta(metaData);
+      MSProvider::MetaData metaData;
+      timestepReader.ReadMeta(metaData);
 
-    const size_t provRowId = timestepReader.RowId();
-    if (currentTime != metaData.time) {
-      currentTime = metaData.time;
-      timeIndex++;
+      const size_t provRowId = timestepReader.RowId();
+      if (currentTime != metaData.time) {
+        currentTime = metaData.time;
+        timeIndex++;
 
 #ifdef HAVE_EVERYBEAM
-      if (aTermMaker) {
-        timestepReader.GetUVWsForTimestep(uvws);
-        if (aTermMaker->Calculate(
-                aTermBuffer.data(), currentTime,
-                _selectedBands[metaData.dataDescId].CentreFrequency(),
-                metaData.fieldId, uvws.data())) {
-          _bufferset->get_degridder(metaData.dataDescId)
-              ->set_aterm(timeIndex, aTermBuffer.data());
-          Logger::Debug << "Calculated new a-terms for timestep " << timeIndex
-                        << "\n";
+        if (aTermMaker) {
+          timestepReader.GetUVWsForTimestep(uvws);
+          if (aTermMaker->Calculate(
+                  aTermBuffer.data(), currentTime,
+                  _selectedBands[metaData.dataDescId].CentreFrequency(),
+                  metaData.fieldId, uvws.data())) {
+            _bufferset->get_degridder(metaData.dataDescId)
+                ->set_aterm(timeIndex, aTermBuffer.data());
+            Logger::Debug << "Calculated new a-terms for timestep " << timeIndex
+                          << "\n";
+          }
         }
-      }
 #endif
+      }
+
+      IDGPredictionRow row;
+      row.uvw[0] = metaData.uInM;
+      row.uvw[1] = -metaData.vInM;
+      row.uvw[2] = -metaData.wInM;
+      row.antenna1 = metaData.antenna1;
+      row.antenna2 = metaData.antenna2;
+      row.timeIndex = timeIndex;
+      row.dataDescId = metaData.dataDescId;
+      row.rowId = provRowId;
+      predictRow(row, msData.antennaNames, addToMS);
     }
 
-    IDGPredictionRow row;
-    row.uvw[0] = metaData.uInM;
-    row.uvw[1] = -metaData.vInM;
-    row.uvw[2] = -metaData.wInM;
-    row.antenna1 = metaData.antenna1;
-    row.antenna2 = metaData.antenna2;
-    row.timeIndex = timeIndex;
-    row.dataDescId = metaData.dataDescId;
-    row.rowId = provRowId;
-    predictRow(row, msData.antennaNames);
+    for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
+      computePredictionBuffer(d, msData.antennaNames, addToMS);
   }
-
-  for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
-    computePredictionBuffer(d, msData.antennaNames);
 }
 
 void IdgMsGridder::predictRow(IDGPredictionRow& row,
-                              const std::vector<std::string>& antennaNames) {
+                              const std::vector<std::string>& antennaNames,
+                              bool addToMS) {
   while (_bufferset->get_degridder(row.dataDescId)
              ->request_visibilities(row.rowId, row.timeIndex, row.antenna1,
                                     row.antenna2, row.uvw)) {
-    computePredictionBuffer(row.dataDescId, antennaNames);
+    computePredictionBuffer(row.dataDescId, antennaNames, addToMS);
   }
 }
 
 void IdgMsGridder::computePredictionBuffer(
-    size_t dataDescId, const std::vector<std::string>& antennaNames) {
+    size_t dataDescId, const std::vector<std::string>& antennaNames,
+    bool addToMS) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
-    writeVisibilities<4>(*_outputProvider, antennaNames, curBand, i.second);
+    writeVisibilities<4>(*_outputProvider, antennaNames, curBand, i.second,
+                         addToMS);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
