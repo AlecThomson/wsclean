@@ -5,6 +5,7 @@
 
 #include "../main/settings.h"
 
+#include "../gridding/msgridderbase.h"
 #include "../gridding/wsmsgridder.h"
 #include "../gridding/directmsgridder.h"
 
@@ -89,6 +90,9 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
   } else {
+    gridder.SetGriddingTaskManager(this);
+    // TODO: SetAddModel probably can be deprecated
+    // TODO: task.addToModel might be unused
     gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
   }

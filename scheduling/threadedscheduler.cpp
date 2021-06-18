@@ -1,4 +1,5 @@
 #include "threadedscheduler.h"
+#include "../gridding/msgridderbase.h"
 
 #include "../main/settings.h"
 
@@ -42,14 +43,17 @@ void ThreadedScheduler::processQueue() {
   }
 }
 
-void ThreadedScheduler::Start(nWriterGroups) {
+void ThreadedScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
-  _writerGroupLocks.resize(nWriterGroups);
+  if (_writerGroupLocks.size() < nWriterGroups)
+    _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
 }
 
-LockGuard LockWriteGroup(int writerGroupIndex) override {
-  return LockGuard(_writerGroupLocks[writeGroupIndex],
-                   GetWriterGroupCounter(writerGroupIndex));
+GriddingTaskManager::WriterGroupLockGuard ThreadedScheduler::LockWriterGroup(
+    size_t writerGroupIndex) {
+  return GriddingTaskManager::WriterGroupLockGuard(
+      _writerGroupLocks[writerGroupIndex],
+      GetWriterGroupCounter(writerGroupIndex));
 }
 
 void ThreadedScheduler::Finish() {
