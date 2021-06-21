@@ -1,14 +1,16 @@
 #ifndef MPI_SCHEDULER_H
 #define MPI_SCHEDULER_H
 
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-
 #ifdef HAVE_MPI
 
 #include "griddingtaskmanager.h"
 #include "threadedscheduler.h"
+
+#include <aocommon/queue.h>
+
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
@@ -110,7 +112,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * Successive nodes are waiting for the lock.
    * If a queue is empty, nobody has the lock.
    */
-  std::vector<std::vector<int>> _lock_queues;
+  std::vector<aocommon::Queue<int>> _lock_queues;
 };
 
 #endif  // HAVE_MPI

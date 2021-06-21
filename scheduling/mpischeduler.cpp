@@ -225,8 +225,8 @@ void MPIScheduler::processLockRequest(int node, size_t lockId) {
   }
 
   std::unique_lock<std::mutex> lock(_mutex);
-  _lock_queues[lockId].push_back(node);
-  if (_lock_queues[lockId].size() == 1) {
+  _lock_queues[lockId].PushBack(node);
+  if (_lock_queues[lockId].Size() == 1) {
     lock.unlock();
     grantLock(node, lockId);
   }
@@ -240,15 +240,15 @@ void MPIScheduler::processLockRelease(int node, size_t lockId) {
   }
 
   std::unique_lock<std::mutex> lock(_mutex);
-  if (_lock_queues[lockId].front() != node) {
+  if (_lock_queues[lockId].Empty() || _lock_queues[lockId][0] != node) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " releases not-granted lock id " +
                              std::to_string(lockId));
   }
 
-  _lock_queues[lockId].erase(_lock_queues[lockId].begin());
-  if (!_lock_queues[lockId].empty()) {
-    node = _lock_queues[lockId].front();
+  _lock_queues[lockId].PopFront();
+  if (!_lock_queues[lockId].Empty()) {
+    node = _lock_queues[lockId][0];
     lock.unlock();
     grantLock(node, lockId);
   }
