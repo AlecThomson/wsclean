@@ -5,10 +5,25 @@
 #include <aocommon/io/serialostream.h>
 
 struct TaskMessage {
-  enum class Type { kFinish, kGriddingRequest, kGriddingResult } type;
-  size_t bodySize = 0;
+  enum class Type {
+    kInvalid,
+    kFinish,
+    kGriddingRequest,
+    kGriddingResult,
+    kLockRequest,
+    kLockGrant,
+    kLockRelease
+  } type;
+  union {
+    size_t bodySize;  // For kGridding* types.
+    size_t lockId;    // For kLock* types.
+  };
+
+  TaskMessage() : type(Type::kInvalid), bodySize(0) {}
+  TaskMessage(Type type_, size_t payload) : type(type_), bodySize(payload) {}
 
   constexpr static size_t kSerializedSize = 12;
+
   void Serialize(aocommon::SerialOStream& stream) const {
     stream.UInt32(static_cast<int>(type)).UInt64(bodySize);
   }

@@ -88,6 +88,11 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   bool receiveTasksAreRunning_UNSYNCHRONIZED();
 
+  void processGriddingResult(int node, size_t bodySize);
+  void processLockRequest(int node, size_t lockId);
+  void processLockRelease(int node, size_t lockId);
+  void grantLock(int node, size_t lockId);
+
   const bool _masterDoesWork;
   bool _isRunning, _isFinishing;
   std::condition_variable _notify;
@@ -98,6 +103,14 @@ class MPIScheduler final : public GriddingTaskManager {
   std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>
       _nodes;
   std::vector<MPIWriterLock> _writerGroupLocks;
+
+  /**
+   * For each lock, a queue with the nodes that are waiting for the lock.
+   * The first node in a queue currently has the lock.
+   * Successive nodes are waiting for the lock.
+   * If a queue is empty, nobody has the lock.
+   */
+  std::vector<std::vector<int>> _lock_queues;
 };
 
 #endif  // HAVE_MPI

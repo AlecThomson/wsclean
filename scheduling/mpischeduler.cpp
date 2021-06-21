@@ -164,24 +164,20 @@ void MPIScheduler::receiveLoop() {
       message.Unserialize(stream);
 
       int node = status.MPI_SOURCE;
-      if (message.type != TaskMessage::Type::kGriddingResult)
-        throw std::runtime_error("Invalid message sent by node " +
-                                 std::to_string(node));
-
-      buffer.resize(message.bodySize);
-      MPI_Recv_Big(buffer.data(), message.bodySize, node, 0, MPI_COMM_WORLD,
-                   &status);
-      GriddingResult result;
-      stream = aocommon::SerialIStream(std::move(buffer));
-      stream.UInt64();  // storage for MPI_Recv_Big
-      result.Unserialize(stream);
-
-      lock.lock();
-      _readyList.emplace_back(std::move(result), _nodes[node].second);
-      _nodes[node].first = AvailableNode;
-      lock.unlock();
-
-      _notify.notify_all();
+      switch (message.type) {
+        case TaskMessage::Type::kGriddingResult:
+          processGriddingResult(node, message.bodySize);
+          break;
+        case TaskMessage::Type::kLockRequest:
+          processLockRequest(node, message.lockId);
+          break;
+        case TaskMessage::Type::kLockRelease:
+          processLockRelease(node, message.lockId);
+          break;
+        default:
+          throw std::runtime_error("Invalid message sent by node " +
+                                   std::to_string(node));
+      }
 
       lock.lock();
     }
@@ -201,4 +197,72 @@ bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
   for (size_t i = 1; i != _nodes.size(); ++i)
     if (_nodes[i].first == BusyNode) return true;
   return false;
+}
+
+void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
+  aocommon::UVector<unsigned char> buffer(bodySize);
+  MPI_Status status;
+  MPI_Recv_Big(buffer.data(), bodySize, node, 0, MPI_COMM_WORLD, &status);
+  GriddingResult result;
+  aocommon::SerialIStream stream(std::move(buffer));
+  stream.UInt64();  // storage for MPI_Recv_Big
+  result.Unserialize(stream);
+
+  {
+    std::unique_lock<std::mutex> lock(_mutex);
+    _readyList.emplace_back(std::move(result), _nodes[node].second);
+    _nodes[node].first = AvailableNode;
+  }
+
+  _notify.notify_all();
+}
+
+void MPIScheduler::processLockRequest(int node, size_t lockId) {
+  if (lockId >= _lock_queues.size()) {
+    throw std::runtime_error("Node " + std::to_string(node) +
+                             " requests invalid lock id " +
+                             std::to_string(lockId));
+  }
+
+  std::unique_lock<std::mutex> lock(_mutex);
+  _lock_queues[lockId].push_back(node);
+  if (_lock_queues[lockId].size() == 1) {
+    lock.unlock();
+    grantLock(node, lockId);
+  }
+}
+
+void MPIScheduler::processLockRelease(int node, size_t lockId) {
+  if (lockId >= _lock_queues.size()) {
+    throw std::runtime_error("Node " + std::to_string(node) +
+                             " releases invalid lock id " +
+                             std::to_string(lockId));
+  }
+
+  std::unique_lock<std::mutex> lock(_mutex);
+  if (_lock_queues[lockId].front() != node) {
+    throw std::runtime_error("Node " + std::to_string(node) +
+                             " releases not-granted lock id " +
+                             std::to_string(lockId));
+  }
+
+  _lock_queues[lockId].erase(_lock_queues[lockId].begin());
+  if (!_lock_queues[lockId].empty()) {
+    node = _lock_queues[lockId].front();
+    lock.unlock();
+    grantLock(node, lockId);
+  }
+}
+
+void MPIScheduler::grantLock(int node, size_t lockId) {
+  const TaskMessage message(TaskMessage::Type::kLockGrant, lockId);
+  aocommon::SerialOStream taskMessageStream;
+  message.Serialize(taskMessageStream);
+  assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
+
+  // Using asynchronous MPI_ISend is possible here, however, the
+  // taskMessageStream should then remain valid after the call and the extra
+  // 'request' handle probably needs handling.
+  MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
+           0, MPI_COMM_WORLD);
 }
