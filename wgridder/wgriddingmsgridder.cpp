@@ -125,6 +125,14 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   const MultiBandData selectedBands(msData.SelectedBand());
 
   {
+    // FIXME: the lock now encapsulates pretty much the entire predict for a
+    // number of (unwanted) reasons:
+    // - ResetWritePosition, resetting the writer position should be done just
+    // once per facet
+    //
+    // - Even in non-faceting mode: the counter would be updated for every chunk
+    //   if we were to place the lock around writeVisibilities
+    // - Hence leading to an incorrect value of addToMS
     GriddingTaskManager::WriterGroupLockGuard guard =
         _griddingTaskManager->LockWriterGroup(
             GetFacetGroupIndex() * MeasurementSetCount() + msIndex);
@@ -169,7 +177,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
                                       uvwBuffer.data(), frequencies.data(),
                                       visBuffer.data());
 
-        // FIXME: would be much better to have the writer lock here
+        // FIXME: would be better to have the writer lock here
         Logger::Info << "Writing...\n";
         for (size_t row = 0; row != nRows; ++row) {
           writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,

@@ -648,17 +648,6 @@ void MSGridderBase::writeVisibilities(
   }
 #endif
 
-  // FIXME: to be removed
-  // {
-  //   GriddingTaskManager::WriterGroupLockGuard guard =
-  //       _griddingTaskManager->LockWriterGroup(_facetGroupIndex);
-  //   // AddToMS if guard counter is not the first facet that's being processed
-  //   and the guard counter
-  //   // is larger than 0
-  //   // const bool addToMS = !guard.IsFirstFacet(_facetIndex); //&&
-  //   (guard.GetCounter() != 0) const bool addToMS = !guard.IsFirstFacet();
-  // }
-
   msProvider.WriteModel(buffer, addToMS);
   msProvider.NextOutputRow();
 }
