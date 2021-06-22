@@ -169,6 +169,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
                                       uvwBuffer.data(), frequencies.data(),
                                       visBuffer.data());
 
+        // FIXME: would be much better to have the writer lock here
         Logger::Info << "Writing...\n";
         for (size_t row = 0; row != nRows; ++row) {
           writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,

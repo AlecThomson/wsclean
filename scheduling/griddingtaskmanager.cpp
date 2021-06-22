@@ -58,9 +58,10 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
+
+  gridder.SetFacetGroupIndex(task.facetGroupIndex);
   if (task.facet != nullptr) {
     gridder.SetFacetIndex(task.facetIndex);
-    gridder.SetFacetGroupIndex(task.facetGroupIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
     gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),
