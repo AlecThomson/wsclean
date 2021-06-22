@@ -1505,8 +1505,6 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       const ImagingTable facetGroup =
           independentGroup.GetFacetGroup(facetGroupIndex);
 
-      std::cout << "JUst before going to predict()" << std::endl;
-      std::cout << _griddingTaskManager->GetWriterGroupCounter(0) << std::endl;
       for (const auto& entry : facetGroup) {
         if (!gridPolarizationsAtOnce ||
             entry.polarization == *_settings.polarizations.begin()) {
