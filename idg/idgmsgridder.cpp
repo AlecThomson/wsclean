@@ -327,6 +327,8 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData,
 
   msData.msProvider->ReopenRW();
 
+  // FIXME: IDG cannot be combined with parallel-gridding,
+  // so is there any need for this lock?
   {
     GriddingTaskManager::WriterGroupLockGuard guard =
         _griddingTaskManager->LockWriterGroup(

@@ -93,8 +93,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.Invert();
   } else {
     gridder.SetGriddingTaskManager(this);
-    // TODO: SetAddModel probably can be deprecated
-    // TODO: task.addToModel might be unused
+    // FIXME: SetAddModel probably can be deprecated?
+    // (wasn't even used in the facet based imaging)
     gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
   }
