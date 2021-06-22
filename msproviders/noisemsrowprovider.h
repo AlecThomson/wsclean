@@ -22,11 +22,22 @@ class NoiseMSRowProvider : public DirectMSRowProvider {
                         uint32_t& antenna1, uint32_t& antenna2,
                         uint32_t& fieldId, double& time) final override;
 
+  class NoiseMap {
+   public:
+    NoiseMap() = default;
+    NoiseMap(std::istream& stream);
+    bool Empty() const { return _map.empty(); }
+    float GetNoiseValue(size_t antenna1, size_t antenna2) const;
+
+   private:
+    // Maps an antenna1, antenna2 pair to the stddev level
+    std::map<std::pair<size_t, size_t>, float> _map;
+  };
+
  private:
   std::mt19937 _rng;
   std::normal_distribution<float> _distribution;
-  // Maps an antenna1, antenna2 pair to the stddev level
-  std::map<std::pair<size_t, size_t>, float> _noiseMap;
+  NoiseMap _noiseMap;
 };
 
 #endif

@@ -4,6 +4,42 @@
 
 #include <fstream>
 
+NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
+  size_t maxAnt = 0;
+  std::string line;
+  while (stream) {
+    std::getline(stream, line);
+    if (stream) {
+      std::stringstream linestr(line);
+      size_t ant1, ant2;
+      linestr >> ant1 >> ant2;
+      if (linestr) {
+        float stddev;
+        linestr >> stddev;
+        if (!linestr) stddev = std::numeric_limits<float>::quiet_NaN();
+        if (ant1 > ant2) std::swap(ant1, ant2);
+        maxAnt = std::max(maxAnt, std::max(ant1, ant2));
+        _map.emplace(std::make_pair(ant1, ant2), stddev);
+      }
+    }
+  }
+  Logger::Info << "Read noise baseline file with " << _map.size()
+               << " rows and " << maxAnt + 1 << " antennas.\n";
+}
+
+float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1,
+                                                  size_t antenna2) const {
+  size_t a1 = antenna1, a2 = antenna2;
+  if (a1 > a2) std::swap(a1, a2);
+  auto iter = _map.find(std::make_pair(a1, a2));
+  if (iter == _map.end())
+    throw std::runtime_error(
+        "The following baseline was not present in the baseline noise "
+        "map: " +
+        std::to_string(antenna1) + " x " + std::to_string(antenna2));
+  return iter->second;
+}
+
 NoiseMSRowProvider::NoiseMSRowProvider(
     const string& msPath, const MSSelection& selection,
     const std::map<size_t, size_t>& selectedDataDescIds,
@@ -19,19 +55,9 @@ void NoiseMSRowProvider::SetNoiseLevel(double noiseStdDevJy) {
 
 void NoiseMSRowProvider::SetNoiseBaselineFile(const std::string& filename) {
   std::ifstream file(filename);
-  size_t maxAnt = 0;
-  while (file) {
-    size_t ant1, ant2;
-    float stddev;
-    file >> ant1 >> ant2 >> stddev;
-    if (file) {
-      if (ant1 > ant2) std::swap(ant1, ant2);
-      maxAnt = std::max(maxAnt, std::max(ant1, ant2));
-      _noiseMap.emplace(std::make_pair(ant1, ant2), stddev);
-    }
-  }
-  Logger::Info << "Read noise baseline file with " << _noiseMap.size()
-               << " rows and " << maxAnt + 1 << " antennas.\n";
+  if (!file)
+    throw std::runtime_error("Can't open baseline noise file " + filename);
+  _noiseMap = NoiseMap(file);
 }
 
 void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags,
@@ -41,20 +67,9 @@ void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags,
                                   uint32_t& fieldId, double& time) {
   DirectMSRowProvider::ReadData(data, flags, weights, u, v, w, dataDescId,
                                 antenna1, antenna2, fieldId, time);
-  float stddev;
-  if (_noiseMap.empty())
-    stddev = 1.0;
-  else {
-    size_t a1 = antenna1, a2 = antenna2;
-    if (a1 > a2) std::swap(a1, a2);
-    auto iter = _noiseMap.find(std::make_pair(a1, a2));
-    if (iter == _noiseMap.end())
-      throw std::runtime_error(
-          "The following baseline was not present in the baseline noise "
-          "map: " +
-          std::to_string(a1) + " x " + std::to_string(a2));
-    stddev = iter->second;
-  }
+  const float stddev =
+      _noiseMap.Empty() ? 1.0 : _noiseMap.GetNoiseValue(antenna1, antenna2);
+
   for (DataArray::contiter iter = data.cbegin(); iter != data.cend(); ++iter) {
     if (std::isfinite(iter->real()) && std::isfinite(iter->imag())) {
       iter->real(_distribution(_rng) * stddev);
