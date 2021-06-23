@@ -22,7 +22,6 @@ class ThreadedScheduler final : public GriddingTaskManager {
  private:
   class ThreadedWriterLock final : public WriterLockBase {
    public:
-    ThreadedWriterLock(){};
     void lock() override { _mutex.lock(); }
     void unlock() override { _mutex.unlock(); }
 
