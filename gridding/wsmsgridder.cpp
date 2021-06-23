@@ -241,72 +241,72 @@ void WSMSGridder::workThreadPerSample(
 void WSMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   msData.msProvider->ReopenRW();
   // FIXME: Lock here, since ResetWritePosition is not thread safe!?
-  {
-    GriddingTaskManager::WriterGroupLockGuard guard =
-        _griddingTaskManager->LockWriterGroup(
-            GetFacetGroupIndex() * MeasurementSetCount() + msIndex);
-    const bool addToMS = (guard.GetCounter() != 0);
-    msData.msProvider->ResetWritePosition();
-    const MultiBandData selectedBandData(msData.SelectedBand());
-    _gridder->PrepareBand(selectedBandData);
+  // {
+  //   GriddingTaskManager::WriterGroupLockGuard guard =
+  //       _griddingTaskManager->LockWriterGroup(
+  //           getFacetGroupIndex() * MeasurementSetCount() + msIndex);
+  //   const bool addToMS = (guard.GetCounter() != 0);
+  msData.msProvider->ResetWritePosition();
+  const MultiBandData selectedBandData(msData.SelectedBand());
+  _gridder->PrepareBand(selectedBandData);
 
-    StartMeasurementSet(msData, true);
+  StartMeasurementSet(msData, true);
 
-    size_t rowsProcessed = 0;
+  size_t rowsProcessed = 0;
 
-    aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize + _cpuCount),
-        writeLane(_laneBufferSize);
-    set_lane_debug_name(
-        calcLane,
-        "Prediction calculation lane (buffered) containing full row data");
-    set_lane_debug_name(writeLane,
-                        "Prediction write lane containing full row data");
-    lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
-                                                           _laneBufferSize);
-    std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
-                            &msData, &selectedBandData, addToMS);
-    std::vector<std::thread> calcThreads;
-    for (size_t i = 0; i != _cpuCount; ++i)
-      calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
-                               &writeLane, &selectedBandData);
+  aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize + _cpuCount),
+      writeLane(_laneBufferSize);
+  set_lane_debug_name(
+      calcLane,
+      "Prediction calculation lane (buffered) containing full row data");
+  set_lane_debug_name(writeLane,
+                      "Prediction write lane containing full row data");
+  lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
+                                                         _laneBufferSize);
+  std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
+                          &msData, &selectedBandData, msIndex);
+  std::vector<std::thread> calcThreads;
+  for (size_t i = 0; i != _cpuCount; ++i)
+    calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
+                             &writeLane, &selectedBandData);
 
-    /* Start by reading the u,v,ws in, so we don't need IO access
-     * from this thread during further processing */
-    std::vector<std::array<double, 3>> uvws;
-    std::vector<size_t> rowIds, dataIds;
-    std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
-    while (msReader->CurrentRowAvailable()) {
-      size_t dataDescId;
-      double uInMeters, vInMeters, wInMeters;
-      msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
-      uvws.push_back({uInMeters, vInMeters, wInMeters});
-      dataIds.push_back(dataDescId);
-      rowIds.push_back(msReader->RowId());
-      ++rowsProcessed;
+  /* Start by reading the u,v,ws in, so we don't need IO access
+   * from this thread during further processing */
+  std::vector<std::array<double, 3>> uvws;
+  std::vector<size_t> rowIds, dataIds;
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
+    size_t dataDescId;
+    double uInMeters, vInMeters, wInMeters;
+    msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
+    uvws.push_back({uInMeters, vInMeters, wInMeters});
+    dataIds.push_back(dataDescId);
+    rowIds.push_back(msReader->RowId());
+    ++rowsProcessed;
 
-      msReader->NextInputRow();
-    }
+    msReader->NextInputRow();
+  }
 
-    for (size_t i = 0; i != uvws.size(); ++i) {
-      PredictionWorkItem newItem;
-      newItem.uvw = uvws[i];
-      newItem.dataDescId = dataIds[i];
-      newItem.data.reset(
-          new std::complex<float>[selectedBandData[dataIds[i]].ChannelCount()]);
-      newItem.rowId = rowIds[i];
+  for (size_t i = 0; i != uvws.size(); ++i) {
+    PredictionWorkItem newItem;
+    newItem.uvw = uvws[i];
+    newItem.dataDescId = dataIds[i];
+    newItem.data.reset(
+        new std::complex<float>[selectedBandData[dataIds[i]].ChannelCount()]);
+    newItem.rowId = rowIds[i];
 
-      bufferedCalcLane.write(std::move(newItem));
-    }
-    if (IsFirstIteration())
-      Logger::Info << "Rows that were required: " << rowsProcessed << '/'
-                   << msData.matchingRows << '\n';
-    msData.totalRowsProcessed += rowsProcessed;
+    bufferedCalcLane.write(std::move(newItem));
+  }
+  if (IsFirstIteration())
+    Logger::Info << "Rows that were required: " << rowsProcessed << '/'
+                 << msData.matchingRows << '\n';
+  msData.totalRowsProcessed += rowsProcessed;
 
-    bufferedCalcLane.write_end();
-    for (std::thread& thr : calcThreads) thr.join();
-    writeLane.write_end();
-    writeThread.join();
-  }  // end lock
+  bufferedCalcLane.write_end();
+  for (std::thread& thr : calcThreads) thr.join();
+  writeLane.write_end();
+  writeThread.join();
+  // }  // end lock
 }
 
 void WSMSGridder::predictCalcThread(
@@ -334,7 +334,7 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData, bool addToMS) {
+    const MSData* msData, const MultiBandData* bandData, size_t msIndex) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -353,7 +353,7 @@ void WSMSGridder::predictWriteThread(
     while (queue.top().rowId == nextRowId) {
       writeVisibilities<1>(*msData->msProvider, msData->antennaNames,
                            (*bandData)[queue.top().dataDescId],
-                           queue.top().data.get(), addToMS);
+                           queue.top().data.get(), msIndex);
 
       queue.pop();
       ++nextRowId;
