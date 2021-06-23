@@ -44,6 +44,7 @@ class GriddingTaskManager {
     _writerGroupCounters.assign(nWriterGroups, 0);
   }
 
+  // Becomes obsolete --> std::lock_guard<WriterLock>
   class WriterGroupLockGuard {
    public:
     WriterGroupLockGuard(WriterLockBase& lock, size_t& counter)

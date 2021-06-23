@@ -33,7 +33,9 @@
 
 #include "../model/model.h"
 
+#include "../msproviders/msprovider.h"
 #include "../msproviders/contiguousms.h"
+#include "../msproviders/synchronizedms.h"
 #include "../msproviders/msdatadescription.h"
 
 #include "progressbar.h"
@@ -1022,6 +1024,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           partitionModelIntoFacets(groupTable, false);
           if (requestPolarizationsAtOnce) {
             _predictingWatch.Start();
+
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
@@ -1545,6 +1548,21 @@ void WSClean::initializeMSList(
               _settings.filenames[i], _settings.dataColumnName, selection, pol,
               d);
         msList.emplace_back(std::move(dataDescription));
+      }
+    }
+  }
+}
+
+void WSClean::resetModelColumns(const ImagingTable& groupTable) {
+  if (groupTable.FacetCount() > 1) {
+    for (size_t facetGroupIndex = 0;
+         facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
+      const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
+      std::vector<std::unique_ptr<MSDataDescription>> msList;
+      initializeMSList(facetGroup.Front(), msList);
+      for (auto& msDataDesc : msList) {
+        SynchronizedMS ms = msDataDesc->GetProvider()->MS();
+        MSProvider::ResetModelColumn(*ms);
       }
     }
   }

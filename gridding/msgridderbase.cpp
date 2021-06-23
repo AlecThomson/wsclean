@@ -647,8 +647,9 @@ void MSGridderBase::writeVisibilities(
     }
   }
 #endif
-
+  // { START LOCK
   msProvider.WriteModel(buffer, addToMS);
+  // } END LOCK
   msProvider.NextOutputRow();
 }
 
