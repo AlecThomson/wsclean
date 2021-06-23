@@ -86,6 +86,7 @@ class MSGridderBase {
 
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
+  void SetAddToMS(bool hasFacets) { _addToMS = hasFacets; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
@@ -209,9 +210,8 @@ class MSGridderBase {
     return std::move(_metaDataCache);
   }
 
-  size_t GetFacetGroupIndex() const { return _facetGroupIndex; };
-
  protected:
+  size_t getFacetGroupIndex() const { return _facetGroupIndex; };
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
 
   struct MSData {
@@ -295,7 +295,7 @@ class MSGridderBase {
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
                          const BandData& curBand, std::complex<float>* buffer,
-                         bool addToMS);
+                         size_t msIndex);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -369,6 +369,7 @@ class MSGridderBase {
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
   size_t _facetGroupIndex;
+  bool _addToMS;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;

@@ -84,7 +84,7 @@ class WSMSGridder final : public MSGridderBase {
                          const MultiBandData* bandData);
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
                           const MSData* msData, const MultiBandData* bandData,
-                          bool addToMS);
+                          size_t msIndex);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;

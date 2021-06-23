@@ -82,6 +82,7 @@ class WSClean {
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
   void resetModelColumns(const ImagingTable& groupTable);
+  void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
