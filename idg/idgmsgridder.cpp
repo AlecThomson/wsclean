@@ -390,7 +390,7 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData,
 
     for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
       computePredictionBuffer(d, msData.antennaNames, addToMS);
-  }
+  }  // end lock
 }
 
 void IdgMsGridder::predictRow(IDGPredictionRow& row,

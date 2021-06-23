@@ -77,6 +77,33 @@ void MPIScheduler::Finish() {
   }
 }
 
+void MPIScheduler::Start(size_t nWriterGroups) {
+  int world_size, rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (world_size > 1) {
+    // FIXME: exception breaks also "non-facetting" mpiruns
+    if (rank == 0) {
+      std::cout
+          << "Requested an MPI lock for a run with #nodes > 1. This is not yet "
+             "implemented"
+          << std::endl;
+    }
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  GriddingTaskManager::Start(nWriterGroups);
+  if (_writerGroupLocks.size() < nWriterGroups)
+    _writerGroupLocks = std::vector<MPIWriterLock>(nWriterGroups);
+}
+
+GriddingTaskManager::WriterGroupLockGuard MPIScheduler::LockWriterGroup(
+    size_t writerGroupIndex) const {
+  return GriddingTaskManager::WriterGroupLockGuard(
+      _writerGroupLocks[writerGroupIndex],
+      getWriterGroupCounter(writerGroupIndex));
+}
+
 void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   GriddingResult result = RunDirect(std::move(task));
   Logger::Info << "Master node has finished a gridding task.\n";

@@ -53,7 +53,7 @@ GriddingTaskManager::WriterGroupLockGuard ThreadedScheduler::LockWriterGroup(
     size_t writerGroupIndex) const {
   return GriddingTaskManager::WriterGroupLockGuard(
       _writerGroupLocks[writerGroupIndex],
-      GetWriterGroupCounter(writerGroupIndex));
+      getWriterGroupCounter(writerGroupIndex));
 }
 
 void ThreadedScheduler::Finish() {

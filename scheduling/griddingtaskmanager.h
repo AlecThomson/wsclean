@@ -26,7 +26,6 @@ class GriddingTaskManager {
  protected:
   class WriterLockBase {
    public:
-    WriterLockBase(){};
     virtual void lock() = 0;
     virtual void unlock() = 0;
   };
@@ -103,15 +102,14 @@ class GriddingTaskManager {
   static std::unique_ptr<GriddingTaskManager> Make(
       const class Settings& settings, bool useDirectScheduler = false);
 
-  // FIXME: should become protected, public for debugging only
-  size_t& GetWriterGroupCounter(size_t writerGroupIndex) const {
-    return _writerGroupCounters[writerGroupIndex];
-  }
-
  protected:
   GriddingTaskManager(const class Settings& settings);
 
   const class Settings& _settings;
+
+  size_t& getWriterGroupCounter(size_t writerGroupIndex) const {
+    return _writerGroupCounters[writerGroupIndex];
+  }
 
   std::unique_ptr<MSGridderBase> makeGridder() const;
 
