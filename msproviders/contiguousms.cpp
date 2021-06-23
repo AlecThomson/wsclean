@@ -128,7 +128,8 @@ size_t ContiguousMS::NChannels() {
 size_t ContiguousMS::NPolarizations() { return _inputPolarizations.size(); }
 
 void ContiguousMS::prepareModelColumn() {
-  initializeModelColumn(*_ms);
+  const bool forceReset = false;
+  initializeModelColumn(*_ms, forceReset);
 
   _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));

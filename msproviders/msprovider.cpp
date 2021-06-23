@@ -712,27 +712,43 @@ void MSProvider::getRowRangeAndIDMap(casacore::MeasurementSet& ms,
                << idToMSRow.size() << " rows)\n";
 }
 
-void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms) {
+void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms,
+                                       bool forceReset) {
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
     casacore::IPosition dataShape = dataColumn.shape(0);
+
     bool isDefined = modelColumn.isDefined(0);
     bool isSameShape = false;
     if (isDefined) {
       casacore::IPosition modelShape = modelColumn.shape(0);
       isSameShape = modelShape == dataShape;
     }
-    if (!isDefined || !isSameShape) {
-      Logger::Warn << "WARNING: Your model column does not have the same shape "
-                      "as your data column: resetting MODEL column.\n";
+    // if (!isDefined || !isSameShape) {
+    //   Logger::Warn << "WARNING: Your model column does not have the same
+    //   shape "
+    //                   "as your data column: resetting MODEL column.\n";
+    // const casacore::Array<casacore::Complex> zeroArray(
+    //     dataShape, casacore::Complex(0.0, 0.0));
+    // for (size_t row = 0; row != ms.nrow(); ++row)
+    //   modelColumn.put(row, zeroArray);
+    // }
+
+    if (forceReset || !isDefined || !isSameShape) {
+      if (!forceReset) {
+        Logger::Warn
+            << "WARNING: Your model column does not have the same shape "
+               "as your data column: resetting MODEL column.\n";
+      }
       const casacore::Array<casacore::Complex> zeroArray(
           dataShape, casacore::Complex(0.0, 0.0));
       for (size_t row = 0; row != ms.nrow(); ++row)
         modelColumn.put(row, zeroArray);
     }
+
   } else {  // if(!_ms.isColumn(casacore::MSMainEnums::MODEL_DATA))
     ms.reopenRW();
     Logger::Info << "Adding model data column... ";

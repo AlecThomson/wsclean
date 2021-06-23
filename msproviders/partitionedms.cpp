@@ -517,7 +517,8 @@ void PartitionedMS::unpartition(
     casacore::MeasurementSet ms(handle._msPath, casacore::Table::Update);
     const std::vector<aocommon::PolarizationEnum> msPolarizations =
         GetMSPolarizations(ms);
-    initializeModelColumn(ms);
+    const bool forceReset = false;
+    initializeModelColumn(ms, forceReset);
     casacore::ScalarColumn<int> antenna1Column(
         ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
     casacore::ScalarColumn<int> antenna2Column(
