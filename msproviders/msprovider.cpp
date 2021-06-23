@@ -717,6 +717,9 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms,
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
+    if (forceReset){
+      ms.reopenRW();
+    }
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
     casacore::IPosition dataShape = dataColumn.shape(0);
