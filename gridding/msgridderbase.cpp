@@ -112,6 +112,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetIndex(0),
       _facetGroupIndex(0),
       _addToMS(false),
+      _msIndex(0),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -546,7 +547,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer, size_t msIndex) {
+    const BandData& curBand, std::complex<float>* buffer) {
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
@@ -652,7 +653,7 @@ void MSGridderBase::writeVisibilities(
   {
     GriddingLockManager::WriterGroupLockGuard guard =
         _griddingLockManager->LockWriterGroup(
-            getFacetGroupIndex() * MeasurementSetCount() + msIndex);
+            getFacetGroupIndex() * MeasurementSetCount() + _msIndex);
     msProvider.WriteModel(buffer, _addToMS);
   }
   msProvider.NextOutputRow();
@@ -660,11 +661,11 @@ void MSGridderBase::writeVisibilities(
 
 template void MSGridderBase::writeVisibilities<1>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer, size_t msIndex);
+    const BandData& curBand, std::complex<float>* buffer);
 
 template void MSGridderBase::writeVisibilities<4>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer, size_t msIndex);
+    const BandData& curBand, std::complex<float>* buffer);
 
 template <size_t PolarizationCount>
 void MSGridderBase::readAndWeightVisibilities(

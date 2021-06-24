@@ -120,7 +120,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
+void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
 
@@ -168,7 +168,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
         writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,
-                             &visBuffer[row * band.ChannelCount()], msIndex);
+                             &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;
     }  // end of chunk
@@ -277,6 +277,8 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   _gridder->InitializePrediction(images[0].data());
   images[0].reset();
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i)
-    predictMeasurementSet(msDataVector[i], i);
+  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
+    setMSIndex(i);
+    predictMeasurementSet(msDataVector[i]);
+  }
 }

@@ -51,8 +51,7 @@ class IdgMsGridder : public MSGridderBase {
   void gridMeasurementSet(const MSGridderBase::MSData& msData);
   void gridThreadFunction();
 
-  void predictMeasurementSet(const MSGridderBase::MSData& msData,
-                             size_t msIndex);
+  void predictMeasurementSet(const MSGridderBase::MSData& msData);
   void readConfiguration();
 
   void setIdgType();
@@ -80,10 +79,9 @@ class IdgMsGridder : public MSGridderBase {
     size_t dataDescId, antenna1, antenna2, timeIndex, rowId;
   };
   void predictRow(IDGPredictionRow& row,
-                  const std::vector<std::string>& antennaNames, size_t msIndex);
+                  const std::vector<std::string>& antennaNames);
   void computePredictionBuffer(size_t dataDescId,
-                               const std::vector<std::string>& antennaNames,
-                               size_t msIndex);
+                               const std::vector<std::string>& antennaNames);
 
   std::unique_ptr<idg::api::BufferSet> _bufferset;
   size_t _subgridSize;

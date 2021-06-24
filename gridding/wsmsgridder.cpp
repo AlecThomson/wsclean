@@ -238,7 +238,7 @@ void WSMSGridder::workThreadPerSample(
   }
 }
 
-void WSMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
+void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
   const MultiBandData selectedBandData(msData.SelectedBand());
@@ -258,7 +258,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
                                                          _laneBufferSize);
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
-                          &msData, &selectedBandData, msIndex);
+                          &msData, &selectedBandData);
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _cpuCount; ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
@@ -327,7 +327,7 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData, size_t msIndex) {
+    const MSData* msData, const MultiBandData* bandData) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -346,7 +346,7 @@ void WSMSGridder::predictWriteThread(
     while (queue.top().rowId == nextRowId) {
       writeVisibilities<1>(*msData->msProvider, msData->antennaNames,
                            (*bandData)[queue.top().dataDescId],
-                           queue.top().data.get(), msIndex);
+                           queue.top().data.get());
 
       queue.pop();
       ++nextRowId;
@@ -561,8 +561,10 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->StartPredictionPass(pass);
 
     Logger::Info << "Predicting...\n";
-    for (size_t i = 0; i != MeasurementSetCount(); ++i)
-      predictMeasurementSet(msDataVector[i], i);
+    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
+      setMSIndex(i);
+      predictMeasurementSet(msDataVector[i]);
+    }
   }
 
   size_t totalRowsWritten = 0, totalMatchingRows = 0;
