@@ -14,6 +14,7 @@
 
 #include <mpi.h>
 
+#include <algorithm>
 #include <cassert>
 
 MPIScheduler::MPIScheduler(const Settings &settings)
@@ -22,9 +23,9 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       _isRunning(false) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  _nodes.assign(
-      world_size,
-      std::make_pair(AvailableNode, std::function<void(GriddingResult &)>()));
+  _nodes.assign(world_size,
+                std::make_pair(NodeState::kAvailable,
+                               std::function<void(GriddingResult &)>()));
   if (!settings.masterDoesWork && world_size <= 1)
     throw std::runtime_error(
         "Master was told not to work, but no other workers available");
@@ -92,15 +93,15 @@ void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   Logger::Info << "Master node has finished a gridding task.\n";
   std::unique_lock<std::mutex> lock(_mutex);
   _readyList.emplace_back(std::move(result), _nodes[0].second);
-  _nodes[0].first = AvailableNode;
+  _nodes[0].first = NodeState::kAvailable;
   lock.unlock();
   _notify.notify_all();
 }
 
 void MPIScheduler::send(GriddingTask &&task,
                         const std::function<void(GriddingResult &)> &callback) {
-  int node =
-      findAndSetNodeState(AvailableNode, std::make_pair(BusyNode, callback));
+  int node = findAndSetNodeState(NodeState::kAvailable,
+                                 std::make_pair(NodeState::kBusy, callback));
   Logger::Info << "Sending gridding task to node : " << node << '\n';
 
   if (node == 0) {
@@ -163,7 +164,7 @@ void MPIScheduler::receiveLoop() {
       aocommon::SerialIStream stream(std::move(buffer));
       message.Unserialize(stream);
 
-      int node = status.MPI_SOURCE;
+      const int node = status.MPI_SOURCE;
       switch (message.type) {
         case TaskMessage::Type::kGriddingResult:
           processGriddingResult(node, message.bodySize);
@@ -194,9 +195,10 @@ void MPIScheduler::processReadyList_UNSYNCHRONIZED() {
 }
 
 bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
-  for (size_t i = 1; i != _nodes.size(); ++i)
-    if (_nodes[i].first == BusyNode) return true;
-  return false;
+  const auto nodeIsBusy = [](const decltype(_nodes)::value_type &node) {
+    return node.first == NodeState::kBusy;
+  };
+  return std::any_of(_nodes.begin(), _nodes.end(), nodeIsBusy);
 }
 
 void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
@@ -208,12 +210,9 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
   stream.UInt64();  // storage for MPI_Recv_Big
   result.Unserialize(stream);
 
-  {
-    std::unique_lock<std::mutex> lock(_mutex);
-    _readyList.emplace_back(std::move(result), _nodes[node].second);
-    _nodes[node].first = AvailableNode;
-  }
-
+  std::unique_lock<std::mutex> lock(_mutex);
+  _readyList.emplace_back(std::move(result), _nodes[node].second);
+  _nodes[node].first = NodeState::kAvailable;
   _notify.notify_all();
 }
 
@@ -225,6 +224,10 @@ void MPIScheduler::processLockRequest(int node, size_t lockId) {
   }
 
   std::unique_lock<std::mutex> lock(_mutex);
+  if (_nodes[node].first != NodeState::kBusy) {
+    throw std::runtime_error("Non-busy node " + std::to_string(node) +
+                             " requests lock id " + std::to_string(lockId));
+  }
   _lock_queues[lockId].PushBack(node);
   if (_lock_queues[lockId].Size() == 1) {
     lock.unlock();
@@ -248,9 +251,9 @@ void MPIScheduler::processLockRelease(int node, size_t lockId) {
 
   _lock_queues[lockId].PopFront();
   if (!_lock_queues[lockId].Empty()) {
-    node = _lock_queues[lockId][0];
+    const int waiting_node = _lock_queues[lockId][0];
     lock.unlock();
-    grantLock(node, lockId);
+    grantLock(waiting_node, lockId);
   }
 }
 

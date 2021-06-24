@@ -35,7 +35,7 @@ class MPIScheduler final : public GriddingTaskManager {
     void unlock() override {}
   };
 
-  enum NodeState { AvailableNode, BusyNode };
+  enum class NodeState { kAvailable, kBusy };
 
   /**
    * Send a task to a worker node or run it on the master
