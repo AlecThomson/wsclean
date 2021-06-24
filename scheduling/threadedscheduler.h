@@ -17,10 +17,10 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const override;
+  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override;
 
  private:
-  class ThreadedWriterLock final : public WriterLockBase {
+  class ThreadedWriterLock final : public WriterLock {
    public:
     void lock() override { _mutex.lock(); }
     void unlock() override { _mutex.unlock(); }
