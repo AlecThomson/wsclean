@@ -135,10 +135,17 @@ class MSProvider {
    * MODEL_DATA column does not exist - create a MODEL_DATA column filled with
    * zeros.
    */
-  static void ResetModelColumn(casacore::MeasurementSet& ms) {
-    const bool forceReset = true;
-    initializeModelColumn(ms, forceReset);
-  };
+  // static void ResetModelColumn(casacore::MeasurementSet& ms) {
+  //   const bool forceReset = true;
+  //   initializeModelColumn(ms, forceReset);
+  // };
+
+  // FIXME: should be implemented with
+  // - MakeReader()
+  // - Loop over CurrentRowAvailable
+  // - Call to WriteModel, with a buffer filled with zeros with length nchannels
+  // * npolarizations
+  void ResetModelColumn(size_t nPol);
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,

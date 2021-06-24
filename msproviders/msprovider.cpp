@@ -8,6 +8,7 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 
 #include "../structures/msselection.h"
+#include "../structures/multibanddata.h"
 
 namespace {
 template <bool add>
@@ -717,7 +718,7 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms,
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
-    if (forceReset){
+    if (forceReset) {
       ms.reopenRW();
     }
     casacore::ArrayColumn<casacore::Complex> modelColumn(
@@ -821,6 +822,23 @@ std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
        p != corrTypeVec.cend(); ++p)
     pols.push_back(aocommon::Polarization::AipsIndexToEnum(*p));
   return pols;
+}
+
+void MSProvider::ResetModelColumn(size_t nPol) {
+  std::unique_ptr<MSReader> msReader = MakeReader();
+  // Always overwrite
+  const bool addToMS = false;
+  SynchronizedMS ms = MS();
+  ms->reopenRW();
+  MultiBandData bands(ms->spectralWindow(), ms->dataDescription());
+  const std::vector<std::complex<float>> buffer(bands.MaxChannels() * nPol,
+                                                {0, 0});
+  // Fill the vector
+  while (msReader->CurrentRowAvailable()) {
+    WriteModel(buffer.data(), addToMS);
+    NextOutputRow();
+    msReader->NextInputRow();
+  }
 }
 
 bool MSProvider::openWeightSpectrumColumn(
