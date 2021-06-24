@@ -3,8 +3,7 @@
 
 #include "griddingtask.h"
 #include "griddingresult.h"
-
-// #include "../gridding/msgridderbase.h"
+#include "griddinglockmanager.h"
 
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -22,14 +21,7 @@
 
 class MSGridderBase;
 
-class GriddingTaskManager {
- protected:
-  class WriterLockBase {
-   public:
-    virtual void lock() = 0;
-    virtual void unlock() = 0;
-  };
-
+class GriddingTaskManager : public GriddingLockManager {
  public:
   virtual ~GriddingTaskManager();
 
@@ -44,31 +36,13 @@ class GriddingTaskManager {
     _writerGroupCounters.assign(nWriterGroups, 0);
   }
 
-  // Becomes obsolete --> std::lock_guard<WriterLock>
-  class WriterGroupLockGuard {
-   public:
-    WriterGroupLockGuard(WriterLockBase& lock, size_t& counter)
-        : _lock(lock), _writerGroupCounter(counter) {
-      _lock.lock();
-    }
-    ~WriterGroupLockGuard() {
-      ++_writerGroupCounter;
-      _lock.unlock();
-    }
-    size_t GetCounter() const { return _writerGroupCounter; }
-
-   private:
-    WriterLockBase& _lock;
-    size_t& _writerGroupCounter;
-  };
-
   /**
    * Get the counter for a writer group and increment it for the next call.
    * Each call thus yields a higher value.
    * Note: Parallel GriddingTaskManager implementations should use proper
    * locking before using this base implementation.
    */
-  virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const {
+  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const override {
     static DummyWriterLock dummy;
     WriterGroupLockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]);
     return guard;

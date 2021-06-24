@@ -93,9 +93,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
   } else {
-    gridder.SetGriddingTaskManager(this);
-    // FIXME: SetAddModel probably can be deprecated?
-    // (wasn't even used in the facet based imaging)
+    gridder.SetGriddingLockManager(this);
+    // FIXME: SetAddModel seems to be unused. Deprecate?
     gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
   }

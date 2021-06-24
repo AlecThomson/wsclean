@@ -650,8 +650,8 @@ void MSGridderBase::writeVisibilities(
 #endif
 
   {
-    GriddingTaskManager::WriterGroupLockGuard guard =
-        _griddingTaskManager->LockWriterGroup(
+    GriddingLockManager::WriterGroupLockGuard guard =
+        _griddingLockManager->LockWriterGroup(
             getFacetGroupIndex() * MeasurementSetCount() + msIndex);
     msProvider.WriteModel(buffer, _addToMS);
   }
