@@ -111,8 +111,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _phaseCentreDM(0.0),
       _facetIndex(0),
       _facetGroupIndex(0),
-      _addToMS(false),
       _msIndex(0),
+      _addToMS(false),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -653,7 +653,7 @@ void MSGridderBase::writeVisibilities(
   {
     GriddingLockManager::WriterGroupLockGuard guard =
         _griddingLockManager->LockWriterGroup(
-            getFacetGroupIndex() * MeasurementSetCount() + _msIndex);
+            _facetGroupIndex * MeasurementSetCount() + _msIndex);
     msProvider.WriteModel(buffer, _addToMS);
   }
   msProvider.NextOutputRow();

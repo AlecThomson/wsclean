@@ -86,6 +86,13 @@ class MSGridderBase {
 
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
+  /**
+   * @brief In case of facet-based imaging, the MODEL_DATA column is
+   * reset to zeros in every major cycle, and predicted data
+   * should be add-assigned to the MODEL_DATA column (_addToMS = true) rather
+   * than overwriting it. For "standard" imaging, the MODEL_DATA columns should
+   * be overwritten (_addToMS = false).
+   */
   void SetAddToMS(bool hasFacets) { _addToMS = hasFacets; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
@@ -212,9 +219,7 @@ class MSGridderBase {
   }
 
  protected:
-  size_t getFacetGroupIndex() const { return _facetGroupIndex; };
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
-  void setMSIndex(size_t msIndex) { _msIndex = msIndex; }
 
   struct MSData {
    public:
@@ -251,12 +256,11 @@ class MSGridderBase {
    * @param _pointResponse data in case a beam is applied on the facets and
    * EveryBeam is available and the @param _predictReader data member in case
    * @param isPredict is true.
-   * @param msIndex MS index, default to 0, since this is only needed in the
-   * predict stage
    */
   void StartMeasurementSet(const MSGridderBase::MSData& msData,
                            bool isPredict) {
     initializePointResponse(msData);
+    _msIndex = msData.msIndex;
     if (isPredict) initializePredictReader(*msData.msProvider);
   }
 
@@ -370,9 +374,13 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
+  // _facetGroupIndex and _msIndex in conjunction with MeasurementSetCount()
+  // are use to determine the index in the _writerGroupLocks vector, which has
+  // size FacetGroupCount() * MeasurementSetCount()
   size_t _facetGroupIndex;
-  bool _addToMS;
   size_t _msIndex;
+  // See SetAddToMS for documentation
+  bool _addToMS;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;

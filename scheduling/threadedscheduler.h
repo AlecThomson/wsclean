@@ -37,7 +37,7 @@ class ThreadedScheduler final : public GriddingTaskManager {
       _taskList;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
       _readyList;
-  mutable std::vector<ThreadedWriterLock> _writerGroupLocks;
+  std::vector<ThreadedWriterLock> _writerGroupLocks;
 };
 
 #endif

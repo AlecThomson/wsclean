@@ -78,17 +78,14 @@ void MPIScheduler::Finish() {
 }
 
 void MPIScheduler::Start(size_t nWriterGroups) {
-  int world_size, rank;
+  int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (world_size > 1) {
     // FIXME: exception breaks also "non-facetting" mpiruns
-    if (rank == 0) {
-      std::cout
-          << "Requested an MPI lock for a run with #nodes > 1. This is not yet "
-             "implemented"
-          << std::endl;
-    }
+    std::cout
+        << "Requested an MPI lock for a run with #nodes > 1. This is not yet "
+           "implemented"
+        << std::endl;
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 

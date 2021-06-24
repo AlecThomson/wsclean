@@ -123,7 +123,6 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
-
   StartMeasurementSet(msData, true);
 
   size_t totalNRows = 0;
@@ -140,7 +139,6 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
     // Iterate over chunks until all data has been gridded
     msData.msProvider->ResetWritePosition();
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
-
     while (msReader->CurrentRowAvailable()) {
       size_t nRows = 0;
       // Read / fill the chunk
@@ -164,7 +162,6 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
                                     uvwBuffer.data(), frequencies.data(),
                                     visBuffer.data());
 
-      // FIXME: would be better to have the writer lock here
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
         writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,
@@ -173,6 +170,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
       totalNRows += nRows;
     }  // end of chunk
   }    // end of all chunks
+
   msData.totalRowsProcessed += totalNRows;
 }
 
@@ -277,8 +275,5 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   _gridder->InitializePrediction(images[0].data());
   images[0].reset();
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    setMSIndex(i);
-    predictMeasurementSet(msDataVector[i]);
-  }
+  for (MSData& msData : msDataVector) predictMeasurementSet(msData);
 }
