@@ -42,10 +42,9 @@ class GriddingTaskManager : public GriddingLockManager {
    * Note: Parallel GriddingTaskManager implementations should use proper
    * locking before using this base implementation.
    */
-  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const override {
+  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override {
     static DummyWriterLock dummy;
-    WriterGroupLockGuard guard(dummy, _writerGroupCounters[writerGroupIndex]);
-    return guard;
+    return WriterGroupLockGuard(dummy);
   }
 
   /**
@@ -94,7 +93,7 @@ class GriddingTaskManager : public GriddingLockManager {
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
  private:
-  class DummyWriterLock : public WriterLockBase {
+  class DummyWriterLock : public WriterLock {
    public:
     void lock() override final {}
     void unlock() override final {}

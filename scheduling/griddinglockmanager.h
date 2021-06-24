@@ -1,13 +1,15 @@
 #ifndef GRIDDING_LOCK_MANAGER_H
 #define GRIDDING_LOCK_MANAGER_H
 
+#include <mutex>
+
 /**
  * @brief Abstract interface class providing access to the
  * locking mechanism of the GriddingTaskManager or childs thereof.
  */
 class GriddingLockManager {
  protected:
-  class WriterLockBase {
+  class WriterLock {
    public:
     virtual void lock() = 0;
     virtual void unlock() = 0;
@@ -16,25 +18,8 @@ class GriddingLockManager {
  public:
   virtual ~GriddingLockManager(){};
 
-  // Becomes obsolete --> std::lock_guard<WriterLock>
-  class WriterGroupLockGuard {
-   public:
-    WriterGroupLockGuard(WriterLockBase& lock, size_t& counter)
-        : _lock(lock), _writerGroupCounter(counter) {
-      _lock.lock();
-    }
-    ~WriterGroupLockGuard() {
-      ++_writerGroupCounter;
-      _lock.unlock();
-    }
-    size_t GetCounter() const { return _writerGroupCounter; }
+  using WriterGroupLockGuard = std::lock_guard<WriterLock>;
 
-   private:
-    WriterLockBase& _lock;
-    size_t& _writerGroupCounter;
-  };
-
-  virtual WriterGroupLockGuard LockWriterGroup(
-      size_t writerGroupIndex) const = 0;
+  virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) = 0;
 };
 #endif

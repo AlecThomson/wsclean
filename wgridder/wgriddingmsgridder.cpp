@@ -124,20 +124,6 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
 
-  // {
-  // FIXME: the lock now encapsulates pretty much the entire predict for a
-  // number of (unwanted) reasons:
-  // - ResetWritePosition, resetting the writer position should be done just
-  // once per facet
-  //
-  // - Even in non-faceting mode: the counter would be updated for every chunk
-  //   if we were to place the lock around writeVisibilities
-  // - Hence leading to an incorrect value of addToMS
-  // GriddingTaskManager::WriterGroupLockGuard guard =
-  //     _griddingTaskManager->LockWriterGroup(
-  //         getFacetGroupIndex() * MeasurementSetCount() + msIndex);
-  // const bool addToMS = (guard.GetCounter() != 0);
-  // const bool addToMS = hasFacets();
   StartMeasurementSet(msData, true);
 
   size_t totalNRows = 0;
@@ -188,7 +174,6 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
     }  // end of chunk
   }    // end of all chunks
   msData.totalRowsProcessed += totalNRows;
-  // }  // release lock
 }
 
 void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,

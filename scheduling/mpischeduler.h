@@ -22,10 +22,10 @@ class MPIScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) const override;
+  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override;
 
  private:
-  class MPIWriterLock final : public WriterLockBase {
+  class MPIWriterLock final : public WriterLock {
    public:
     void lock() override{};
     void unlock() override {}

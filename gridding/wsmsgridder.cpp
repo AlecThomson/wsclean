@@ -240,12 +240,6 @@ void WSMSGridder::workThreadPerSample(
 
 void WSMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   msData.msProvider->ReopenRW();
-  // FIXME: Lock here, since ResetWritePosition is not thread safe!?
-  // {
-  //   GriddingTaskManager::WriterGroupLockGuard guard =
-  //       _griddingTaskManager->LockWriterGroup(
-  //           getFacetGroupIndex() * MeasurementSetCount() + msIndex);
-  //   const bool addToMS = (guard.GetCounter() != 0);
   msData.msProvider->ResetWritePosition();
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
@@ -306,7 +300,6 @@ void WSMSGridder::predictMeasurementSet(MSData& msData, size_t msIndex) {
   for (std::thread& thr : calcThreads) thr.join();
   writeLane.write_end();
   writeThread.join();
-  // }  // end lock
 }
 
 void WSMSGridder::predictCalcThread(

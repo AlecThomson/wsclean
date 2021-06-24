@@ -327,13 +327,6 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData,
 
   msData.msProvider->ReopenRW();
 
-  // FIXME: IDG cannot be combined with parallel-gridding,
-  // so is there any need for this lock?
-  // {
-  //   GriddingTaskManager::WriterGroupLockGuard guard =
-  //       _griddingTaskManager->LockWriterGroup(
-  //           getFacetGroupIndex() * MeasurementSetCount() + msIndex);
-  //   const bool addToMS = (guard.GetCounter() != 0);
   _outputProvider = msData.msProvider;
   StartMeasurementSet(msData, true);
 
@@ -390,7 +383,6 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData,
 
   for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
     computePredictionBuffer(d, msData.antennaNames, msIndex);
-  // }  // end lock
 }
 
 void IdgMsGridder::predictRow(IDGPredictionRow& row,
