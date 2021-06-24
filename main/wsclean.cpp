@@ -33,9 +33,7 @@
 
 #include "../model/model.h"
 
-#include "../msproviders/msprovider.h"
 #include "../msproviders/contiguousms.h"
-#include "../msproviders/synchronizedms.h"
 #include "../msproviders/msdatadescription.h"
 
 #include "progressbar.h"
@@ -334,7 +332,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
     // If !_facets.empty(), these actions are performed in stitchFacets
     if (isInitialInversion && _facets.empty()) {
-      // nFacetGroups always equal to 1
+      // nFacetGroups is always 1
       const size_t nFacetGroups = 1;
       initializeModelImages(entry, polarization, nFacetGroups);
 
@@ -1069,7 +1067,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _inversionWatch.Pause();
           } else {  // only parallize channels
             _predictingWatch.Start();
-            // resetModelColumns(groupTable);
             resetModelColumns(groupTable);
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());

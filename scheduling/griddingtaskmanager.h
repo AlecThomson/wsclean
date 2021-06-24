@@ -29,19 +29,10 @@ class GriddingTaskManager : public GriddingLockManager {
    * Initialize writer groups. Call this function before scheduling Predict
    * tasks.
    *
-   * This function resets the counter for all write groups to zero.
    * @param nWriterGroups The number of writer groups.
    */
-  virtual void Start(size_t nWriterGroups) {
-    _writerGroupCounters.assign(nWriterGroups, 0);
-  }
+  virtual void Start(size_t nWriterGroups) {}
 
-  /**
-   * Get the counter for a writer group and increment it for the next call.
-   * Each call thus yields a higher value.
-   * Note: Parallel GriddingTaskManager implementations should use proper
-   * locking before using this base implementation.
-   */
   WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override {
     static DummyWriterLock dummy;
     return WriterGroupLockGuard(dummy);
@@ -81,9 +72,9 @@ class GriddingTaskManager : public GriddingLockManager {
 
   const class Settings& _settings;
 
-  size_t& getWriterGroupCounter(size_t writerGroupIndex) const {
-    return _writerGroupCounters[writerGroupIndex];
-  }
+  // size_t& getWriterGroupCounter(size_t writerGroupIndex) const {
+  //   return _writerGroupCounters[writerGroupIndex];
+  // }
 
   std::unique_ptr<MSGridderBase> makeGridder() const;
 
@@ -101,7 +92,7 @@ class GriddingTaskManager : public GriddingLockManager {
 
   std::unique_ptr<MSGridderBase> constructGridder() const;
 
-  mutable std::vector<size_t> _writerGroupCounters;
+  // mutable std::vector<size_t> _writerGroupCounters;
 };
 
 #endif

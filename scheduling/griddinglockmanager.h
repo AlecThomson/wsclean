@@ -20,6 +20,9 @@ class GriddingLockManager {
 
   using WriterGroupLockGuard = std::lock_guard<WriterLock>;
 
+  /**
+   * @brief Return a writer lock guard for the given @param writerGroupIndex
+   */
   virtual WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) = 0;
 };
 #endif

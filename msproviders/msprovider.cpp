@@ -713,14 +713,10 @@ void MSProvider::getRowRangeAndIDMap(casacore::MeasurementSet& ms,
                << idToMSRow.size() << " rows)\n";
 }
 
-void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms,
-                                       bool forceReset) {
+void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms) {
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
-    if (forceReset) {
-      ms.reopenRW();
-    }
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
     casacore::IPosition dataShape = dataColumn.shape(0);
@@ -731,28 +727,14 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms,
       casacore::IPosition modelShape = modelColumn.shape(0);
       isSameShape = modelShape == dataShape;
     }
-    // if (!isDefined || !isSameShape) {
-    //   Logger::Warn << "WARNING: Your model column does not have the same
-    //   shape "
-    //                   "as your data column: resetting MODEL column.\n";
-    // const casacore::Array<casacore::Complex> zeroArray(
-    //     dataShape, casacore::Complex(0.0, 0.0));
-    // for (size_t row = 0; row != ms.nrow(); ++row)
-    //   modelColumn.put(row, zeroArray);
-    // }
-
-    if (forceReset || !isDefined || !isSameShape) {
-      if (!forceReset) {
-        Logger::Warn
-            << "WARNING: Your model column does not have the same shape "
-               "as your data column: resetting MODEL column.\n";
-      }
+    if (!isDefined || !isSameShape) {
+      Logger::Warn << "WARNING: Your model column does not have the same shape "
+                      "as your data column: resetting MODEL column.\n";
       const casacore::Array<casacore::Complex> zeroArray(
           dataShape, casacore::Complex(0.0, 0.0));
       for (size_t row = 0; row != ms.nrow(); ++row)
         modelColumn.put(row, zeroArray);
     }
-
   } else {  // if(!_ms.isColumn(casacore::MSMainEnums::MODEL_DATA))
     ms.reopenRW();
     Logger::Info << "Adding model data column... ";
@@ -833,7 +815,6 @@ void MSProvider::ResetModelColumn(size_t nPol) {
   MultiBandData bands(ms->spectralWindow(), ms->dataDescription());
   const std::vector<std::complex<float>> buffer(bands.MaxChannels() * nPol,
                                                 {0, 0});
-  // Fill the vector
   while (msReader->CurrentRowAvailable()) {
     WriteModel(buffer.data(), addToMS);
     NextOutputRow();

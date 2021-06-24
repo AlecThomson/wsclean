@@ -95,7 +95,7 @@ class MPIScheduler final : public GriddingTaskManager {
       _readyList;
   std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>
       _nodes;
-  mutable std::vector<MPIWriterLock> _writerGroupLocks;
+  std::vector<MPIWriterLock> _writerGroupLocks;
 };
 
 #endif  // HAVE_MPI
