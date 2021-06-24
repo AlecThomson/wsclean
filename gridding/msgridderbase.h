@@ -101,10 +101,11 @@ class MSGridderBase {
     _doSubtractModel = doSubtractModel;
   }
 
-  void SetGriddingTaskManager(const GriddingTaskManager* griddingTaskManager) {
-    _griddingTaskManager = griddingTaskManager;
+  void SetGriddingLockManager(GriddingTaskManager* griddingTaskManager) {
+    _griddingLockManager = griddingTaskManager;
   }
-  // FIXME: to be deprecated
+
+  // FIXME: to be deprecated?
   void SetAddToModel(bool addToModel) { _addToModel = addToModel; }
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
@@ -321,7 +322,6 @@ class MSGridderBase {
                                  std::complex<float>* dataIter);
 
   const Settings& _settings;
-  const GriddingTaskManager* _griddingTaskManager;
 
  private:
   static std::vector<std::string> getAntennaNames(
@@ -402,6 +402,7 @@ class MSGridderBase {
   aocommon::UVector<float> _scratchWeights;
 
   std::unique_ptr<MSReader> _predictReader;
+  GriddingLockManager* _griddingLockManager;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive
