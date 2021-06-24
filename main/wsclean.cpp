@@ -1023,9 +1023,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           partitionModelIntoFacets(groupTable, false);
           if (requestPolarizationsAtOnce) {
             _predictingWatch.Start();
-            std::cout << "STARTING 1" << std::endl;
             resetModelColumns(groupTable);
-            std::cout << "Quitting 1" << std::endl;
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
@@ -1048,10 +1046,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
             _predictingWatch.Start();
-
-            std::cout << "STARTING 2" << std::endl;
             resetModelColumns(groupTable);
-            std::cout << "Quitting 2" << std::endl;
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             for (const ImagingTable::Group& sqGroup :
@@ -1075,9 +1070,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           } else {  // only parallize channels
             _predictingWatch.Start();
             // resetModelColumns(groupTable);
-            std::cout << "STARTING 3" << std::endl;
             resetModelColumns(groupTable);
-            std::cout << "Quitting 3" << std::endl;
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             bool hasMore;
@@ -1577,9 +1570,9 @@ void WSClean::resetModelColumns(const ImagingTable& groupTable) {
 void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   std::vector<std::unique_ptr<MSDataDescription>> msList;
   initializeMSList(entry, msList);
+  const size_t nPol = _settings.useIDG ? 4 : 1;
   for (auto& msDataDesc : msList) {
-    SynchronizedMS ms = msDataDesc->GetProvider()->MS();
-    MSProvider::ResetModelColumn(*ms);
+    msDataDesc->GetProvider()->ResetModelColumn(nPol);
   }
 }
 
