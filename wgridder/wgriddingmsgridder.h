@@ -33,7 +33,7 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   void gridMeasurementSet(MSData& msData);
 
-  void predictMeasurementSet(MSData& msData, size_t msIndex);
+  void predictMeasurementSet(MSData& msData);
 
   size_t calculateMaxNRowsInMemory(size_t channelCount) const;
 

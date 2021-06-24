@@ -214,6 +214,7 @@ class MSGridderBase {
  protected:
   size_t getFacetGroupIndex() const { return _facetGroupIndex; };
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
+  void setMSIndex(size_t msIndex) { _msIndex = msIndex; }
 
   struct MSData {
    public:
@@ -250,6 +251,8 @@ class MSGridderBase {
    * @param _pointResponse data in case a beam is applied on the facets and
    * EveryBeam is available and the @param _predictReader data member in case
    * @param isPredict is true.
+   * @param msIndex MS index, default to 0, since this is only needed in the
+   * predict stage
    */
   void StartMeasurementSet(const MSGridderBase::MSData& msData,
                            bool isPredict) {
@@ -295,8 +298,7 @@ class MSGridderBase {
   template <size_t PolarizationCount>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
-                         const BandData& curBand, std::complex<float>* buffer,
-                         size_t msIndex);
+                         const BandData& curBand, std::complex<float>* buffer);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -370,6 +372,7 @@ class MSGridderBase {
   size_t _facetIndex;
   size_t _facetGroupIndex;
   bool _addToMS;
+  size_t _msIndex;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;
