@@ -3,7 +3,7 @@
 
 #include "griddingtask.h"
 #include "griddingresult.h"
-#include "griddinglockmanager.h"
+#include "writerlockmanager.h"
 
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -21,7 +21,7 @@
 
 class MSGridderBase;
 
-class GriddingTaskManager : public GriddingLockManager {
+class GriddingTaskManager : public WriterLockManager {
  public:
   virtual ~GriddingTaskManager();
 
@@ -33,9 +33,9 @@ class GriddingTaskManager : public GriddingLockManager {
    */
   virtual void Start(size_t nWriterGroups) {}
 
-  WriterGroupLockGuard LockWriterGroup(size_t writerGroupIndex) override {
+  LockGuard GetLock(size_t writerGroupIndex) override {
     static DummyWriterLock dummy;
-    return WriterGroupLockGuard(dummy);
+    return LockGuard(dummy);
   }
 
   /**
@@ -72,10 +72,6 @@ class GriddingTaskManager : public GriddingLockManager {
 
   const class Settings& _settings;
 
-  // size_t& getWriterGroupCounter(size_t writerGroupIndex) const {
-  //   return _writerGroupCounters[writerGroupIndex];
-  // }
-
   std::unique_ptr<MSGridderBase> makeGridder() const;
 
   /**
@@ -84,15 +80,13 @@ class GriddingTaskManager : public GriddingLockManager {
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
  private:
-  class DummyWriterLock : public WriterLock {
+  class DummyWriterLock final : public WriterLock {
    public:
-    void lock() override final {}
-    void unlock() override final {}
+    void lock() override {}
+    void unlock() override {}
   };
 
   std::unique_ptr<MSGridderBase> constructGridder() const;
-
-  // mutable std::vector<size_t> _writerGroupCounters;
 };
 
 #endif

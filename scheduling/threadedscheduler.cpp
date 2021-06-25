@@ -49,9 +49,9 @@ void ThreadedScheduler::Start(size_t nWriterGroups) {
     _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
 }
 
-GriddingLockManager::WriterGroupLockGuard ThreadedScheduler::LockWriterGroup(
+WriterLockManager::LockGuard ThreadedScheduler::GetLock(
     size_t writerGroupIndex) {
-  return WriterGroupLockGuard(_writerGroupLocks[writerGroupIndex]);
+  return LockGuard(_writerGroupLocks[writerGroupIndex]);
 }
 
 void ThreadedScheduler::Finish() {

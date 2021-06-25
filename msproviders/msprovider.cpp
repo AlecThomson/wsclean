@@ -720,7 +720,6 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms) {
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
     casacore::IPosition dataShape = dataColumn.shape(0);
-
     bool isDefined = modelColumn.isDefined(0);
     bool isSameShape = false;
     if (isDefined) {
@@ -808,14 +807,14 @@ std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
 
 void MSProvider::ResetModelColumn(size_t nPol) {
   std::unique_ptr<MSReader> msReader = MakeReader();
-  // Always overwrite
-  const bool addToMS = false;
   SynchronizedMS ms = MS();
   ms->reopenRW();
   MultiBandData bands(ms->spectralWindow(), ms->dataDescription());
   const std::vector<std::complex<float>> buffer(bands.MaxChannels() * nPol,
                                                 {0, 0});
   while (msReader->CurrentRowAvailable()) {
+    // Always overwrite
+    const bool addToMS = false;
     WriteModel(buffer.data(), addToMS);
     NextOutputRow();
     msReader->NextInputRow();

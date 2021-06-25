@@ -1020,8 +1020,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (_settings.deconvolutionMGain != 1.0) {
           partitionModelIntoFacets(groupTable, false);
           if (requestPolarizationsAtOnce) {
-            _predictingWatch.Start();
             resetModelColumns(groupTable);
+            _predictingWatch.Start();
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
@@ -1043,8 +1043,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _griddingTaskManager->Finish();
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
-            _predictingWatch.Start();
             resetModelColumns(groupTable);
+            _predictingWatch.Start();
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             for (const ImagingTable::Group& sqGroup :
@@ -1066,8 +1066,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _griddingTaskManager->Finish();
             _inversionWatch.Pause();
           } else {  // only parallize channels
-            _predictingWatch.Start();
             resetModelColumns(groupTable);
+            _predictingWatch.Start();
             _griddingTaskManager->Start(_maxNrMeasurementSets *
                                         groupTable.FacetGroupCount());
             bool hasMore;
@@ -1471,8 +1471,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   const bool gridPolarizationsAtOnce =
       _settings.useIDG && _settings.polarizations.size() != 1;
 
-  _predictingWatch.Start();
   resetModelColumns(groupTable);
+  _predictingWatch.Start();
   _griddingTaskManager->Start(_maxNrMeasurementSets *
                               groupTable.FacetGroupCount());
 
@@ -1518,8 +1518,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
     }    // facet groups of different polarizations
   }      // independent groups (channels)
 
-  _predictingWatch.Pause();
   _griddingTaskManager->Finish();
+  _predictingWatch.Pause();
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
@@ -1556,10 +1556,8 @@ void WSClean::initializeMSList(
 
 void WSClean::resetModelColumns(const ImagingTable& groupTable) {
   if (groupTable.FacetCount() > 1) {
-    for (size_t facetGroupIndex = 0;
-         facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
-      const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
-      resetModelColumns(facetGroup.Front());
+    for (const ImagingTable::Group& facetGroup : groupTable.FacetGroups()) {
+      resetModelColumns(*facetGroup.front());
     }
   }
 }
