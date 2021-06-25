@@ -164,7 +164,7 @@ def test_stop_on_negative_components():
     check_call(s.split())
 
 def test_save_imaging_weights():
-    s = f"./wsclean -name {name('save-imaging-weights')} -no-reorder -save-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
+    s = f"./wsclean -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 @pytest.mark.parametrize(
