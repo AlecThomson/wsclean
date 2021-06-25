@@ -21,7 +21,7 @@ class WriterLockManager {
   using LockGuard = std::lock_guard<WriterLock>;
 
   /**
-   * @brief Return a writer lock guard for the given @param writerGroupIndex
+   * @brief Return a writer lock guard for the given @p writerGroupIndex
    */
   virtual LockGuard GetLock(size_t writerGroupIndex) = 0;
 };

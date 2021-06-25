@@ -108,7 +108,7 @@ class MSGridderBase {
     _doSubtractModel = doSubtractModel;
   }
 
-  void SetGriddingLockManager(WriterLockManager* writerLockManager) {
+  void SetWriterLockManager(WriterLockManager* writerLockManager) {
     _writerLockManager = writerLockManager;
   }
 

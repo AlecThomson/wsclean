@@ -93,7 +93,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
   } else {
-    gridder.SetGriddingLockManager(this);
+    gridder.SetWriterLockManager(this);
     // FIXME: SetAddModel seems to be unused. Deprecate?
     gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
