@@ -96,10 +96,12 @@ class MPIScheduler final : public GriddingTaskManager {
   void grantLock(int node, size_t lockId);
 
   const bool _masterDoesWork;
-  bool _isRunning, _isFinishing;
+  bool _isRunning;
+  bool _isFinishing;
   std::condition_variable _notify;
   std::mutex _mutex;
-  std::thread _receiveThread, _workThread;
+  std::thread _receiveThread;
+  std::thread _workThread;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult &)>>>
       _readyList;
   std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>

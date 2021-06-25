@@ -25,7 +25,7 @@ struct TaskMessage {
   constexpr static size_t kSerializedSize = 12;
 
   void Serialize(aocommon::SerialOStream& stream) const {
-    stream.UInt32(static_cast<int>(type)).UInt64(bodySize);
+    stream.UInt32(static_cast<std::uint32_t>(type)).UInt64(bodySize);
   }
 
   void Unserialize(aocommon::SerialIStream& stream) {

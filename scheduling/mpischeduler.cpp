@@ -14,13 +14,19 @@
 
 #include <mpi.h>
 
-#include <algorithm>
 #include <cassert>
 
 MPIScheduler::MPIScheduler(const Settings &settings)
     : GriddingTaskManager(settings),
       _masterDoesWork(settings.masterDoesWork),
-      _isRunning(false) {
+      _isRunning(false),
+      _isFinishing(false),
+      _mutex(),
+      _receiveThread(),
+      _workThread(),
+      _readyList(),
+      _nodes(),
+      _lock_queues() {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   _nodes.assign(world_size,
@@ -195,10 +201,9 @@ void MPIScheduler::processReadyList_UNSYNCHRONIZED() {
 }
 
 bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
-  const auto nodeIsBusy = [](const decltype(_nodes)::value_type &node) {
-    return node.first == NodeState::kBusy;
-  };
-  return std::any_of(_nodes.begin(), _nodes.end(), nodeIsBusy);
+  for (size_t i = 1; i != _nodes.size(); ++i)
+    if (_nodes[i].first == NodeState::kBusy) return true;
+  return false;
 }
 
 void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
@@ -219,14 +224,14 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
 void MPIScheduler::processLockRequest(int node, size_t lockId) {
   if (lockId >= _lock_queues.size()) {
     throw std::runtime_error("Node " + std::to_string(node) +
-                             " requests invalid lock id " +
+                             " requests invalid lock " +
                              std::to_string(lockId));
   }
 
   std::unique_lock<std::mutex> lock(_mutex);
   if (_nodes[node].first != NodeState::kBusy) {
     throw std::runtime_error("Non-busy node " + std::to_string(node) +
-                             " requests lock id " + std::to_string(lockId));
+                             " requests lock " + std::to_string(lockId));
   }
   _lock_queues[lockId].PushBack(node);
   if (_lock_queues[lockId].Size() == 1) {
