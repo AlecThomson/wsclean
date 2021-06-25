@@ -114,7 +114,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * Successive nodes are waiting for the lock.
    * If a queue is empty, nobody has the lock.
    */
-  std::vector<aocommon::Queue<int>> _lock_queues;
+  std::vector<aocommon::Queue<int>> _writerLockQueues;
 };
 
 #endif  // HAVE_MPI

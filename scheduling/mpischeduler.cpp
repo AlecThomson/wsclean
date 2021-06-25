@@ -26,7 +26,7 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       _workThread(),
       _readyList(),
       _nodes(),
-      _lock_queues() {
+      _writerLockQueues() {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   _nodes.assign(world_size,
@@ -222,7 +222,7 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
 }
 
 void MPIScheduler::processLockRequest(int node, size_t lockId) {
-  if (lockId >= _lock_queues.size()) {
+  if (lockId >= _writerLockQueues.size()) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " requests invalid lock " +
                              std::to_string(lockId));
@@ -233,30 +233,31 @@ void MPIScheduler::processLockRequest(int node, size_t lockId) {
     throw std::runtime_error("Non-busy node " + std::to_string(node) +
                              " requests lock " + std::to_string(lockId));
   }
-  _lock_queues[lockId].PushBack(node);
-  if (_lock_queues[lockId].Size() == 1) {
+  _writerLockQueues[lockId].PushBack(node);
+  if (_writerLockQueues[lockId].Size() == 1) {
     lock.unlock();
     grantLock(node, lockId);
   }
 }
 
 void MPIScheduler::processLockRelease(int node, size_t lockId) {
-  if (lockId >= _lock_queues.size()) {
+  if (lockId >= _writerLockQueues.size()) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " releases invalid lock id " +
                              std::to_string(lockId));
   }
 
   std::unique_lock<std::mutex> lock(_mutex);
-  if (_lock_queues[lockId].Empty() || _lock_queues[lockId][0] != node) {
+  if (_writerLockQueues[lockId].Empty() ||
+      _writerLockQueues[lockId][0] != node) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " releases not-granted lock id " +
                              std::to_string(lockId));
   }
 
-  _lock_queues[lockId].PopFront();
-  if (!_lock_queues[lockId].Empty()) {
-    const int waiting_node = _lock_queues[lockId][0];
+  _writerLockQueues[lockId].PopFront();
+  if (!_writerLockQueues[lockId].Empty()) {
+    const int waiting_node = _writerLockQueues[lockId][0];
     lock.unlock();
     grantLock(waiting_node, lockId);
   }
