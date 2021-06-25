@@ -131,11 +131,9 @@ class MSProvider {
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
   /**
-   * @brief Reset MODEL_DATA column in the provided MS to zeros, or - if the
-   * MODEL_DATA column does not exist - create a MODEL_DATA column filled with
-   * zeros.
+   * Reset model data in the @param MSProvider to zeros.
    */
-  void ResetModelColumn(size_t nPol);
+  void ResetModelColumn(size_t maxChannels, size_t nPol);
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,
@@ -189,9 +187,6 @@ class MSProvider {
     }
   }
 
-  /**
-   * @brief Initialize the MODEL_DATA column in the given MeasurementSet
-   */
   static void initializeModelColumn(casacore::MeasurementSet& ms);
 
   static casacore::ArrayColumn<float> initializeImagingWeightColumn(

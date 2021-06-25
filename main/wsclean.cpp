@@ -1566,8 +1566,9 @@ void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   std::vector<std::unique_ptr<MSDataDescription>> msList;
   initializeMSList(entry, msList);
   const size_t nPol = _settings.useIDG ? 4 : 1;
-  for (auto& msDataDesc : msList) {
-    msDataDesc->GetProvider()->ResetModelColumn(nPol);
+  for (size_t i = 0; i != msList.size(); ++i) {
+    const size_t maxChannels = _msBands[i].MaxChannels();
+    msList[i]->GetProvider()->ResetModelColumn(maxChannels, nPol);
   }
 }
 

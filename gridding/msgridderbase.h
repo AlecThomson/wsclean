@@ -87,13 +87,13 @@ class MSGridderBase {
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
   /**
-   * @brief In case of facet-based imaging, the MODEL_DATA column is
-   * reset to zeros in every major cycle, and predicted data
-   * should be add-assigned to the MODEL_DATA column (_addToMS = true) rather
-   * than overwriting it. For "standard" imaging, the MODEL_DATA columns should
-   * be overwritten (_addToMS = false).
+   * @brief In case of facet-based imaging, the model data in the @param
+   * MSProvider is reset to zeros in every major cycle, and predicted data
+   * should be add-assigned to the model data (_additivePredict = true) rather
+   * than overwriting it. For "standard" imaging, the model data should
+   * be overwritten (_additivePredict = false).
    */
-  void SetAddToMS(bool hasFacets) { _addToMS = hasFacets; }
+  void SetAdditivePredict(bool hasFacets) { _additivePredict = hasFacets; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
@@ -379,8 +379,8 @@ class MSGridderBase {
   /// which has size FacetGroupCount() * MeasurementSetCount()
   size_t _facetGroupIndex;
   size_t _msIndex;
-  /// @see SetAddToMS()
-  bool _addToMS;
+  /// @see SetAdditivePredict()
+  bool _additivePredict;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;

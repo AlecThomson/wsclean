@@ -78,9 +78,7 @@ void MPIScheduler::Finish() {
 }
 
 void MPIScheduler::Start(size_t nWriterGroups) {
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  if (world_size > 1) {
+  if (_nodes.size() > 1) {
     // FIXME: exception breaks also "non-facetting" mpiruns
     std::cout
         << "Requested an MPI lock for a run with #nodes > 1. This is not yet "
