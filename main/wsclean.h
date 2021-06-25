@@ -198,6 +198,12 @@ class WSClean {
                        const ImageFilename& imageName,
                        const std::string& filenameKind) const;
 
+  size_t getMaxNrMSets() const {
+    size_t msCount = 0;
+    for (const auto& msBand : _msBands) msCount += msBand.DataDescCount();
+    return msCount;
+  }
+
   MSSelection _globalSelection;
   std::string _commandLine;
 
@@ -220,7 +226,6 @@ class WSClean {
   ObservationInfo _observationInfo;
   std::vector<schaapcommon::facets::Facet> _facets;
   double _lastStartTime;
-  size_t _maxNrMeasurementSets;
 };
 
 #endif

@@ -1022,7 +1022,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           if (requestPolarizationsAtOnce) {
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(_maxNrMeasurementSets *
+            _griddingTaskManager->Start(getMaxNrMSets() *
                                         groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
             for (const ImagingTableEntry& entry : groupTable) {
@@ -1045,7 +1045,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           } else if (parallelizePolarizations) {
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(_maxNrMeasurementSets *
+            _griddingTaskManager->Start(getMaxNrMSets() *
                                         groupTable.FacetGroupCount());
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
@@ -1068,7 +1068,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           } else {  // only parallize channels
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(_maxNrMeasurementSets *
+            _griddingTaskManager->Start(getMaxNrMSets() *
                                         groupTable.FacetGroupCount());
             bool hasMore;
             size_t sqIndex = 0;
@@ -1384,7 +1384,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
       // FIXME: Start is now invoked both for predict and invert calls
       // we may want to avoid that and invoke it only in predict calls
       resetModelColumns(entry);
-      _griddingTaskManager->Start(_maxNrMeasurementSets * nFacetGroups);
+      _griddingTaskManager->Start(getMaxNrMSets() * nFacetGroups);
     }
 
     if (!_imageWeightCache) {
@@ -1473,8 +1473,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
   resetModelColumns(groupTable);
   _predictingWatch.Start();
-  _griddingTaskManager->Start(_maxNrMeasurementSets *
-                              groupTable.FacetGroupCount());
+  _griddingTaskManager->Start(getMaxNrMSets() * groupTable.FacetGroupCount());
 
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
@@ -1841,11 +1840,6 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   //}
   _imagingTable.Update();
   _imagingTable.Print();
-
-  _maxNrMeasurementSets = 0;
-  for (const auto& msBand : _msBands) {
-    _maxNrMeasurementSets += msBand.DataDescCount();
-  }
 }
 
 void WSClean::makeImagingTableEntry(
