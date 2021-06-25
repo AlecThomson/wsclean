@@ -90,6 +90,7 @@ void MPIScheduler::Start(size_t nWriterGroups) {
 }
 
 WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
+  _writerLock.SetWriterGroupIndex(writerGroupIndex);
   return LockGuard(_writerLock);
 }
 
@@ -274,4 +275,44 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
   // communication should be limited.
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
            0, MPI_COMM_WORLD);
+}
+
+void MPIScheduler::MPIWriterLock::lock() {
+  TaskMessage message(TaskMessage::Type::kLockRequest, _writerGroupIndex);
+  aocommon::SerialOStream taskMessageStream;
+  message.Serialize(taskMessageStream);
+
+  const int main_node = 0;
+  MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
+           main_node, 0, MPI_COMM_WORLD);
+
+  MPI_Status status;
+  aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
+  MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE, main_node, 0,
+           MPI_COMM_WORLD, &status);
+  aocommon::SerialIStream stream(std::move(buffer));
+  message.Unserialize(stream);
+  if (message.type != TaskMessage::Type::kLockGrant ||
+      message.lockId != _writerGroupIndex) {
+    int node = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &node);
+    throw std::runtime_error(
+        "Node " + std::to_string(node) + " received an invalid message (type " +
+        std::to_string(static_cast<int>(message.type)) + ", lock " +
+        std::to_string(message.lockId) + ") while requesting lock " +
+        std::to_string(_writerGroupIndex));
+  }
+}
+
+void MPIScheduler::MPIWriterLock::unlock() {
+  TaskMessage message(TaskMessage::Type::kLockRelease, _writerGroupIndex);
+  aocommon::SerialOStream taskMessageStream;
+  message.Serialize(taskMessageStream);
+
+  // Using asynchronous MPI_ISend is possible here, however, the
+  // taskMessageStream should then remain valid after the call and the extra
+  // 'request' handle probably needs handling.
+  const int main_node = 0;
+  MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
+           main_node, 0, MPI_COMM_WORLD);
 }

@@ -29,10 +29,15 @@ class MPIScheduler final : public GriddingTaskManager {
  private:
   class MPIWriterLock final : public WriterLock {
    public:
-    // FIXME: locks not implemented yet, will be subject of
-    // folow-up MR
-    void lock() override{};
-    void unlock() override {}
+    MPIWriterLock() : _writerGroupIndex(0) {}
+    void SetWriterGroupIndex(size_t writerGroupIndex) {
+      _writerGroupIndex = writerGroupIndex;
+    }
+    void lock() override;
+    void unlock() override;
+
+   private:
+    size_t _writerGroupIndex;  ///< Index of the lock that must be acquired.
   };
 
   enum class NodeState { kAvailable, kBusy };
