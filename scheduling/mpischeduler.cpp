@@ -86,12 +86,11 @@ void MPIScheduler::Finish() {
 
 void MPIScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
-  if (_writerGroupLocks.size() < nWriterGroups)
-    _writerGroupLocks = std::vector<MPIWriterLock>(nWriterGroups);
+  _writerLockQueues.resize(nWriterGroups);
 }
 
 WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
-  return LockGuard(_writerGroupLocks[writerGroupIndex]);
+  return LockGuard(_writerLock);
 }
 
 void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
