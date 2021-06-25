@@ -78,15 +78,6 @@ void MPIScheduler::Finish() {
 }
 
 void MPIScheduler::Start(size_t nWriterGroups) {
-  if (_nodes.size() > 1) {
-    // FIXME: exception breaks also "non-facetting" mpiruns
-    std::cout
-        << "Requested an MPI lock for a run with #nodes > 1. This is not yet "
-           "implemented"
-        << std::endl;
-    MPI_Abort(MPI_COMM_WORLD, 1);
-  }
-
   GriddingTaskManager::Start(nWriterGroups);
   if (_writerGroupLocks.size() < nWriterGroups)
     _writerGroupLocks = std::vector<MPIWriterLock>(nWriterGroups);
