@@ -112,7 +112,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetIndex(0),
       _facetGroupIndex(0),
       _msIndex(0),
-      _addToMS(false),
+      _additivePredict(false),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -653,7 +653,7 @@ void MSGridderBase::writeVisibilities(
   {
     WriterLockManager::LockGuard guard = _writerLockManager->GetLock(
         _facetGroupIndex * MeasurementSetCount() + _msIndex);
-    msProvider.WriteModel(buffer, _addToMS);
+    msProvider.WriteModel(buffer, _additivePredict);
   }
   msProvider.NextOutputRow();
 }

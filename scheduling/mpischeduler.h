@@ -27,6 +27,8 @@ class MPIScheduler final : public GriddingTaskManager {
  private:
   class MPIWriterLock final : public WriterLock {
    public:
+    // FIXME: locks not implemented yet, will be subject of
+    // folow-up MR
     void lock() override{};
     void unlock() override {}
   };
