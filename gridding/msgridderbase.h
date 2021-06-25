@@ -108,8 +108,8 @@ class MSGridderBase {
     _doSubtractModel = doSubtractModel;
   }
 
-  void SetGriddingLockManager(GriddingTaskManager* griddingTaskManager) {
-    _griddingLockManager = griddingTaskManager;
+  void SetGriddingLockManager(WriterLockManager* writerLockManager) {
+    _writerLockManager = writerLockManager;
   }
 
   // FIXME: to be deprecated?
@@ -374,12 +374,12 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
-  // _facetGroupIndex and _msIndex in conjunction with MeasurementSetCount()
-  // are use to determine the index in the _writerGroupLocks vector, which has
-  // size FacetGroupCount() * MeasurementSetCount()
+  /// @param _facetGroupIndex and @param _msIndex in conjunction with the @param
+  /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
+  /// which has size FacetGroupCount() * MeasurementSetCount()
   size_t _facetGroupIndex;
   size_t _msIndex;
-  // See SetAddToMS for documentation
+  /// @see SetAddToMS()
   bool _addToMS;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
@@ -413,7 +413,7 @@ class MSGridderBase {
   aocommon::UVector<float> _scratchWeights;
 
   std::unique_ptr<MSReader> _predictReader;
-  GriddingLockManager* _griddingLockManager;
+  WriterLockManager* _writerLockManager;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

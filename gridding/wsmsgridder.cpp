@@ -339,7 +339,6 @@ void WSMSGridder::predictWriteThread(
   std::priority_queue<PredictionWorkItem, std::vector<PredictionWorkItem>,
                       decltype(comparison)>
       queue(comparison);
-
   size_t nextRowId = 0;
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
