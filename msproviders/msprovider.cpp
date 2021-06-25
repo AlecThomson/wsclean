@@ -809,7 +809,6 @@ void MSProvider::ResetModelColumn(size_t maxChannels, size_t nPol) {
   std::unique_ptr<MSReader> msReader = MakeReader();
   SynchronizedMS ms = MS();
   ms->reopenRW();
-  // MultiBandData bands(ms->spectralWindow(), ms->dataDescription());
   const std::vector<std::complex<float>> buffer(maxChannels * nPol, {0, 0});
   while (msReader->CurrentRowAvailable()) {
     // Always overwrite
