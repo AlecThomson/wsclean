@@ -131,7 +131,7 @@ class MSProvider {
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
   /**
-   * Reset model data in the @param MSProvider to zeros.
+   * Reset model data in the MSProvider to zeros.
    */
   void ResetModelColumn(size_t maxChannels, size_t nPol);
 
