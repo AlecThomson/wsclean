@@ -3,6 +3,7 @@
 #include "../io/logger.h"
 
 #include <fstream>
+#include <string>
 
 NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
   size_t maxAnt = 0;
@@ -19,7 +20,13 @@ NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
         if (!linestr) stddev = std::numeric_limits<float>::quiet_NaN();
         if (ant1 > ant2) std::swap(ant1, ant2);
         maxAnt = std::max(maxAnt, std::max(ant1, ant2));
-        _map.emplace(std::make_pair(ant1, ant2), stddev);
+        const bool isInserted =
+            _map.emplace(std::make_pair(ant1, ant2), stddev).second;
+        if (!isInserted)
+          throw std::runtime_error(
+              "Baseline " + std::to_string(ant1) + " x " +
+              std::to_string(ant2) +
+              " is specified twice in the noise baseline file");
       }
     }
   }
@@ -29,7 +36,8 @@ NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
 
 float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1,
                                                   size_t antenna2) const {
-  size_t a1 = antenna1, a2 = antenna2;
+  size_t a1 = antenna1;
+  size_t a2 = antenna2;
   if (a1 > a2) std::swap(a1, a2);
   auto iter = _map.find(std::make_pair(a1, a2));
   if (iter == _map.end())
