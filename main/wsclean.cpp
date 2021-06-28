@@ -1379,6 +1379,9 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
 
     // TODO check phase centre
 
+    // FIXME: resetGridder in conjuncion with overrideImageSettings makes sure
+    // that the image dimensions are set and passed to the _griddingTaskManager
+    // only once. This probably can be simplified?
     if (resetGridder) {
       // Do not reset model column for a continuedRun
       if (!_settings.continuedRun) {
