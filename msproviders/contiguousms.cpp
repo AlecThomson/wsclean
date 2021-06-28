@@ -3,6 +3,8 @@
 #include "../io/logger.h"
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/tables/Tables/TableLocker.h>
+#include <boost/make_unique.hpp>
 
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
@@ -25,7 +27,8 @@ void ContiguousMS::open() {
   Logger::Info << "Opening " << _msPath << ", spw " << _dataDescId
                << " with contiguous MS reader.\n";
 
-  _ms = SynchronizedMS(_msPath);
+  _ms = SynchronizedMS(_msPath, casacore::TableLock::UserNoReadLocking);
+
   _antenna1Column = casacore::ScalarColumn<int>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
   _antenna2Column = casacore::ScalarColumn<int>(
@@ -42,14 +45,14 @@ void ContiguousMS::open() {
   _flagColumn = casacore::ArrayColumn<bool>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
 
-  _inputPolarizations = GetMSPolarizations(*_ms);
+  _inputPolarizations = GetMSPolarizations(_ms->polarization());
 
   const casacore::IPosition shape(_dataColumn.shape(0));
   _dataArray = casacore::Array<std::complex<float>>(shape);
   _weightSpectrumArray = casacore::Array<float>(shape);
   _imagingWeightSpectrumArray = casacore::Array<float>(shape);
   _flagArray = casacore::Array<bool>(shape);
-  _bandData = MultiBandData(_ms->spectralWindow(), _ms->dataDescription());
+  _bandData = MultiBandData(*_ms);
 
   if (_bandData.BandCount() > 1) {
     throw std::runtime_error(
@@ -129,14 +132,20 @@ size_t ContiguousMS::NPolarizations() { return _inputPolarizations.size(); }
 
 void ContiguousMS::prepareModelColumn() {
   initializeModelColumn(*_ms);
-  _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
-  const casacore::IPosition shape(_modelColumn->shape(0));
+  _modelColumn = casacore::ArrayColumn<casacore::Complex>(
+      *_ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
+  const casacore::IPosition shape(_modelColumn.shape(0));
   _modelArray = casacore::Array<std::complex<float>>(shape);
   _isModelColumnPrepared = true;
 }
 
 void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
+  // When using different MPI processes, automatic casacore locks do not work.
+  // -> Use UserNoReadLocking with explicit write locks.
+  casacore::TableLocker lock(*_ms, casacore::FileLocker::Write);
+
+  // This resync() is only required for synchronizing different MPI processes.
+  _ms->resync();
   if (!_isModelColumnPrepared) prepareModelColumn();
 
   size_t startChannel, endChannel;
@@ -148,7 +157,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     endChannel = _bandData[_dataDescId].ChannelCount();
   }
 
-  _modelColumn->get(_currentOutputRow, _modelArray);
+  _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
     reverseCopyData<true>(_modelArray, startChannel, endChannel,
                           _inputPolarizations, buffer, _polOut);
@@ -156,7 +165,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     reverseCopyData<false>(_modelArray, startChannel, endChannel,
                            _inputPolarizations, buffer, _polOut);
   }
-  _modelColumn->put(_currentOutputRow, _modelArray);
+  _modelColumn.put(_currentOutputRow, _modelArray);
 }
 
 void ContiguousMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {

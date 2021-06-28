@@ -27,14 +27,18 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       _readyList(),
       _nodes(),
       _writerLockQueues() {
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  _nodes.assign(world_size,
-                std::make_pair(NodeState::kAvailable,
-                               std::function<void(GriddingResult &)>()));
-  if (!settings.masterDoesWork && world_size <= 1)
-    throw std::runtime_error(
-        "Master was told not to work, but no other workers available");
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    _nodes.assign(world_size,
+                  std::make_pair(NodeState::kAvailable,
+                                 std::function<void(GriddingResult &)>()));
+    if (!settings.masterDoesWork && world_size <= 1)
+      throw std::runtime_error(
+          "Master was told not to work, but no other workers available");
+  }
 }
 
 MPIScheduler::~MPIScheduler() { Finish(); }
@@ -96,7 +100,7 @@ WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
 
 void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   GriddingResult result = RunDirect(std::move(task));
-  Logger::Info << "Master node has finished a gridding task.\n";
+  Logger::Info << "Main node has finished a gridding task.\n";
   std::unique_lock<std::mutex> lock(_mutex);
   _readyList.emplace_back(std::move(result), _nodes[0].second);
   _nodes[0].first = NodeState::kAvailable;
@@ -296,11 +300,13 @@ void MPIScheduler::MPIWriterLock::lock() {
       message.lockId != _writerGroupIndex) {
     int node = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &node);
-    throw std::runtime_error(
-        "Node " + std::to_string(node) + " received an invalid message (type " +
-        std::to_string(static_cast<int>(message.type)) + ", lock " +
-        std::to_string(message.lockId) + ") while requesting lock " +
-        std::to_string(_writerGroupIndex));
+    throw std::runtime_error("Node " + std::to_string(node) +
+                             " received an invalid message from node " +
+                             std::to_string(status.MPI_SOURCE) + " (type " +
+                             std::to_string(static_cast<int>(message.type)) +
+                             ", lock " + std::to_string(message.lockId) +
+                             ") while requesting lock " +
+                             std::to_string(_writerGroupIndex));
   }
 }
 

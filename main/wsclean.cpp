@@ -1762,7 +1762,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   _msBands.assign(_settings.filenames.size(), MultiBandData());
   for (size_t i = 0; i != _settings.filenames.size(); ++i) {
     casacore::MeasurementSet ms(_settings.filenames[i]);
-    _msBands[i] = MultiBandData(ms.spectralWindow(), ms.dataDescription());
+    _msBands[i] = MultiBandData(ms);
     std::set<size_t> dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
     if (dataDescIds.size() != _msBands[i].DataDescCount()) {
       Logger::Debug << dataDescIds.size() << "/" << _msBands[i].DataDescCount()
