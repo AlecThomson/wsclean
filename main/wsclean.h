@@ -198,7 +198,15 @@ class WSClean {
                        const ImageFilename& imageName,
                        const std::string& filenameKind) const;
 
-  size_t getMaxNrMSets() const {
+  /**
+   * @brief Compute the total amount of MSProviders that will be generated.
+   * This number is needed to initialize the writer locks in the prediction
+   * tasks, which are set via a call to _griddingTaskManager->Start(). The
+   * number of @p MSProviders is the acummulated number of bands per MS.
+   *
+   * @return size_t Number of MSProviders
+   */
+  size_t getMaxNrMSProviders() const {
     size_t msCount = 0;
     for (const auto& msBand : _msBands) msCount += msBand.DataDescCount();
     return msCount;

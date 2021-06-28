@@ -374,9 +374,10 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
-  /// @param _facetGroupIndex and @param _msIndex in conjunction with the @param
+  /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
   /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
-  /// which has size FacetGroupCount() * MeasurementSetCount()
+  /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
+  /// only relevant for prediction.
   size_t _facetGroupIndex;
   size_t _msIndex;
   /// @see SetAdditivePredict()

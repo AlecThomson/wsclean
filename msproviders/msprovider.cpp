@@ -805,11 +805,12 @@ std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
   return pols;
 }
 
-void MSProvider::ResetModelColumn(size_t maxChannels, size_t nPol) {
+void MSProvider::ResetModelColumn() {
   std::unique_ptr<MSReader> msReader = MakeReader();
   SynchronizedMS ms = MS();
   ms->reopenRW();
-  const std::vector<std::complex<float>> buffer(maxChannels * nPol, {0, 0});
+  const std::vector<std::complex<float>> buffer(NChannels() * NPolarizations(),
+                                                {0.0f, 0.0f});
   while (msReader->CurrentRowAvailable()) {
     // Always overwrite
     const bool addToMS = false;

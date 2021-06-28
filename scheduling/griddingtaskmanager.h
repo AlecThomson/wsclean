@@ -21,13 +21,13 @@
 
 class MSGridderBase;
 
-class GriddingTaskManager : public WriterLockManager {
+class GriddingTaskManager : protected WriterLockManager {
  public:
   virtual ~GriddingTaskManager();
 
   /**
    * Initialize writer groups. Call this function before scheduling Predict
-   * tasks.
+   * tasks in order to initialize the writer locks.
    *
    * @param nWriterGroups The number of writer groups.
    */

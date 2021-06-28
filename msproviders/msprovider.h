@@ -133,7 +133,7 @@ class MSProvider {
   /**
    * Reset model data in the MSProvider to zeros.
    */
-  void ResetModelColumn(size_t maxChannels, size_t nPol);
+  void ResetModelColumn();
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,

@@ -1022,7 +1022,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           if (requestPolarizationsAtOnce) {
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSets() *
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
                                         groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
             for (const ImagingTableEntry& entry : groupTable) {
@@ -1045,7 +1045,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           } else if (parallelizePolarizations) {
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSets() *
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
                                         groupTable.FacetGroupCount());
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
@@ -1068,7 +1068,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           } else {  // only parallize channels
             resetModelColumns(groupTable);
             _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSets() *
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
                                         groupTable.FacetGroupCount());
             bool hasMore;
             size_t sqIndex = 0;
@@ -1380,11 +1380,12 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
     // TODO check phase centre
 
     if (resetGridder) {
+      // Do not reset model column for a continuedRun
+      if (!_settings.continuedRun) {
+        resetModelColumns(entry);
+      }
       _griddingTaskManager = GriddingTaskManager::Make(_settings);
-      // FIXME: Start is now invoked both for predict and invert calls
-      // we may want to avoid that and invoke it only in predict calls
-      resetModelColumns(entry);
-      _griddingTaskManager->Start(getMaxNrMSets() * nFacetGroups);
+      _griddingTaskManager->Start(getMaxNrMSProviders() * nFacetGroups);
     }
 
     if (!_imageWeightCache) {
@@ -1473,7 +1474,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
   resetModelColumns(groupTable);
   _predictingWatch.Start();
-  _griddingTaskManager->Start(getMaxNrMSets() * groupTable.FacetGroupCount());
+  _griddingTaskManager->Start(getMaxNrMSProviders() *
+                              groupTable.FacetGroupCount());
 
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
@@ -1564,10 +1566,8 @@ void WSClean::resetModelColumns(const ImagingTable& groupTable) {
 void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   std::vector<std::unique_ptr<MSDataDescription>> msList;
   initializeMSList(entry, msList);
-  const size_t nPol = _settings.useIDG ? 4 : 1;
   for (size_t i = 0; i != msList.size(); ++i) {
-    const size_t maxChannels = _msBands[i].MaxChannels();
-    msList[i]->GetProvider()->ResetModelColumn(maxChannels, nPol);
+    msList[i]->GetProvider()->ResetModelColumn();
   }
 }
 
