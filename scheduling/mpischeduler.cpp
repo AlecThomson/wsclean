@@ -215,7 +215,7 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
   stream.UInt64();  // storage for MPI_Recv_Big
   result.Unserialize(stream);
 
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::lock_guard<std::mutex> lock(_mutex);
   _readyList.emplace_back(std::move(result), _nodes[node].second);
   _nodes[node].first = NodeState::kAvailable;
   _notify.notify_all();
@@ -269,9 +269,10 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
   message.Serialize(taskMessageStream);
   assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
 
-  // Using asynchronous MPI_ISend is possible here, however, the
-  // taskMessageStream should then remain valid after the call and the extra
-  // 'request' handle probably needs handling.
+  // Using asynchronous MPI_ISend is possible here, however, a synchronous
+  // MPI_Send is much simpler. Since the message is small and the receiver
+  // is already waiting for the message, the overhead of synchronous
+  // communication should be limited.
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
            0, MPI_COMM_WORLD);
 }
