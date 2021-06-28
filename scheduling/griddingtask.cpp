@@ -23,9 +23,9 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
-  operation = (Operation)stream.UInt32();
+  operation = static_cast<Operation>(stream.UInt32());
   stream.Bool(imagePSF).Bool(subtractModel);
-  polarization = (aocommon::PolarizationEnum)stream.UInt32();
+  polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());
   stream.Bool(verbose).Ptr(cache).Bool(storeImagingWeights).Ptr(imageWeights);
 
   // msList
