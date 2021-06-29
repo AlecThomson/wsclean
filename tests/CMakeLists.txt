@@ -129,3 +129,5 @@ add_custom_target(
     python3 -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/system_tests.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
+
+set(A 1)

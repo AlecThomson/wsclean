@@ -61,11 +61,13 @@ taql "select from MWA_MOCK_FACET.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(
 diff taql.out taql.ref  ||  (echo "Failed in comparison for contiguous MS" && rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET} && exit 1)
 
 # Make sure MODEL_DATA column is deprecated
-taql "ALTER TABLE ${MWA_MOCK_FACET} DROP COLUMN MODEL_DATA"
+# taql "ALTER TABLE ${MWA_MOCK_FACET} DROP COLUMN MODEL_DATA"
 
-echo "===== Facet based imaging cycle, partitioned MS ====="
-wsclean -parallel-gridding 4 -use-wgridder -reorder ${major_cycle} -facet-regions ${facetfile} -name facet-imaging ${rectdims} ${MWA_MOCK_FACET}
+# echo "===== Facet based imaging cycle, partitioned MS ====="
+# wsclean -parallel-gridding 4 -use-wgridder -reorder ${major_cycle} -facet-regions ${facetfile} -name facet-imaging ${rectdims} ${MWA_MOCK_FACET}
 
-diff taql.out taql.ref  ||  (echo "Failed in comparison for partitioned MS" && rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET} && exit 1)
+# taql "select from MWA_MOCK_FACET.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t1.DATA,t2.MODEL_DATA, 4e-3))" > taql.out
 
-rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
+# diff taql.out taql.ref  ||  (echo "Failed in comparison for partitioned MS" && rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET} && exit 1)
+
+# rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
