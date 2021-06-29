@@ -75,7 +75,7 @@ def deconvolve_facets(
     ms,
     gridder,
     reorder,
-    nthreads=1,
+    nthreads=4,
     image="-size 256 256 -scale 4amin",
     major_cycle="-niter 1000000 -auto-threshold 5 -mgain 0.8",
 ):
