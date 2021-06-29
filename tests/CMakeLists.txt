@@ -105,10 +105,23 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E create_symlink
           ${CMAKE_CURRENT_SOURCE_DIR}/systemtests ${CMAKE_BINARY_DIR}/source)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testconfig.py.in
+               ${CMAKE_BINARY_DIR}/testconfig.py)
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/facets/resources/point-source-model.fits
+  ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits COPYONLY)
+
+add_custom_target(
+  checkfacettests
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND
+    python3 -m pytest --exitfirst -v
+    --junitxml=${CMAKE_BINARY_DIR}/facet_tests.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/facets/tPredict.py)
+
 # Test a number of wsclean commands, which can be considered system level tests3
 # FIXME: maybe other name for target, e.g. checkwscleancommands?
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/systemtests/testconfig.py.in
-               ${CMAKE_BINARY_DIR}/testconfig.py)
 add_custom_target(
   checksystemtests
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
