@@ -18,13 +18,19 @@ MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
+MODEL_IMAGE = "point-source-model.fits"
 
 
 @pytest.fixture(autouse=True)
-def prepare_ms():
+def prepare():
     # Change to directory containing the data
     os.makedirs(tcf.WORKDIR, exist_ok=True)
     os.chdir(tcf.WORKDIR)
+
+    if not os.path.isfile(MODEL_IMAGE):
+        wget = f"wget -q http://www.astron.nl/citt/ci_data/wsclean/{MODEL_IMAGE}"
+        check_call(wget.split())
+
     if not os.path.isfile(MWA_MOCK_ARCHIVE):
         wget = f"wget -q www.astron.nl/citt/EveryBeam/MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
         check_call(wget.split())

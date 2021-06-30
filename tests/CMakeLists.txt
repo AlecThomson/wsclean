@@ -75,9 +75,6 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testconfig.py.in
                ${CMAKE_BINARY_DIR}/testconfig.py)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/data/point-source-model.fits
-               ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits COPYONLY)
-
 add_custom_target(
   checkfacets
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
