@@ -169,7 +169,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
       createWSCFitsWriter(entry, false, false, false).Writer());
   _psfImages.StoreFacet(result.images[0].data(),
                         *_settings.polarizations.begin(), channelIndex,
-                        entry.facetIndex, entry.facet, false);
+                        entry.facetIndex, entry.facet.get(), false);
 
   if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
     Logger::Info << "Writing IDG beam image...\n";
@@ -378,7 +378,7 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
     }
 
     dest.LoadFacet(xyImage.data(), Polarization::XY, joinedChannelIndex,
-                   entry.facetIndex, entry.facet, isImaginary);
+                   entry.facetIndex, entry.facet.get(), isImaginary);
     if (isImaginary) {
       for (size_t i = 0; i != xyImage.size(); ++i)
         xyImage[i] = (xyImage[i] - image[i]) * 0.5;
@@ -387,10 +387,10 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
     dest.StoreFacet(xyImage.data(), Polarization::XY, joinedChannelIndex,
-                    entry.facetIndex, entry.facet, isImaginary);
+                    entry.facetIndex, entry.facet.get(), isImaginary);
   } else {
     dest.StoreFacet(image, polarization, joinedChannelIndex, entry.facetIndex,
-                    entry.facet, isImaginary);
+                    entry.facet.get(), isImaginary);
   }
 }
 
@@ -423,13 +423,13 @@ void WSClean::predict(const ImagingTableEntry& entry) {
     const PolarizationEnum loadPol = isYX ? Polarization::XY : polarization;
     _modelImages.LoadFacet(modelImages.back().data(), loadPol,
                            entry.outputChannelIndex, entry.facetIndex,
-                           entry.facet, false);
+                           entry.facet.get(), false);
     if (Polarization::IsComplex(polarization)) {  // XY or YX
       modelImages.emplace_back(width, height);
       // YX is never stored: it is always combined with XY and stored as XY
       _modelImages.LoadFacet(modelImages.back().data(), Polarization::XY,
                              entry.outputChannelIndex, entry.facetIndex,
-                             entry.facet, true);
+                             entry.facet.get(), true);
       if (isYX) {
         for (float& v : modelImages.back()) v = -v;
       }
@@ -612,9 +612,9 @@ void WSClean::RunClean() {
   bool hasCenter = false;
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
-  for (schaapcommon::facets::Facet& facet : _facets) {
+  for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
     const size_t alignment = 4;
-    facet.CalculatePixels(
+    facet->CalculatePixels(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -622,11 +622,11 @@ void WSClean::RunClean() {
         _settings.imagePadding, alignment, _settings.useIDG);
 
     const schaapcommon::facets::BoundingBox bbox =
-        facet.GetTrimmedBoundingBox();
+        facet->GetTrimmedBoundingBox();
     if (!hasCenter && bbox.Contains(centerPixel)) {
       // Point-in-poly test only evaluated if bounding box does
       // contain the centerPixel
-      hasCenter = facet.Contains(centerPixel);
+      hasCenter = facet->Contains(centerPixel);
     }
   }
 
@@ -825,9 +825,9 @@ void WSClean::RunPredict() {
       FitsReader reader(prefix + "-model.fits");
       overrideImageSettings(reader);
 
-      for (schaapcommon::facets::Facet& facet : _facets) {
+      for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
         const size_t alignment = 4;
-        facet.CalculatePixels(
+        facet->CalculatePixels(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -1336,7 +1336,7 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                          facetEntry.facet, isImaginary);
+                          facetEntry.facet.get(), isImaginary);
   }
 }
 
@@ -1718,7 +1718,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     facetImage.SetFacet(*facetEntry.facet, true);
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                         facetEntry.facet, isImaginary);
+                         facetEntry.facet.get(), isImaginary);
 
     if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
       float m = 1.0;
@@ -1969,19 +1969,19 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
     entry->facetIndex = 0;
-    entry->facet = nullptr;
+    entry->facet.reset();
     _imagingTable.AddEntry(std::move(entry));
   } else {
     for (size_t f = 0; f != _facets.size(); ++f) {
       std::unique_ptr<ImagingTableEntry> entry(
           new ImagingTableEntry(templateEntry));
       entry->facetIndex = f;
-      entry->facet = &_facets[f];
+      entry->facet = _facets[f];
 
       // Calculate phase center delta for entry
-      entry->centreShiftX = _facets[f].GetUntrimmedBoundingBox().Centre().x -
+      entry->centreShiftX = _facets[f]->GetUntrimmedBoundingBox().Centre().x -
                             _settings.trimmedImageWidth / 2;
-      entry->centreShiftY = _facets[f].GetUntrimmedBoundingBox().Centre().y -
+      entry->centreShiftY = _facets[f]->GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
       _imagingTable.AddEntry(std::move(entry));
     }
