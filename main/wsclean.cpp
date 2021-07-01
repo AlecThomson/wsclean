@@ -169,7 +169,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
       createWSCFitsWriter(entry, false, false, false).Writer());
   _psfImages.StoreFacet(result.images[0].data(),
                         *_settings.polarizations.begin(), channelIndex,
-                        entry.facetIndex, entry.facet.get(), false);
+                        entry.facetIndex, entry.facet, false);
 
   if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
     Logger::Info << "Writing IDG beam image...\n";
@@ -378,7 +378,7 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
     }
 
     dest.LoadFacet(xyImage.data(), Polarization::XY, joinedChannelIndex,
-                   entry.facetIndex, entry.facet.get(), isImaginary);
+                   entry.facetIndex, entry.facet, isImaginary);
     if (isImaginary) {
       for (size_t i = 0; i != xyImage.size(); ++i)
         xyImage[i] = (xyImage[i] - image[i]) * 0.5;
@@ -387,10 +387,10 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
     dest.StoreFacet(xyImage.data(), Polarization::XY, joinedChannelIndex,
-                    entry.facetIndex, entry.facet.get(), isImaginary);
+                    entry.facetIndex, entry.facet, isImaginary);
   } else {
     dest.StoreFacet(image, polarization, joinedChannelIndex, entry.facetIndex,
-                    entry.facet.get(), isImaginary);
+                    entry.facet, isImaginary);
   }
 }
 
@@ -423,13 +423,13 @@ void WSClean::predict(const ImagingTableEntry& entry) {
     const PolarizationEnum loadPol = isYX ? Polarization::XY : polarization;
     _modelImages.LoadFacet(modelImages.back().data(), loadPol,
                            entry.outputChannelIndex, entry.facetIndex,
-                           entry.facet.get(), false);
+                           entry.facet, false);
     if (Polarization::IsComplex(polarization)) {  // XY or YX
       modelImages.emplace_back(width, height);
       // YX is never stored: it is always combined with XY and stored as XY
       _modelImages.LoadFacet(modelImages.back().data(), Polarization::XY,
                              entry.outputChannelIndex, entry.facetIndex,
-                             entry.facet.get(), true);
+                             entry.facet, true);
       if (isYX) {
         for (float& v : modelImages.back()) v = -v;
       }
@@ -1336,7 +1336,7 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                          facetEntry.facet.get(), isImaginary);
+                          facetEntry.facet, isImaginary);
   }
 }
 
@@ -1718,7 +1718,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     facetImage.SetFacet(*facetEntry.facet, true);
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                         facetEntry.facet.get(), isImaginary);
+                         facetEntry.facet, isImaginary);
 
     if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
       float m = 1.0;

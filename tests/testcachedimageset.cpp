@@ -44,21 +44,22 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   // Do not change num_facets!
   const size_t num_facets = 2;
-  std::vector<schaapcommon::facets::Facet> facets(num_facets);
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets(num_facets);
   std::vector<aocommon::UVector<float>> facets_data(num_facets);
 
   for (size_t i = 0; i < facets.size(); ++i) {
+    facets[i] = std::make_shared<schaapcommon::facets::Facet>();
     for (const auto& coord : coords) {
       // Second facet (i=1) is mirrored in origin
-      facets[i].AddVertex(std::pow(-1, i) * coord.first,
-                          std::pow(-1, i) * coord.second);
+      facets[i]->AddVertex(std::pow(-1, i) * coord.first,
+                           std::pow(-1, i) * coord.second);
     }
     // The bounding box is padded such that it is partially outside the main
     // image
-    facets[i].CalculatePixels(writer.RA(), writer.Dec(), writer.PixelSizeX(),
-                              writer.PixelSizeY(), writer.Width(),
-                              writer.Height(), writer.PhaseCentreDL(),
-                              writer.PhaseCentreDM(), 1.5, 1u, false);
+    facets[i]->CalculatePixels(writer.RA(), writer.Dec(), writer.PixelSizeX(),
+                               writer.PixelSizeY(), writer.Width(),
+                               writer.Height(), writer.PhaseCentreDL(),
+                               writer.PhaseCentreDM(), 1.5, 1u, false);
     facets_data[i].assign(facets[i].GetTrimmedBoundingBox().Width() *
                               facets[i].GetTrimmedBoundingBox().Height(),
                           static_cast<float>(i + 1));
@@ -73,7 +74,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
   for (const auto& polarization : polarizations) {
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
       cSet.StoreFacet(facets_data[facet_idx].data(), polarization, 1, facet_idx,
-                      &facets[facet_idx], false);
+                      facets[facet_idx], false);
     }
   }
 
@@ -87,7 +88,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
       // Offset in file list
       size_t offset = pol_idx * facets.size() + facet_idx;
-      imageStorage.SetFacet(facets[facet_idx], true);
+      imageStorage.SetFacet(*facets[facet_idx], true);
       BOOST_CHECK_EQUAL(storedNames[offset],
                         prefix + "-" +
                             aocommon::Polarization::TypeToShortString(
@@ -98,7 +99,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
           facets[facet_idx].GetTrimmedBoundingBox().Width() *
           facets[facet_idx].GetTrimmedBoundingBox().Height();
       cSet.LoadFacet(imageStorage.Data(0), polarizations[pol_idx], 1, facet_idx,
-                     &facets[facet_idx], false);
+                     facets[facet_idx], false);
       imageStorage.AddToImage({imageMain.data()});
       BOOST_CHECK_EQUAL_COLLECTIONS(
           imageStorage.Data(0), imageStorage.Data(0) + num_facet_pixels,
