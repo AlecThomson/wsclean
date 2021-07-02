@@ -11,15 +11,16 @@
 #include <limits>
 
 using aocommon::PolarizationEnum;
+using schaapcommon::facets::Facet;
 
 BOOST_AUTO_TEST_SUITE(cachedimageset)
 
 // NOTE: only check whether point x,y collides with the bounding box of a facet
-size_t FacetCollision(const std::vector<schaapcommon::facets::Facet>& facets,
-                      int x, int y) {
+size_t FacetCollision(const std::vector<std::shared_ptr<Facet>>& facets, int x,
+                      int y) {
   size_t facetCollision = std::numeric_limits<size_t>::max();
   for (size_t f = 0; f < facets.size(); ++f) {
-    schaapcommon::facets::BoundingBox bbox(facets[f].GetPixels());
+    schaapcommon::facets::BoundingBox bbox(facets[f]->GetPixels());
     if (y >= bbox.Min().y && y < bbox.Max().y && x >= bbox.Min().x &&
         x < bbox.Max().x) {
       facetCollision = f;
@@ -44,7 +45,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   // Do not change num_facets!
   const size_t num_facets = 2;
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets(num_facets);
+  std::vector<std::shared_ptr<Facet>> facets(num_facets);
   std::vector<aocommon::UVector<float>> facets_data(num_facets);
 
   for (size_t i = 0; i < facets.size(); ++i) {
@@ -60,8 +61,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
                                writer.PixelSizeY(), writer.Width(),
                                writer.Height(), writer.PhaseCentreDL(),
                                writer.PhaseCentreDM(), 1.5, 1u, false);
-    facets_data[i].assign(facets[i].GetTrimmedBoundingBox().Width() *
-                              facets[i].GetTrimmedBoundingBox().Height(),
+    facets_data[i].assign(facets[i]->GetTrimmedBoundingBox().Width() *
+                              facets[i]->GetTrimmedBoundingBox().Height(),
                           static_cast<float>(i + 1));
   }
 
@@ -96,8 +97,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
                             "-f000" + std::to_string(facet_idx) + "-tmp.fits");
 
       size_t num_facet_pixels =
-          facets[facet_idx].GetTrimmedBoundingBox().Width() *
-          facets[facet_idx].GetTrimmedBoundingBox().Height();
+          facets[facet_idx]->GetTrimmedBoundingBox().Width() *
+          facets[facet_idx]->GetTrimmedBoundingBox().Height();
       cSet.LoadFacet(imageStorage.Data(0), polarizations[pol_idx], 1, facet_idx,
                      facets[facet_idx], false);
       imageStorage.AddToImage({imageMain.data()});
