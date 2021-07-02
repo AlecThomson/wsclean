@@ -25,24 +25,23 @@ def read_dir_fromh5(h5):
     ----------
     h5 : str
         h5 filename
-    
-        Delta in degrees for sky grid
-    
-    Returns 
-    ----------    
-    sourcedir: numpy array
-    contains directions (ra, dec in units of radians)    
+
+    Returns
+    ----------
+    sourcedir: np.array
+        Array containing directions (ra, dec in units of radians)
     """
 
-    H5 = tables.open_file(h5, mode='r') 
-    sourcedir = H5.root.sol000.source[:]['dir'] 
+    H5 = tables.open_file(h5, mode="r")
+    sourcedir = H5.root.sol000.source[:]["dir"]
     if len(sourcedir) < 2:
-        print('Error: H5 seems to contain only one direction')
+        print("Error: H5 seems to contain only one direction")
         sys.exit(1)
     H5.close()
     return sourcedir
 
-def makeWCS(centreX, centreY, refRA, refDec, crdelt=None):
+
+def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
     """
     Makes simple WCS object.
     Parameters
@@ -56,7 +55,7 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=None):
     refDec : float
         Reference Dec in degrees
     crdelt: float, optional
-        Delta in degrees for sky grid
+        Delta in degrees for sky grid. Default value is 0.066667 (=4amin)
     Returns
     -------
     w : astropy.wcs.WCS object
@@ -65,8 +64,6 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=None):
 
     w = WCS(naxis=2)
     w.wcs.crpix = [centreX, centreY]
-    if crdelt is None:
-        crdelt = 0.066667  # 4 arcmin
     w.wcs.cdelt = np.array([-crdelt, crdelt])
     w.wcs.crval = [refRA, refDec]
     w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
@@ -74,10 +71,10 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=None):
     return w
 
 
-
-def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
+def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True):
     """
     Returns Voronoi tessellation vertices
+
     Parameters
     ----------
     x_pix : array
@@ -88,13 +85,16 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
         WCS for transformation from pix to world coordinates
     dist_pix : float
         Distance in pixels from center to outer boundary of facets
+    nouter : int
+        Number of points to generate on the outer boundary for constraining
+        the Voronoi tesselation. Defaults to 64
     plot_tesselation : bool
         Plot tesselation
 
     Returns
     -------
-    verts : list
-        List of facet vertices in (RA, Dec)
+    list
+        List of shapely Polygons
     """
 
     # Get x, y coords for directions in pixels. We use the input calibration sky
@@ -105,10 +105,9 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
         xy.append((RAvert, Decvert))
 
     # Generate array of outer points used to constrain the facets
-    nouter = 64
     means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
     offsets = []
-    angles = [np.pi/(nouter/2.0)*i for i in range(0, nouter)]
+    angles = [np.pi / (nouter / 2.0) * i for i in range(0, nouter)]
     for ang in angles:
         offsets.append([np.cos(ang), np.sin(ang)])
     scale_offsets = dist_pix * np.array(offsets)
@@ -117,10 +116,6 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
     # Tessellate and clip
     points_all = np.vstack([xy, outer_box])
     vor = Voronoi(points_all)
-
-    #if plot_tesselation:
-        #fig = voronoi_plot_2d(vor)
-        #plt.show()
 
     lines = [
         shapely.geometry.LineString(vor.vertices[line])
@@ -134,13 +129,13 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
         # facet_poly = Polygon(facet)
         clipped_polygons.append(polygon_intersect(bbox, polygon))
 
-
     if plot_tesselation:
         import matplotlib.pyplot as plt
+
         [plt.plot(*poly.exterior.xy) for poly in clipped_polygons]
-        plt.xlabel('Right Ascension [pixels]')
-        plt.ylabel('Declination [pixels]')
-        plt.axis('square')
+        plt.xlabel("Right Ascension [pixels]")
+        plt.ylabel("Declination [pixels]")
+        plt.axis("square")
         plt.tight_layout()
         plt.show()
 
@@ -162,10 +157,12 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, plot_tesselation=True):
                 ind.append(j)
                 break
     verts = [verts[i] for i in ind]
-    # return verts
     return [Polygon(vert) for vert in verts]
 
-def generate_centroids(xmin, ymin, xmax, ymax, npoints_x, npoints_y, distort_x=0.0, distort_y=0.0):
+
+def generate_centroids(
+    xmin, ymin, xmax, ymax, npoints_x, npoints_y, distort_x=0.0, distort_y=0.0
+):
     """
     Generate centroids for the Voronoi tessellation. These points are essentially
     generated from a distorted regular grid.
@@ -206,11 +203,11 @@ def generate_centroids(xmin, ymin, xmax, ymax, npoints_x, npoints_y, distort_x=0
     X, Y = np.meshgrid(x, y)
 
     xtol = np.diff(x)[0]
-    dX = np.random.uniform(low=-distort_x*xtol, high=distort_x*xtol, size=X.shape)
+    dX = np.random.uniform(low=-distort_x * xtol, high=distort_x * xtol, size=X.shape)
     X = X + dX
 
     ytol = np.diff(y)[0]
-    dY = np.random.uniform(low=-distort_x*ytol, high=distort_y*ytol, size=Y.shape)
+    dY = np.random.uniform(low=-distort_x * ytol, high=distort_y * ytol, size=Y.shape)
     Y = Y + dY
     return X.flatten(), Y.flatten()
 
@@ -222,21 +219,27 @@ def polygon_intersect(poly1, poly2):
     clip = poly1.intersection(poly2)
     return clip
 
+
 def write_ds9(fname, polygons):
     """
     Write ds9 regions file, given a list of polygons
     """
 
     # Write header
-    header = ['# Region file format: DS9 version 4.1', 'global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1', "fk5", "\n"]
+    header = [
+        "# Region file format: DS9 version 4.1",
+        'global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1',
+        "fk5",
+        "\n",
+    ]
     with open(fname, "w") as f:
-        f.writelines('\n'.join(header))
+        f.writelines("\n".join(header))
         polygon_strings = []
         for polygon in polygons:
-            poly_string="polygon("
-            xv,yv = polygon.exterior.xy
+            poly_string = "polygon("
+            xv, yv = polygon.exterior.xy
             for (x, y) in zip(xv[:-1], yv[:-1]):
-                poly_string = f'{poly_string}{x:.5f},{y:.5f},'
+                poly_string = f"{poly_string}{x:.5f},{y:.5f},"
             # Strip trailing comma
             poly_string = poly_string[:-1] + ")"
             polygon_strings.append(poly_string)
@@ -244,60 +247,43 @@ def write_ds9(fname, polygons):
 
 
 def main(args):
-    
     # get phase centre from the ms in units of degrees
-    t = pt.table(args.ms + '::FIELD', ack=False)
-    phasedir = t.getcol('PHASE_DIR').squeeze()
-    cphasedir = SkyCoord(ra=phasedir[0]*u.rad, dec=phasedir[1]*u.rad) # astropy coordinate
-    phaseCentreRa =  cphasedir.ra.degree
+    t = pt.table(args.ms + "::FIELD", ack=False)
+    phasedir = t.getcol("PHASE_DIR").squeeze()
+    cphasedir = SkyCoord(
+        ra=phasedir[0] * u.rad, dec=phasedir[1] * u.rad
+    )  # astropy coordinate
+    phaseCentreRa = cphasedir.ra.degree
     phaseCentreDec = cphasedir.dec.degree
 
     # Pixel "resolution" (in degrees!)
-    dl_dm = args.pixelscale/60.0/60.0 # in units of degree 
-    
+    dl_dm = args.pixelscale / 60.0 / 60.0  # in units of degree
+
     # Image size (in pixels)
     xmin = 0
     xmax = args.imsize
     ymin = 0
-    ymax =  args.imsize
+    ymax = args.imsize
     centreX = (xmax - xmin) // 2 + 1
     centreY = (ymax - ymin) // 2 + 1
 
     # To cut the Voronoi tesselation on the bounding box, we need
     # a "circumscribing circle"
-    dist_pix = np.sqrt((xmax - xmin)**2 + (ymax - ymin)**2)
-
-    # Tesselation input, points below will define the
-    # Voronoi centroids. Note that the outer points
-    # are stripped. So the number of interior points
-    # effectively is (npoints_x - 2) * (npoints_y - 2)
-    npoints_x = 10
-    npoints_y = npoints_x
-
-    # Distortion fraction, double-sided. i.e. if distort = 0.5,
-    # the maximum displacement of an interior point is 1 "cell size"
-    distort_x = 0.35
-    distort_y = 0.35
+    dist_pix = np.sqrt((xmax - xmin) ** 2 + (ymax - ymin) ** 2)
 
     # load in the directions from the H5
     sourcedir = read_dir_fromh5(args.h5)
 
     # make ra and dec arrays and coordinates c
-    ralist = sourcedir[:,0]
-    declist = sourcedir[:,1]
-    c = SkyCoord(ra=ralist*u.rad, dec=declist*u.rad)
-    #print(c.ra.degree)
-    #print(c.dec.degree)
+    ralist = sourcedir[:, 0]
+    declist = sourcedir[:, 1]
+    c = SkyCoord(ra=ralist * u.rad, dec=declist * u.rad)
 
     # Make World Coord Stystem transform object
     w = makeWCS(centreX, centreY, phaseCentreRa, phaseCentreDec, dl_dm)
-    
+
     # convert fromo ra,dec to x,y pixel
     x, y = w.wcs_world2pix(c.ra.degree, c.dec.degree, 1)
-    
-    # Generate coordinates
-    #x, y = generate_centroids(xmin, ymin, xmax, ymax, npoints_x, npoints_y, distort_x, distort_y)
-    
 
     bbox = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
     facets = tessellate(x, y, w, dist_pix, bbox, plot_tesselation=args.plottesselation)
@@ -305,14 +291,31 @@ def main(args):
     write_ds9("facets.reg", facets)
 
 
-
 if __name__ == "__main__":
-   parser = argparse.ArgumentParser(description='Make DS9 Voroni region tesselation region file for WSClean')
-   parser.add_argument('--ms', help='boxfile', type=str, required=True)
-   parser.add_argument('--h5', help='image size, required if boxfile is not used', type=str, required=True)
-   parser.add_argument('--imsize', help='image size, required if boxfile is not used', type=int, default=8192)
-   parser.add_argument('--pixelscale', help='pixels size in arcsec, default=1.5', type=float, default=1.5)
-   parser.add_argument('--plottesselation', help='Plot tesselation', action='store_true')
-   args = parser.parse_args()  
-   main(args)
-    
+    parser = argparse.ArgumentParser(
+        description="Make DS9 Voroni region tesselation region file for WSClean"
+    )
+    parser.add_argument("--ms", help="boxfile", type=str, required=True)
+    parser.add_argument(
+        "--h5",
+        help="image size, required if boxfile is not used",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--imsize",
+        help="image size, required if boxfile is not used",
+        type=int,
+        default=8192,
+    )
+    parser.add_argument(
+        "--pixelscale",
+        help="pixels size in arcsec, default=1.5",
+        type=float,
+        default=1.5,
+    )
+    parser.add_argument(
+        "--plottesselation", help="Plot tesselation", action="store_true"
+    )
+    args = parser.parse_args()
+    main(args)
