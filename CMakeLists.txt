@@ -198,7 +198,7 @@ include(CheckCXXSourceCompiles)
 # GSL is required for WSClean, so always available
 add_definitions(-DHAVE_GSL)
 
-# The following stuff will set the "rpath" correctly, so that
+# The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
 
 # Include GNUInstallDirs for CMAKE_INSTALL_LIBDIR
