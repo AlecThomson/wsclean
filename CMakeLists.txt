@@ -201,7 +201,7 @@ add_definitions(-DHAVE_GSL)
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
 
-# Include GNUInstallDirs for CMAKE_INSTALL_LIBDIR
+# Include GNUInstallDirs for CMAKE_INSTALL_FULL_LIBDIR
 include(GNUInstallDirs)
 # Use, i.e. don't skip the full RPATH for the build tree.
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -212,10 +212,10 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 # which point to directories outside the build tree to the install RPATH.
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # The RPATH to be used when installing, but only if it's not a system directory.
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_LIBDIR}"
-     isSystemDir)
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
+     "${CMAKE_INSTALL_FULL_LIBDIR}" isSystemDir)
 if("${isSystemDir}" STREQUAL "-1")
-  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_LIBDIR}")
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
 configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in"
