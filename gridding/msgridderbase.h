@@ -273,6 +273,11 @@ class MSGridderBase {
    * avoid having to allocate memory within this method.
    * @tparam PolarizationCount Normally set to one when imaging a single
    * polarization, but set to 4 for IDG as it images all polarizations at once.
+   * @tparam PolarizationEntry Selects which entry in the gain matrix (provided
+   * by EveryBeam and/or an h5 solution) file to use for correcting the
+   * visibilities. XX-polarization matches with a value of 0, YY-polarization
+   * matches with a value of 3. All other polarizations currently take a value
+   * of 4.
    * @param msProvider The measurement set provider
    * @param rowData The resulting weighted data
    * @param curBand The spectral band currently being imaged
@@ -284,7 +289,7 @@ class MSGridderBase {
    * this pass. When the visibility is not gridded, its weight will not be added
    * to the relevant sums (visibility count, weight sum, etc.).
    */
-  template <size_t PolarizationCount>
+  template <size_t PolarizationCount, size_t PolarizationEntry>
   void readAndWeightVisibilities(MSReader& msReader,
                                  const std::vector<std::string>& antennaNames,
                                  InversionRow& rowData, const BandData& curBand,
@@ -294,9 +299,12 @@ class MSGridderBase {
 
   /**
    * @brief Write (modelled) visibilities to MS, provides an interface to
-   * MSProvider::WriteModel()
+   * MSProvider::WriteModel(). Method can be templated on the number of
+   * polarizations (1 or 4), and the PolarizationEntry from the gain matrix
+   * which should be used for the correction (XX-pol: 0, YY-pol: 3, all other
+   * polarization cases: 4)
    */
-  template <size_t PolarizationCount>
+  template <size_t PolarizationCount, size_t PolarizationEntry>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
                          const BandData& curBand, std::complex<float>* buffer);

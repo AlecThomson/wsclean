@@ -39,7 +39,13 @@ void DirectMSGridder<num_t>::Invert() {
 
     const MultiBandData selectedBand(msData.SelectedBand());
 
-    invertMeasurementSet(msData, progress, i);
+    if (Polarization() == aocommon::Polarization::XX) {
+      invertMeasurementSet<0>(msData, progress, i);
+    } else if (Polarization() == aocommon::Polarization::YY) {
+      invertMeasurementSet<3>(msData, progress, i);
+    } else {
+      invertMeasurementSet<4>(msData, progress, i);
+    }
   }
 
   _inversionLane.write_end();
@@ -124,6 +130,7 @@ void DirectMSGridder<num_t>::inversionWorker(size_t layer) {
 }
 
 template <typename num_t>
+template <size_t PolarizationEntry>
 void DirectMSGridder<num_t>::invertMeasurementSet(
     const MSGridderBase::MSData& msData, ProgressBar& progress,
     size_t msIndex) {
@@ -152,9 +159,9 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
                        dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
 
-    readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
-                                 curBand, weightBuffer.data(),
-                                 modelBuffer.data(), isSelected.data());
+    readAndWeightVisibilities<1, PolarizationEntry>(
+        *msReader, msData.antennaNames, newItem, curBand, weightBuffer.data(),
+        modelBuffer.data(), isSelected.data());
     InversionSample sample;
     for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
       const double wl = curBand.ChannelWavelength(ch);
@@ -205,3 +212,24 @@ void DirectMSGridder<num_t>::initializeSqrtLMLookupTable() {
 template class DirectMSGridder<float>;
 template class DirectMSGridder<double>;
 template class DirectMSGridder<long double>;
+
+template void DirectMSGridder<float>::invertMeasurementSet<0>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<float>::invertMeasurementSet<3>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<float>::invertMeasurementSet<4>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+
+template void DirectMSGridder<double>::invertMeasurementSet<0>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<double>::invertMeasurementSet<3>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<double>::invertMeasurementSet<4>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+
+template void DirectMSGridder<long double>::invertMeasurementSet<0>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<long double>::invertMeasurementSet<3>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);
+template void DirectMSGridder<long double>::invertMeasurementSet<4>(
+    const MSData& msData, class ProgressBar& progress, size_t msIndex);

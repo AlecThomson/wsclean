@@ -51,6 +51,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   return maxNRows;
 }
 
+template <size_t PolarizationEntry>
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
   StartMeasurementSet(msData, false);
@@ -96,9 +97,9 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1>(*msReader, msData.antennaNames,
-                                       newRowData, band, weightBuffer.data(),
-                                       modelBuffer.data(), isSelected.data());
+          readAndWeightVisibilities<1, PolarizationEntry>(
+              *msReader, msData.antennaNames, newRowData, band,
+              weightBuffer.data(), modelBuffer.data(), isSelected.data());
 
           std::copy_n(newRowData.data, band.ChannelCount(),
                       &visBuffer[nRows * band.ChannelCount()]);
@@ -120,6 +121,11 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
+template void WGriddingMSGridder::gridMeasurementSet<0>(MSData& msData);
+template void WGriddingMSGridder::gridMeasurementSet<3>(MSData& msData);
+template void WGriddingMSGridder::gridMeasurementSet<4>(MSData& msData);
+
+template <size_t PolarizationEntry>
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
@@ -164,8 +170,16 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        writeVisibilities<1>(*msData.msProvider, msData.antennaNames, band,
-                             &visBuffer[row * band.ChannelCount()]);
+        if (Polarization() == aocommon::Polarization::XX) {
+          writeVisibilities<1, 0>(*msData.msProvider, msData.antennaNames, band,
+                                  &visBuffer[row * band.ChannelCount()]);
+        } else if (Polarization() == aocommon::Polarization::YY) {
+          writeVisibilities<1, 3>(*msData.msProvider, msData.antennaNames, band,
+                                  &visBuffer[row * band.ChannelCount()]);
+        } else {
+          writeVisibilities<1, 4>(*msData.msProvider, msData.antennaNames, band,
+                                  &visBuffer[row * band.ChannelCount()]);
+        }
       }
       totalNRows += nRows;
     }  // end of chunk
@@ -173,6 +187,10 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
   msData.totalRowsProcessed += totalNRows;
 }
+
+template void WGriddingMSGridder::predictMeasurementSet<0>(MSData& msData);
+template void WGriddingMSGridder::predictMeasurementSet<3>(MSData& msData);
+template void WGriddingMSGridder::predictMeasurementSet<4>(MSData& msData);
 
 void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
                                         size_t& trimmedHeight) const {
@@ -200,7 +218,13 @@ void WGriddingMSGridder::Invert() {
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
-    gridMeasurementSet(msData);
+    if (Polarization() == aocommon::Polarization::XX) {
+      gridMeasurementSet<0>(msData);
+    } else if (Polarization() == aocommon::Polarization::YY) {
+      gridMeasurementSet<3>(msData);
+    } else {
+      gridMeasurementSet<4>(msData);
+    }
   }
 
   _gridder->FinalizeImage(1.0 / totalWeight());
@@ -275,5 +299,13 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   _gridder->InitializePrediction(images[0].data());
   images[0].reset();
 
-  for (MSData& msData : msDataVector) predictMeasurementSet(msData);
+  for (MSData& msData : msDataVector) {
+    if (Polarization() == aocommon::Polarization::XX) {
+      predictMeasurementSet<0>(msData);
+    } else if (Polarization() == aocommon::Polarization::YY) {
+      predictMeasurementSet<3>(msData);
+    } else {
+      predictMeasurementSet<4>(msData);
+    }
+  }
 }

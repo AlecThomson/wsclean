@@ -33,6 +33,7 @@ class DirectMSGridder final : public MSGridderBase {
   std::vector<num_t*> _layers;
   aocommon::Lane<InversionSample> _inversionLane;
 
+  template <size_t PolarizationEntry>
   void invertMeasurementSet(const MSData& msData, class ProgressBar& progress,
                             size_t msIndex);
   void inversionWorker(size_t layer);

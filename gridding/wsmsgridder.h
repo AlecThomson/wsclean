@@ -61,10 +61,13 @@ class WSMSGridder final : public MSGridderBase {
     size_t rowId, dataDescId;
   };
 
+  template <size_t PolarizationEntry>
   void gridMeasurementSet(MSData& msData);
+
   void countSamplesPerLayer(MSData& msData);
   virtual size_t getSuggestedWGridSize() const override;
 
+  template <size_t PolarizationEntry>
   void predictMeasurementSet(MSData& msData);
 
   void workThread(aocommon::Lane<InversionRow>* workLane) {
@@ -83,6 +86,8 @@ class WSMSGridder final : public MSGridderBase {
   void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane,
                          aocommon::Lane<PredictionWorkItem>* outputLane,
                          const MultiBandData* bandData);
+
+  template <size_t PolarizationEntry>
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
                           const MSData* msData, const MultiBandData* bandData);
 

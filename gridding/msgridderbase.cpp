@@ -44,22 +44,37 @@
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
-template <size_t PolarizationCount>
+template <size_t PolarizationCount, size_t PolarizationEntry>
 void ApplyConjugatedGain(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
                          const aocommon::MC2x2F& gain2);
+
 template <>
-void ApplyConjugatedGain<1>(std::complex<float>* visibilities,
-                            const aocommon::MC2x2F& gain1,
-                            const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedGain<1, 0>(std::complex<float>* visibilities,
+                               const aocommon::MC2x2F& gain1,
+                               const aocommon::MC2x2F& gain2) {
+  *visibilities = conj(gain1[0]) * (*visibilities) * gain2[0];
+}
+
+template <>
+void ApplyConjugatedGain<1, 3>(std::complex<float>* visibilities,
+                               const aocommon::MC2x2F& gain1,
+                               const aocommon::MC2x2F& gain2) {
+  *visibilities = conj(gain1[3]) * (*visibilities) * gain2[3];
+}
+
+template <>
+void ApplyConjugatedGain<1, 4>(std::complex<float>* visibilities,
+                               const aocommon::MC2x2F& gain1,
+                               const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * conj(Trace(gain1)) * (*visibilities) * Trace(gain2);
 }
 
 template <>
-void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
-                            const aocommon::MC2x2F& gain1,
-                            const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedGain<4, 4>(std::complex<float>* visibilities,
+                               const aocommon::MC2x2F& gain1,
+                               const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
@@ -67,27 +82,63 @@ void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 
-template <size_t PolarizationCount>
+template <size_t PolarizationCount, size_t PolarizationEntry>
 void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
                const aocommon::MC2x2F& gain2);
 
 template <>
-void ApplyGain<1>(std::complex<float>* visibilities,
-                  const aocommon::MC2x2F& gain1,
-                  const aocommon::MC2x2F& gain2) {
+void ApplyGain<1, 0>(std::complex<float>* visibilities,
+                     const aocommon::MC2x2F& gain1,
+                     const aocommon::MC2x2F& gain2) {
+  *visibilities = gain1[0] * (*visibilities) * conj(gain2[0]);
+}
+
+template <>
+void ApplyGain<1, 3>(std::complex<float>* visibilities,
+                     const aocommon::MC2x2F& gain1,
+                     const aocommon::MC2x2F& gain2) {
+  *visibilities = gain1[3] * (*visibilities) * conj(gain2[3]);
+}
+
+template <>
+void ApplyGain<1, 4>(std::complex<float>* visibilities,
+                     const aocommon::MC2x2F& gain1,
+                     const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * Trace(gain1) * (*visibilities) * conj(Trace(gain2));
 }
 
 template <>
-void ApplyGain<4>(std::complex<float>* visibilities,
-                  const aocommon::MC2x2F& gain1,
-                  const aocommon::MC2x2F& gain2) {
+void ApplyGain<4, 4>(std::complex<float>* visibilities,
+                     const aocommon::MC2x2F& gain1,
+                     const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
       gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
   result.AssignTo(visibilities);
+}
+
+template <size_t PolarizationEntry>
+std::complex<float> ComputeGain(const aocommon::MC2x2F& gain1,
+                                const aocommon::MC2x2F& gain2);
+
+template <>
+std::complex<float> ComputeGain<0>(const aocommon::MC2x2F& gain1,
+                                   const aocommon::MC2x2F& gain2) {
+  return gain2[0] * conj(gain1[0]);
+}
+
+template <>
+std::complex<float> ComputeGain<3>(const aocommon::MC2x2F& gain1,
+                                   const aocommon::MC2x2F& gain2) {
+  return gain2[3] * conj(gain1[3]);
+}
+
+template <>
+std::complex<float> ComputeGain<4>(const aocommon::MC2x2F& gain1,
+                                   const aocommon::MC2x2F& gain2) {
+  return 0.25f * Trace(gain2) * conj(Trace(gain1));
 }
 }  // namespace
 
@@ -572,7 +623,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     _actualWGridSize = _wGridSize;
 }
 
-template <size_t PolarizationCount>
+template <size_t PolarizationCount, size_t PolarizationEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
@@ -625,15 +676,16 @@ void MSGridderBase::writeVisibilities(
                                      _cachedParmResponse[offset1 + 1]);
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
+        ApplyGain<PolarizationCount, PolarizationEntry>(iter, gain1, gain2);
 
         // TODO: make more efficient
-        if (_polarization == aocommon::Polarization::XX) {
-          *iter = gain1[0] * (*iter) * conj(gain2[0]);
-        } else if (_polarization == aocommon::Polarization::YY) {
-          *iter = gain1[3] * (*iter) * conj(gain2[3]);
-        } else {
-          ApplyGain<PolarizationCount>(iter, gain1, gain2);
-        }
+        // if (_polarization == aocommon::Polarization::XX) {
+        //   *iter = gain1[0] * (*iter) * conj(gain2[0]);
+        // } else if (_polarization == aocommon::Polarization::YY) {
+        //   *iter = gain1[3] * (*iter) * conj(gain2[3]);
+        // } else {
+        //   ApplyGain<PolarizationCount>(iter, gain1, gain2);
+        // }
 
         iter += PolarizationCount;
       }
@@ -644,14 +696,15 @@ void MSGridderBase::writeVisibilities(
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        ApplyGain<PolarizationCount, PolarizationEntry>(iter, gain1, gain2);
 
-        if (_polarization == aocommon::Polarization::XX) {
-          *iter = gain1[0] * (*iter) * conj(gain2[0]);
-        } else if (_polarization == aocommon::Polarization::YY) {
-          *iter = gain1[3] * (*iter) * conj(gain2[3]);
-        } else {
-          ApplyGain<PolarizationCount>(iter, gain1, gain2);
-        }
+        // if (_polarization == aocommon::Polarization::XX) {
+        //   *iter = gain1[0] * (*iter) * conj(gain2[0]);
+        // } else if (_polarization == aocommon::Polarization::YY) {
+        //   *iter = gain1[3] * (*iter) * conj(gain2[3]);
+        // } else {
+        //   ApplyGain<PolarizationCount>(iter, gain1, gain2);
+        // }
 
         iter += PolarizationCount;
       }
@@ -687,7 +740,7 @@ void MSGridderBase::writeVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyGain<PolarizationCount>(iter, gain1, gain2);
+      ApplyGain<PolarizationCount, PolarizationEntry>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
@@ -701,15 +754,23 @@ void MSGridderBase::writeVisibilities(
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1>(
+template void MSGridderBase::writeVisibilities<1, 0>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4>(
+template void MSGridderBase::writeVisibilities<1, 3>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer);
 
-template <size_t PolarizationCount>
+template void MSGridderBase::writeVisibilities<1, 4>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
+
+template void MSGridderBase::writeVisibilities<4, 4>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
+
+template <size_t PolarizationCount, size_t PolarizationEntry>
 void MSGridderBase::readAndWeightVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const BandData& curBand, float* weightBuffer,
@@ -808,9 +869,11 @@ void MSGridderBase::readAndWeightVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+      ApplyConjugatedGain<PolarizationCount, PolarizationEntry>(iter, gain1,
+                                                                gain2);
+      const std::complex<float> g =
+          ComputeGain<PolarizationEntry>(gain1, gain2);
 
-      const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
       _metaDataCache->beamSum += (conj(g) * weight * g).real();
 
@@ -868,19 +931,23 @@ void MSGridderBase::readAndWeightVisibilities(
                                      _cachedParmResponse[offset1 + 1]);
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
+        ApplyConjugatedGain<PolarizationCount, PolarizationEntry>(iter, gain1,
+                                                                  gain2);
+        const std::complex<float> g =
+            ComputeGain<PolarizationEntry>(gain1, gain2);
 
-        // TODO: make more efficient
-        std::complex<float> g;
-        if (_polarization == aocommon::Polarization::XX) {
-          *iter = conj(gain1[0]) * (*iter) * gain2[0];
-          g = gain2[0] * conj(gain1[0]);
-        } else if (_polarization == aocommon::Polarization::YY) {
-          *iter = conj(gain1[3]) * (*iter) * gain2[3];
-          g = gain2[3] * conj(gain1[3]);
-        } else {
-          ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
-          g = 0.25f * Trace(gain2) * conj(Trace(gain1));
-        }
+        // // TODO: make more efficient
+        // std::complex<float> g;
+        // if (_polarization == aocommon::Polarization::XX) {
+        //   *iter = conj(gain1[0]) * (*iter) * gain2[0];
+        //   g = gain2[0] * conj(gain1[0]);
+        // } else if (_polarization == aocommon::Polarization::YY) {
+        //   *iter = conj(gain1[3]) * (*iter) * gain2[3];
+        //   g = gain2[3] * conj(gain1[3]);
+        // } else {
+        //   ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+        //   g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        // }
 
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
@@ -897,19 +964,23 @@ void MSGridderBase::readAndWeightVisibilities(
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        ApplyConjugatedGain<PolarizationCount, PolarizationEntry>(iter, gain1,
+                                                                  gain2);
+        const std::complex<float> g =
+            ComputeGain<PolarizationEntry>(gain1, gain2);
 
         // FIXME: make more efficient
-        std::complex<float> g;
-        if (_polarization == aocommon::Polarization::XX) {
-          *iter = conj(gain1[0]) * (*iter) * gain2[0];
-          g = gain2[0] * conj(gain1[0]);
-        } else if (_polarization == aocommon::Polarization::YY) {
-          *iter = conj(gain1[3]) * (*iter) * gain2[3];
-          g = gain2[3] * conj(gain1[3]);
-        } else {
-          ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
-          g = 0.25f * Trace(gain2) * conj(Trace(gain1));
-        }
+        // std::complex<float> g;
+        // if (_polarization == aocommon::Polarization::XX) {
+        //   *iter = conj(gain1[0]) * (*iter) * gain2[0];
+        //   g = gain2[0] * conj(gain1[0]);
+        // } else if (_polarization == aocommon::Polarization::YY) {
+        //   *iter = conj(gain1[3]) * (*iter) * gain2[3];
+        //   g = gain2[3] * conj(gain1[3]);
+        // } else {
+        //   ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+        //   g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        // }
 
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
@@ -944,12 +1015,22 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 }
 
-template void MSGridderBase::readAndWeightVisibilities<1>(
+template void MSGridderBase::readAndWeightVisibilities<1, 0>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const BandData& curBand, float* weightBuffer,
     std::complex<float>* modelBuffer, const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<4>(
+template void MSGridderBase::readAndWeightVisibilities<1, 3>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
+
+template void MSGridderBase::readAndWeightVisibilities<1, 4>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
+
+template void MSGridderBase::readAndWeightVisibilities<4, 4>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const BandData& curBand, float* weightBuffer,
     std::complex<float>* modelBuffer, const bool* isSelected);
