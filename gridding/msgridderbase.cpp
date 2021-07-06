@@ -621,13 +621,20 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
+        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
+                                     _cachedParmResponse[offset1 + 1]);
+        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
+                                     _cachedParmResponse[offset2 + 1]);
 
-        ApplyGain<PolarizationCount>(
-            iter,
-            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
-                             _cachedParmResponse[offset1 + 1]),
-            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
-                             _cachedParmResponse[offset2 + 1]));
+        // TODO: make more efficient
+        if (_polarization == aocommon::Polarization::XX) {
+          *iter = gain1[0] * (*iter) * conj(gain2[0]);
+        } else if (_polarization == aocommon::Polarization::YY) {
+          *iter = gain1[3] * (*iter) * conj(gain2[3]);
+        } else {
+          ApplyGain<PolarizationCount>(iter, gain1, gain2);
+        }
+
         iter += PolarizationCount;
       }
     } else {
@@ -635,9 +642,17 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyGain<PolarizationCount>(
-            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
-            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
+        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+
+        if (_polarization == aocommon::Polarization::XX) {
+          *iter = gain1[0] * (*iter) * conj(gain2[0]);
+        } else if (_polarization == aocommon::Polarization::YY) {
+          *iter = gain1[3] * (*iter) * conj(gain2[3]);
+        } else {
+          ApplyGain<PolarizationCount>(iter, gain1, gain2);
+        }
+
         iter += PolarizationCount;
       }
     }
@@ -853,9 +868,20 @@ void MSGridderBase::readAndWeightVisibilities(
                                      _cachedParmResponse[offset1 + 1]);
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
-        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        // TODO: make more efficient
+        std::complex<float> g;
+        if (_polarization == aocommon::Polarization::XX) {
+          *iter = conj(gain1[0]) * (*iter) * gain2[0];
+          g = gain2[0] * conj(gain1[0]);
+        } else if (_polarization == aocommon::Polarization::YY) {
+          *iter = conj(gain1[3]) * (*iter) * gain2[3];
+          g = gain2[3] * conj(gain1[3]);
+        } else {
+          ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+          g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        }
+
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
@@ -871,9 +897,20 @@ void MSGridderBase::readAndWeightVisibilities(
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
-        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
 
-        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        // FIXME: make more efficient
+        std::complex<float> g;
+        if (_polarization == aocommon::Polarization::XX) {
+          *iter = conj(gain1[0]) * (*iter) * gain2[0];
+          g = gain2[0] * conj(gain1[0]);
+        } else if (_polarization == aocommon::Polarization::YY) {
+          *iter = conj(gain1[3]) * (*iter) * gain2[3];
+          g = gain2[3] * conj(gain1[3]);
+        } else {
+          ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+          g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        }
+
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 

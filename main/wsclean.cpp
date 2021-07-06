@@ -2046,16 +2046,19 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
                               const ImagingTable& table,
                               const ImageFilename& imageName,
                               const std::string& filenameKind) const {
-  PolarizationEnum pol = *_settings.polarizations.begin();
+  // PolarizationEnum pol = *_settings.polarizations.begin();
+  const PolarizationEnum pol = table.Front().polarization;
 
-  if (pol == Polarization::StokesI) {
-    ImageFilename stokesIName(imageName);
-    stokesIName.SetPolarization(pol);
+  if (pol == Polarization::StokesI || pol == Polarization::XX ||
+      pol == Polarization::YY) {
+    // FIXME: RENAME
+    ImageFilename iName(imageName);
+    iName.SetPolarization(pol);
     std::string prefix;
     if (filenameKind == "psf")
-      prefix = stokesIName.GetPSFPrefix(_settings);
+      prefix = iName.GetPSFPrefix(_settings);
     else
-      prefix = stokesIName.GetPrefix(_settings);
+      prefix = iName.GetPrefix(_settings);
 
     aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
     Image image(reader.ImageWidth(), reader.ImageHeight());
@@ -2078,6 +2081,6 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
   } else {
     throw std::runtime_error(
         "H5 correction is requested, but this is not supported "
-        "when imaging a single polarization that is not Stokes I.");
+        "when imaging a single polarization that is not Stokes I, XX, or YY.");
   }
 }
