@@ -14,7 +14,7 @@ class SynchronizedMS {
 
   SynchronizedMS(const std::string& filename,
                  const casacore::TableLock::LockOption lock_option =
-                     casacore::TableLock::AutoNoReadLocking)
+                     casacore::TableLock::DefaultLocking)
       : _lock(std::make_shared<MSLock>(filename, lock_option)) {}
 
   void Reset() { _lock.reset(); }

@@ -21,7 +21,7 @@ class ContiguousMS : public MSProvider {
  public:
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
                const MSSelection& selection, aocommon::PolarizationEnum polOut,
-               size_t dataDescIndex);
+               size_t dataDescIndex, bool useMPI);
   virtual ~ContiguousMS(){};
 
   ContiguousMS(const ContiguousMS&) = delete;
@@ -62,6 +62,7 @@ class ContiguousMS : public MSProvider {
   size_t _currentOutputTimestep;
   double _currentOutputTime;
   const int _dataDescId;
+  const bool _useMPI;
   size_t _nAntenna;
   bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared;
