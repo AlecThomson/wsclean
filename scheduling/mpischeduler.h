@@ -14,11 +14,11 @@
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
-  MPIScheduler(const class Settings &settings);
+  MPIScheduler(const class Settings& settings);
   ~MPIScheduler();
 
-  void Run(GriddingTask &&task,
-           std::function<void(GriddingResult &)> finishCallback) override;
+  void Run(GriddingTask&& task,
+           std::function<void(GriddingResult&)> finishCallback) override;
 
   void Finish() override;
 
@@ -27,17 +27,35 @@ class MPIScheduler final : public GriddingTaskManager {
   LockGuard GetLock(size_t writerGroupIndex) override;
 
  private:
-  class MPIWriterLock final : public WriterLock {
+  class WorkerWriterLock : public WriterLock {
    public:
-    MPIWriterLock() : _writerGroupIndex(0) {}
+    WorkerWriterLock() : _writerGroupIndex(0) {}
+    ~WorkerWriterLock() {}
+
     void SetWriterGroupIndex(size_t writerGroupIndex) {
       _writerGroupIndex = writerGroupIndex;
     }
     void lock() override;
     void unlock() override;
 
+   protected:
+    size_t GetWriterGroupIndex() const { return _writerGroupIndex; }
+
    private:
     size_t _writerGroupIndex;  ///< Index of the lock that must be acquired.
+  };
+
+  class MasterWriterLock : public WorkerWriterLock {
+   public:
+    explicit MasterWriterLock(MPIScheduler& scheduler)
+        : WorkerWriterLock(), _scheduler(scheduler) {}
+    ~MasterWriterLock() {}
+
+    void lock() override;
+    void unlock() override;
+
+   private:
+    MPIScheduler& _scheduler;  ///< For direct lock calls to the scheduler.
   };
 
   enum class NodeState { kAvailable, kBusy };
@@ -47,8 +65,8 @@ class MPIScheduler final : public GriddingTaskManager {
    * If all nodes are busy, the call will block until a node is
    * available.
    */
-  void send(GriddingTask &&task,
-            const std::function<void(GriddingResult &)> &callback);
+  void send(GriddingTask&& task,
+            const std::function<void(GriddingResult&)>& callback);
 
   /**
    * Wait until results are available and push these to the 'ready list'.
@@ -60,7 +78,7 @@ class MPIScheduler final : public GriddingTaskManager {
   /**
    * Directly run the given task. This is a blocking call.
    */
-  void runTaskOnNode0(GriddingTask &&task);
+  void runTaskOnNode0(GriddingTask&& task);
 
   /**
    * This "atomically" finds a node with a certain state and assigns a new value
@@ -70,7 +88,7 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   int findAndSetNodeState(
       MPIScheduler::NodeState currentState,
-      std::pair<MPIScheduler::NodeState, std::function<void(GriddingResult &)>>
+      std::pair<MPIScheduler::NodeState, std::function<void(GriddingResult&)>>
           newState);
 
   /**
@@ -107,11 +125,11 @@ class MPIScheduler final : public GriddingTaskManager {
   std::mutex _mutex;
   std::thread _receiveThread;
   std::thread _workThread;
-  std::vector<std::pair<GriddingResult, std::function<void(GriddingResult &)>>>
+  std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
       _readyList;
-  std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>
+  std::vector<std::pair<NodeState, std::function<void(GriddingResult&)>>>
       _nodes;
-  MPIWriterLock _writerLock;
+  std::unique_ptr<WorkerWriterLock> _writerLock;
 
   /**
    * For each lock, a queue with the nodes that are waiting for the lock.

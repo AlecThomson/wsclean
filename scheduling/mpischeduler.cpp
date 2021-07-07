@@ -12,6 +12,8 @@
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
+#include <boost/make_unique.hpp>
+
 #include <mpi.h>
 
 #include <cassert>
@@ -26,6 +28,7 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       _workThread(),
       _readyList(),
       _nodes(),
+      _writerLock(),
       _writerLockQueues() {
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -38,6 +41,11 @@ MPIScheduler::MPIScheduler(const Settings &settings)
     if (!settings.masterDoesWork && world_size <= 1)
       throw std::runtime_error(
           "Master was told not to work, but no other workers available");
+    if (settings.masterDoesWork) {
+      _writerLock = boost::make_unique<MasterWriterLock>(*this);
+    }
+  } else {
+    _writerLock = boost::make_unique<WorkerWriterLock>();
   }
 }
 
@@ -94,8 +102,8 @@ void MPIScheduler::Start(size_t nWriterGroups) {
 }
 
 WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
-  _writerLock.SetWriterGroupIndex(writerGroupIndex);
-  return LockGuard(_writerLock);
+  _writerLock->SetWriterGroupIndex(writerGroupIndex);
+  return LockGuard(*_writerLock);
 }
 
 void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
@@ -281,7 +289,7 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
            0, MPI_COMM_WORLD);
 }
 
-void MPIScheduler::MPIWriterLock::lock() {
+void MPIScheduler::WorkerWriterLock::lock() {
   TaskMessage message(TaskMessage::Type::kLockRequest, _writerGroupIndex);
   aocommon::SerialOStream taskMessageStream;
   message.Serialize(taskMessageStream);
@@ -310,7 +318,7 @@ void MPIScheduler::MPIWriterLock::lock() {
   }
 }
 
-void MPIScheduler::MPIWriterLock::unlock() {
+void MPIScheduler::WorkerWriterLock::unlock() {
   TaskMessage message(TaskMessage::Type::kLockRelease, _writerGroupIndex);
   aocommon::SerialOStream taskMessageStream;
   message.Serialize(taskMessageStream);
@@ -322,3 +330,7 @@ void MPIScheduler::MPIWriterLock::unlock() {
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
            main_node, 0, MPI_COMM_WORLD);
 }
+
+void MPIScheduler::MasterWriterLock::lock() {}
+
+void MPIScheduler::MasterWriterLock::unlock() {}
