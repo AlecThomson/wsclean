@@ -9,6 +9,8 @@
 
 #include <boost/make_unique.hpp>
 
+#include <cassert>
+
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isPartitioned)
     return boost::make_unique<PartitionedMS>(_partitionHandle, _partIndex,
