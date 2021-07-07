@@ -233,7 +233,7 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
   _notify.notify_all();
 }
 
-void MPIScheduler::processLockRequest(int node, size_t lockId) {
+void MPIScheduler::processLockRequest(const int node, size_t lockId) {
   if (lockId >= _writerLockQueues.size()) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " requests invalid lock " +
@@ -246,10 +246,16 @@ void MPIScheduler::processLockRequest(int node, size_t lockId) {
                              " requests lock " + std::to_string(lockId));
   }
   _writerLockQueues[lockId].PushBack(node);
-  if (_writerLockQueues[lockId].Size() == 1) {
+
+  if (node == 0) {  // master node: wait for lock in the worker thread
+    while (_writerLockQueues[lockId][0] != 0) {
+      _notify.wait(lock);
+    }
+  } else if (_writerLockQueues[lockId].Size() == 1) {
+    // Grant the lock immediately.
     lock.unlock();
     grantLock(node, lockId);
-  }
+  }  // else processLockRelease will grant the lock once it's released.
 }
 
 void MPIScheduler::processLockRelease(int node, size_t lockId) {
@@ -270,8 +276,12 @@ void MPIScheduler::processLockRelease(int node, size_t lockId) {
   _writerLockQueues[lockId].PopFront();
   if (!_writerLockQueues[lockId].Empty()) {
     const int waiting_node = _writerLockQueues[lockId][0];
-    lock.unlock();
-    grantLock(waiting_node, lockId);
+    if (waiting_node == 0) {
+      _notify.notify_all();
+    } else {
+      lock.unlock();
+      grantLock(waiting_node, lockId);
+    }
   }
 }
 
@@ -331,6 +341,10 @@ void MPIScheduler::WorkerWriterLock::unlock() {
            main_node, 0, MPI_COMM_WORLD);
 }
 
-void MPIScheduler::MasterWriterLock::lock() {}
+void MPIScheduler::MasterWriterLock::lock() {
+  _scheduler.processLockRequest(0, GetWriterGroupIndex());
+}
 
-void MPIScheduler::MasterWriterLock::unlock() {}
+void MPIScheduler::MasterWriterLock::unlock() {
+  _scheduler.processLockRelease(0, GetWriterGroupIndex());
+}

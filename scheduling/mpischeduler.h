@@ -58,6 +58,8 @@ class MPIScheduler final : public GriddingTaskManager {
     MPIScheduler& _scheduler;  ///< For direct lock calls to the scheduler.
   };
 
+  friend class MasterWriterLock;
+
   enum class NodeState { kAvailable, kBusy };
 
   /**

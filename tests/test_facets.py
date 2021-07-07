@@ -79,7 +79,7 @@ def predict_facet_image(ms, gridder):
 
 def deconvolve_facets(ms, gridder, reorder, mpi):
     nthreads = 4
-    mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp -no-work-on-master"
+    mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp"
     thread_cmd = f"wsclean -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     s = [
