@@ -936,19 +936,6 @@ void MSGridderBase::readAndWeightVisibilities(
         const std::complex<float> g =
             ComputeGain<PolarizationEntry>(gain1, gain2);
 
-        // // TODO: make more efficient
-        // std::complex<float> g;
-        // if (_polarization == aocommon::Polarization::XX) {
-        //   *iter = conj(gain1[0]) * (*iter) * gain2[0];
-        //   g = gain2[0] * conj(gain1[0]);
-        // } else if (_polarization == aocommon::Polarization::YY) {
-        //   *iter = conj(gain1[3]) * (*iter) * gain2[3];
-        //   g = gain2[3] * conj(gain1[3]);
-        // } else {
-        //   ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
-        //   g = 0.25f * Trace(gain2) * conj(Trace(gain1));
-        // }
-
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
@@ -968,19 +955,6 @@ void MSGridderBase::readAndWeightVisibilities(
                                                                   gain2);
         const std::complex<float> g =
             ComputeGain<PolarizationEntry>(gain1, gain2);
-
-        // FIXME: make more efficient
-        // std::complex<float> g;
-        // if (_polarization == aocommon::Polarization::XX) {
-        //   *iter = conj(gain1[0]) * (*iter) * gain2[0];
-        //   g = gain2[0] * conj(gain1[0]);
-        // } else if (_polarization == aocommon::Polarization::YY) {
-        //   *iter = conj(gain1[3]) * (*iter) * gain2[3];
-        //   g = gain2[3] * conj(gain1[3]);
-        // } else {
-        //   ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
-        //   g = 0.25f * Trace(gain2) * conj(Trace(gain1));
-        // }
 
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();

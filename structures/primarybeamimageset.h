@@ -199,6 +199,42 @@ class PrimaryBeamImageSet {
     }
   }
 
+  void ApplyDiagonal(float* images[2], double beam_limit) {
+    // The beam will be compared to a squared quantity (matrix norm), so square
+    // it:
+    beam_limit = beam_limit * beam_limit;
+    size_t size = _width * _height;
+    // Case of 8 images not implemented anymore, as it will be deprecated soon
+    // anyway
+    if (_beamImages.size() == 16) {
+      for (size_t j = 0; j != size; ++j) {
+        aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
+            {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
+             _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
+             _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
+             _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
+             _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
+             _beamImages[15][j]});
+        if (beam.Norm() > beam_limit) {
+          if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
+          aocommon::Vector4 v{images[0][j], 0., 0., images[1][j]};
+          // Implementation could be made more efficient - at the expense of
+          // explicitness - since only a few entries in the beam matrix are
+          // relevant
+          v = beam * v;
+          images[0][j] = v[0].real();
+          images[1][j] = v[3].real();
+        } else {
+          for (size_t p = 0; p != 2; ++p)
+            images[p][j] = std::numeric_limits<float>::quiet_NaN();
+        }
+      }
+    } else {
+      throw std::runtime_error("Apply Diagonal not implemented for " +
+                               std::to_string(_beamImages.size()) + " images");
+    }
+  };
+
   void ApplyFullStokes(float* images[4], double beam_limit) const {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
