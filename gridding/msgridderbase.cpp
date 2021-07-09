@@ -677,16 +677,6 @@ void MSGridderBase::writeVisibilities(
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
         ApplyGain<PolarizationCount, PolarizationEntry>(iter, gain1, gain2);
-
-        // TODO: make more efficient
-        // if (_polarization == aocommon::Polarization::XX) {
-        //   *iter = gain1[0] * (*iter) * conj(gain2[0]);
-        // } else if (_polarization == aocommon::Polarization::YY) {
-        //   *iter = gain1[3] * (*iter) * conj(gain2[3]);
-        // } else {
-        //   ApplyGain<PolarizationCount>(iter, gain1, gain2);
-        // }
-
         iter += PolarizationCount;
       }
     } else {
@@ -697,15 +687,6 @@ void MSGridderBase::writeVisibilities(
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
         ApplyGain<PolarizationCount, PolarizationEntry>(iter, gain1, gain2);
-
-        // if (_polarization == aocommon::Polarization::XX) {
-        //   *iter = gain1[0] * (*iter) * conj(gain2[0]);
-        // } else if (_polarization == aocommon::Polarization::YY) {
-        //   *iter = gain1[3] * (*iter) * conj(gain2[3]);
-        // } else {
-        //   ApplyGain<PolarizationCount>(iter, gain1, gain2);
-        // }
-
         iter += PolarizationCount;
       }
     }

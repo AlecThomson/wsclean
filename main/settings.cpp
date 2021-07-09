@@ -63,7 +63,7 @@ void Settings::Validate() const {
             "the facet beam when deconvolving multiple polarizations");
       }
       // This condition might become a bit more specific once xx,yy polarization
-      // correction for h5 AND beam
+      // correction for h5 AND beam are implemented
       if (applyFacetBeam && !facetSolutionFile.empty()) {
         throw std::runtime_error(
             "Applying H5Parm AND Beam correction on multiple polarizations is "
