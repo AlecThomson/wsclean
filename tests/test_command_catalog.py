@@ -215,7 +215,7 @@ def test_facet_h5solution(npol):
     check_call(h5download.split())
 
     name = f"facet-h5-{npol}pol"
-    s = f"wsclean -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {os.environ['MWA_MS']}"
+    s = f"./wsclean -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {os.environ['MWA_MS']}"
     check_call(s.split())
 
     # Check for output images
