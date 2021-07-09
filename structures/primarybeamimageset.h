@@ -13,8 +13,6 @@
 
 #include "../structures/image.h"
 
-using aocommon::FitsReader;
-
 class PrimaryBeamImageSet {
  public:
   PrimaryBeamImageSet() : _beamImages(), _width(0), _height(0) {}
@@ -24,15 +22,15 @@ class PrimaryBeamImageSet {
     for (size_t i = 0; i != nImages; ++i) _beamImages[i] = Image(width, height);
   }
 
-  static FitsReader GetAReader(const std::string& beamPrefix,
-                               bool stokesIOnly) {
+  static aocommon::FitsReader GetAReader(const std::string& beamPrefix,
+                                         bool stokesIOnly) {
     if (stokesIOnly) {
-      return FitsReader(beamPrefix + "-I.fits");
+      return aocommon::FitsReader(beamPrefix + "-I.fits");
     } else {
       std::string aFilename = beamPrefix + "-XX.fits";
       if (!boost::filesystem::exists(beamPrefix + "-XX.fits"))
         aFilename = beamPrefix + "-0.fits";
-      return FitsReader(aFilename);
+      return aocommon::FitsReader(aFilename);
     }
   }
 
@@ -44,7 +42,7 @@ class PrimaryBeamImageSet {
       // rest. Currently we just load that beam into real component of XX and
       // YY, and set the other 6 images to zero. This is a bit wasteful so might
       // require a better strategy for big images.
-      FitsReader reader(beamPrefix + "-I.fits");
+      aocommon::FitsReader reader(beamPrefix + "-I.fits");
       reader.Read(beamImages[0].data());
       for (size_t i = 0; i != width * height; ++i)
         beamImages[0][i] = std::sqrt(beamImages[0][i]);
@@ -66,14 +64,15 @@ class PrimaryBeamImageSet {
             polStr = aocommon::Polarization::TypeToShortString(p);
           else
             polStr = aocommon::Polarization::TypeToShortString(p) + "i";
-          FitsReader reader(beamPrefix + "-" + polStr + ".fits");
+          aocommon::FitsReader reader(beamPrefix + "-" + polStr + ".fits");
           reader.Read(beamImages[i].data());
         }
         return beamImages;
       } catch (std::exception&) {
         PrimaryBeamImageSet beamImages(width, height, 16);
         for (size_t i = 0; i != 16; ++i) {
-          FitsReader reader(beamPrefix + "-" + std::to_string(i) + ".fits");
+          aocommon::FitsReader reader(beamPrefix + "-" + std::to_string(i) +
+                                      ".fits");
           reader.Read(beamImages[i].data());
         }
         return beamImages;
