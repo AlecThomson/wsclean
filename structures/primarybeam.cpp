@@ -34,7 +34,7 @@ void writeBeamImages(const ImageFilename& imageName,
                      const Settings& settings, const ImagingTableEntry& entry,
                      double phaseCentreRA, double phaseCentreDec,
                      double phaseCentreDL, double phaseCentreDM) {
-  // Save the (16) beam images as fits files
+  // Save the 16 beam images as fits files
   aocommon::FitsWriter writer;
   writer.SetImageDimensions(
       settings.trimmedImageWidth, settings.trimmedImageHeight, phaseCentreRA,
@@ -310,8 +310,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
         MSProviderInfo(providers.back().get(), &_msList[i]->Selection(), i));
   }
 
-  size_t width(_settings.trimmedImageWidth),
-      height(_settings.trimmedImageHeight);
+  const size_t width(_settings.trimmedImageWidth);
+  const size_t height(_settings.trimmedImageHeight);
   everybeam::coords::CoordinateSystem coordinateSystem{width,
                                                        height,
                                                        _phaseCentreRA,
@@ -342,7 +342,7 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     centralFrequency /= msInfo.bands.size();
 
     aocommon::UVector<double> buffer(width * height * 16, 0);
-    double ms_weight =
+    const double ms_weight =
         MakeBeamForMS(buffer, *msProviderInfo.provider, selection,
                       *imageWeights, coordinateSystem, centralFrequency);
     for (size_t i = 0; i != buffer_total.size(); ++i) {
