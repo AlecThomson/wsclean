@@ -1,7 +1,7 @@
 #ifndef PRIMARY_BEAM_IMAGE_SET
 #define PRIMARY_BEAM_IMAGE_SET
 
-#include <vector>
+#include <array>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -17,21 +17,10 @@ class PrimaryBeamImageSet {
  public:
   PrimaryBeamImageSet() : _beamImages(), _width(0), _height(0) {}
 
-  PrimaryBeamImageSet(size_t width, size_t height, size_t nImages)
-      : _beamImages(nImages), _width(width), _height(height) {
-    for (size_t i = 0; i != nImages; ++i) _beamImages[i] = Image(width, height);
-  }
-
-  static aocommon::FitsReader GetAReader(const std::string& beamPrefix,
-                                         bool stokesIOnly) {
-    if (stokesIOnly) {
-      return aocommon::FitsReader(beamPrefix + "-I.fits");
-    } else {
-      std::string aFilename = beamPrefix + "-XX.fits";
-      if (!boost::filesystem::exists(beamPrefix + "-XX.fits"))
-        aFilename = beamPrefix + "-0.fits";
-      return aocommon::FitsReader(aFilename);
-    }
+  PrimaryBeamImageSet(size_t width, size_t height)
+      : _width(width), _height(height) {
+    for (size_t i = 0; i != _beamImages.size(); ++i)
+      _beamImages[i] = Image(width, height);
   }
 
   void SetToZero() {
@@ -40,25 +29,18 @@ class PrimaryBeamImageSet {
   }
 
   double GetUnpolarizedCorrectionFactor(size_t x, size_t y) {
-    if (_beamImages.size() == 16) {
-      const size_t j = y * _width + x;
-      aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
-          {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
-           _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
-           _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
-           _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
-           _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
-           _beamImages[15][j]});
-      if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-      aocommon::Vector4 v{0.5, 0.0, 0.0, 0.5};
-      v = beam * v;
-      return v[0].real() + v[3].real();
-    } else {
-      throw std::runtime_error(
-          "PrimaryBeamImageSet::GetUnpolarizedCorrectionFactor(): Expected 16 "
-          "images, but found " +
-          std::to_string(_beamImages.size()));
-    }
+    const size_t j = y * _width + x;
+    aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
+        {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
+         _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
+         _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
+         _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
+         _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
+         _beamImages[15][j]});
+    if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
+    aocommon::Vector4 v{0.5, 0.0, 0.0, 0.5};
+    v = beam * v;
+    return v[0].real() + v[3].real();
   }
 
   const Image& operator[](size_t index) const { return _beamImages[index]; }
@@ -111,7 +93,7 @@ class PrimaryBeamImageSet {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beamLimit = beamLimit * beamLimit;
-    size_t size = _width * _height;
+    const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
       aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
           {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
@@ -140,7 +122,7 @@ class PrimaryBeamImageSet {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beamLimit = beamLimit * beamLimit;
-    size_t size = _width * _height;
+    const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
       aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
           {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
@@ -170,7 +152,7 @@ class PrimaryBeamImageSet {
   size_t Height() const { return _height; }
 
  private:
-  std::vector<Image> _beamImages;
+  std::array<Image, 16> _beamImages;
   size_t _width, _height;
 };
 

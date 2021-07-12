@@ -206,8 +206,8 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     throw std::runtime_error("Not implemented!");
   } else {
     PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                   settings.trimmedImageHeight, 16);
-    for (size_t i = 0; i != 16; ++i) {
+                                   settings.trimmedImageHeight);
+    for (size_t i = 0; i != beamImages.NImages(); ++i) {
       aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
                                   std::to_string(i) + ".fits");
       reader.Read(beamImages[i].data());
@@ -267,6 +267,11 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
 PrimaryBeamImageSet PrimaryBeam::MakeImage(
     const ImagingTableEntry& entry,
     std::shared_ptr<ImageWeights> imageWeights) {
+  const size_t width(_settings.trimmedImageWidth);
+  const size_t height(_settings.trimmedImageHeight);
+  PrimaryBeamImageSet beamImages(width, height);
+  beamImages.SetToZero();
+
   std::vector<std::unique_ptr<MSProvider>> providers;
   for (size_t i = 0; i != _msList.size(); ++i) {
     providers.emplace_back(_msList[i]->GetProvider());
@@ -274,8 +279,6 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
         MSProviderInfo(providers.back().get(), &_msList[i]->Selection(), i));
   }
 
-  const size_t width(_settings.trimmedImageWidth);
-  const size_t height(_settings.trimmedImageHeight);
   everybeam::coords::CoordinateSystem coordinateSystem{width,
                                                        height,
                                                        _phaseCentreRA,
@@ -285,7 +288,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
                                                        _phaseCentreDL,
                                                        _phaseCentreDM};
 
-  aocommon::UVector<double> buffer_total(width * height * 16, 0);
+  aocommon::UVector<double> buffer_total(width * height * beamImages.NImages(),
+                                         0);
   double ms_weight_sum = 0;
   for (const MSProviderInfo& msProviderInfo : _msProviders) {
     // TODO: channelFrequency calculation might be telescope specific?
@@ -305,7 +309,7 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     }
     centralFrequency /= msInfo.bands.size();
 
-    aocommon::UVector<double> buffer(width * height * 16, 0);
+    aocommon::UVector<double> buffer(width * height * beamImages.NImages(), 0);
     const double ms_weight =
         MakeBeamForMS(buffer, *msProviderInfo.provider, selection,
                       *imageWeights, coordinateSystem, centralFrequency);
@@ -320,11 +324,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     buffer_total[i] /= ms_weight_sum;
   }
 
-  PrimaryBeamImageSet beamImages(width, height, 16);
-  beamImages.SetToZero();
-
   // Copy buffer_total data into beam_images
-  for (size_t p = 0; p != 16; ++p) {
+  for (size_t p = 0; p != beamImages.NImages(); ++p) {
     std::copy_n(buffer_total.data() + p * width * height, width * height,
                 &beamImages[p][0]);
   }
