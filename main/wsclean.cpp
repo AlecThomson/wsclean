@@ -1236,9 +1236,9 @@ void WSClean::saveRestoredImagesForGroup(
     }
 
     // Apply the H5 solutions to the facets. In case a H5 solution file is
-    // provided, but no primary beam correction was applied
+    // provided, but no primary beam correction was applied.
     // This can be done on a per-polarization basis (as long as we do not
-    // fully support a Full Jones correction)
+    // fully support a Full Jones correction).
     if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
       correctImagesH5(writer.Writer(), table, imageName, "image");
       if (_settings.savePsfPb)

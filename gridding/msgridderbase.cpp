@@ -44,6 +44,15 @@
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
+/**
+ * @brief Apply conjugated gains to the visibilities.
+ *
+ * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * gridders.
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account when correcting the visibilities? See also the
+ * documentation of DDGainMatrix.
+ */
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void ApplyConjugatedGain(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
@@ -82,6 +91,15 @@ void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
   result.AssignTo(visibilities);
 }
 
+/**
+ * @brief Apply gains to the visibilities.
+ *
+ * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * gridders.
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account when correcting the visibilities? See also the
+ * documentation of DDGainMatrix.
+ */
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
                const aocommon::MC2x2F& gain2);
@@ -119,6 +137,12 @@ void ApplyGain<4, DDGainMatrix::kFull>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 
+/**
+ * @brief Compute the gain based from the given gain matrices.
+ *
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account? See DDGainMatrix for further documentation.
+ */
 template <DDGainMatrix GainEntry>
 std::complex<float> ComputeGain(const aocommon::MC2x2F& gain1,
                                 const aocommon::MC2x2F& gain2);
