@@ -51,7 +51,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   return maxNRows;
 }
 
-template <size_t PolarizationEntry>
+template <DDGainMatrix GainEntry>
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
   StartMeasurementSet(msData, false);
@@ -97,7 +97,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1, PolarizationEntry>(
+          readAndWeightVisibilities<1, GainEntry>(
               *msReader, msData.antennaNames, newRowData, band,
               weightBuffer.data(), modelBuffer.data(), isSelected.data());
 
@@ -121,11 +121,14 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-template void WGriddingMSGridder::gridMeasurementSet<0>(MSData& msData);
-template void WGriddingMSGridder::gridMeasurementSet<3>(MSData& msData);
-template void WGriddingMSGridder::gridMeasurementSet<4>(MSData& msData);
+template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kXX>(
+    MSData& msData);
+template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kYY>(
+    MSData& msData);
+template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kTrace>(
+    MSData& msData);
 
-template <size_t PolarizationEntry>
+template <DDGainMatrix GainEntry>
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
@@ -170,16 +173,9 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        if (Polarization() == aocommon::Polarization::XX) {
-          writeVisibilities<1, 0>(*msData.msProvider, msData.antennaNames, band,
-                                  &visBuffer[row * band.ChannelCount()]);
-        } else if (Polarization() == aocommon::Polarization::YY) {
-          writeVisibilities<1, 3>(*msData.msProvider, msData.antennaNames, band,
-                                  &visBuffer[row * band.ChannelCount()]);
-        } else {
-          writeVisibilities<1, 4>(*msData.msProvider, msData.antennaNames, band,
-                                  &visBuffer[row * band.ChannelCount()]);
-        }
+        writeVisibilities<1, GainEntry>(*msData.msProvider, msData.antennaNames,
+                                        band,
+                                        &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;
     }  // end of chunk
@@ -188,9 +184,12 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-template void WGriddingMSGridder::predictMeasurementSet<0>(MSData& msData);
-template void WGriddingMSGridder::predictMeasurementSet<3>(MSData& msData);
-template void WGriddingMSGridder::predictMeasurementSet<4>(MSData& msData);
+template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kXX>(
+    MSData& msData);
+template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kYY>(
+    MSData& msData);
+template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
+    MSData& msData);
 
 void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
                                         size_t& trimmedHeight) const {
@@ -219,11 +218,11 @@ void WGriddingMSGridder::Invert() {
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
     if (Polarization() == aocommon::Polarization::XX) {
-      gridMeasurementSet<0>(msData);
+      gridMeasurementSet<DDGainMatrix::kXX>(msData);
     } else if (Polarization() == aocommon::Polarization::YY) {
-      gridMeasurementSet<3>(msData);
+      gridMeasurementSet<DDGainMatrix::kYY>(msData);
     } else {
-      gridMeasurementSet<4>(msData);
+      gridMeasurementSet<DDGainMatrix::kTrace>(msData);
     }
   }
 
@@ -301,11 +300,11 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
 
   for (MSData& msData : msDataVector) {
     if (Polarization() == aocommon::Polarization::XX) {
-      predictMeasurementSet<0>(msData);
+      predictMeasurementSet<DDGainMatrix::kXX>(msData);
     } else if (Polarization() == aocommon::Polarization::YY) {
-      predictMeasurementSet<3>(msData);
+      predictMeasurementSet<DDGainMatrix::kYY>(msData);
     } else {
-      predictMeasurementSet<4>(msData);
+      predictMeasurementSet<DDGainMatrix::kTrace>(msData);
     }
   }
 }
