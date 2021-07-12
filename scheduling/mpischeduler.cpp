@@ -247,11 +247,7 @@ void MPIScheduler::processLockRequest(const int node, size_t lockId) {
   }
   _writerLockQueues[lockId].PushBack(node);
 
-  if (node == 0) {  // master node: wait for lock in the worker thread
-    while (_writerLockQueues[lockId][0] != 0) {
-      _notify.wait(lock);
-    }
-  } else if (_writerLockQueues[lockId].Size() == 1) {
+  if (_writerLockQueues[lockId].Size() == 1) {
     // Grant the lock immediately.
     lock.unlock();
     grantLock(node, lockId);
@@ -277,6 +273,7 @@ void MPIScheduler::processLockRelease(int node, size_t lockId) {
   if (!_writerLockQueues[lockId].Empty()) {
     const int waiting_node = _writerLockQueues[lockId][0];
     if (waiting_node == 0) {
+      // Notify the worker thread, which waits in MasterWriterLock::lock.
       _notify.notify_all();
     } else {
       lock.unlock();
@@ -342,7 +339,18 @@ void MPIScheduler::WorkerWriterLock::unlock() {
 }
 
 void MPIScheduler::MasterWriterLock::lock() {
-  _scheduler.processLockRequest(0, GetWriterGroupIndex());
+  const size_t lockId = GetWriterGroupIndex();
+  assert(lockId < _scheduler._writerLockQueues.size());
+
+  std::unique_lock<std::mutex> lock(_scheduler._mutex);
+  assert(_scheduler._nodes[0].first == NodeState::kBusy);
+  _scheduler._writerLockQueues[lockId].PushBack(0);
+
+  while (_scheduler._writerLockQueues[lockId][0] != 0) {
+    // Wait for lock in the worker thread on the master node.
+    // processLockRelease notifies the worker thread when the lock is available.
+    _scheduler._notify.wait(lock);
+  }
 }
 
 void MPIScheduler::MasterWriterLock::unlock() {
