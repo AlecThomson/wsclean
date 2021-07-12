@@ -201,55 +201,19 @@ void PrimaryBeam::CorrectImages(
 PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
                                       const Settings& settings) {
   if (settings.useIDG) {
+    // Somewhat redundant with the command-line validation error
+    // which is thrown if IDG is combined with the primarybeam / facetbeam
+    throw std::runtime_error("Not implemented!");
+  } else {
     PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                   settings.trimmedImageHeight, 8);
-    // IDG produces only a Stokes I beam, and has already corrected for the
-    // rest. Currently we just load that beam into real component of XX and YY,
-    // and set the other 6 images to zero. This is a bit wasteful so might
-    // require a better strategy for big images.
-    ImageFilename polName(imageName);
-    polName.SetPolarization(aocommon::Polarization::StokesI);
-    aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-    reader.Read(beamImages[0].data());
-    for (size_t i = 0;
-         i != settings.trimmedImageWidth * settings.trimmedImageHeight; ++i)
-      beamImages[0][i] = std::sqrt(beamImages[0][i]);
-    std::copy_n(beamImages[0].data(),
-                settings.trimmedImageWidth * settings.trimmedImageHeight,
-                beamImages[6].data());
-    for (size_t i = 1; i != 8; ++i) {
-      if (i != 6)
-        std::fill_n(beamImages[i].data(),
-                    settings.trimmedImageWidth * settings.trimmedImageHeight,
-                    0.0);
+                                   settings.trimmedImageHeight, 16);
+    for (size_t i = 0; i != 16; ++i) {
+      aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
+                                  std::to_string(i) + ".fits");
+      reader.Read(beamImages[i].data());
     }
     return beamImages;
-  } else {
-    try {
-      PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                     settings.trimmedImageHeight, 8);
-      aocommon::PolarizationEnum linPols[4] = {
-          aocommon::Polarization::XX, aocommon::Polarization::XY,
-          aocommon::Polarization::YX, aocommon::Polarization::YY};
-      for (size_t i = 0; i != 8; ++i) {
-        aocommon::PolarizationEnum p = linPols[i / 2];
-        ImageFilename polName(imageName);
-        polName.SetPolarization(p);
-        polName.SetIsImaginary(i % 2 != 0);
-        aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-        reader.Read(beamImages[i].data());
-      }
-      return beamImages;
-    } catch (std::exception&) {
-      PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                     settings.trimmedImageHeight, 16);
-      for (size_t i = 0; i != 16; ++i) {
-        aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
-                                    std::to_string(i) + ".fits");
-        reader.Read(beamImages[i].data());
-      }
-      return beamImages;
-    }
+    // }
   }
 }
 

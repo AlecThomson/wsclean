@@ -34,52 +34,6 @@ class PrimaryBeamImageSet {
     }
   }
 
-  static PrimaryBeamImageSet Load(const std::string& beamPrefix, size_t width,
-                                  size_t height, bool stokesIOnly) {
-    if (stokesIOnly) {
-      PrimaryBeamImageSet beamImages(width, height, 8);
-      // IDG produces only a Stokes I beam, and has already corrected for the
-      // rest. Currently we just load that beam into real component of XX and
-      // YY, and set the other 6 images to zero. This is a bit wasteful so might
-      // require a better strategy for big images.
-      aocommon::FitsReader reader(beamPrefix + "-I.fits");
-      reader.Read(beamImages[0].data());
-      for (size_t i = 0; i != width * height; ++i)
-        beamImages[0][i] = std::sqrt(beamImages[0][i]);
-      std::copy_n(beamImages[0].data(), width * height, beamImages[6].data());
-      for (size_t i = 1; i != 8; ++i) {
-        if (i != 6) std::fill_n(beamImages[i].data(), width * height, 0.0);
-      }
-      return beamImages;
-    } else {
-      try {
-        PrimaryBeamImageSet beamImages(width, height, 8);
-        aocommon::PolarizationEnum linPols[4] = {
-            aocommon::Polarization::XX, aocommon::Polarization::XY,
-            aocommon::Polarization::YX, aocommon::Polarization::YY};
-        for (size_t i = 0; i != 8; ++i) {
-          aocommon::PolarizationEnum p = linPols[i / 2];
-          std::string polStr;
-          if (i % 2 == 0)  // real?
-            polStr = aocommon::Polarization::TypeToShortString(p);
-          else
-            polStr = aocommon::Polarization::TypeToShortString(p) + "i";
-          aocommon::FitsReader reader(beamPrefix + "-" + polStr + ".fits");
-          reader.Read(beamImages[i].data());
-        }
-        return beamImages;
-      } catch (std::exception&) {
-        PrimaryBeamImageSet beamImages(width, height, 16);
-        for (size_t i = 0; i != 16; ++i) {
-          aocommon::FitsReader reader(beamPrefix + "-" + std::to_string(i) +
-                                      ".fits");
-          reader.Read(beamImages[i].data());
-        }
-        return beamImages;
-      }
-    }
-  }
-
   void SetToZero() {
     for (Image& img : _beamImages)
       std::fill_n(img.data(), _width * _height, 0.0);
