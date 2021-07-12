@@ -233,7 +233,7 @@ void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
   _notify.notify_all();
 }
 
-void MPIScheduler::processLockRequest(const int node, size_t lockId) {
+void MPIScheduler::processLockRequest(int node, size_t lockId) {
   if (lockId >= _writerLockQueues.size()) {
     throw std::runtime_error("Node " + std::to_string(node) +
                              " requests invalid lock " +

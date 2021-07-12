@@ -45,7 +45,7 @@ class MPIScheduler final : public GriddingTaskManager {
     size_t _writerGroupIndex;  ///< Index of the lock that must be acquired.
   };
 
-  class MasterWriterLock : public WorkerWriterLock {
+  class MasterWriterLock final : public WorkerWriterLock {
    public:
     explicit MasterWriterLock(MPIScheduler& scheduler)
         : WorkerWriterLock(), _scheduler(scheduler) {}
