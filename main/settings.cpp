@@ -59,15 +59,16 @@ void Settings::Validate() const {
       if (applyFacetBeam && !joinedPolarizationDeconvolution &&
           deconvolutionIterationCount != 0) {
         throw std::runtime_error(
-            "Add -join-polarizations to the command line instruction to apply "
-            "the facet beam when deconvolving multiple polarizations");
+            "Can not apply the facet beam of multiple polarizations "
+            "independently. Add -join-polarizations to the command line to "
+            "apply the facet beam for multiple polarizations");
       }
       // This condition might become a bit more specific once xx,yy polarization
       // correction for h5 AND beam are implemented
       if (applyFacetBeam && !facetSolutionFile.empty()) {
         throw std::runtime_error(
-            "Applying H5Parm AND Beam correction on multiple polarizations is "
-            "not yet supported.");
+            "Applying h5parm solutions AND Beam correction on multiple "
+            "polarizations is not yet supported.");
       }
     }
   }

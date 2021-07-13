@@ -86,12 +86,12 @@ add_custom_target(
 # Test a number of wsclean commands, which can be considered system level tests3
 # FIXME: maybe other name for target, e.g. checkwscleancommands?
 add_custom_target(
-  checkcommandcatalog
+  checkcommandcatalogue
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
-    --junitxml=${CMAKE_BINARY_DIR}/test_command_catalog.xml
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_command_catalog.py)
+    --junitxml=${CMAKE_BINARY_DIR}/test_command_catalogue.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_command_catalogue.py)
 
 # Collect all tests that should run on das5 in a single target
 add_custom_target(checkintegration-nightly DEPENDS checkintegration;checkfacets)
