@@ -67,7 +67,7 @@ void Settings::Validate() const {
       // correction for h5 AND beam are implemented
       if (applyFacetBeam && !facetSolutionFile.empty()) {
         throw std::runtime_error(
-            "Applying h5parm solutions AND Beam correction on multiple "
+            "Applying h5parm solutions AND beam correction on multiple "
             "polarizations is not yet supported.");
       }
     }
