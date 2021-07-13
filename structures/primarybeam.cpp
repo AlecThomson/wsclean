@@ -201,9 +201,29 @@ void PrimaryBeam::CorrectImages(
 PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
                                       const Settings& settings) {
   if (settings.useIDG) {
-    // Somewhat redundant with the command-line validation error
-    // which is thrown if IDG is combined with the primarybeam / facetbeam
-    throw std::runtime_error("Not implemented!");
+    PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
+                                   settings.trimmedImageHeight);
+    beamImages.SetToZero();
+    // IDG produces only a Stokes I beam, and has already corrected for the
+    // rest. Currently we just load that beam into the diagonal entries of the
+    // real component of XX and YY, and set the other 12 images to zero. This is
+    // a bit wasteful so might require a better strategy for big images.
+    ImageFilename polName(imageName);
+    polName.SetPolarization(aocommon::Polarization::StokesI);
+    aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
+    reader.Read(beamImages[0].data());
+    for (size_t i = 0;
+         i != settings.trimmedImageWidth * settings.trimmedImageHeight; ++i)
+      beamImages[0][i] = std::sqrt(beamImages[0][i]);
+
+    // Copy zero entry to images of the diagonal
+    std::array<size_t, 3> diagonal_entries = {3, 8, 15};
+    for (size_t entry : diagonal_entries) {
+      std::copy_n(beamImages[0].data(),
+                  settings.trimmedImageWidth * settings.trimmedImageHeight,
+                  beamImages[entry].data());
+    }
+    return beamImages;
   } else {
     PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
                                    settings.trimmedImageHeight);
