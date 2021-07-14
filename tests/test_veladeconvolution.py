@@ -11,6 +11,10 @@ sys.path.append(".")
 
 import testconfig as tcf
 
+# Prepend path with current working directory to make sure
+# wsclean executable from the build directory
+os.environ["PATH"] = f"{os.getcwd()}:{os.environ['PATH']}"
+
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 
