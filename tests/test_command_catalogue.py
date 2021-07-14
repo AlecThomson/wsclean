@@ -200,7 +200,6 @@ def test_grid_with_beam():
         check_call(s.split())
         for image_type in [
             "psf",
-            # FIXME: I had expected a beam-I here?
             "beam",
             "dirty",
             "image",
