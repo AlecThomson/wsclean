@@ -1,4 +1,5 @@
 #include "fftconvolver.h"
+#include "fftkernels.h"
 
 #include "../system/fftwmanager.h"
 
@@ -129,8 +130,13 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
     reinterpret_cast<std::complex<float>*>(fftImageData)[i] *=
         fact * reinterpret_cast<std::complex<float>*>(fftKernelData)[i];
 
+#if 0
   fftwf_execute_dft_c2r(fToOutPlan,
                         reinterpret_cast<fftwf_complex*>(fftImageData), image);
+
+#else
+  fft2f_c2r_composite(imgHeight, imgWidth, fftImageData, image);
+#endif
 
   fftwf_free(fftImageData);
   fftwf_free(fftKernelData);
