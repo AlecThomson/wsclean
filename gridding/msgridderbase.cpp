@@ -238,7 +238,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 
 std::vector<std::string> MSGridderBase::getAntennaNames(
     const casacore::MSAntenna& msAntenna) {
-  casacore::MSAntennaColumns antenna(msAntenna);
+  casacore::ROMSAntennaColumns antenna(msAntenna);
   const casacore::ScalarColumn<casacore::String> antennaNameColumn =
       antenna.name();
 
