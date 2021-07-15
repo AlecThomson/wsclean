@@ -123,10 +123,18 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
       imgHeight, imgWidth, fftImageData, tempData, FFTW_ESTIMATE);
   lock.unlock();
 
+#if 0
   fftwf_execute_dft_r2c(inToFPlan, image, fftImageData);
+#else
+  fft2f_r2c_composite(imgHeight, imgWidth, image, fftImageData);
+#endif
 
   std::copy_n(kernel, imgSize, tempData);
+#if 0
   fftwf_execute_dft_r2c(inToFPlan, tempData, fftKernelData);
+#else
+  fft2f_r2c_composite(imgHeight, imgWidth, tempData, fftKernelData);
+#endif
 
   float fact = 1.0 / imgSize;
   for (size_t i = 0; i != complexSize; ++i)
