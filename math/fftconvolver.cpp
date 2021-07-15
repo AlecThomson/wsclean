@@ -108,12 +108,9 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
                                     size_t imgHeight) {
   const size_t imgSize = imgWidth * imgHeight;
   const size_t complexSize = (imgWidth / 2 + 1) * imgHeight;
-  float* tempData =
-      reinterpret_cast<float*>(fftwf_malloc(imgSize * sizeof(float)));
-  fftwf_complex* fftImageData = reinterpret_cast<fftwf_complex*>(
-      fftwf_malloc(complexSize * sizeof(fftwf_complex)));
-  fftwf_complex* fftKernelData = reinterpret_cast<fftwf_complex*>(
-      fftwf_malloc(complexSize * sizeof(fftwf_complex)));
+  float* tempData = fftwf_alloc_real(imgSize);
+  fftwf_complex* fftImageData = fftwf_alloc_complex(complexSize);
+  fftwf_complex* fftKernelData = fftwf_alloc_complex(complexSize);
 
   std::unique_lock<std::mutex> lock(fftw.Mutex());
   fftwf_plan inToFPlan = fftwf_plan_dft_r2c_2d(imgHeight, imgWidth, tempData,
