@@ -13,7 +13,7 @@ void MultiScaleTransforms::Transform(std::vector<Image>& images, Image& scratch,
                                    shape.data(), kernelSize);
   for (Image& image : images)
     FFTConvolver::ConvolveSameSize(_fftwManager, image.data(), scratch.data(),
-                                   _width, _height);
+                                   _width, _height, _threadCount);
 }
 
 void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
@@ -27,5 +27,6 @@ void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
 }
 
 void MultiScaleTransforms::FinishTransform(float* image, const float* kernel) {
-  FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel, _width, _height);
+  FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel, _width, _height,
+                                 _threadCount);
 }

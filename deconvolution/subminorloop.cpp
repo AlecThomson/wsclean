@@ -197,7 +197,7 @@ void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
 
   // Convolve and store in scratchA
   FFTConvolver::ConvolveSameSize(fftw, scratchA, scratchB, _paddedWidth,
-                                 _paddedHeight);
+                                 _paddedHeight, _threadCount);
 
   // Trim the result into scratchC
   Image::Trim(scratchC, _width, _height, scratchA, _paddedWidth, _paddedHeight);
