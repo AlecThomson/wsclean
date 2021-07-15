@@ -117,46 +117,26 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
   fftwf_complex* fftKernelData = fftwf_alloc_complex(complexSize);
 
   std::unique_lock<std::mutex> lock(fftw.Mutex());
-  fftwf_plan inToFPlan = fftwf_plan_dft_r2c_2d(imgHeight, imgWidth, tempData,
-                                               fftImageData, FFTW_ESTIMATE);
-  fftwf_plan fToOutPlan = fftwf_plan_dft_c2r_2d(
-      imgHeight, imgWidth, fftImageData, tempData, FFTW_ESTIMATE);
+  fft2f_r2c_composite(imgHeight, imgWidth, image, fftImageData);
   lock.unlock();
 
-#if 0
-  fftwf_execute_dft_r2c(inToFPlan, image, fftImageData);
-#else
-  fft2f_r2c_composite(imgHeight, imgWidth, image, fftImageData);
-#endif
-
   std::copy_n(kernel, imgSize, tempData);
-#if 0
-  fftwf_execute_dft_r2c(inToFPlan, tempData, fftKernelData);
-#else
+  lock.lock();
   fft2f_r2c_composite(imgHeight, imgWidth, tempData, fftKernelData);
-#endif
+  lock.unlock();
 
   float fact = 1.0 / imgSize;
   for (size_t i = 0; i != complexSize; ++i)
     reinterpret_cast<std::complex<float>*>(fftImageData)[i] *=
         fact * reinterpret_cast<std::complex<float>*>(fftKernelData)[i];
 
-#if 0
-  fftwf_execute_dft_c2r(fToOutPlan,
-                        reinterpret_cast<fftwf_complex*>(fftImageData), image);
-
-#else
+  lock.lock();
   fft2f_c2r_composite(imgHeight, imgWidth, fftImageData, image);
-#endif
+  lock.unlock();
 
   fftwf_free(fftImageData);
   fftwf_free(fftKernelData);
   fftwf_free(tempData);
-
-  lock.lock();
-  fftwf_destroy_plan(inToFPlan);
-  fftwf_destroy_plan(fToOutPlan);
-  lock.unlock();
 }
 
 void FFTConvolver::Reverse(float* image, size_t imgWidth, size_t imgHeight) {
