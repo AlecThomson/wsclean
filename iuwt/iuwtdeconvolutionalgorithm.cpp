@@ -368,7 +368,8 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     // scratch = gradient (x) psf
     scratch = gradient;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
 
     // calc: IUWT gradient (x) psf
     iuwt.Decompose(*_threadPool, scratch.data(), scratch.data(), false);
@@ -412,7 +413,8 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     // scratch = mask IUWT PSF (x) model
     scratch = structureModel;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
     iuwt.Decompose(*_threadPool, scratch.data(), scratch.data(), false);
     iuwt.ApplyMask(mask);
 
@@ -461,7 +463,7 @@ void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(float* image,
   }
   FFTConvolver::PrepareKernel(kernel.data(), smallerPsf.data(), width, height);
   FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel.data(), width,
-                                 height);
+                                 height, _threadPool->size());
 }
 
 bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
@@ -659,7 +661,8 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
     float rmsBefore = rms(dirty);
     scratch = structureModel;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
     maskedDirty = dirty;  // we use maskedDirty as temporary
     factorAdd(maskedDirty.data(), scratch.data(), -_gain, width, height);
     float rmsAfter = rms(maskedDirty);
@@ -830,7 +833,7 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
   const size_t width = iuwt.Width(), height = iuwt.Height();
   // Calculate IUWT^-1 mask IUWT model (x) PSF
   FFTConvolver::ConvolveSameSize(_fftwManager, model.data(), psfKernel.data(),
-                                 width, height);
+                                 width, height, _threadPool->size());
   iuwt.Decompose(*_threadPool, model.data(), model.data(), false);
   iuwt.ApplyMask(mask);
   iuwt.Recompose(model, false);
@@ -887,7 +890,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     Image scratch(_width, _height);
 
     FFTConvolver::ConvolveSameSize(_fftwManager, convolvedPSF.data(),
-                                   psfKernel.data(), _width, _height);
+                                   psfKernel.data(), _width, _height,
+                                   _threadPool->size());
     measureRMSPerScale(psf.data(), convolvedPSF.data(), scratch.data(),
                        maxScale, _psfResponse);
   }
@@ -926,7 +930,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
         FFTConvolver::PrepareKernel(psfKernel.data(), psfs[psfIndex], _width,
                                     _height);
         FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                       psfKernel.data(), _width, _height);
+                                       psfKernel.data(), _width, _height,
+                                       _threadPool->size());
         Subtract(dirtySet[i], scratch);
       }
       dirtySet.GetLinearIntegrated(dirty);

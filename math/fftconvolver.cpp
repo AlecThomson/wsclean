@@ -11,21 +11,24 @@
 
 void FFTConvolver::Convolve(FFTWManager& fftw, float* image, size_t imgWidth,
                             size_t imgHeight, const float* kernel,
-                            size_t kernelSize) {
+                            size_t kernelSize, size_t threadCount) {
   aocommon::UVector<float> scaledKernel(imgWidth * imgHeight, 0.0);
   PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel,
                      kernelSize);
-  ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight);
+  ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight,
+                   threadCount);
 }
 
 void FFTConvolver::ReverseAndConvolve(class FFTWManager& fftw, float* image,
                                       size_t imgWidth, size_t imgHeight,
-                                      const float* kernel, size_t kernelSize) {
+                                      const float* kernel, size_t kernelSize,
+                                      size_t threadCount) {
   aocommon::UVector<float> scaledKernel(imgWidth * imgHeight, 0.0);
 
   PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel,
                      kernelSize);
-  ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight);
+  ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight,
+                   threadCount);
 }
 
 void FFTConvolver::PrepareSmallKernel(float* dest, size_t imgWidth,
@@ -105,7 +108,7 @@ void FFTConvolver::PrepareKernel(float* dest, const float* source,
 
 void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
                                     const float* kernel, size_t imgWidth,
-                                    size_t imgHeight) {
+                                    size_t imgHeight, size_t threadCount) {
   const size_t imgSize = imgWidth * imgHeight;
   const size_t complexSize = (imgWidth / 2 + 1) * imgHeight;
   float* tempData =
