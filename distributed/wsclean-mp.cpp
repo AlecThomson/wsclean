@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     parseResult = CommandLine::ParseWithoutValidation(
         wsclean, argc, const_cast<const char**>(argv), !master);
     shortException = !master && !Logger::IsVerbose();
-    check_openblas_multithreading();
+    OpenBLASMultithreadingCheck openblasCheck;
     if (parseResult) {
       CommandLine::Validate(wsclean);
       Settings& settings = wsclean.GetSettings();
