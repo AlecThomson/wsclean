@@ -15,9 +15,11 @@ void fft2f_r2c_composite(size_t imgHeight, size_t imgWidth, const float *in,
                                           FFTW_FORWARD, FFTW_ESTIMATE);
 
   for (size_t y = 0; y < imgHeight; y++) {
-    float *temp2 = fftwf_alloc_real(imgWidth);
+    fftwf_complex *temp2 = fftwf_alloc_complex(complexWidth);
     memcpy(temp2, &in[y * imgWidth], imgWidth * sizeof(float));
-    fftwf_execute_dft_r2c(plan_r2c, temp2, &temp1[y * complexWidth]);
+    fftwf_execute_dft_r2c(plan_r2c, reinterpret_cast<float *>(temp2), temp2);
+    memcpy(&temp1[y * complexWidth], temp2,
+            complexWidth * sizeof(fftwf_complex));
     fftwf_free(temp2);
   }
 
