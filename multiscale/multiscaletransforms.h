@@ -19,7 +19,8 @@ class MultiScaleTransforms {
       : _fftwManager(fftwManager),
         _width(width),
         _height(height),
-        _shape(shape) {}
+        _shape(shape),
+        _threadCount(1) {}
 
   void PrepareTransform(float* kernel, float scale);
   void FinishTransform(float* image, const float* kernel);

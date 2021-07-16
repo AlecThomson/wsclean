@@ -108,7 +108,8 @@ class SubMinorLoop {
         _fitter(0),
         _subMinorModel(width, height),
         _fluxCleaned(0.0),
-        _logReceiver(logReceiver) {}
+        _logReceiver(logReceiver),
+        _threadCount(1) {}
 
   /**
    * @param threshold The threshold to which this subminor run should clean
