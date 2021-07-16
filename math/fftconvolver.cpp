@@ -4,6 +4,7 @@
 #include "../system/fftwmanager.h"
 
 #include <aocommon/uvector.h>
+#include <aocommon/staticfor.h>
 
 #include <fftw3.h>
 
@@ -111,7 +112,8 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
                                     const float* kernel, size_t imgWidth,
                                     size_t imgHeight, size_t threadCount) {
   const size_t imgSize = imgWidth * imgHeight;
-  const size_t complexSize = (imgWidth / 2 + 1) * imgHeight;
+  const size_t complexWidth = imgWidth / 2 + 1;
+  const size_t complexSize = complexWidth * imgHeight;
   float* tempData = fftwf_alloc_real(imgSize);
   fftwf_complex* fftImageData = fftwf_alloc_complex(complexSize);
   fftwf_complex* fftKernelData = fftwf_alloc_complex(complexSize);
@@ -126,9 +128,16 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
   lock.unlock();
 
   float fact = 1.0 / imgSize;
-  for (size_t i = 0; i != complexSize; ++i)
-    reinterpret_cast<std::complex<float>*>(fftImageData)[i] *=
-        fact * reinterpret_cast<std::complex<float>*>(fftKernelData)[i];
+  aocommon::StaticFor<size_t> loop(threadCount);
+  loop.Run(0, imgHeight, [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != complexWidth; ++x) {
+        size_t i = y * complexWidth + x;
+        reinterpret_cast<std::complex<float>*>(fftImageData)[i] *=
+            fact * reinterpret_cast<std::complex<float>*>(fftKernelData)[i];
+      }
+    }
+  });
 
   lock.lock();
   fft2f_c2r_composite(imgHeight, imgWidth, fftImageData, image);
