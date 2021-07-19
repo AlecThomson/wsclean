@@ -294,16 +294,19 @@ void ImageWeights::Save(const string& filename) const {
 
 void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
   std::vector<double> newGrid(_grid);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double w = _grid[y * _imageWidth + x];
-      if (w != 0.0) {
-        double mean = windowMean(x, y, windowSize);
-        if (w > mean * rankLimit)
-          newGrid[y * _imageWidth + x] = mean * rankLimit;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double w = _grid[y * _imageWidth + x];
+        if (w != 0.0) {
+          double mean = windowMean(x, y, windowSize);
+          if (w > mean * rankLimit)
+            newGrid[y * _imageWidth + x] = mean * rankLimit;
+        }
       }
     }
-  }
+  });
   _grid = newGrid;
 }
 
