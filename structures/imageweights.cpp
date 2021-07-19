@@ -206,24 +206,27 @@ void ImageWeights::SetTukeyTaper(double transitionSizeInLambda,
 
 void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda,
                                       double minUVInLambda) {
-  auto iter = _grid.begin();
   const double minUVSq = minUVInLambda * minUVInLambda;
   const double totalSizeSq = (minUVInLambda + transitionSizeInLambda) *
                              (minUVInLambda + transitionSizeInLambda);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      double distSq = u * u + v * v;
-      if (distSq < minUVSq)
-        *iter = 0.0;
-      else if (distSq < totalSizeSq) {
-        *iter *=
-            tukeyFrom0ToN(sqrt(distSq) - minUVInLambda, transitionSizeInLambda);
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        double distSq = u * u + v * v;
+        if (distSq < minUVSq)
+          *iter = 0.0;
+        else if (distSq < totalSizeSq) {
+          *iter *= tukeyFrom0ToN(sqrt(distSq) - minUVInLambda,
+                                 transitionSizeInLambda);
+        }
+        ++iter;
       }
-      ++iter;
     }
-  }
+  });
 }
 
 void ImageWeights::SetEdgeTaper(double sizeInLambda) {
