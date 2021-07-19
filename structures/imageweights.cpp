@@ -168,18 +168,21 @@ void ImageWeights::SetMinUVRange(double minUVInLambda) {
 }
 
 void ImageWeights::SetMaxUVRange(double maxUVInLambda) {
-  auto iter = _grid.begin();
   const double maxSq = maxUVInLambda * maxUVInLambda;
   int halfWidth = _imageWidth / 2;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      int xi = int(x) - halfWidth;
-      double u = double(xi) / (_imageWidth * _pixelScaleX);
-      double v = double(y) / (_imageHeight * _pixelScaleY);
-      if (u * u + v * v > maxSq) *iter = 0.0;
-      ++iter;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        int xi = int(x) - halfWidth;
+        double u = double(xi) / (_imageWidth * _pixelScaleX);
+        double v = double(y) / (_imageHeight * _pixelScaleY);
+        if (u * u + v * v > maxSq) *iter = 0.0;
+        ++iter;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::SetTukeyTaper(double transitionSizeInLambda,
