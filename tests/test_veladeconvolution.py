@@ -77,12 +77,9 @@ def test_veladeconvolution(gridder):
     try:
         from astropy.io import fits
     except:
-        warnings.warn(
-            UserWarning(
-                "Could not import astropy, so numerical checks in test_veladeconvolution are skipped."
-            )
+        pytest.skip(
+            "Could not import astropy. Skip numerical checks in test_veladeconvolution."
         )
-        return
 
     import numpy as np
 

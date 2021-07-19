@@ -60,7 +60,7 @@ def cleanup(request):
 
 
 def gridders():
-    return {"wstakcing": "", "wgridder": "-use-wgridder", "idg": "-use-idg"}
+    return {"wstacking": "", "wgridder": "-use-wgridder", "idg": "-use-idg"}
 
 
 def assert_taql(command, expected_rows=0):
@@ -94,10 +94,10 @@ def deconvolve_facets(ms, gridder, reorder, mpi):
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
         "-size 256 256 -scale 4amin -v",
-        ms
+        ms,
     ]
-    print("WSClean cmd: " + ' '.join(s))
-    check_call(' '.join(s).split())
+    print("WSClean cmd: " + " ".join(s))
+    check_call(" ".join(s).split())
 
 
 def check_and_remove_files(fpaths, remove=False):
@@ -161,7 +161,7 @@ def test_predict(gridder):
 
 @pytest.mark.parametrize("gridder", ["-use-wgridder"])
 @pytest.mark.parametrize("reorder", [False, True])
-@pytest.mark.parametrize("mpi", [False,True])
+@pytest.mark.parametrize("mpi", [False, True])
 def test_facetdeconvolution(gridder, reorder, mpi):
     """
     Test facet-based deconvolution
@@ -196,5 +196,7 @@ def test_facetdeconvolution(gridder, reorder, mpi):
 
     deconvolve_facets(MWA_MOCK_FACET, gridder, reorder, mpi)
 
-    taql_command = f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
+    taql_command = (
+        f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
+    )
     assert_taql(taql_command)
