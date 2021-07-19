@@ -270,18 +270,21 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda,
 }
 
 void ImageWeights::GetGrid(double* image) const {
-  const double* srcPtr = _grid.data();
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    size_t yUpper = _imageHeight / 2 - 1 - y;
-    size_t yLower = _imageHeight / 2 + y;
-    double* upperRow = &image[yUpper * _imageWidth];
-    double* lowerRow = &image[yLower * _imageWidth];
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      upperRow[_imageWidth - x - 1] = *srcPtr;
-      lowerRow[x] = *srcPtr;
-      ++srcPtr;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    const double* srcPtr = _grid.data() + (yStart * _imageWidth);
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t yUpper = _imageHeight / 2 - 1 - y;
+      size_t yLower = _imageHeight / 2 + y;
+      double* upperRow = &image[yUpper * _imageWidth];
+      double* lowerRow = &image[yLower * _imageWidth];
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        upperRow[_imageWidth - x - 1] = *srcPtr;
+        lowerRow[x] = *srcPtr;
+        ++srcPtr;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::Save(const string& filename) const {
