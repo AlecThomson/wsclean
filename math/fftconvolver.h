@@ -15,8 +15,8 @@ class FFTConvolver {
    * pixels.
    */
   static void Convolve(class FFTWManager& fftw, float* image, size_t imgWidth,
-                       size_t imgHeight, const float* kernel,
-                       size_t kernelSize);
+                       size_t imgHeight, const float* kernel, size_t kernelSize,
+                       size_t threadCount);
 
   /**
    * Convolve an image with a smaller kernel. No preparation of either image is
@@ -27,7 +27,8 @@ class FFTConvolver {
    */
   static void ReverseAndConvolve(class FFTWManager& fftw, float* image,
                                  size_t imgWidth, size_t imgHeight,
-                                 const float* kernel, size_t kernelSize);
+                                 const float* kernel, size_t kernelSize,
+                                 size_t threadCount);
 
   /**
    * Prepare a smaller kernel for convolution with ConvolveSameSize. When the
@@ -50,7 +51,7 @@ class FFTConvolver {
    */
   static void ConvolveSameSize(class FFTWManager& fftw, float* image,
                                const float* kernel, size_t imgWidth,
-                               size_t imgHeight);
+                               size_t imgHeight, size_t threadCount);
 
   static void Reverse(float* image, size_t imgWidth, size_t imgHeight);
 

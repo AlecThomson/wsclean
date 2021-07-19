@@ -87,12 +87,14 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       switch (_settings.localRMSMethod) {
         case Settings::RMSWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
-                         _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY);
+                         _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
+                         _settings.threadCount);
           break;
         case Settings::RMSAndMinimumWindow:
           RMSImage::MakeWithNegativityLimit(
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
-              _beamSize, 0.0, _pixelScaleX, _pixelScaleY);
+              _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
+              _settings.threadCount);
           break;
       }
       // Normalize the RMS image relative to the threshold so that Jy remains

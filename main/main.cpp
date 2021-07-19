@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[]) {
   try {
-    check_openblas_multithreading();
+    OpenBLASMultithreadingCheck openblasCheck;
     WSClean wsclean;
     if (CommandLine::Parse(wsclean, argc, const_cast<const char**>(argv),
                            false))

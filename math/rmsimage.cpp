@@ -2,10 +2,12 @@
 
 #include "modelrenderer.h"
 
+#include <aocommon/staticfor.h>
+
 void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
                     double windowSize, long double beamMaj, long double beamMin,
                     long double beamPA, long double pixelScaleL,
-                    long double pixelScaleM) {
+                    long double pixelScaleM, size_t threadCount) {
   Image image(inputImage);
   rmsOutput = Image(image.Width(), image.Height(), 0.0);
 
@@ -13,8 +15,8 @@ void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
 
   ModelRenderer::Restore(rmsOutput.data(), image.data(), image.Width(),
                          image.Height(), beamMaj * windowSize,
-                         beamMin * windowSize, beamPA, pixelScaleL,
-                         pixelScaleM);
+                         beamMin * windowSize, beamPA, pixelScaleL, pixelScaleM,
+                         threadCount);
 
   double s = std::sqrt(2.0 * M_PI);
   const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
@@ -25,44 +27,52 @@ void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
 }
 
 void RMSImage::SlidingMinimum(Image& output, const Image& input,
-                              size_t windowSize) {
+                              size_t windowSize, size_t threadCount) {
   const size_t width = input.Width();
   output = Image(width, input.Height());
   Image temp(output);
-  for (size_t y = 0; y != input.Height(); ++y) {
-    float* outRowptr = &temp[y * width];
-    const float* inRowptr = &input[y * width];
-    for (size_t x = 0; x != width; ++x) {
-      size_t left = std::max(x, windowSize / 2) - windowSize / 2;
-      size_t right = std::min(x, width - windowSize / 2) + windowSize / 2;
-      outRowptr[x] = *std::min_element(inRowptr + left, inRowptr + right);
+
+  aocommon::StaticFor<size_t> loop(threadCount);
+
+  loop.Run(0, input.Height(), [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      float* outRowptr = &temp[y * width];
+      const float* inRowptr = &input[y * width];
+      for (size_t x = 0; x != width; ++x) {
+        size_t left = std::max(x, windowSize / 2) - windowSize / 2;
+        size_t right = std::min(x, width - windowSize / 2) + windowSize / 2;
+        outRowptr[x] = *std::min_element(inRowptr + left, inRowptr + right);
+      }
     }
-  }
-  for (size_t x = 0; x != width; ++x) {
-    aocommon::UVector<float> vals;
-    for (size_t y = 0; y != input.Height(); ++y) {
-      size_t top = std::max(y, windowSize / 2) - windowSize / 2;
-      size_t bottom =
-          std::min(y, input.Height() - windowSize / 2) + windowSize / 2;
-      vals.clear();
-      for (size_t winY = top; winY != bottom; ++winY)
-        vals.push_back(temp[winY * width + x]);
-      output[y * width + x] = *std::min_element(vals.begin(), vals.end());
+  });
+
+  loop.Run(0, width, [&](size_t xStart, size_t xEnd) {
+    for (size_t x = xStart; x != xEnd; ++x) {
+      aocommon::UVector<float> vals(windowSize);
+      for (size_t y = 0; y != input.Height(); ++y) {
+        size_t top = std::max(y, windowSize / 2) - windowSize / 2;
+        size_t bottom =
+            std::min(y, input.Height() - windowSize / 2) + windowSize / 2;
+        std::fill(vals.begin(), vals.end(), temp[top * width + x]);
+        for (size_t winY = top; winY != bottom; ++winY) {
+          vals[winY - top] = temp[winY * width + x];
+        }
+        output[y * width + x] = *std::min_element(vals.begin(), vals.end());
+      }
     }
-  }
+  });
 }
 
-void RMSImage::MakeWithNegativityLimit(Image& rmsOutput,
-                                       const Image& inputImage,
-                                       double windowSize, long double beamMaj,
-                                       long double beamMin, long double beamPA,
-                                       long double pixelScaleL,
-                                       long double pixelScaleM) {
+void RMSImage::MakeWithNegativityLimit(
+    Image& rmsOutput, const Image& inputImage, double windowSize,
+    long double beamMaj, long double beamMin, long double beamPA,
+    long double pixelScaleL, long double pixelScaleM, size_t threadCount) {
   Make(rmsOutput, inputImage, windowSize, beamMaj, beamMin, beamPA, pixelScaleL,
-       pixelScaleM);
+       pixelScaleM, threadCount);
   Image slidingMinimum(inputImage.Width(), inputImage.Height());
   double beamInPixels = std::max(beamMaj / pixelScaleL, 1.0L);
-  SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels);
+  SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels,
+                 threadCount);
   for (size_t i = 0; i != rmsOutput.size(); ++i) {
     rmsOutput[i] = std::max<float>(rmsOutput[i],
                                    std::abs(slidingMinimum[i]) * (1.5 / 5.0));
