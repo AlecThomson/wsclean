@@ -315,17 +315,21 @@ void ImageWeights::SetGaussianTaper(double beamSize) {
   double minusTwoSigmaSq = halfPowerUV * sigmaToHP;
   Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
   minusTwoSigmaSq *= -2.0 * minusTwoSigmaSq;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double val = _grid[y * _imageWidth + x];
-      if (val != 0.0) {
-        double u, v;
-        xyToUV(x, y, u, v);
-        double gaus = exp((u * u + v * v) / minusTwoSigmaSq);
-        _grid[y * _imageWidth + x] = val * gaus;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd)
+  {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double val = _grid[y * _imageWidth + x];
+        if (val != 0.0) {
+          double u, v;
+          xyToUV(x, y, u, v);
+          double gaus = exp((u * u + v * v) / minusTwoSigmaSq);
+          _grid[y * _imageWidth + x] = val * gaus;
+        }
       }
     }
-  }
+  });
 }
 
 double ImageWeights::windowMean(size_t x, size_t y, size_t windowSize) {
