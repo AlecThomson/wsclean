@@ -227,19 +227,22 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda,
 }
 
 void ImageWeights::SetEdgeTaper(double sizeInLambda) {
-  auto iter = _grid.begin();
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      if (maxU - std::fabs(u) < sizeInLambda ||
-          maxV - std::fabs(v) < sizeInLambda)
-        *iter = 0.0;
-      ++iter;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        if (maxU - std::fabs(u) < sizeInLambda ||
+            maxV - std::fabs(v) < sizeInLambda)
+          *iter = 0.0;
+        ++iter;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda,
