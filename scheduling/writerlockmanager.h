@@ -18,7 +18,7 @@ class WriterLockManager {
  public:
   virtual ~WriterLockManager(){};
 
-#if __cplusplus > 201703L
+#if __cplusplus >= 201703L
   using LockGuard = std::lock_guard<WriterLock>;
 #else
   // In GetLock(), 'return LockGuard(...);' is only possible if LockGuard is
