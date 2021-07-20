@@ -47,17 +47,17 @@ void RMSImage::SlidingMinimum(Image& output, const Image& input,
   });
 
   loop.Run(0, width, [&](size_t xStart, size_t xEnd) {
+    aocommon::UVector<float> vals(windowSize);
     for (size_t x = xStart; x != xEnd; ++x) {
-      aocommon::UVector<float> vals(windowSize);
       for (size_t y = 0; y != input.Height(); ++y) {
         size_t top = std::max(y, windowSize / 2) - windowSize / 2;
         size_t bottom =
             std::min(y, input.Height() - windowSize / 2) + windowSize / 2;
-        std::fill(vals.begin(), vals.end(), temp[top * width + x]);
         for (size_t winY = top; winY != bottom; ++winY) {
           vals[winY - top] = temp[winY * width + x];
         }
-        output[y * width + x] = *std::min_element(vals.begin(), vals.end());
+        output[y * width + x] =
+            *std::min_element(vals.begin() + bottom, vals.begin() + top);
       }
     }
   });
