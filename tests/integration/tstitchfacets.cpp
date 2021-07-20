@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(wstacking) {
   CheckAndRemoveFileNames(std::string(prefix));
 }
 
-#if HAVE_WGRIDDER
+#ifdef HAVE_WGRIDDER
 BOOST_AUTO_TEST_CASE(wgridder) {
   BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
   BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacets));
