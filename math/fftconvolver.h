@@ -37,7 +37,8 @@ class FFTConvolver {
    * multiple times.
    */
   static void PrepareSmallKernel(float* dest, size_t imgWidth, size_t imgHeight,
-                                 const float* kernel, size_t kernelSize);
+                                 const float* kernel, size_t kernelSize,
+                                 size_t threadCount);
   /**
    * Prepare a kernel for convolution with ConvolveSameSize(). The kernel should
    * be already of the same size as the image to be convolved, or otherwise

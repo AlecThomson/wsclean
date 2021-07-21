@@ -16,7 +16,7 @@ void FFTConvolver::Convolve(FFTWManager& fftw, float* image, size_t imgWidth,
                             size_t kernelSize, size_t threadCount) {
   aocommon::UVector<float> scaledKernel(imgWidth * imgHeight, 0.0);
   PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel,
-                     kernelSize);
+                     kernelSize, threadCount);
   ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight,
                    threadCount);
 }
@@ -28,14 +28,14 @@ void FFTConvolver::ReverseAndConvolve(class FFTWManager& fftw, float* image,
   aocommon::UVector<float> scaledKernel(imgWidth * imgHeight, 0.0);
 
   PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel,
-                     kernelSize);
+                     kernelSize, threadCount);
   ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight,
                    threadCount);
 }
 
 void FFTConvolver::PrepareSmallKernel(float* dest, size_t imgWidth,
                                       size_t imgHeight, const float* kernel,
-                                      size_t kernelSize) {
+                                      size_t kernelSize, size_t threadCount) {
   if (kernelSize > imgWidth || kernelSize > imgHeight)
     throw std::runtime_error("Kernel size > image dimension");
   const float* kernelIter = kernel;
