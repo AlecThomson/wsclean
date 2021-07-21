@@ -54,7 +54,8 @@ class FFTConvolver {
                                const float* kernel, size_t imgWidth,
                                size_t imgHeight, size_t threadCount);
 
-  static void Reverse(float* image, size_t imgWidth, size_t imgHeight);
+  static void Reverse(float* image, size_t imgWidth, size_t imgHeight,
+                      size_t threadCount);
 
  private:
 };

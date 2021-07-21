@@ -177,14 +177,18 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
   lock.unlock();
 }
 
-void FFTConvolver::Reverse(float* image, size_t imgWidth, size_t imgHeight) {
-  for (size_t y = 0; y != imgHeight / 2; ++y) {
-    size_t destY = imgHeight - 1 - y;
-    float* sourcePtr = &image[y * imgWidth];
-    float* destPtr = &image[destY * imgWidth];
-    for (size_t x = 0; x != imgWidth / 2; ++x) {
-      size_t destX = imgWidth - 1 - x;
-      std::swap(sourcePtr[x], destPtr[destX]);
+void FFTConvolver::Reverse(float* image, size_t imgWidth, size_t imgHeight,
+                           size_t threadCount) {
+  aocommon::StaticFor<size_t> loop(threadCount);
+  loop.Run(0, imgHeight / 2, [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t destY = imgHeight - 1 - y;
+      float* sourcePtr = &image[y * imgWidth];
+      float* destPtr = &image[destY * imgWidth];
+      for (size_t x = 0; x != imgWidth / 2; ++x) {
+        size_t destX = imgWidth - 1 - x;
+        std::swap(sourcePtr[x], destPtr[destX]);
+      }
     }
-  }
+  });
 }
