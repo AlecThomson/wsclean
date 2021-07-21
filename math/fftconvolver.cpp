@@ -129,15 +129,16 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
       fftwf_plan_dft_c2r_1d(imgWidth, nullptr, nullptr, FFTW_ESTIMATE);
   lock.unlock();
 
+  aocommon::StaticFor<size_t> loop(threadCount);
+
   fft2f_r2c_composite(plan_r2c, plan_c2c_forward, imgHeight, imgWidth, image,
-                      fftImageData);
+                      fftImageData, loop);
 
   std::copy_n(kernel, imgSize, tempData);
   fft2f_r2c_composite(plan_r2c, plan_c2c_forward, imgHeight, imgWidth, tempData,
-                      fftKernelData);
+                      fftKernelData, loop);
 
   float fact = 1.0 / imgSize;
-  aocommon::StaticFor<size_t> loop(threadCount);
   loop.Run(0, imgHeight, [&](size_t yStart, size_t yEnd) {
     for (size_t y = yStart; y != yEnd; ++y) {
       for (size_t x = 0; x != complexWidth; ++x) {
@@ -149,7 +150,7 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
   });
 
   fft2f_c2r_composite(plan_c2c_backward, plan_c2r, imgHeight, imgWidth,
-                      fftImageData, image);
+                      fftImageData, image, loop);
 
   fftwf_free(fftImageData);
   fftwf_free(fftKernelData);
