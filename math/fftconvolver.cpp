@@ -38,38 +38,44 @@ void FFTConvolver::PrepareSmallKernel(float* dest, size_t imgWidth,
                                       size_t kernelSize, size_t threadCount) {
   if (kernelSize > imgWidth || kernelSize > imgHeight)
     throw std::runtime_error("Kernel size > image dimension");
-  const float* kernelIter = kernel;
-  for (size_t y = 0; y != kernelSize / 2; ++y) {
-    size_t destY = imgHeight - kernelSize / 2 + y;
-    size_t firstX = imgWidth - kernelSize / 2;
-    float* destIter = &dest[destY * imgWidth + firstX];
-    for (size_t x = 0; x != kernelSize / 2; ++x) {
-      *destIter = *kernelIter;
-      ++kernelIter;
-      ++destIter;
+  aocommon::StaticFor<size_t> loop(threadCount);
+  loop.Run(0, kernelSize / 2, [&](size_t yStart, size_t yEnd) {
+    const float* kernelIter = &kernel[yStart * kernelSize];
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t destY = imgHeight - kernelSize / 2 + y;
+      size_t firstX = imgWidth - kernelSize / 2;
+      float* destIter = &dest[destY * imgWidth + firstX];
+      for (size_t x = 0; x != kernelSize / 2; ++x) {
+        *destIter = *kernelIter;
+        ++kernelIter;
+        ++destIter;
+      }
+      destIter = &dest[destY * imgWidth];
+      for (size_t x = kernelSize / 2; x != kernelSize; ++x) {
+        *destIter = *kernelIter;
+        ++kernelIter;
+        ++destIter;
+      }
     }
-    destIter = &dest[destY * imgWidth];
-    for (size_t x = kernelSize / 2; x != kernelSize; ++x) {
-      *destIter = *kernelIter;
-      ++kernelIter;
-      ++destIter;
+  });
+  loop.Run(kernelSize / 2, kernelSize, [&](size_t yStart, size_t yEnd) {
+    const float* kernelIter = &kernel[yStart * kernelSize];
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t firstX = imgWidth - kernelSize / 2;
+      float* destIter = &dest[firstX + (y - kernelSize / 2) * imgWidth];
+      for (size_t x = 0; x != kernelSize / 2; ++x) {
+        *destIter = *kernelIter;
+        ++kernelIter;
+        ++destIter;
+      }
+      destIter = &dest[(y - kernelSize / 2) * imgWidth];
+      for (size_t x = kernelSize / 2; x != kernelSize; ++x) {
+        *destIter = *kernelIter;
+        ++kernelIter;
+        ++destIter;
+      }
     }
-  }
-  for (size_t y = kernelSize / 2; y != kernelSize; ++y) {
-    size_t firstX = imgWidth - kernelSize / 2;
-    float* destIter = &dest[firstX + (y - kernelSize / 2) * imgWidth];
-    for (size_t x = 0; x != kernelSize / 2; ++x) {
-      *destIter = *kernelIter;
-      ++kernelIter;
-      ++destIter;
-    }
-    destIter = &dest[(y - kernelSize / 2) * imgWidth];
-    for (size_t x = kernelSize / 2; x != kernelSize; ++x) {
-      *destIter = *kernelIter;
-      ++kernelIter;
-      ++destIter;
-    }
-  }
+  });
 }
 
 void FFTConvolver::PrepareKernel(float* dest, const float* source,
