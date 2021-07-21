@@ -225,7 +225,6 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
     // iterations in a scale, because the fast loop takes more constant time and
     // is only efficient when doing many iterations.
     if (_fastSubMinorLoop) {
-      FFTWManager::ThreadingScope fftwMT(_fftwManager);
       size_t subMinorStartIteration = _iterationNumber;
       size_t convolutionWidth, convolutionHeight;
       getConvolutionDimensions(scaleWithPeak, convolutionWidth,
