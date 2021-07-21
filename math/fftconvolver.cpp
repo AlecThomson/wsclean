@@ -75,38 +75,44 @@ void FFTConvolver::PrepareSmallKernel(float* dest, size_t imgWidth,
 void FFTConvolver::PrepareKernel(float* dest, const float* source,
                                  size_t imgWidth, size_t imgHeight,
                                  size_t threadCount) {
-  const float* sourceIter = source;
-  for (size_t y = 0; y != imgHeight / 2; ++y) {
-    size_t destY = imgHeight - imgHeight / 2 + y;
-    size_t firstX = imgWidth - imgWidth / 2;
-    float* destIter = &dest[destY * imgWidth + firstX];
-    for (size_t x = 0; x != imgWidth / 2; ++x) {
-      *destIter = *sourceIter;
-      ++sourceIter;
-      ++destIter;
+  aocommon::StaticFor<size_t> loop(threadCount);
+  loop.Run(0, imgHeight / 2, [&](size_t yStart, size_t yEnd) {
+    const float* sourceIter = &source[yStart * imgWidth];
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t destY = imgHeight - imgHeight / 2 + y;
+      size_t firstX = imgWidth - imgWidth / 2;
+      float* destIter = &dest[destY * imgWidth + firstX];
+      for (size_t x = 0; x != imgWidth / 2; ++x) {
+        *destIter = *sourceIter;
+        ++sourceIter;
+        ++destIter;
+      }
+      destIter = &dest[destY * imgWidth];
+      for (size_t x = imgWidth / 2; x != imgWidth; ++x) {
+        *destIter = *sourceIter;
+        ++sourceIter;
+        ++destIter;
+      }
     }
-    destIter = &dest[destY * imgWidth];
-    for (size_t x = imgWidth / 2; x != imgWidth; ++x) {
-      *destIter = *sourceIter;
-      ++sourceIter;
-      ++destIter;
+  });
+  loop.Run(imgHeight / 2, imgHeight, [&](size_t yStart, size_t yEnd) {
+    const float* sourceIter = &source[yStart * imgWidth];
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t firstX = imgWidth - imgWidth / 2;
+      float* destIter = &dest[firstX + (y - imgHeight / 2) * imgWidth];
+      for (size_t x = 0; x != imgWidth / 2; ++x) {
+        *destIter = *sourceIter;
+        ++sourceIter;
+        ++destIter;
+      }
+      destIter = &dest[(y - imgHeight / 2) * imgWidth];
+      for (size_t x = imgWidth / 2; x != imgWidth; ++x) {
+        *destIter = *sourceIter;
+        ++sourceIter;
+        ++destIter;
+      }
     }
-  }
-  for (size_t y = imgHeight / 2; y != imgHeight; ++y) {
-    size_t firstX = imgWidth - imgWidth / 2;
-    float* destIter = &dest[firstX + (y - imgHeight / 2) * imgWidth];
-    for (size_t x = 0; x != imgWidth / 2; ++x) {
-      *destIter = *sourceIter;
-      ++sourceIter;
-      ++destIter;
-    }
-    destIter = &dest[(y - imgHeight / 2) * imgWidth];
-    for (size_t x = imgWidth / 2; x != imgWidth; ++x) {
-      *destIter = *sourceIter;
-      ++sourceIter;
-      ++destIter;
-    }
-  }
+  });
 }
 
 void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
