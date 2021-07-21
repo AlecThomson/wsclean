@@ -2,24 +2,20 @@
 
 #include <cstring>
 
-void fft2f_r2c_composite(size_t imgHeight, size_t imgWidth, const float *in,
+void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
+                         size_t imgHeight, size_t imgWidth, const float *in,
                          fftwf_complex *out) {
   const size_t complexWidth = imgWidth / 2 + 1;
   const size_t complexSize = imgHeight * complexWidth;
 
   fftwf_complex *temp1 = fftwf_alloc_complex(complexSize);
 
-  fftwf_plan plan_r2c =
-      fftwf_plan_dft_r2c_1d(imgWidth, nullptr, nullptr, FFTW_ESTIMATE);
-  fftwf_plan plan_c2c = fftwf_plan_dft_1d(imgHeight, nullptr, nullptr,
-                                          FFTW_FORWARD, FFTW_ESTIMATE);
-
   for (size_t y = 0; y < imgHeight; y++) {
     fftwf_complex *temp2 = fftwf_alloc_complex(complexWidth);
     memcpy(temp2, &in[y * imgWidth], imgWidth * sizeof(float));
     fftwf_execute_dft_r2c(plan_r2c, reinterpret_cast<float *>(temp2), temp2);
     memcpy(&temp1[y * complexWidth], temp2,
-            complexWidth * sizeof(fftwf_complex));
+           complexWidth * sizeof(fftwf_complex));
     fftwf_free(temp2);
   }
 
@@ -43,22 +39,15 @@ void fft2f_r2c_composite(size_t imgHeight, size_t imgWidth, const float *in,
   }
 
   fftwf_free(temp1);
-
-  fftwf_destroy_plan(plan_r2c);
-  fftwf_destroy_plan(plan_c2c);
 }
 
-void fft2f_c2r_composite(size_t imgHeight, size_t imgWidth,
+void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
+                         size_t imgHeight, size_t imgWidth,
                          const fftwf_complex *in, float *out) {
   const size_t complexWidth = imgWidth / 2 + 1;
   const size_t complexSize = imgHeight * complexWidth;
 
   fftwf_complex *temp1 = fftwf_alloc_complex(complexSize);
-
-  fftwf_plan plan_c2c = fftwf_plan_dft_1d(imgHeight, nullptr, nullptr,
-                                          FFTW_BACKWARD, FFTW_ESTIMATE);
-  fftwf_plan plan_c2r =
-      fftwf_plan_dft_c2r_1d(imgWidth, nullptr, nullptr, FFTW_ESTIMATE);
 
   for (size_t x = 0; x < complexWidth; x++) {
     // Transpose input
@@ -90,7 +79,4 @@ void fft2f_c2r_composite(size_t imgHeight, size_t imgWidth,
   }
 
   fftwf_free(temp1);
-
-  fftwf_destroy_plan(plan_c2c);
-  fftwf_destroy_plan(plan_c2r);
 }
