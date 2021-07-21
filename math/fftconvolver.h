@@ -44,7 +44,7 @@ class FFTConvolver {
    * PrepareSmallKernel() should be used.
    */
   static void PrepareKernel(float* dest, const float* source, size_t imgWidth,
-                            size_t imgHeight);
+                            size_t imgHeight, size_t threadCount);
 
   /**
    * Convolve an image with an already prepared kernel of the same size.

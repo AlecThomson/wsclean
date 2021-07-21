@@ -73,7 +73,8 @@ void FFTConvolver::PrepareSmallKernel(float* dest, size_t imgWidth,
 }
 
 void FFTConvolver::PrepareKernel(float* dest, const float* source,
-                                 size_t imgWidth, size_t imgHeight) {
+                                 size_t imgWidth, size_t imgHeight,
+                                 size_t threadCount) {
   const float* sourceIter = source;
   for (size_t y = 0; y != imgHeight / 2; ++y) {
     size_t destY = imgHeight - imgHeight / 2 + y;

@@ -188,7 +188,8 @@ void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
   // Get padded kernel in scratchB
   Image::Untrim(scratchA, _paddedWidth, _paddedHeight, singleConvolvedPsf,
                 _width, _height);
-  FFTConvolver::PrepareKernel(scratchB, scratchA, _paddedWidth, _paddedHeight);
+  FFTConvolver::PrepareKernel(scratchB, scratchA, _paddedWidth, _paddedHeight,
+                              _threadCount);
 
   // Get padded model image in scratchA
   GetFullIndividualModel(imageIndex, scratchC);
