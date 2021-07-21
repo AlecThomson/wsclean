@@ -856,7 +856,6 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
 float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     size_t& iterCounter, size_t nIter, ImageSet& modelSet, ImageSet& dirtySet,
     const aocommon::UVector<const float*>& psfs, bool& reachedMajorThreshold) {
-  FFTWManager::ThreadingScope fftwThreadsEnabled(_fftwManager);
   std::unique_ptr<ThreadPool> threadPool(new ThreadPool());
   _threadPool = &*threadPool;
 
