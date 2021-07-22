@@ -19,7 +19,7 @@ class ImageWeights {
 
   ImageWeights(const WeightMode& weightMode, size_t imageWidth,
                size_t imageHeight, double pixelScaleX, double pixelScaleY,
-               bool weightsAsTaper, double superWeight, size_t threadCount);
+               bool weightsAsTaper, double superWeight, size_t threadCount = 1);
 
   double GetWeight(double u, double v) const { return sampleGridValue(u, v); }
 
