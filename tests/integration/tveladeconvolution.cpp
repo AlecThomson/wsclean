@@ -14,36 +14,15 @@ BOOST_AUTO_TEST_CASE(wstacking) {
 
   WSClean wsclean;
   CommandLine commandLine;
-  std::vector<const char*> args = {"wsclean",
-                                   "-quiet",
-                                   "-size",
-                                   "1024",
-                                   "1024",
-                                   "-scale",
-                                   "1amin",
-                                   "-parallel-gridding",
-                                   "4",
-                                   "-multiscale",
-                                   "-parallel-deconvolution",
-                                   "512",
-                                   "-niter",
-                                   "1000000",
-                                   "-mgain",
-                                   "0.8",
-                                   "-channels-out",
-                                   "8",
-                                   "-join-channels",
-                                   "-deconvolution-channels",
-                                   "4",
-                                   "-fit-spectral-pol",
-                                   "2",
-                                   "-auto-threshold",
-                                   "1",
-                                   "-auto-mask",
-                                   "4",
-                                   "-name",
-                                   "mwa_test_run",
-                                   kMWA_MS};
+  std::vector<const char*> args = {
+      "wsclean",
+      //                                   "-quiet",
+      "-size", "1024", "1024", "-scale", "1amin", "-parallel-gridding", "4",
+      "-multiscale", "-parallel-deconvolution", "512", "-niter", "1000000",
+      "-mgain", "0.8", "-channels-out", "8", "-join-channels",
+      "-deconvolution-channels", "4", "-fit-spectral-pol", "2",
+      "-auto-threshold", "1", "-auto-mask", "4", "-name", "mwa_test_run",
+      kMWA_MS};
   commandLine.Parse(wsclean, args.size(), args.data(), false);
   commandLine.Run(wsclean);
 
@@ -85,37 +64,15 @@ BOOST_AUTO_TEST_CASE(wgridder) {
 
   WSClean wsclean;
   CommandLine commandLine;
-  std::vector<const char*> args = {"wsclean",
-                                   "-quiet",
-                                   "-size",
-                                   "1024",
-                                   "1024",
-                                   "-scale",
-                                   "1amin",
-                                   "-use-wgridder",
-                                   "-parallel-gridding",
-                                   "4",
-                                   "-multiscale",
-                                   "-parallel-deconvolution",
-                                   "512",
-                                   "-niter",
-                                   "1000000",
-                                   "-mgain",
-                                   "0.8",
-                                   "-channels-out",
-                                   "8",
-                                   "-join-channels",
-                                   "-deconvolution-channels",
-                                   "4",
-                                   "-fit-spectral-pol",
-                                   "2",
-                                   "-auto-threshold",
-                                   "1",
-                                   "-auto-mask",
-                                   "4",
-                                   "-name",
-                                   "mwa_test_run",
-                                   kMWA_MS};
+  std::vector<const char*> args = {
+      "wsclean",
+      //                                   "-quiet",
+      "-size", "1024", "1024", "-scale", "1amin", "-use-wgridder",
+      "-parallel-gridding", "4", "-multiscale", "-parallel-deconvolution",
+      "512", "-niter", "1000000", "-mgain", "0.8", "-channels-out", "8",
+      "-join-channels", "-deconvolution-channels", "3", "-fit-spectral-pol",
+      "2", "-auto-threshold", "1", "-auto-mask", "4", "-name", "mwa_test_run",
+      kMWA_MS};
   commandLine.Parse(wsclean, args.size(), args.data(), false);
   commandLine.Run(wsclean);
 
