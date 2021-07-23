@@ -1,4 +1,4 @@
-from subprocess import check_call
+from subprocess import check_call, check_output
 import pytest
 import os
 import itertools
@@ -10,10 +10,6 @@ import sys
 sys.path.append(".")
 
 import testconfig as tcf
-
-# Prepend path with current working directory to make sure
-# wsclean executable from the build directory
-os.environ["PATH"] = f"{os.getcwd()}:{os.environ['PATH']}"
 
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
@@ -61,10 +57,13 @@ def check_and_remove_files(fpaths, remove=False):
 
 @pytest.mark.parametrize("gridder", gridders().items())
 def test_veladeconvolution(gridder):
+    if "WGridder" not in check_output("wsclean --version".split()).decode():
+        pytest.skip("WSClean was not compiled with WGridder.")
+
     nchannels = 8
     npixels = 1024
     name = "mwa_veladeconvolution_" + gridder[0]
-    s = f"wsclean -quiet {gridder[1]} -size {npixels} {npixels} -scale 1amin -parallel-gridding 4 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 4 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {MWA_MOCK_MS}"
+    s = f"wsclean -quiet {gridder[1]} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {MWA_MOCK_MS}"
     check_call(s.split())
     imagenames = ["dirty", "image", "model", "psf", "residual"]
     fpaths = [
@@ -77,9 +76,12 @@ def test_veladeconvolution(gridder):
     try:
         from astropy.io import fits
     except:
-        pytest.skip(
-            "Could not import astropy. Skip numerical checks in test_veladeconvolution."
+        warnings.warn(
+            UserWarning(
+                "Could not import astropy, so numerical checks in test_veladeconvolution are skipped."
+            )
         )
+        return
 
     import numpy as np
 
