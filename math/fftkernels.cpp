@@ -74,14 +74,17 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
     for (size_t y = yStart; y < yEnd; y++) {
       // Transpose input
       for (size_t x = 0; x < complexWidth; x++) {
-        memcpy(&temp2[x], &temp1[x * imgHeight + y], sizeof(fftwf_complex));
+        float *temp1_ptr = reinterpret_cast<float *>(&temp1[x * imgHeight + y]);
+        float *temp2_ptr = reinterpret_cast<float *>(&temp2[x]);
+        std::copy_n(temp1_ptr, 2, temp2_ptr);
       }
 
       // Perform 1D C2R FFT over row
       fftwf_execute_dft_c2r(plan_c2r, temp2, reinterpret_cast<float *>(temp2));
 
       // Copy output
-      memcpy(&out[y * imgWidth], temp2, imgWidth * sizeof(float));
+      float *temp2_ptr = reinterpret_cast<float *>(temp2);
+      std::copy_n(temp2_ptr, imgWidth, &out[y * imgWidth]);
     }
 
     fftwf_free(temp2);
