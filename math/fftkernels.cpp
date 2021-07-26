@@ -66,8 +66,10 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
     for (size_t x = xStart; x < xEnd; x++) {
       // Transpose input
       for (size_t y = 0; y < imgHeight; y++) {
-        memcpy(&temp1[x * imgHeight + y], &in[y * complexWidth + x],
-               sizeof(fftwf_complex));
+        const float *in_ptr =
+            reinterpret_cast<const float *>(&in[y * complexWidth + x]);
+        float *temp1_ptr = reinterpret_cast<float *>(&temp1[x * imgHeight + y]);
+        std::copy_n(in_ptr, 2, temp1_ptr);
       }
 
       // Perform 1D C2C FFT over column
