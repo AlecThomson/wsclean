@@ -25,25 +25,41 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
   });
 
   loop.Run(0, complexWidth, [&](size_t xStart, size_t xEnd) {
-    fftwf_complex *temp2 = fftwf_alloc_complex(imgHeight);
+    // Partially unroll over columns
+    size_t unroll = 4;
+    fftwf_complex *temp2 = fftwf_alloc_complex(unroll * imgHeight);
 
-    for (size_t x = xStart; x < xEnd; x++) {
+    for (size_t x = xStart; x < xEnd; x += unroll) {
       // Copy input
       for (size_t y = 0; y < imgHeight; y++) {
-        float *temp1_ptr =
-            reinterpret_cast<float *>(&temp1[y * complexWidth + x]);
-        float *temp2_ptr = reinterpret_cast<float *>(&temp2[y]);
-        std::copy_n(temp1_ptr, 2, temp2_ptr);
+        for (size_t i = 0; i < unroll; i++) {
+          if ((x + i) < xEnd) {
+            float *temp1_ptr =
+                reinterpret_cast<float *>(&temp1[y * complexWidth + x + i]);
+            float *temp2_ptr =
+                reinterpret_cast<float *>(&temp2[i * imgHeight + y]);
+            std::copy_n(temp1_ptr, 2, temp2_ptr);
+          }
+        }
       }
 
-      // Perform 1D FFT over column
-      fftwf_execute_dft(plan_c2c, temp2, temp2);
+      // Perform 1D FFT over columns
+      for (size_t i = 0; i < unroll; i++) {
+        fftwf_complex *temp2_ptr = &temp2[i * imgHeight];
+        fftwf_execute_dft(plan_c2c, temp2_ptr, temp2_ptr);
+      }
 
       // Transpose output
       for (size_t y = 0; y < imgHeight; y++) {
-        float *temp2_ptr = reinterpret_cast<float *>(&temp2[y]);
-        float *out_ptr = reinterpret_cast<float *>(&out[y * complexWidth + x]);
-        std::copy_n(temp2_ptr, 2, out_ptr);
+        for (size_t i = 0; i < unroll; i++) {
+          if ((x + i) < xEnd) {
+            float *temp2_ptr =
+                reinterpret_cast<float *>(&temp2[i * imgHeight + y]);
+            float *out_ptr =
+                reinterpret_cast<float *>(&out[y * complexWidth + x + i]);
+            std::copy_n(temp2_ptr, 2, out_ptr);
+          }
+        }
       }
     }
 
