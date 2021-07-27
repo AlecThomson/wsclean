@@ -79,18 +79,28 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
   fftwf_complex *temp1 = fftwf_alloc_complex(complexSize);
 
   loop.Run(0, complexWidth, [&](size_t xStart, size_t xEnd) {
-    for (size_t x = xStart; x < xEnd; x++) {
+    size_t unroll = 4;
+    for (size_t x = xStart; x < xEnd; x += unroll) {
       // Transpose input
       for (size_t y = 0; y < imgHeight; y++) {
-        const float *in_ptr =
-            reinterpret_cast<const float *>(&in[y * complexWidth + x]);
-        float *temp1_ptr = reinterpret_cast<float *>(&temp1[x * imgHeight + y]);
-        std::copy_n(in_ptr, 2, temp1_ptr);
+        for (size_t i = 0; i < unroll; i++) {
+          if ((x + i) < xEnd) {
+            const float *in_ptr =
+                reinterpret_cast<const float *>(&in[y * complexWidth + x + i]);
+            float *temp1_ptr =
+                reinterpret_cast<float *>(&temp1[(x + i) * imgHeight + y]);
+            std::copy_n(in_ptr, 2, temp1_ptr);
+          }
+        }
       }
 
-      // Perform 1D C2C FFT over column
-      fftwf_complex *temp1_ptr = &temp1[x * imgHeight];
-      fftwf_execute_dft(plan_c2c, temp1_ptr, temp1_ptr);
+      // Perform 1D C2C FFT over columns
+      for (size_t i = 0; i < unroll; i++) {
+        if ((x + i) < xEnd) {
+          fftwf_complex *temp1_ptr = &temp1[(x + i) * imgHeight];
+          fftwf_execute_dft(plan_c2c, temp1_ptr, temp1_ptr);
+        }
+      }
     }
   });
 
