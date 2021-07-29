@@ -76,9 +76,10 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
                          const fftwf_complex *in, float *out,
                          aocommon::StaticFor<size_t> &loop) {
   const size_t complexWidth = imgWidth / 2 + 1;
-  const size_t complexSize = imgHeight * complexWidth;
 
-  fftwf_complex *temp1 = fftwf_alloc_complex(complexSize);
+  size_t paddedHeight = round_up(imgHeight, 64);
+  size_t paddedSize = paddedHeight * complexWidth;
+  fftwf_complex *temp1 = fftwf_alloc_complex(paddedSize);
 
   loop.Run(0, complexWidth, [&](size_t xStart, size_t xEnd) {
     size_t unroll = 4;
@@ -90,7 +91,7 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
             const float *in_ptr =
                 reinterpret_cast<const float *>(&in[y * complexWidth + x + i]);
             float *temp1_ptr =
-                reinterpret_cast<float *>(&temp1[(x + i) * imgHeight + y]);
+                reinterpret_cast<float *>(&temp1[(x + i) * paddedHeight + y]);
             std::copy_n(in_ptr, 2, temp1_ptr);
           }
         }
@@ -99,7 +100,7 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
       // Perform 1D C2C FFT over columns
       for (size_t i = 0; i < unroll; i++) {
         if ((x + i) < xEnd) {
-          fftwf_complex *temp1_ptr = &temp1[(x + i) * imgHeight];
+          fftwf_complex *temp1_ptr = &temp1[(x + i) * paddedHeight];
           fftwf_execute_dft(plan_c2c, temp1_ptr, temp1_ptr);
         }
       }
@@ -117,7 +118,7 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
         for (size_t i = 0; i < unroll; i++) {
           if ((y + i) < yEnd) {
             float *temp1_ptr =
-                reinterpret_cast<float *>(&temp1[x * imgHeight + y + i]);
+                reinterpret_cast<float *>(&temp1[x * paddedHeight + y + i]);
             float *temp2_ptr =
                 reinterpret_cast<float *>(&temp2[i * paddedWidth + x]);
             std::copy_n(temp1_ptr, 2, temp2_ptr);
