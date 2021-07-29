@@ -15,6 +15,7 @@
 
 #ifdef HAVE_WGRIDDER
 #include "../wgridder/wgriddingmsgridder.h"
+#include "../wgridder/wgriddinggridder_simple.h"
 #endif
 
 GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
@@ -46,7 +47,7 @@ void GriddingTaskManager::Run(
 }
 
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
-  std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  std::shared_ptr<MSGridderBase> gridder(makeGridder());
   return runDirect(std::move(task), *gridder);
 }
 
@@ -114,12 +115,15 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   return result;
 }
 
-std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
+std::shared_ptr<MSGridderBase> GriddingTaskManager::constructGridder() {
   if (_settings.useIDG) {
-    return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
+    if (!_idgMsGridder) {
+      _idgMsGridder.reset(new IdgMsGridder(_settings));
+    }
+    return _idgMsGridder;
   } else if (_settings.useWGridder) {
 #ifdef HAVE_WGRIDDER
-    return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
+    return std::shared_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
 #else
     throw std::runtime_error(
         "WGridder cannot be used: WGridder requires a C++17 compiler, which "
@@ -130,30 +134,30 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
     switch (_settings.directFTPrecision) {
       case DirectFTPrecision::Half:
         throw std::runtime_error("Half precision is not implemented");
-        // return std::unique_ptr<MSGridderBase>(new
+        // return std::shared_ptr<MSGridderBase>(new
         // DirectMSGridder<half_float::half>(&_imageAllocator,
         // _settings.threadCount));
         break;
       case DirectFTPrecision::Float:
-        return std::unique_ptr<MSGridderBase>(
+        return std::shared_ptr<MSGridderBase>(
             new DirectMSGridder<float>(_settings));
         break;
       default:
       case DirectFTPrecision::Double:
-        return std::unique_ptr<MSGridderBase>(
+        return std::shared_ptr<MSGridderBase>(
             new DirectMSGridder<double>(_settings));
         break;
       case DirectFTPrecision::LongDouble:
-        return std::unique_ptr<MSGridderBase>(
+        return std::shared_ptr<MSGridderBase>(
             new DirectMSGridder<long double>(_settings));
         break;
     }
   } else
-    return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
+    return std::shared_ptr<MSGridderBase>(new WSMSGridder(_settings));
 }
 
-std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {
-  std::unique_ptr<MSGridderBase> gridder(constructGridder());
+std::shared_ptr<MSGridderBase> GriddingTaskManager::makeGridder() {
+  std::shared_ptr<MSGridderBase> gridder(constructGridder());
   gridder->SetGridMode(_settings.gridMode);
   return gridder;
 }
