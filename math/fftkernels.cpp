@@ -29,7 +29,8 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
   loop.Run(0, complexWidth, [&](size_t xStart, size_t xEnd) {
     // Partially unroll over columns
     size_t unroll = 4;
-    fftwf_complex *temp2 = fftwf_alloc_complex(unroll * imgHeight);
+    size_t paddedHeight = round_up(imgHeight, 64);
+    fftwf_complex *temp2 = fftwf_alloc_complex(unroll * paddedHeight);
 
     for (size_t x = xStart; x < xEnd; x += unroll) {
       // Copy input
@@ -39,7 +40,7 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
             float *temp1_ptr =
                 reinterpret_cast<float *>(&temp1[y * complexWidth + x + i]);
             float *temp2_ptr =
-                reinterpret_cast<float *>(&temp2[i * imgHeight + y]);
+                reinterpret_cast<float *>(&temp2[i * paddedHeight + y]);
             std::copy_n(temp1_ptr, 2, temp2_ptr);
           }
         }
@@ -47,7 +48,7 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
 
       // Perform 1D FFT over columns
       for (size_t i = 0; i < unroll; i++) {
-        fftwf_complex *temp2_ptr = &temp2[i * imgHeight];
+        fftwf_complex *temp2_ptr = &temp2[i * paddedHeight];
         fftwf_execute_dft(plan_c2c, temp2_ptr, temp2_ptr);
       }
 
@@ -56,7 +57,7 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
         for (size_t i = 0; i < unroll; i++) {
           if ((x + i) < xEnd) {
             float *temp2_ptr =
-                reinterpret_cast<float *>(&temp2[i * imgHeight + y]);
+                reinterpret_cast<float *>(&temp2[i * paddedHeight + y]);
             float *out_ptr =
                 reinterpret_cast<float *>(&out[y * complexWidth + x + i]);
             std::copy_n(temp2_ptr, 2, out_ptr);
