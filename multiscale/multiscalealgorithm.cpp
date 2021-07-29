@@ -194,8 +194,8 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
       transformList.emplace_back(individualConvolvedImages.Release(i));
     }
     if (_scaleInfos[scaleWithPeak].scale != 0.0) {
-      tools->MultiScaleTransform(&msTransforms, transformList, scratch,
-                                 _scaleInfos[scaleWithPeak].scale);
+      msTransforms.Transform(transformList, scratch,
+                             _scaleInfos[scaleWithPeak].scale);
     }
     for (size_t i = 0; i != dirtySet.PSFCount(); ++i)
       twiceConvolvedPSFs[i] = std::move(transformList[i]);
@@ -282,9 +282,8 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
         }
         if (_scaleInfos[scaleWithPeak].scale != 0.0) {
           std::vector<Image> transformList{std::move(scratch)};
-          tools->MultiScaleTransform(&msTransforms, transformList,
-                                     integratedScratch,
-                                     _scaleInfos[scaleWithPeak].scale);
+          msTransforms.Transform(transformList, integratedScratch,
+                                 _scaleInfos[scaleWithPeak].scale);
           scratch = std::move(transformList[0]);
         }
         float* model = modelSet[imageIndex];
