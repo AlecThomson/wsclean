@@ -40,10 +40,20 @@
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <atomic>
+#include <sys/time.h>
 
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
+double getWallTime() {
+  struct timeval time;
+  if (gettimeofday(&time, NULL)) {
+    //  Handle error
+    return 0;
+  }
+  return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
@@ -907,12 +917,16 @@ void MSGridderBase::readAndWeightVisibilities(
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
 
+      double start = getWallTime();
       JonesParameters jonesParameters(
           freqs, {metaData.time}, antennaNames, _correctType,
           JonesParameters::InterpolationType::NEAREST, _facetIndex,
           _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
+      double end = getWallTime();
+      std::cout << "Loading Jones Parameters took " << end - start << "s"
+                << std::endl;
       // Assumes that the data layout parms is contiguous in mem, ordered as
       // [station1:pol1:chan1, ..., station1:poln:chan1, ...
       // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
