@@ -4,6 +4,8 @@ stages:
  - format
  - build
  - test
+ - package
+ - release
 
 workflow:
   rules:
@@ -178,3 +180,33 @@ test-system-das5:
     - if: $CI_PIPELINE_SOURCE == "push"
       when: manual
       allow_failure: true
+
+.packaging:
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    PACKAGE_FILE: "wsclean-${CI_COMMIT_TAG}.tbz2"
+    PACKAGE_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sources/${CI_COMMIT_TAG}/${PACKAGE_FILE}"
+
+package:
+  stage: package
+  extends: .packaging
+  image: ubuntu:20.04
+  before_script:
+    - apt-get update -qq
+    - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq curl git python3-pip
+    - pip3 install git-archive-all
+  script:
+    - |
+      git-archive-all --force-submodules ${PACKAGE_FILE}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${PACKAGE_FILE} ${PACKAGE_URL}
+
+release:
+  stage: release
+  extends: .packaging
+  needs: ["package"]
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script:
+    - |
+      release-cli create --name "Release $CI_COMMIT_TAG" --description RELEASE.md \
+        --assets-link "{\"name\":\"${PACKAGE_FILE}\",\"url\":\"${PACKAGE_URL}\",\"link_type\":\"package\"}"
