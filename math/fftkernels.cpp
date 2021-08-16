@@ -10,7 +10,11 @@
 // for FFTW to work correctly.
 #define ALIGNMENT 64
 
+namespace {
+
 size_t roundUp(size_t a, size_t b) { return ((a + b) / b) * b; }
+
+}  // namespace
 
 void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
                          size_t imgHeight, size_t imgWidth, const float *in,
