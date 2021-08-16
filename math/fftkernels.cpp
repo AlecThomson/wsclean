@@ -10,7 +10,7 @@
 // for FFTW to work correctly.
 #define ALIGNMENT 64
 
-size_t round_up(size_t a, size_t b) { return ((a + b) / b) * b; }
+size_t roundUp(size_t a, size_t b) { return ((a + b) / b) * b; }
 
 void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
                          size_t imgHeight, size_t imgWidth, const float *in,
@@ -35,7 +35,7 @@ void fft2f_r2c_composite(fftwf_plan plan_r2c, fftwf_plan plan_c2c,
 
   loop.Run(0, complexWidth, [&](size_t xStart, size_t xEnd) {
     // Partially UNROLL over columns
-    size_t paddedHeight = round_up(imgHeight, ALIGNMENT);
+    size_t paddedHeight = roundUp(imgHeight, ALIGNMENT);
     fftwf_complex *temp2 = fftwf_alloc_complex(UNROLL * paddedHeight);
 
     for (size_t x = xStart; x < xEnd; x += UNROLL) {
@@ -84,7 +84,7 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
                          aocommon::StaticFor<size_t> &loop) {
   const size_t complexWidth = imgWidth / 2 + 1;
 
-  size_t paddedHeight = round_up(imgHeight, ALIGNMENT);
+  size_t paddedHeight = roundUp(imgHeight, ALIGNMENT);
   size_t paddedSize = paddedHeight * complexWidth;
   fftwf_complex *temp1 = fftwf_alloc_complex(paddedSize);
 
@@ -114,7 +114,7 @@ void fft2f_c2r_composite(fftwf_plan plan_c2c, fftwf_plan plan_c2r,
   });
 
   loop.Run(0, imgHeight, [&](size_t yStart, size_t yEnd) {
-    size_t paddedWidth = round_up(complexWidth, ALIGNMENT);
+    size_t paddedWidth = roundUp(complexWidth, ALIGNMENT);
     fftwf_complex *temp2 = fftwf_alloc_complex(UNROLL * paddedWidth);
 
     for (size_t y = yStart; y < yEnd; y += UNROLL) {
