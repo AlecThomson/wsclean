@@ -415,9 +415,9 @@ void ImageSet::CalculateDeconvolutionFrequencies(
     // is zero, it is still desirable to have a proper value for the frequency
     // (e.g. for extrapolating flux).
     if (weights[i] > 0.0)
-      frequencies[i] = unweightedFrequencies[i] / counts[i];
-    else
       frequencies[i] /= weights[i];
+    else
+      frequencies[i] = unweightedFrequencies[i] / counts[i];
   }
 }
 
