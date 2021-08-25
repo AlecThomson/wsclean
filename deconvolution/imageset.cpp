@@ -395,9 +395,8 @@ void ImageSet::CalculateDeconvolutionFrequencies(
   if (nDeconvolutionChannels == 0) nDeconvolutionChannels = nInputChannels;
   frequencies.assign(nDeconvolutionChannels, 0.0);
   weights.assign(nDeconvolutionChannels, 0.0);
-  aocommon::UVector<double> unweightedFrequencies(nDeconvolutionChannels, 0.0);
-  aocommon::UVector<size_t> counts(nDeconvolutionChannels, 0);
-  aocommon::UVector<double> weightSums(nDeconvolutionChannels, 0);
+  std::vector<double> unweightedFrequencies(nDeconvolutionChannels, 0.0);
+  std::vector<size_t> counts(nDeconvolutionChannels, 0);
   for (size_t i = 0; i != nInputChannels; ++i) {
     const ImagingTableEntry& entry = *groupTable.SquaredGroups()[i].front();
     const double freq = entry.CentralFrequency();

@@ -226,9 +226,7 @@ void AveragingMSRowProvider::OutputStatistics() const {
 
 void AveragingMSRowProvider::AveragingBuffer::Initialize(size_t bufferSize,
                                                          bool includeModel) {
-  _data.resize(bufferSize);
   _modelData.resize(includeModel ? bufferSize : 0);
-  _weights.resize(bufferSize);
   Reset(bufferSize);
 }
 
@@ -244,7 +242,11 @@ void AveragingMSRowProvider::AveragingBuffer::AddData(
       weightSum += weights[i];
     }
   }
-  weightSum /= double(n);
+  // This division (and in the next function) seems not strictly required and
+  // could be removed, because all rows will have the same n, and it just scales
+  // both weightSum and _summedWeight down by n, and they're divided by each
+  // other later on, so it cancels out. TODO verify, fix and test this.
+  weightSum /= n;
   _uvw[0] += uvw[0] * weightSum;
   _uvw[1] += uvw[1] * weightSum;
   _uvw[2] += uvw[2] * weightSum;
@@ -269,7 +271,7 @@ void AveragingMSRowProvider::AveragingBuffer::AddDataAndModel(
       weightSum += weights[i];
     }
   }
-  weightSum /= double(n);
+  weightSum /= n;
   _uvw[0] += uvw[0] * weightSum;
   _uvw[1] += uvw[1] * weightSum;
   _uvw[2] += uvw[2] * weightSum;
@@ -284,8 +286,8 @@ void AveragingMSRowProvider::AveragingBuffer::Get(size_t n,
                                                   bool* flags, float* weights,
                                                   double* uvw, double& time) {
   for (size_t i = 0; i != n; ++i) {
-    data[i] = _data[i] / _weights[i];
     flags[i] = (weights[i] == 0.0);
+    data[i] = flags[i] ? 0.0 : _data[i] / _weights[i];
     weights[i] = _weights[i];
   }
   if (_summedWeight == 0.0) {
@@ -301,9 +303,9 @@ void AveragingMSRowProvider::AveragingBuffer::Get(
     size_t n, std::complex<float>* data, std::complex<float>* modelData,
     bool* flags, float* weights, double* uvw, double& time) {
   for (size_t i = 0; i != n; ++i) {
-    data[i] = _data[i] / _weights[i];
-    modelData[i] = _modelData[i] / weights[i];
     flags[i] = (weights[i] == 0.0);
+    data[i] = flags[i] ? 0.0 : _data[i] / _weights[i];
+    modelData[i] = flags[i] ? 0.0 : _modelData[i] / weights[i];
     weights[i] = _weights[i];
   }
   if (_summedWeight == 0.0) {

@@ -7,6 +7,10 @@
 
 #include <limits>
 
+namespace {
+constexpr double kDefaultReferenceFrequency = 150e6;
+}
+
 void SpectralFitter::SetFrequencies(const double* frequencies,
                                     const num_t* weights, size_t n) {
   _frequencies.assign(frequencies, frequencies + n);
@@ -20,7 +24,7 @@ void SpectralFitter::SetFrequencies(const double* frequencies,
   if (weightSum != 0.0)
     _referenceFrequency /= weightSum;
   else
-    _referenceFrequency = 150e6;
+    _referenceFrequency = kDefaultReferenceFrequency;
 }
 
 void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
@@ -69,6 +73,13 @@ void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
   // y[i] = a f(x[i], terms), with f the shape.
   // The least-squares fit is:
   // a = sum (y[i] w[i] f[i]) / sum (w[i] f[i]^2)
+  // However, it turns out that finding the true least-squares solution for a
+  // leads to unstable cleaning. This is because a LS constrained flux might
+  // integrate to zero. If it does, the peak finding that uses integrated
+  // values will again find the same peak (over and over...). Therefore,
+  // we now use the linear average to estimate the flux:
+  // a = sum (y[i] w[i]) / sum (w[i] f[i])
+  // This is what is calculated below.
   terms[0] = 1.0;
   for (size_t term = 1; term != _nTerms; ++term) {
     const Image& termImage = _forcedTerms[term - 1];
@@ -76,21 +87,6 @@ void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
   }
   float aNumerator = 0.0;
   float aDivisor = 0.0;
-  /*
-  for (size_t i = 0; i != _frequencies.size(); ++i) {
-    const float w = _weights[i];
-    const float f = NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms,
-                                                      ReferenceFrequency());
-    aNumerator += w * f * values[i];
-    aDivisor += w * f * f;
-  }
-  */
-  // It turns out that finding the true least-squares solution for a leads
-  // to unstable cleaning. This is because a LS constrained flux might
-  // integrate to zero. If it does, the peak finding that uses integrated
-  // values will again find the same peak (over and over...). Therefore,
-  // we now use the linear average to estimate the flux:
-  // a = sum (y[i] w[i]) / sum (w[i] f[i])
   for (size_t i = 0; i != _frequencies.size(); ++i) {
     const float w = _weights[i];
     const float f = NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms,
