@@ -21,7 +21,7 @@ void SpectralFitter::SetFrequencies(const double* frequencies,
     _referenceFrequency += _frequencies[i] * _weights[i];
     weightSum += _weights[i];
   }
-  if (weightSum != 0.0)
+  if (weightSum > 0.0)
     _referenceFrequency /= weightSum;
   else
     _referenceFrequency = kDefaultReferenceFrequency;
@@ -41,7 +41,7 @@ void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
         PolynomialFitter fitter;
         double refFreq = ReferenceFrequency();
         for (size_t i = 0; i != _frequencies.size(); ++i) {
-          if (_weights[i] != 0.0) {
+          if (_weights[i] > 0.0) {
             fitter.AddDataPoint(_frequencies[i] / refFreq - 1.0, values[i],
                                 _weights[i]);
           }
@@ -54,7 +54,7 @@ void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
         NonLinearPowerLawFitter fitter;
         double refFreq = ReferenceFrequency();
         for (size_t i = 0; i != _frequencies.size(); ++i) {
-          if (_weights[i] != 0.0) {
+          if (_weights[i] > 0.0) {
             fitter.AddDataPoint(_frequencies[i] / refFreq, values[i]);
           }
         }
@@ -91,7 +91,7 @@ void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
     const float w = _weights[i];
     const float f = NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms,
                                                       ReferenceFrequency());
-    if (w != 0.0) {
+    if (w > 0.0) {
       aNumerator += w * values[i];
       aDivisor += w * f;
     }
