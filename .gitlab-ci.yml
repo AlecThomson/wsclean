@@ -185,8 +185,8 @@ test-system-das5:
 package:
   stage: package
   variables:
-    PACKAGE_FILE: "wsclean-${CI_COMMIT_TAG}.tbz2"
-    PACKAGE_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sources/${CI_COMMIT_TAG}/wsclean-${CI_COMMIT_TAG}.tbz2"
+    PACKAGE_FILE: "wsclean-${CI_COMMIT_TAG}.tar.bz2"
+    PACKAGE_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sources/${CI_COMMIT_TAG}/wsclean-${CI_COMMIT_TAG}.tar.bz2"
   before_script:
     - apt-get update -qq
     - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq curl git python3-pip
