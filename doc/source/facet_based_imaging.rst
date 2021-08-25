@@ -7,6 +7,10 @@ A first advantage of facet-based imaging is that DDEs can be applied per facet. 
 can be other other advantages of facet-based imaging. This owes to the fact that inverting the visibilities to the image domain and predicting the visibilities can largely be done on each
 facet independently, rather than on the full image.
 
+Availability
+------------
+Facetting is available in WSClean :doc:`version 3.0 <changelogs/v3.0>` and later.
+
 Command-line options
 --------------------
 
@@ -52,13 +56,10 @@ An example facet-based imaging command in WSClean, applying both a facet-based b
 .. code-block:: bash
 
     wsclean \
-    -use-wgridder \
     -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 \
     -facet-regions ds9.reg \
     -apply-facet-beam \
     -facet-beam-update 120 \
-    -mwa-path ${mwa_path} \
-    -interval 10 14 \
     -niter 1000000 -auto-threshold 5 -mgain 0.8 \
     -size 1024 1024 -scale 1amin \
     ${ms}
@@ -67,9 +68,10 @@ An example facet-based imaging command in WSClean, applying both a facet-based b
 Caveats
 -------
 
-Facet-based imaging is currently a highly experimental feature, and therefore should be used with care.
+Facet-based imaging is currently an experimental feature, and therefore should be used with care.
 A (probably non-exhaustive) list of caveats is presented below:
 
 - Parallel processing can be enabled with the :code:`-parallel-gridding` option (multi-threaded) or the :code:`wsclean-mp` (using MPI). Parallelization over facets is however barely tested, and may return unexpected errors or results. In particular when applying DDEs.
-- Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is possible. However, it is not possible to apply the facet beam in this case.
-- Please note once more the (direction) ordering restriction when applying DD gains from an H5Parm file.
+- Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is only possible without applying DDEs.
+- When applying solutions in WSClean for facetted imaging, only scalar solutions are currently applicable.
+- Be aware of the (direction) ordering restriction when applying DD gains from an H5Parm file as mentioned above.
