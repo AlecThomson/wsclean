@@ -1,11 +1,10 @@
-Facet based imaging
+Facet-based imaging
 ===================
 
-WSClean provides experimental support for facet-based imaging, and applying direction dependent effects (DDEs) per facet.
+WSClean provides experimental support for facet-based imaging, and applying direction-dependent effects (DDEs) per facet.
 A facet should be understood as a (polygonal shaped) subdomain of the full image, where both convex and concave polygons are supported.
-A first advantage of facet-based imaging is that DDEs can be applied per facet. Apart from this, parallelization and reducing the memory footprint
-can be other other advantages of facet-based imaging. This owes to the fact that inverting the visibilities to the image domain and predicting the visibilities can largely be done on each
-facet independently, rather than on the full image.
+A first advantage of facet-based imaging is that DDEs can be applied per facet. Parallelization and reduction of the memory footprint
+can be other other advantages of facet-based imaging, because visibility gridding and predicting can largely be done for each facet independently, rather than requiring the full image.
 
 Availability
 ------------
@@ -36,7 +35,7 @@ The facet beam update interval (in seconds) can be defined by specifying:
 
 The default value for the update interval is 120s.
 
-Direction dependent corrections per facet can also be read and applied from an H5Parm file - which in essence is a HDF5 file with some prescribed lay-out.
+Direction-dependent corrections per facet can also be read and applied from an H5Parm file - which in essence is a HDF5 file with some prescribed lay-out.
 This is done via the command-line option:
 
 .. code-block:: text
