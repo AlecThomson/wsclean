@@ -71,7 +71,7 @@ Caveats
 Facet-based imaging is currently an experimental feature, and therefore should be used with care.
 A (probably non-exhaustive) list of caveats is presented below:
 
-- Parallel processing can be enabled with the :code:`-parallel-gridding` option (multi-threaded) or the :code:`wsclean-mp` (using MPI). Parallelization over facets is however barely tested, and may return unexpected errors or results. In particular when applying DDEs.
+- Parallel processing can be enabled with the :code:`-parallel-gridding` option (multi-threaded) or the :code:`wsclean-mp` (using MPI). Parallelization over facets is however barely tested, and may return unexpected errors or results, in particular when applying DDEs.
 - Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is only possible without applying DDEs.
 - When applying solutions in WSClean for facetted imaging, only scalar solutions are currently applicable.
 - Be aware of the (direction) ordering restriction when applying DD gains from an H5Parm file as mentioned above.
