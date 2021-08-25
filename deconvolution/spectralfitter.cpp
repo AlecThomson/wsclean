@@ -69,16 +69,16 @@ void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
                                const SpectralFitter::num_t* values, size_t x,
                                size_t y) const {
   terms.resize(_nTerms);
-  // We need to find a such that
-  // y[i] = a f(x[i], terms), with f the shape.
+  // We need to find alpha such that
+  // y[i] = A f(x[i], terms), with f the shape.
   // The least-squares fit is:
-  // a = sum (y[i] w[i] f[i]) / sum (w[i] f[i]^2)
-  // However, it turns out that finding the true least-squares solution for a
+  // A = sum (y[i] w[i] f[i]) / sum (w[i] f[i]^2)
+  // However, it turns out that finding the true least-squares solution for A
   // leads to unstable cleaning. This is because a LS constrained flux might
   // integrate to zero. If it does, the peak finding that uses integrated
   // values will again find the same peak (over and over...). Therefore,
   // we now use the linear average to estimate the flux:
-  // a = sum (y[i] w[i]) / sum (w[i] f[i])
+  // A = sum (y[i] w[i]) / sum (w[i] f[i])
   // This is what is calculated below.
   terms[0] = 1.0;
   for (size_t term = 1; term != _nTerms; ++term) {
