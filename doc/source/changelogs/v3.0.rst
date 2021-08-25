@@ -11,13 +11,13 @@ Major & visible changes
 -----------------------
 
 * Facetted imaging.
-* Depend on EveryBeam for calculation of *all* instrumental primary beams. **This implies that EveryBeam is now required to apply beams from instruments like LOFAR, MWA, JVLA, ATCA, etc.**
+* Use `EveryBeam <https://git.astron.nl/RD/EveryBeam>`_ for calculation of *all* instrumental primary beams. **This implies that EveryBeam is now required to apply beams from instruments like LOFAR, MWA, JVLA, ATCA, etc.**
 * Make it possible to call Python deconvolution implementations (parameter ``-python-deconvolution``).
 * New feature to force spectra from an external image (parameter ``-force-spectrum``).
-* New option ``-simulate-baseline-noise``.
-* New option ``-deconvolution-threads``.
-* New option ``-wgridding-accuracy``.
-* New option ``-primary-beam-limit``.
+* New option ``-deconvolution-threads`` to limit the number of threads (and associated memory) used in deconvolution.
+* New option ``-wgridding-accuracy`` to tweak the accuracy of the wgridder.
+* New option ``-primary-beam-limit`` to set the level at which to trim the beam.
+* New option ``-simulate-baseline-noise`` to perform simulations with baseline-specific noise values.
 * Support for SKA beams (through EveryBeam).
 * Phase *shifting* (not rotating) is now done inside ``wsclean`` and does not require (or allow!) shifting with ``chgcentre`` (see :doc:`chgcentre documentation<../chgcentre>` for the changes).
 * Allow distributed multi-polarization imaging with IDG (also fixes #56).
@@ -65,6 +65,6 @@ Other significant code changes
 * Make channel interpolation use multiple threads to improve deconvolution performance.
 * Add several dockerfiles to the repository to build containers.
 * Use ``-fvisibility=hidden`` to disable pybind11 compilation warnings.
-* Parellelize ``RMSImage::SlidingMinimum`` and calculating the image weights to improve start-up and deconvolution performance.
+* Parellellize ``RMSImage::SlidingMinimum`` and calculating the image weights to improve start-up and deconvolution performance.
 * Reimplement and parallelize FFTConvolver, improving speed of various tasks.
 * As always, various documentation improvements.
