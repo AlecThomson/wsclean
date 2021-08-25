@@ -415,7 +415,7 @@ void ImageSet::CalculateDeconvolutionFrequencies(
     // Even when there is no data for a given frequency and the weight
     // is zero, it is still desirable to have a proper value for the frequency
     // (e.g. for extrapolating flux).
-    if (weights[i] == 0.0)
+    if (weights[i] > 0.0)
       frequencies[i] = unweightedFrequencies[i] / counts[i];
     else
       frequencies[i] /= weights[i];
