@@ -5,7 +5,6 @@ stages:
  - build
  - test
  - package
- - release
 
 workflow:
   rules:
