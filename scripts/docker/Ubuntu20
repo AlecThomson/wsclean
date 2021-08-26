@@ -25,6 +25,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     python3-pip \
     wget
 
+# Note that in some containers we use the apt-get version of pytest and
+# in some we use pip. This is on purpose, to test both ways.
 RUN pip3 install pytest
 
 ADD . /src

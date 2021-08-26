@@ -32,6 +32,7 @@ WORKDIR /src
 
 RUN mkdir /build && cd /build && cmake ../src
 
-RUN cd /build && make -j`nproc --all` && make install && make check -j`nproc --all`
+# make check is not run for Ubuntu 18, because boost testing has bugs causing it to fail
+RUN cd /build && make -j`nproc --all` && make install
 
 RUN wsclean --version
