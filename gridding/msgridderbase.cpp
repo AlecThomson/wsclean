@@ -653,6 +653,8 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
+  assert(!DoImagePSF());  // The PSF is never predicted.
+
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
