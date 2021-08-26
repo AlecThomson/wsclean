@@ -25,6 +25,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     python3-pip \
     wget
 
+RUN pip3 install pytest
+
 ADD . /src
 WORKDIR /src
 

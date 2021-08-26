@@ -25,11 +25,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     python3-pip \
     wget
 
+RUN pip3 install pytest
+
 ADD . /src
 WORKDIR /src
 
 RUN mkdir /build && cd /build && cmake ../src
 
-RUN cd /build && make -j`nproc --all` && make install
+RUN cd /build && make -j`nproc --all` && make install && make check -j`nproc --all`
 
 RUN wsclean --version
