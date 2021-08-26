@@ -1,7 +1,7 @@
 WSClean version 3.0
 ===================
 
-Released 2021-XX-XX
+Released 2021-08-26
 
 WSClean 3.0 depends on `IDG version 0.8 <https://git.astron.nl/RD/idg/-/releases/0.8>`_ or newer.
 
