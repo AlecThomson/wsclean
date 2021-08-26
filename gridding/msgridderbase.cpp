@@ -10,6 +10,7 @@
 #include "../structures/imageweights.h"
 
 #include "../units/angle.h"
+#include <sys/time.h>
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
@@ -44,6 +45,15 @@
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
+double getWallTime() {
+  struct timeval time;
+  if (gettimeofday(&time, NULL)) {
+    //  Handle error
+    return 0;
+  }
+  return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
