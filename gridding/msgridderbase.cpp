@@ -642,14 +642,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     }
   }
 
-  if (IsFirstIteration() || !hasWGridSize()) {
-    size_t suggestedGridSize = getSuggestedWGridSize();
-    if (!hasWGridSize())
-      _actualWGridSize = suggestedGridSize;
-    else
-      _actualWGridSize = _wGridSize;
-  } else
-    _actualWGridSize = _wGridSize;
+  _actualWGridSize = hasWGridSize() ? _wGridSize : getSuggestedWGridSize();
 }
 
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
