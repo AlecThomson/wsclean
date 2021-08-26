@@ -20,6 +20,7 @@ RUN yum -y install \
     python3-devel \
     libarchive
 # Libarchive is not required by wsclean, but because of a RHEL8 issue needs to be manually installed to use cmake
+# (See e.g. https://github.com/ComplianceAsCode/content/issues/7016 )
 
 # casacore dependencies & compilation
 RUN \
@@ -42,14 +43,17 @@ RUN \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF && \
-  make -j`nproc --all` && \
-  make install -j`nproc --all`
+  make -j`nproc` && \
+  make install -j`nproc`
 
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake ../src
-
-RUN cd /build && make -j`nproc --all` && make install
-
-RUN wsclean --version
+RUN \
+  mkdir /build && \
+  cd /build && \
+  cmake ../src && \
+  cd /build && \
+  make -j`nproc` && \
+  make install && \
+  wsclean --version
