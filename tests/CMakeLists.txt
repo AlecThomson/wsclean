@@ -43,7 +43,6 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test_data/)
 
 add_custom_target(
   checkintegration
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_integration.xml
