@@ -180,6 +180,21 @@ std::complex<float> ComputeGain<DDGainMatrix::kFull>(
     const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
   throw std::runtime_error("Not implemented!");
 }
+
+/**
+ * @brief Select unique times from a given MSProvider
+ */
+void SelectUniqueTimes(std::vector<double>& msTimes, MSProvider& msProvider) {
+  std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+  while (msReader->CurrentRowAvailable()) {
+    MSProvider::MetaData metaData;
+    msReader->ReadMeta(metaData);
+    // TODO: Could be made more efficient if time is strictly ascending in MS?
+    const auto it = std::find(msTimes.begin(), msTimes.end(), metaData.time);
+    if (it == msTimes.end()) msTimes.push_back(metaData.time);
+    msReader->NextInputRow();
+  }
+}
 }  // namespace
 
 MSGridderBase::~MSGridderBase(){};
@@ -241,6 +256,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _cachedParmResponse(),
       _h5parm(nullptr),
       _h5SolTabs(std::make_pair(nullptr, nullptr)),
+      _cachedMSTimes(),
       _h5TimeIndex(std::make_pair(std::numeric_limits<size_t>::max(),
                                   std::numeric_limits<size_t>::max())) {
   computeFacetCentre();
@@ -476,12 +492,20 @@ void MSGridderBase::initializeMSDataVector(
 
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
+
+  if (!_settings.facetSolutionFile.empty()) {
+    _cachedParmResponse.resize(MeasurementSetCount());
+    _cachedMSTimes.resize(MeasurementSetCount());
+  }
+
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
                              hasCache);
+    if (!_settings.facetSolutionFile.empty()) {
+      SelectUniqueTimes(_cachedMSTimes[i], *msDataVector[i].msProvider);
+    }
   }
-
   calculateOverallMetaData(msDataVector.data());
 }
 
@@ -679,51 +703,54 @@ void MSGridderBase::writeVisibilities(
 
     // Only update the cached solutions if one of the time indices in the
     // soltabs changed
-    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
-        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
-                                  _h5TimeIndex.second)) {
+    if (_cachedParmResponse[_msIndex].empty()) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
-
+      const size_t responseSize = _cachedMSTimes[_msIndex].size() *
+                                  freqs.size() * antennaNames.size() * nparms;
       JonesParameters jonesParameters(
-          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
           JonesParameters::InterpolationType::NEAREST, _facetIndex,
           _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
-      // Assumes that the data layout parms is contiguous in mem, ordered as
-      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
-      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
-      // stationn:polm:chank]
-      _cachedParmResponse.assign(&parms(0, 0, 0),
-                                 &parms(0, 0, 0) + responseSize);
+      _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
+                                           &parms(0, 0, 0) + responseSize);
+    }
 
-      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
-      if (_h5SolTabs.second) {
-        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
-      }
+    size_t tidx;
+    const size_t nchannels = curBand.ChannelCount();
+    auto it = std::find(_cachedMSTimes[_msIndex].begin(),
+                        _cachedMSTimes[_msIndex].end(), metaData.time);
+    if (it != _cachedMSTimes[_msIndex].end()) {
+      tidx = std::distance(_cachedMSTimes[_msIndex].begin(), it);
+    } else {
+      throw std::runtime_error("Time not found in cached times.");
     }
 
     std::complex<float>* iter = buffer;
     if (nparms == 2) {
-      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        const size_t offset = ch * antennaNames.size() * nparms;
+      for (size_t ch = 0; ch < nchannels; ++ch) {
+        const size_t offset =
+            (tidx * nchannels + ch) * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
-                                     _cachedParmResponse[offset1 + 1]);
-        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
-                                     _cachedParmResponse[offset2 + 1]);
+        const aocommon::MC2x2F gain1(
+            _cachedParmResponse[_msIndex][offset1], 0, 0,
+            _cachedParmResponse[_msIndex][offset1 + 1]);
+        const aocommon::MC2x2F gain2(
+            _cachedParmResponse[_msIndex][offset2], 0, 0,
+            _cachedParmResponse[_msIndex][offset2 + 1]);
         ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
         iter += PolarizationCount;
       }
     } else {
-      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        const size_t offset = ch * antennaNames.size() * nparms;
+      for (size_t ch = 0; ch < nchannels; ++ch) {
+        const size_t offset =
+            (tidx * nchannels + ch) * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
-        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
+        const aocommon::MC2x2F gain2(&_cachedParmResponse[_msIndex][offset2]);
         ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
         iter += PolarizationCount;
       }
