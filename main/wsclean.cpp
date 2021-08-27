@@ -952,50 +952,53 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _griddingTaskManager->Finish();
   if (doMakePSF) stitchFacets(groupTable, _psfImages, false, true);
 
-  const size_t facetCount = groupTable.FacetCount();
-  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
-    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
+  if (!_settings.makePSFOnly) {
+    const size_t facetCount = groupTable.FacetCount();
+    for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
+      ImagingTable facetTable = groupTable.GetFacet(facetIndex);
 
-    if (requestPolarizationsAtOnce) {
-      for (ImagingTableEntry& entry : facetTable) {
-        if (entry.polarization == *_settings.polarizations.begin())
-          runFirstInversion(entry, primaryBeam);
-      }
-    } else if (parallelizePolarizations) {
-      for (ImagingTableEntry& entry : facetTable) {
-        runFirstInversion(entry, primaryBeam);
-      }
-    } else {
-      bool hasMore;
-      size_t sqIndex = 0;
-      do {
-        hasMore = false;
-        // Run the inversion for one entry out of each squared group
-        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
-          if (sqIndex < sqGroup.size()) {
-            hasMore = true;
-            runFirstInversion(*sqGroup[sqIndex], primaryBeam);
-          }
+      if (requestPolarizationsAtOnce) {
+        for (ImagingTableEntry& entry : facetTable) {
+          if (entry.polarization == *_settings.polarizations.begin())
+            runFirstInversion(entry, primaryBeam);
         }
-        ++sqIndex;
-        _griddingTaskManager->Finish();
-      } while (hasMore);
+      } else if (parallelizePolarizations) {
+        for (ImagingTableEntry& entry : facetTable) {
+          runFirstInversion(entry, primaryBeam);
+        }
+      } else {
+        bool hasMore;
+        size_t sqIndex = 0;
+        do {
+          hasMore = false;
+          // Run the inversion for one entry out of each squared group
+          for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
+            if (sqIndex < sqGroup.size()) {
+              hasMore = true;
+              runFirstInversion(*sqGroup[sqIndex], primaryBeam);
+            }
+          }
+          ++sqIndex;
+          _griddingTaskManager->Finish();
+        } while (hasMore);
+      }
     }
+    if (requestPolarizationsAtOnce) {
+      _griddingTaskManager->Finish();
+      groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
+    } else if (parallelizePolarizations) {
+      _griddingTaskManager->Finish();
+    }
+    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
   }
-  if (requestPolarizationsAtOnce) {
-    _griddingTaskManager->Finish();
-    groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
-  } else if (parallelizePolarizations) {
-    _griddingTaskManager->Finish();
-  }
-  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
+
   _inversionWatch.Pause();
 
-  _deconvolution.InitializeDeconvolutionAlgorithm(
-      groupTable.GetFacet(0), *_settings.polarizations.begin(),
-      minTheoreticalBeamSize(groupTable), _settings.threadCount);
-
   if (!_settings.makePSFOnly) {
+    _deconvolution.InitializeDeconvolutionAlgorithm(
+        groupTable.GetFacet(0), *_settings.polarizations.begin(),
+        minTheoreticalBeamSize(groupTable), _settings.threadCount);
+
     if (_settings.deconvolutionIterationCount > 0) {
       // Start major cleaning loop
       _majorIterationNr = 1;
@@ -1129,9 +1132,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                                         _observationInfo.phaseCentreDec);
       }
     }
-  }
 
-  _deconvolution.FreeDeconvolutionAlgorithms();
+    _deconvolution.FreeDeconvolutionAlgorithms();
+  }
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
@@ -1601,14 +1604,12 @@ void WSClean::runFirstInversion(
     }
   }
 
-  if (!_settings.makePSFOnly) {
-    if (_settings.reuseDirty)
-      loadExistingDirty(entry, !doMakePSF);
-    else
-      imageMain(entry, true, !doMakePSF);
+  if (_settings.reuseDirty)
+    loadExistingDirty(entry, !doMakePSF);
+  else
+    imageMain(entry, true, !doMakePSF);
 
-    _isFirstInversion = false;
-  }
+  _isFirstInversion = false;
 }
 
 MSSelection WSClean::selectInterval(MSSelection& fullSelection,
