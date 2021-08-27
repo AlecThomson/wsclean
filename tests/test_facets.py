@@ -14,12 +14,13 @@ import testconfig as tcf
 # wsclean executable from the build directory
 os.environ["PATH"] = f"{os.getcwd()}:{os.environ['PATH']}"
 
+MODEL_IMAGE = "point-source-model.fits"
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
-MODEL_IMAGE = "point-source-model.fits"
-
+MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
+EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
 
 @pytest.fixture(autouse=True)
 def prepare():
@@ -32,8 +33,12 @@ def prepare():
         check_call(wget.split())
 
     if not os.path.isfile(MWA_MOCK_ARCHIVE):
-        wget = f"wget -q www.astron.nl/citt/EveryBeam/MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
+        wget = f"wget -q {EVERYBEAM_BASE_URL}MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
         check_call(wget.split())
+
+    if not os.path.isfile(MWA_COEFF_ARCHIVE):
+        check_call(["wget", "-q", EVERYBEAM_BASE_URL + MWA_COEFF_ARCHIVE])
+        check_call(["tar", "xf", MWA_COEFF_ARCHIVE])
 
     os.makedirs(MWA_MOCK_MS, exist_ok=True)
     check_call(
@@ -81,7 +86,7 @@ def predict_facet_image(ms, gridder):
     check_call(s.split())
 
 
-def deconvolve_facets(ms, gridder, reorder, mpi):
+def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     nthreads = 4
     mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp"
     thread_cmd = f"wsclean -parallel-gridding {nthreads}"
@@ -93,7 +98,8 @@ def deconvolve_facets(ms, gridder, reorder, mpi):
         "-niter 1000000 -auto-threshold 5 -mgain 0.8",
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
-        "-size 256 256 -scale 4amin -v",
+        "-size 1024 1024 -scale 4amin -v",
+        "-mwa-path . -apply-facet-beam" if apply_beam else "",
         ms,
     ]
     print("WSClean cmd: " + " ".join(s))
@@ -200,3 +206,13 @@ def test_facetdeconvolution(gridder, reorder, mpi):
         f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
     )
     assert_taql(taql_command)
+
+@pytest.mark.parametrize("mpi", [True])
+def test_facetbeamimages(mpi):
+    """
+    Basic checks of the generated images when using facet beams. For each image,
+    test that are pixel values are valid (not NaN/Inf) and check the percentage
+    of zero pixels.
+    """
+
+    deconvolve_facets(MWA_MOCK_FACET, "-use-wgridder", True, mpi, True)
