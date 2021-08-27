@@ -1,18 +1,15 @@
+import numpy as np
 import os
 import pytest
 from subprocess import check_call, check_output
 import shutil
+import sys
+import warnings
 
 # Append current directory to system path in order to import testconfig
-import sys
-
 sys.path.append(".")
 
 import testconfig as tcf
-
-# Prepend path with current working directory to make sure
-# wsclean executable from the build directory
-os.environ["PATH"] = f"{os.getcwd()}:{os.environ['PATH']}"
 
 MODEL_IMAGE = "point-source-model.fits"
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
@@ -76,20 +73,20 @@ def assert_taql(command, expected_rows=0):
 
 def predict_full_image(ms, gridder):
     # Predict full image
-    s = f"wsclean -predict {gridder} -name point-source {ms}"
+    s = f"../wsclean -predict {gridder} -name point-source {ms}"
     check_call(s.split())
 
 
 def predict_facet_image(ms, gridder):
     # Predict facet based image
-    s = f"wsclean -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
+    s = f"../wsclean -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
     check_call(s.split())
 
 
 def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     nthreads = 4
-    mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp"
-    thread_cmd = f"wsclean -parallel-gridding {nthreads}"
+    mpi_cmd = f"mpirun -tag-output -np {nthreads} ../wsclean-mp"
+    thread_cmd = f"../wsclean -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     s = [
         mpi_cmd if mpi else thread_cmd,
@@ -98,7 +95,7 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
         "-niter 1000000 -auto-threshold 5 -mgain 0.8",
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
-        "-size 1024 1024 -scale 4amin -v",
+        "-size 256 256 -scale 4amin -v",
         "-mwa-path . -apply-facet-beam" if apply_beam else "",
         ms,
     ]
@@ -207,6 +204,29 @@ def test_facetdeconvolution(gridder, reorder, mpi):
     )
     assert_taql(taql_command)
 
+def basic_image_check(fits_filename, zero_limit):
+    """
+    Checks that the fits file has no NaN or Inf values and that the number
+    of zeroes is below zero_limit.
+    """
+    try:
+        from astropy.io import fits
+    except:
+        warnings.warn(
+            UserWarning(
+                "Could not import astropy, so image checks are skipped."
+            )
+        )
+        return
+
+    image = fits.open(fits_filename)
+    assert len(image) == 1
+    data = image[0].data
+    assert data.shape == (1, 1, 256, 256)
+    for x in np.nditer(data):
+        assert np.isfinite(x)
+    assert data.size - np.count_nonzero(data) <= zero_limit
+
 @pytest.mark.parametrize("mpi", [True])
 def test_facetbeamimages(mpi):
     """
@@ -216,3 +236,6 @@ def test_facetbeamimages(mpi):
     """
 
     deconvolve_facets(MWA_MOCK_FACET, "-use-wgridder", True, mpi, True)
+
+    basic_image_check("facet-imaging-reorder-psf.fits", 2037)
+    basic_image_check("facet-imaging-reorder-dirty.fits", 2037)
