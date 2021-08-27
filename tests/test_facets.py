@@ -73,20 +73,20 @@ def assert_taql(command, expected_rows=0):
 
 def predict_full_image(ms, gridder):
     # Predict full image
-    s = f"../wsclean -predict {gridder} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict {gridder} -name point-source {ms}"
     check_call(s.split())
 
 
 def predict_facet_image(ms, gridder):
     # Predict facet based image
-    s = f"../wsclean -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
     check_call(s.split())
 
 
 def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     nthreads = 4
-    mpi_cmd = f"mpirun -tag-output -np {nthreads} ../wsclean-mp"
-    thread_cmd = f"../wsclean -parallel-gridding {nthreads}"
+    mpi_cmd = f"mpirun -tag-output -np {nthreads} {tcf.WSCLEAN_MP}"
+    thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     s = [
         mpi_cmd if mpi else thread_cmd,
@@ -127,9 +127,17 @@ def check_and_remove_files(fpaths, remove=False):
 def test_stitching(gridder):
     """Test stitching of the facets"""
     prefix = f"facet-stitch-{gridder[0]}"
-    pol = "" if (gridder[0] == "idg") else "-pol XX,YY"
-    s = f"wsclean -quiet {gridder[1]} -size 256 256 -scale 4amin {pol} -facet-regions {tcf.FACETFILE_2FACETS} -name {prefix} {MWA_MOCK_MS}"
-    check_call(s.split())
+    s = [
+       tcf.WSCLEAN,
+       "-quiet",
+       gridder[1],
+       "-size 256 256 -scale 4amin",
+       "" if (gridder[0] == "idg") else "-pol XX,YY",
+       f"-facet-regions {tcf.FACETFILE_2FACETS}",
+       f"-name {prefix}",
+       MWA_MOCK_MS
+    ]
+    check_call(" ".join(s).split())
     fpaths = (
         [prefix + "-dirty.fits", prefix + "-image.fits"]
         if (gridder[0] == "idg")
