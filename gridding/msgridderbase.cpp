@@ -45,15 +45,6 @@
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
-double getWallTime() {
-  struct timeval time;
-  if (gettimeofday(&time, NULL)) {
-    //  Handle error
-    return 0;
-  }
-  return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
-
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
