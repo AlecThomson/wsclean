@@ -247,9 +247,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _cachedParmResponse(),
       _h5parm(nullptr),
       _h5SolTabs(std::make_pair(nullptr, nullptr)),
-      _cachedMSTimes(),
-      _h5TimeIndex(std::make_pair(std::numeric_limits<size_t>::max(),
-                                  std::numeric_limits<size_t>::max())) {
+      _cachedMSTimes() {
   computeFacetCentre();
 }
 
