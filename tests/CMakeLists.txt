@@ -57,8 +57,9 @@ add_custom_target(
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*')
 
 # The 'source' symbolic link simplifies running the tests manually inside
-# ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'pytest [OPTIONS] source/tests.py'
-# instead of 'pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'.
+# ${CMAKE_CURRENT_BINARY_DIR}:
+# It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
+# 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'.
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}
           ${CMAKE_CURRENT_BINARY_DIR}/source)

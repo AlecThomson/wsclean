@@ -121,6 +121,28 @@ def check_and_remove_files(fpaths, remove=False):
     if remove:
         [os.remove(fpath) for fpath in fpaths]
 
+def basic_image_check(fits_filename, zero_limit):
+    """
+    Checks that the fits file has no NaN or Inf values and that the number
+    of zeroes is below zero_limit.
+    """
+    try:
+        from astropy.io import fits
+    except:
+        warnings.warn(
+            UserWarning(
+                "Could not import astropy, so fits image checks are skipped."
+            )
+        )
+        return
+
+    image = fits.open(fits_filename)
+    assert len(image) == 1
+    data = image[0].data
+    assert data.shape == (1, 1, 256, 256)
+    for x in np.nditer(data):
+        assert np.isfinite(x)
+    assert data.size - np.count_nonzero(data) <= zero_limit
 
 # Test assumes that IDG and EveryBeam are installed
 @pytest.mark.parametrize("gridder", gridders().items())
@@ -212,34 +234,11 @@ def test_facetdeconvolution(gridder, reorder, mpi):
     )
     assert_taql(taql_command)
 
-def basic_image_check(fits_filename, zero_limit):
-    """
-    Checks that the fits file has no NaN or Inf values and that the number
-    of zeroes is below zero_limit.
-    """
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning(
-                "Could not import astropy, so image checks are skipped."
-            )
-        )
-        return
-
-    image = fits.open(fits_filename)
-    assert len(image) == 1
-    data = image[0].data
-    assert data.shape == (1, 1, 256, 256)
-    for x in np.nditer(data):
-        assert np.isfinite(x)
-    assert data.size - np.count_nonzero(data) <= zero_limit
-
 @pytest.mark.parametrize("mpi", [True])
 def test_facetbeamimages(mpi):
     """
     Basic checks of the generated images when using facet beams. For each image,
-    test that are pixel values are valid (not NaN/Inf) and check the percentage
+    test that the pixel values are valid (not NaN/Inf) and check the percentage
     of zero pixels.
     """
 
