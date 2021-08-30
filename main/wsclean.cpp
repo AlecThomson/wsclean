@@ -934,8 +934,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       _settings.polarizations.count(Polarization::XY) == 0 &&
       _settings.polarizations.count(Polarization::YX) == 0;
 
-  const std::string rootPrefix = _settings.prefixName;
-
   _inversionWatch.Start();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
@@ -967,8 +965,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
                << ", deconvolution: " << _deconvolutionWatch.ToString() << '\n';
-
-  _settings.prefixName = rootPrefix;
 }
 
 void WSClean::saveRestoredImagesForGroup(
@@ -1301,7 +1297,6 @@ bool WSClean::overrideImageSettings(const FitsReader& reader) {
 }
 
 void WSClean::predictGroup(const ImagingTable& groupTable) {
-  const std::string rootPrefix = _settings.prefixName;
   const bool gridPolarizationsAtOnce =
       _settings.useIDG && _settings.polarizations.size() != 1;
 
@@ -1358,8 +1353,6 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
                << ", cleaning: " << _deconvolutionWatch.ToString() << '\n';
-
-  _settings.prefixName = rootPrefix;
 }
 
 void WSClean::initializeMSList(
