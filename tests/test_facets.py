@@ -121,10 +121,10 @@ def check_and_remove_files(fpaths, remove=False):
     if remove:
         [os.remove(fpath) for fpath in fpaths]
 
-def basic_image_check(fits_filename, zero_limit):
+def basic_image_check(fits_filename):
     """
     Checks that the fits file has no NaN or Inf values and that the number
-    of zeroes is below zero_limit.
+    of zeroes is below a limit.
     """
     try:
         from astropy.io import fits
@@ -142,7 +142,12 @@ def basic_image_check(fits_filename, zero_limit):
     assert data.shape == (1, 1, 256, 256)
     for x in np.nditer(data):
         assert np.isfinite(x)
-    assert data.size - np.count_nonzero(data) <= zero_limit
+
+    # Test runs showed that 3.1 % of the values are zero. This regression test
+    # has a higher limit, since results may vary due to floating point rounding.
+    zeroes = data.size - np.count_nonzero(data)
+    ZERO_LIMIT = 0.035
+    assert (zeroes / data.size) <= ZERO_LIMIT
 
 # Test assumes that IDG and EveryBeam are installed
 @pytest.mark.parametrize("gridder", gridders().items())
@@ -244,5 +249,5 @@ def test_facetbeamimages(mpi):
 
     deconvolve_facets(MWA_MOCK_FACET, "-use-wgridder", True, mpi, True)
 
-    basic_image_check("facet-imaging-reorder-psf.fits", 2037)
-    basic_image_check("facet-imaging-reorder-dirty.fits", 2037)
+    basic_image_check("facet-imaging-reorder-psf.fits")
+    basic_image_check("facet-imaging-reorder-dirty.fits")
