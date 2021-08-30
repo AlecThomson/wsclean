@@ -10,7 +10,6 @@
 #include "../structures/imageweights.h"
 
 #include "../units/angle.h"
-#include <sys/time.h>
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
@@ -690,8 +689,7 @@ void MSGridderBase::writeVisibilities(
     const size_t nparms =
         (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
-    // Only update the cached solutions if one of the time indices in the
-    // soltabs changed
+    // Only extract DD solutions if the corresponding cache entry is empty.
     if (_cachedParmResponse[_msIndex].empty()) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       const size_t responseSize = _cachedMSTimes[_msIndex].size() *
@@ -862,30 +860,29 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   const size_t nparms =
       (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
 
-  // Only update the cached response if one of the time indices in the
-  // soltabs changed
-  if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
-      (_h5SolTabs.second &&
-       _h5SolTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
+  // Only extract DD solutions if the corresponding cache entry is empty.
+  if (_cachedParmResponse[_msIndex].empty()) {
     const std::vector<double> freqs(curBand.begin(), curBand.end());
-    const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
-
+    const size_t responseSize = _cachedMSTimes[_msIndex].size() * freqs.size() *
+                                antennaNames.size() * nparms;
     JonesParameters jonesParameters(
-        freqs, {metaData.time}, antennaNames, _correctType,
+        freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
         JonesParameters::InterpolationType::NEAREST, _facetIndex,
         _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
         JonesParameters::MissingAntennaBehavior::kUnit);
     const auto parms = jonesParameters.GetParms();
-    // Assumes that the data layout parms is contiguous in mem, ordered as
-    // [station1:pol1:chan1, ..., station1:poln:chan1, ...
-    // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
-    // stationn:polm:chank]
-    _cachedParmResponse.assign(&parms(0, 0, 0), &parms(0, 0, 0) + responseSize);
+    _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
+                                         &parms(0, 0, 0) + responseSize);
+  }
 
-    _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
-    if (_h5SolTabs.second) {
-      _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
-    }
+  size_t tidx;
+  const size_t nchannels = curBand.ChannelCount();
+  auto it = std::find(_cachedMSTimes[_msIndex].begin(),
+                      _cachedMSTimes[_msIndex].end(), metaData.time);
+  if (it != _cachedMSTimes[_msIndex].end()) {
+    tidx = std::distance(_cachedMSTimes[_msIndex].begin(), it);
+  } else {
+    throw std::runtime_error("Time not found in cached times.");
   }
 
   // Conditional could be templated once C++ supports partial function
@@ -893,14 +890,15 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   std::complex<float>* iter = rowData.data;
   float* weightIter = weightBuffer;
   if (nparms == 2) {
-    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      const size_t offset = ch * antennaNames.size() * nparms;
+    for (size_t ch = 0; ch < nchannels; ++ch) {
+      const size_t offset =
+          (tidx * nchannels + ch) * antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
-      const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
-                                   _cachedParmResponse[offset1 + 1]);
-      const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
-                                   _cachedParmResponse[offset2 + 1]);
+      const aocommon::MC2x2F gain1(_cachedParmResponse[_msIndex][offset1], 0, 0,
+                                   _cachedParmResponse[_msIndex][offset1 + 1]);
+      const aocommon::MC2x2F gain2(_cachedParmResponse[_msIndex][offset2], 0, 0,
+                                   _cachedParmResponse[_msIndex][offset2 + 1]);
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
@@ -913,12 +911,13 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       weightIter += PolarizationCount;
     }
   } else {
-    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      const size_t offset = ch * antennaNames.size() * nparms;
+    for (size_t ch = 0; ch < nchannels; ++ch) {
+      const size_t offset =
+          (tidx * nchannels + ch) * antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
-      const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+      const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
+      const aocommon::MC2x2F gain2(&_cachedParmResponse[_msIndex][offset2]);
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
