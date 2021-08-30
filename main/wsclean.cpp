@@ -972,7 +972,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         do {
           hasMore = false;
           // Run the inversion for one entry out of each squared group
-          for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
+          for (const ImagingTable::Group& sqGroup :
+               facetTable.SquaredGroups()) {
             if (sqIndex < sqGroup.size()) {
               hasMore = true;
               runFirstInversion(*sqGroup[sqIndex], primaryBeam);
@@ -985,7 +986,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     }
     if (requestPolarizationsAtOnce) {
       _griddingTaskManager->Finish();
-      groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
+      groupTable.AssignGridDataFromPolarization(
+          *_settings.polarizations.begin());
     } else if (parallelizePolarizations) {
       _griddingTaskManager->Finish();
     }
