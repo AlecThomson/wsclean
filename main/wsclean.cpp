@@ -953,45 +953,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   if (doMakePSF) stitchFacets(groupTable, _psfImages, false, true);
 
   if (!_settings.makePSFOnly) {
-    const size_t facetCount = groupTable.FacetCount();
-    for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
-      ImagingTable facetTable = groupTable.GetFacet(facetIndex);
-
-      if (requestPolarizationsAtOnce) {
-        for (ImagingTableEntry& entry : facetTable) {
-          if (entry.polarization == *_settings.polarizations.begin())
-            runFirstInversion(entry, primaryBeam);
-        }
-      } else if (parallelizePolarizations) {
-        for (ImagingTableEntry& entry : facetTable) {
-          runFirstInversion(entry, primaryBeam);
-        }
-      } else {
-        bool hasMore;
-        size_t sqIndex = 0;
-        do {
-          hasMore = false;
-          // Run the inversion for one entry out of each squared group
-          for (const ImagingTable::Group& sqGroup :
-               facetTable.SquaredGroups()) {
-            if (sqIndex < sqGroup.size()) {
-              hasMore = true;
-              runFirstInversion(*sqGroup[sqIndex], primaryBeam);
-            }
-          }
-          ++sqIndex;
-          _griddingTaskManager->Finish();
-        } while (hasMore);
-      }
-    }
-    if (requestPolarizationsAtOnce) {
-      _griddingTaskManager->Finish();
-      groupTable.AssignGridDataFromPolarization(
-          *_settings.polarizations.begin());
-    } else if (parallelizePolarizations) {
-      _griddingTaskManager->Finish();
-    }
-    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
+    runFirstInversion(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                      parallelizePolarizations);
   }
 
   _inversionWatch.Pause();
@@ -1578,8 +1541,51 @@ void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   }
 }
 
-void WSClean::runFirstInversion(
-    ImagingTableEntry& entry, std::unique_ptr<class PrimaryBeam>& primaryBeam) {
+void WSClean::runFirstInversion(ImagingTable& groupTable,
+                                std::unique_ptr<PrimaryBeam>& primaryBeam,
+                                bool requestPolarizationsAtOnce,
+                                bool parallelizePolarizations) {
+  const size_t facetCount = groupTable.FacetCount();
+  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
+    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
+
+    if (requestPolarizationsAtOnce) {
+      for (ImagingTableEntry& entry : facetTable) {
+        if (entry.polarization == *_settings.polarizations.begin())
+          runFirstInversion(entry, primaryBeam);
+      }
+    } else if (parallelizePolarizations) {
+      for (ImagingTableEntry& entry : facetTable) {
+        runFirstInversion(entry, primaryBeam);
+      }
+    } else {
+      bool hasMore;
+      size_t sqIndex = 0;
+      do {
+        hasMore = false;
+        // Run the inversion for one entry out of each squared group
+        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
+          if (sqIndex < sqGroup.size()) {
+            hasMore = true;
+            runFirstInversion(*sqGroup[sqIndex], primaryBeam);
+          }
+        }
+        ++sqIndex;
+        _griddingTaskManager->Finish();
+      } while (hasMore);
+    }
+  }
+  if (requestPolarizationsAtOnce) {
+    _griddingTaskManager->Finish();
+    groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
+  } else if (parallelizePolarizations) {
+    _griddingTaskManager->Finish();
+  }
+  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
+}
+
+void WSClean::runFirstInversion(ImagingTableEntry& entry,
+                                std::unique_ptr<PrimaryBeam>& primaryBeam) {
   const bool isLastPol =
       entry.polarization == *_settings.polarizations.rbegin();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
