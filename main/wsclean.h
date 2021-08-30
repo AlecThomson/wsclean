@@ -68,6 +68,10 @@ class WSClean {
                          bool parallelizePolarizations);
   void runFirstInversion(ImagingTableEntry& entry,
                          std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void runMajorIterations(ImagingTable& groupTable,
+                          std::unique_ptr<PrimaryBeam>& primaryBeam,
+                          bool requestPolarizationsAtOnce,
+                          bool parallelizePolarizations);
 
   void performReordering(bool isPredictMode);
 
