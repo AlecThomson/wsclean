@@ -450,6 +450,7 @@ class MSGridderBase {
       _h5SolTabs;
   schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
   std::vector<std::vector<double>> _cachedMSTimes;
+  std::vector<size_t> _timeOffset;
 };
 
 #endif

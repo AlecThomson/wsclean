@@ -174,16 +174,21 @@ std::complex<float> ComputeGain<DDGainMatrix::kFull>(
 /**
  * @brief Select unique times from a given MSProvider
  */
-void SelectUniqueTimes(std::vector<double>& msTimes, MSProvider& msProvider) {
+std::vector<double> SelectUniqueTimes(MSProvider& msProvider) {
   std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+  std::vector<double> msTimes;
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);
-    // TODO: Could be made more efficient if time is strictly ascending in MS?
-    const auto it = std::find(msTimes.begin(), msTimes.end(), metaData.time);
-    if (it == msTimes.end()) msTimes.push_back(metaData.time);
+    // Assumes that the time instants in the MS are in ascending order.
+    // In case this is violated, the returned vector will contain redundant
+    // entries.
+    if (msTimes.empty() || metaData.time != msTimes.back()) {
+      msTimes.push_back(metaData.time);
+    }
     msReader->NextInputRow();
   }
+  return msTimes;
 }
 }  // namespace
 
@@ -246,7 +251,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _cachedParmResponse(),
       _h5parm(nullptr),
       _h5SolTabs(std::make_pair(nullptr, nullptr)),
-      _cachedMSTimes() {
+      _cachedMSTimes(),
+      _timeOffset() {
   computeFacetCentre();
 }
 
@@ -481,17 +487,18 @@ void MSGridderBase::initializeMSDataVector(
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
-  if (!_settings.facetSolutionFile.empty()) {
+  if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
     _cachedParmResponse.resize(MeasurementSetCount());
     _cachedMSTimes.resize(MeasurementSetCount());
+    _timeOffset.assign(MeasurementSetCount(), 0u);
   }
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
                              hasCache);
-    if (!_settings.facetSolutionFile.empty()) {
-      SelectUniqueTimes(_cachedMSTimes[i], *msDataVector[i].msProvider);
+    if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
+      _cachedMSTimes[i] = SelectUniqueTimes(*msDataVector[i].msProvider);
     }
   }
   calculateOverallMetaData(msDataVector.data());
@@ -704,21 +711,25 @@ void MSGridderBase::writeVisibilities(
                                            &parms(0, 0, 0) + responseSize);
     }
 
-    size_t tidx;
     const size_t nchannels = curBand.ChannelCount();
-    auto it = std::find(_cachedMSTimes[_msIndex].begin(),
-                        _cachedMSTimes[_msIndex].end(), metaData.time);
+    auto it =
+        std::find(_cachedMSTimes[_msIndex].begin() + _timeOffset[_msIndex],
+                  _cachedMSTimes[_msIndex].end(), metaData.time);
     if (it != _cachedMSTimes[_msIndex].end()) {
-      tidx = std::distance(_cachedMSTimes[_msIndex].begin(), it);
+      _timeOffset[_msIndex] =
+          std::distance(_cachedMSTimes[_msIndex].begin(), it);
     } else {
-      throw std::runtime_error("Time not found in cached times.");
+      throw std::runtime_error(
+          "Time not found in cached times. A potential reason could be that "
+          "the "
+          "time values in the provided MS are not in ascending order.");
     }
 
     std::complex<float>* iter = buffer;
     if (nparms == 2) {
       for (size_t ch = 0; ch < nchannels; ++ch) {
-        const size_t offset =
-            (tidx * nchannels + ch) * antennaNames.size() * nparms;
+        const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
+                              antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(
@@ -732,8 +743,8 @@ void MSGridderBase::writeVisibilities(
       }
     } else {
       for (size_t ch = 0; ch < nchannels; ++ch) {
-        const size_t offset =
-            (tidx * nchannels + ch) * antennaNames.size() * nparms;
+        const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
+                              antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
@@ -875,14 +886,16 @@ void MSGridderBase::ApplyConjugatedH5Parm(
                                          &parms(0, 0, 0) + responseSize);
   }
 
-  size_t tidx;
   const size_t nchannels = curBand.ChannelCount();
-  auto it = std::find(_cachedMSTimes[_msIndex].begin(),
+  auto it = std::find(_cachedMSTimes[_msIndex].begin() + _timeOffset[_msIndex],
                       _cachedMSTimes[_msIndex].end(), metaData.time);
   if (it != _cachedMSTimes[_msIndex].end()) {
-    tidx = std::distance(_cachedMSTimes[_msIndex].begin(), it);
+    // Update _timeOffset value with index
+    _timeOffset[_msIndex] = std::distance(_cachedMSTimes[_msIndex].begin(), it);
   } else {
-    throw std::runtime_error("Time not found in cached times.");
+    throw std::runtime_error(
+        "Time not found in cached times. A potential reason could be that the "
+        "time values in the provided MS are not in ascending order.");
   }
 
   // Conditional could be templated once C++ supports partial function
@@ -891,8 +904,8 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   float* weightIter = weightBuffer;
   if (nparms == 2) {
     for (size_t ch = 0; ch < nchannels; ++ch) {
-      const size_t offset =
-          (tidx * nchannels + ch) * antennaNames.size() * nparms;
+      const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
+                            antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
       const aocommon::MC2x2F gain1(_cachedParmResponse[_msIndex][offset1], 0, 0,
@@ -912,8 +925,8 @@ void MSGridderBase::ApplyConjugatedH5Parm(
     }
   } else {
     for (size_t ch = 0; ch < nchannels; ++ch) {
-      const size_t offset =
-          (tidx * nchannels + ch) * antennaNames.size() * nparms;
+      const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
+                            antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
       const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
