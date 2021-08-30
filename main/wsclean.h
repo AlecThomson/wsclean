@@ -62,12 +62,12 @@ class WSClean {
       std::unique_ptr<PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 
-  void runFirstInversion(ImagingTable& groupTable,
-                         std::unique_ptr<PrimaryBeam>& primaryBeam,
-                         bool requestPolarizationsAtOnce,
-                         bool parallelizePolarizations);
-  void runFirstInversion(ImagingTableEntry& entry,
-                         std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void runFirstInversions(ImagingTable& groupTable,
+                          std::unique_ptr<PrimaryBeam>& primaryBeam,
+                          bool requestPolarizationsAtOnce,
+                          bool parallelizePolarizations);
+  void runSingleFirstInversion(ImagingTableEntry& entry,
+                               std::unique_ptr<PrimaryBeam>& primaryBeam);
   void runMajorIterations(ImagingTable& groupTable,
                           std::unique_ptr<PrimaryBeam>& primaryBeam,
                           bool requestPolarizationsAtOnce,

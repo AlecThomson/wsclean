@@ -951,8 +951,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   if (doMakePSF) stitchFacets(groupTable, _psfImages, false, true);
 
   if (!_settings.makePSFOnly) {
-    runFirstInversion(groupTable, primaryBeam, requestPolarizationsAtOnce,
-                      parallelizePolarizations);
+    runFirstInversions(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                       parallelizePolarizations);
   }
 
   _inversionWatch.Pause();
@@ -1397,10 +1397,10 @@ void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   }
 }
 
-void WSClean::runFirstInversion(ImagingTable& groupTable,
-                                std::unique_ptr<PrimaryBeam>& primaryBeam,
-                                bool requestPolarizationsAtOnce,
-                                bool parallelizePolarizations) {
+void WSClean::runFirstInversions(ImagingTable& groupTable,
+                                 std::unique_ptr<PrimaryBeam>& primaryBeam,
+                                 bool requestPolarizationsAtOnce,
+                                 bool parallelizePolarizations) {
   const size_t facetCount = groupTable.FacetCount();
   for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
     ImagingTable facetTable = groupTable.GetFacet(facetIndex);
@@ -1408,11 +1408,11 @@ void WSClean::runFirstInversion(ImagingTable& groupTable,
     if (requestPolarizationsAtOnce) {
       for (ImagingTableEntry& entry : facetTable) {
         if (entry.polarization == *_settings.polarizations.begin())
-          runFirstInversion(entry, primaryBeam);
+          runSingleFirstInversion(entry, primaryBeam);
       }
     } else if (parallelizePolarizations) {
       for (ImagingTableEntry& entry : facetTable) {
-        runFirstInversion(entry, primaryBeam);
+        runSingleFirstInversion(entry, primaryBeam);
       }
     } else {
       bool hasMore;
@@ -1423,7 +1423,7 @@ void WSClean::runFirstInversion(ImagingTable& groupTable,
         for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
           if (sqIndex < sqGroup.size()) {
             hasMore = true;
-            runFirstInversion(*sqGroup[sqIndex], primaryBeam);
+            runSingleFirstInversion(*sqGroup[sqIndex], primaryBeam);
           }
         }
         ++sqIndex;
@@ -1440,8 +1440,8 @@ void WSClean::runFirstInversion(ImagingTable& groupTable,
   stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
 }
 
-void WSClean::runFirstInversion(ImagingTableEntry& entry,
-                                std::unique_ptr<PrimaryBeam>& primaryBeam) {
+void WSClean::runSingleFirstInversion(
+    ImagingTableEntry& entry, std::unique_ptr<PrimaryBeam>& primaryBeam) {
   const bool isLastPol =
       entry.polarization == *_settings.polarizations.rbegin();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
