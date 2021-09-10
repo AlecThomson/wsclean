@@ -709,6 +709,7 @@ void MSGridderBase::writeVisibilities(
           JonesParameters::InterpolationType::NEAREST, dirIndex,
           _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
+      // parms (Casacore::Cube) is column major
       const auto parms = jonesParameters.GetParms();
       _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
                                            &parms(0, 0, 0) + responseSize);
@@ -731,8 +732,10 @@ void MSGridderBase::writeVisibilities(
     std::complex<float>* iter = buffer;
     if (nparms == 2) {
       for (size_t ch = 0; ch < nchannels; ++ch) {
-        const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
-                              antennaNames.size() * nparms;
+        // Column major indexing
+        const size_t offset =
+            (ch * _cachedMSTimes[_msIndex].size() + _timeOffset[_msIndex]) *
+            antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(
@@ -746,8 +749,9 @@ void MSGridderBase::writeVisibilities(
       }
     } else {
       for (size_t ch = 0; ch < nchannels; ++ch) {
-        const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
-                              antennaNames.size() * nparms;
+        const size_t offset =
+            (ch * _cachedMSTimes[_msIndex].size() + _timeOffset[_msIndex]) *
+            antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
@@ -887,6 +891,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
         JonesParameters::InterpolationType::NEAREST, dirIndex, _h5SolTabs.first,
         _h5SolTabs.second, false, 0.0f, 0u,
         JonesParameters::MissingAntennaBehavior::kUnit);
+    // parms (Casacore::Cube) is column major
     const auto parms = jonesParameters.GetParms();
     _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
                                          &parms(0, 0, 0) + responseSize);
@@ -910,8 +915,10 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   float* weightIter = weightBuffer;
   if (nparms == 2) {
     for (size_t ch = 0; ch < nchannels; ++ch) {
-      const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
-                            antennaNames.size() * nparms;
+      // Column major indexing
+      const size_t offset =
+          (ch * _cachedMSTimes[_msIndex].size() + _timeOffset[_msIndex]) *
+          antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
       const aocommon::MC2x2F gain1(_cachedParmResponse[_msIndex][offset1], 0, 0,
@@ -931,8 +938,10 @@ void MSGridderBase::ApplyConjugatedH5Parm(
     }
   } else {
     for (size_t ch = 0; ch < nchannels; ++ch) {
-      const size_t offset = (_timeOffset[_msIndex] * nchannels + ch) *
-                            antennaNames.size() * nparms;
+      // Column major indexing
+      const size_t offset =
+          (ch * _cachedMSTimes[_msIndex].size() + _timeOffset[_msIndex]) *
+          antennaNames.size() * nparms;
       const size_t offset1 = offset + metaData.antenna1 * nparms;
       const size_t offset2 = offset + metaData.antenna2 * nparms;
       const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
