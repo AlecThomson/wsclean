@@ -573,15 +573,23 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
             &_h5parm->GetSolTab(_settings.facetSolutionTables[idxP]));
       }
 
-      if (!_h5SolTabs.first->HasAxis("pol") ||
-          !_h5SolTabs.second->HasAxis("pol")) {
+      if ((!_h5SolTabs.first->HasAxis("pol") &&
+           _h5SolTabs.second->HasAxis("pol")) ||
+          (_h5SolTabs.first->HasAxis("pol") &&
+           !_h5SolTabs.second->HasAxis("pol"))) {
         throw std::runtime_error(
-            "One of the solution tables does not contain a 'pol' "
-            "(polarization) axis");
+            "One of the solution tables does contain a 'pol' "
+            "(polarization) axis, whereas the other solution table does not. "
+            "This is not supported.");
+      } else if (!_h5SolTabs.first->HasAxis("pol") &&
+                 !_h5SolTabs.second->HasAxis("pol")) {
+        _correctType = JonesParameters::CorrectType::SCALARGAIN;
       } else {
         const size_t npol1 = _h5SolTabs.first->GetAxis("pol").size;
         const size_t npol2 = _h5SolTabs.second->GetAxis("pol").size;
         if (npol1 == 2 && npol2 == 2) {
+          _correctType = JonesParameters::CorrectType::SCALARGAIN;
+        } else if (npol1 == 2 && npol2 == 2) {
           _correctType = JonesParameters::CorrectType::GAIN;
         } else if (npol1 == 4 && npol2 == 4) {
           _correctType = JonesParameters::CorrectType::FULLJONES;
@@ -589,7 +597,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
           throw std::runtime_error(
               "Incorrect or mismatching number of polarizations in the "
               "provided soltabs. Number of polarizations should be either all "
-              "2 or all 4, but received " +
+              "1, 2 or 4, but received " +
               std::to_string(npol1) + " and " + std::to_string(npol2));
         }
       }
