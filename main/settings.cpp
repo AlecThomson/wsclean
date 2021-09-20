@@ -134,7 +134,8 @@ void Settings::Validate() const {
       !(gridWithBeam || applyPrimaryBeam || applyFacetBeam))
     throw std::runtime_error(
         "Differential beam correction was requested, but no beam correction is "
-        "applied. Use either IDG and grid with the beam, or apply the average "
+        "applied. Use either IDG and grid with the beam, apply the average "
+        "beam, or use facet-based imaging in conjunction with apply facet "
         "beam.");
 
   if (baselineDependentAveragingInWavelengths != 0.0) {
