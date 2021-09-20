@@ -130,7 +130,8 @@ void Settings::Validate() const {
   if (!useIDG && !atermConfigFilename.empty())
     throw std::runtime_error(
         "Use of an aterm config file required IDG enabled: add -use-idg");
-  if (useDifferentialLofarBeam && !(gridWithBeam || applyPrimaryBeam))
+  if (useDifferentialLofarBeam &&
+      !(gridWithBeam || applyPrimaryBeam || applyFacetBeam))
     throw std::runtime_error(
         "Differential beam correction was requested, but no beam correction is "
         "applied. Use either IDG and grid with the beam, or apply the average "
