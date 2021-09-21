@@ -1,8 +1,8 @@
-#include "../../main/commandline.h"
-#include "../../main/wsclean.h"
-#include "../../structures/primarybeam.h"
-
 #include <boost/test/unit_test.hpp>
+
+#include "../main/commandline.h"
+#include "../main/wsclean.h"
+#include "../structures/primarybeam.h"
 
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
