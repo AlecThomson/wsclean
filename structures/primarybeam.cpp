@@ -57,8 +57,7 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _undersample(computeUndersamplingFactor()),
-      _secondsBeforeBeamUpdate(_settings.primaryBeamUpdateTime) {
-}
+      _secondsBeforeBeamUpdate(_settings.primaryBeamUpdateTime) {}
 
 PrimaryBeam::~PrimaryBeam() {}
 
