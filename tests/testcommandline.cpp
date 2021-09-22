@@ -6,13 +6,13 @@
 
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
-}
 
 std::vector<const char*> baseArgs() {
   return {"wsclean", "-size",           "1024",   "512",        "-scale",
           "1amin",   "-multiscale",     "-niter", "1000000",    "-mgain",
           "0.8",     "-auto-threshold", "1",      "-auto-mask", "4"};
 }
+}  // namespace
 
 /**
  * @brief Collection of tests to check the parsing of
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   args1.push_back("-apply-primary-beam");
   args1.push_back(kMWA_MS);
   commandLine.Parse(wsclean, args1.size(), args1.data(), false);
-  Settings settings1 = wsclean.GetSettings();
+  const Settings settings1 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings1.primaryBeamGridSize, 32u);
   PrimaryBeam primaryBeam1(settings1);
   BOOST_CHECK_EQUAL(primaryBeam1.GetUndersamplingFactor(), 16u);
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   args2.push_back("900");
   args2.push_back(kMWA_MS);
   commandLine.Parse(wsclean, args2.size(), args2.data(), false);
-  Settings settings2 = wsclean.GetSettings();
+  const Settings settings2 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings2.primaryBeamGridSize, 64u);
   PrimaryBeam primaryBeam2(settings2);
   BOOST_CHECK_EQUAL(primaryBeam2.GetUndersamplingFactor(), 8u);

@@ -116,9 +116,6 @@ void CommandLine::printHelp() {
          "-save-psf-pb\n"
          "   When applying beam correction, also save the primary-beam "
          "corrected PSF image.\n"
-         "-pb-undersampling <factor>\n"
-         "   [[DEPRECATED]] pb-undersampling was deprecated, use "
-         "pb-grid-size instead.\n"
          "-pb-grid-size <npixel>\n"
          "   Specify the grid size in number of pixels at which to evaluate "
          "   the primary beam.\n"
@@ -894,10 +891,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       dryRun = true;
     } else if (param == "save-psf-pb") {
       settings.savePsfPb = true;
-    } else if (param == "pb-undersampling") {
-      ++argi;
-      throw std::runtime_error(
-          "pb-undersampling option was deprecated. Use pb-grid-size instead.");
     } else if (param == "pb-grid-size") {
       ++argi;
       settings.primaryBeamGridSize = parse_size_t(argv[argi], "pb-grid-size");

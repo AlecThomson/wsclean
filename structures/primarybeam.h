@@ -89,7 +89,7 @@ class PrimaryBeam {
   // Compute undersampling factor from the primaryBeamGridSize.
   // In case of rectangular images, the undersampling factor is derived
   // from the shortest dimension.
-  size_t computeUndersamplingFactor() const;
+  static size_t computeUndersamplingFactor(const Settings& settings);
 
   const Settings& _settings;
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;

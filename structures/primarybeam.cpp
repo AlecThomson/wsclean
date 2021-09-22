@@ -56,8 +56,8 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
       _phaseCentreDec(0.0),
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
-      _undersample(computeUndersamplingFactor()),
-      _secondsBeforeBeamUpdate(_settings.primaryBeamUpdateTime) {}
+      _undersample(computeUndersamplingFactor(settings)),
+      _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime) {}
 
 PrimaryBeam::~PrimaryBeam() {}
 
@@ -535,14 +535,9 @@ std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
 }
 #endif  // HAVE_EVERYBEAM
 
-size_t PrimaryBeam::computeUndersamplingFactor() const {
-  const size_t undersample =
-      std::min(_settings.trimmedImageWidth / _settings.primaryBeamGridSize,
-               _settings.trimmedImageHeight / _settings.primaryBeamGridSize);
-  if (undersample == 0) {
-    throw std::runtime_error(
-        "The chosen primary beam grid size is larger than the shortest side of "
-        "the image. Please decrease the primary beam grid size.");
-  }
-  return undersample;
+size_t PrimaryBeam::computeUndersamplingFactor(const Settings& settings) {
+  return std::max(
+      std::min(settings.trimmedImageWidth / settings.primaryBeamGridSize,
+               settings.trimmedImageHeight / settings.primaryBeamGridSize),
+      (size_t)1);
 }
