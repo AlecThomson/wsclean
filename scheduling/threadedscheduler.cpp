@@ -44,7 +44,6 @@ void ThreadedScheduler::processQueue() {
 }
 
 void ThreadedScheduler::Start(size_t nWriterGroups) {
-  GriddingTaskManager::Start(nWriterGroups);
   if (_writerGroupLocks.size() < nWriterGroups)
     _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
 }
