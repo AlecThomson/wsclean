@@ -32,7 +32,7 @@ void ThreadedScheduler::Run(
 }
 
 void ThreadedScheduler::processQueue() {
-  std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  std::shared_ptr<MSGridderBase> gridder(makeGridder());
 
   std::pair<GriddingTask, std::function<void(GriddingResult&)>> taskPair;
   while (_taskList.read(taskPair)) {

@@ -72,12 +72,14 @@ class GriddingTaskManager : protected WriterLockManager {
 
   const class Settings& _settings;
 
-  std::unique_ptr<MSGridderBase> makeGridder() const;
+  std::shared_ptr<MSGridderBase> makeGridder();
 
   /**
    * Run the provided task with the specified gridder.
    */
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
+
+  std::shared_ptr<MSGridderBase> _idgMsGridder;
 
  private:
   class DummyWriterLock final : public WriterLock {
@@ -86,7 +88,7 @@ class GriddingTaskManager : protected WriterLockManager {
     void unlock() override {}
   };
 
-  std::unique_ptr<MSGridderBase> constructGridder() const;
+  std::shared_ptr<MSGridderBase> constructGridder();
 };
 
 #endif
