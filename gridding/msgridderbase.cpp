@@ -488,8 +488,9 @@ void MSGridderBase::initializeMSDataVector(
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
   if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
-    _cachedParmResponse.resize(MeasurementSetCount());
-    _cachedMSTimes.resize(MeasurementSetCount());
+    // Assign is slightly safer than a resize
+    _cachedParmResponse.assign(MeasurementSetCount(), {});
+    _cachedMSTimes.assign(MeasurementSetCount(), {});
     _timeOffset.assign(MeasurementSetCount(), 0u);
   }
 
