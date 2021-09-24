@@ -97,6 +97,7 @@ void MPIScheduler::Finish() {
 }
 
 void MPIScheduler::Start(size_t nWriterGroups) {
+  GriddingTaskManager::Start(nWriterGroups);
   _writerLockQueues.resize(nWriterGroups);
 }
 
