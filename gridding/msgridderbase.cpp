@@ -488,7 +488,9 @@ void MSGridderBase::initializeMSDataVector(
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
   if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
-    // Assign is slightly safer than a resize
+    // Assign, rather than a resize here to make sure that
+    // caches are re-initialized - even in the case an MSGridderBase
+    // object would be re-used for a multiple gridding tasks.
     _cachedParmResponse.assign(MeasurementSetCount(), {});
     _cachedMSTimes.assign(MeasurementSetCount(), {});
     _timeOffset.assign(MeasurementSetCount(), 0u);
