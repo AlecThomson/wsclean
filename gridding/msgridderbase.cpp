@@ -488,7 +488,7 @@ void MSGridderBase::initializeMSDataVector(
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
-  if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
+  if (!DoImagePSF() && !_settings.facetSolutionFiles.empty()) {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
     // object would be re-used for a multiple gridding tasks.

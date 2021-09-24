@@ -74,9 +74,8 @@ void Settings::Validate() const {
       }
     }
 
-    if (!facetSolutionFiles.empty() &&
-        (facetSolutionFiles.size() != 1 ||
-         facetSolutionFiles.size() != filenames.size())) {
+    if (!facetSolutionFiles.empty() && facetSolutionFiles.size() != 1 &&
+        facetSolutionFiles.size() != filenames.size()) {
       throw std::runtime_error(
           "Incorrect number of facet solution files provided. The number of "
           "facet solution files should be either 1 or match the number of "
