@@ -191,6 +191,14 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
     NAMES cuda
     HINTS ${CUDA_ROOT_DIR}
     PATH_SUFFIXES lib64/stubs)
+  if(CUDA_CUDA_LIBRARY)
+    message("Found CUDA library: " ${CUDA_CUDA_LIBRARY})
+  else()
+    message(
+      FATAL_ERROR
+        "CUDA library was not found, but required to build WSClean with Image domain gridder support. Either configure CUDA_ROOT_DIR, or try again on a system with a NVIDIA driver installed."
+    )
+  endif(CUDA_CUDA_LIBRARY)
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
