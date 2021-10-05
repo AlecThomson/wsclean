@@ -186,6 +186,11 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   include_directories(${IDGAPI_INCLUDE_DIRS})
   add_definitions(-DHAVE_IDG)
   message("Image domain gridder libraries found.")
+  find_library(
+    CUDA_CUDA_LIBRARY
+    NAMES cuda
+    HINTS ${CUDA_ROOT_DIR}
+    PATH_SUFFIXES lib64/stubs)
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
@@ -356,6 +361,7 @@ set(ALL_LIBRARIES
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
     ${EVERYBEAM_LIB}
+    ${CUDA_CUDA_LIBRARY}
     schaapcommon)
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
