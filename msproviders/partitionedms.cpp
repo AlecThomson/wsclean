@@ -32,6 +32,10 @@
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
 PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
