@@ -46,7 +46,7 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
     }
   }
   for (size_t thr = 0; thr != _threadCount - 1; ++thr) {
-    std::unique_ptr<ThreadResult> result = 0;
+    std::unique_ptr<ThreadResult> result;
     _resultLanes[thr].read(result);
   }
 }
