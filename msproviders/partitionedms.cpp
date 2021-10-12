@@ -32,6 +32,10 @@
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
+/**
+ * MAP_NORESERVE is unsuported AND not defined on hurd-i386, so in this case assign
+ * it to zero.
+ */
 #ifndef MAP_NORESERVE
 #define MAP_NORESERVE 0
 #endif
