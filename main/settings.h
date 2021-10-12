@@ -83,6 +83,7 @@ class Settings {
   bool subtractModel, modelUpdateRequired, mfWeighting;
   size_t fullResOffset, fullResWidth, fullResPad;
   std::string beamModel;
+  std::string beamMode;
   bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
   double primaryBeamLimit;
   std::string mwaPath;

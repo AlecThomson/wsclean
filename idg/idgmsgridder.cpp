@@ -552,7 +552,8 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // IDG can allocate two visibility buffers: (for parallel processing)
   memPerTimestep *= 2;
 
-  _buffersize = std::max<size_t>(1, memSize / memPerTimestep);
+  _buffersize = std::min<size_t>(10, std::max<size_t>(1, memSize / memPerTimestep));
+  // _buffersize = std::max<size_t>(1, memSize / memPerTimestep);
 
   Logger::Debug << "Allocatable timesteps (" << nStations << " stations, "
                 << nChannels << " channels, " << memSize / (1024 * 1024 * 1024)
@@ -622,7 +623,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
       std::unique_ptr<ATermBeam> beam = ATermConfig::GetATermBeam(
           *ms, system, aterm_settings, frequencyInterpolation,
           _settings.useDifferentialLofarBeam, useChannelFrequency,
-          elementResponseModel);
+          elementResponseModel, _settings.beamMode);
       beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
       beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
       return std::move(beam);

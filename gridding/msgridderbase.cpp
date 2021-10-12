@@ -254,7 +254,12 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _h5SolTabs(),
       _correctType(),
       _cachedMSTimes(),
-      _timeOffset() {}
+      _timeOffset() {
+  computeFacetCentre();
+  #ifdef HAVE_EVERYBEAM
+  _beamMode = everybeam::ParseBeamMode(settings.beamMode);
+  #endif
+}
 
 std::vector<std::string> MSGridderBase::getAntennaNames(
     const casacore::MSAntenna& msAntenna) {
@@ -783,7 +788,7 @@ void MSGridderBase::writeVisibilities(
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        _pointResponse->CalculateAllStations(
+        _pointResponse->ResponseAllStations(_beamMode,
             &_cachedBeamResponse[ch *
                                  _pointResponse->GetAllStationsBufferSize()],
             _facetDirectionRA, _facetDirectionDec, curBand.ChannelFrequency(ch),
@@ -841,7 +846,7 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
   _pointResponse->UpdateTime(metaData.time);
   if (_pointResponse->HasTimeUpdate()) {
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      _pointResponse->CalculateAllStations(
+      _pointResponse->ResponseAllStations(_beamMode,
           &_cachedBeamResponse[ch * _pointResponse->GetAllStationsBufferSize()],
           _facetDirectionRA, _facetDirectionDec, curBand.ChannelFrequency(ch),
           metaData.fieldId);
