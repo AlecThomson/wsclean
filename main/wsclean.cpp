@@ -840,10 +840,10 @@ void WSClean::RunPredict() {
 
       // Set correct centre shifts for facets
       for (auto& entry : _imagingTable) {
-        entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
-                             _settings.trimmedImageWidth / 2;
-        entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
-                             _settings.trimmedImageHeight / 2;
+        entry.centreShiftX =
+            entry.facet->Direction().x - _settings.trimmedImageWidth / 2;
+        entry.centreShiftY =
+            entry.facet->Direction().y - _settings.trimmedImageHeight / 2;
       }
     }
 
@@ -1989,10 +1989,10 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
       entry->facet = _facets[f];
 
       // Calculate phase center delta for entry
-      entry->centreShiftX = _facets[f]->GetUntrimmedBoundingBox().Centre().x -
-                            _settings.trimmedImageWidth / 2;
-      entry->centreShiftY = _facets[f]->GetUntrimmedBoundingBox().Centre().y -
-                            _settings.trimmedImageHeight / 2;
+      entry->centreShiftX =
+          _facets[f]->Direction().x - _settings.trimmedImageWidth / 2;
+      entry->centreShiftY =
+          _facets[f]->Direction().y - _settings.trimmedImageHeight / 2;
       _imagingTable.AddEntry(std::move(entry));
     }
   }
