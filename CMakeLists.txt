@@ -165,19 +165,32 @@ else(MPI_FOUND)
   set(MPI_CPP_FILES)
 endif(MPI_FOUND)
 
-find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
-find_library(EVERYBEAM_LIB everybeam)
+# First try to find the required version of EveryBeam
+# ensuring the correct version will be found, even if 
+# multiple versions are installed
+find_package(EveryBeam 2.2.3 NO_MODULE QUIET)
 
-if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
-  include_directories(${EVERYBEAM_INCLUDE_DIR})
-  add_definitions(-DHAVE_EVERYBEAM)
-  message(STATUS "EveryBeam library found.")
-else()
+# If EveryBeam is not yet found, look for non matching versions too,
+# This allows to give a more informative message
+find_package(EveryBeam NO_MODULE QUIET)
+
+if(${EVERYBEAM_FOUND})
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.3" OR ${EVERYBEAM_VERSION}
+                                                  VERSION_GREATER_EQUAL "0.3.0")
+    message("EveryBeam version is incompatible")
+    message("WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EveryBeam_VERSION}")
+    message("Functionality for calculating beams for telescopes such as LOFAR will not be available.")
+    set(EVERYBEAM_LIB "")
+  else()
+    include_directories(${EVERYBEAM_INCLUDE_DIR})
+    add_definitions(-DHAVE_EVERYBEAM)
+    message(STATUS "EveryBeam library found.")
+  endif()
+else(${EVERYBEAM_FOUND})
+  message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
   set(EVERYBEAM_LIB "")
-  message(
-    "EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
-  )
-endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+)
+endif(${EVERYBEAM_FOUND})
 
 find_package(IDGAPI NO_MODULE QUIET)
 
