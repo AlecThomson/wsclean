@@ -153,12 +153,26 @@ class MSGridderBase {
   double PhaseCentreDec() const { return _phaseCentreDec; }
   void SetPhaseCentreDL(const double phaseCentreDL) {
     _phaseCentreDL = phaseCentreDL;
-    computeFacetCentre();
+    // computeFacetCentre();
   }
   void SetPhaseCentreDM(const double phaseCentreDM) {
     _phaseCentreDM = phaseCentreDM;
+    // computeFacetCentre();
+  }
+  // TODO
+  void SetFacetDirectionDL(double facetDirectionDL) {
+    _facetDirectionDL = facetDirectionDL;
     computeFacetCentre();
   }
+  void SetFacetDirectionDM(double facetDirectionDM) {
+    _facetDirectionDM = facetDirectionDM;
+    computeFacetCentre();
+  }
+
+  double FacetDirectionRA() const { return _facetDirectionRA; }
+  double FacetDirectionDec() const { return _facetDirectionDec; }
+  double FacetDirectionDL() const { return _facetDirectionDL; }
+  double FacetDirectionDM() const { return _facetDirectionDM; }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
 
@@ -343,9 +357,13 @@ class MSGridderBase {
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
   void computeFacetCentre() {
-    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
-                                          _phaseCentreRA, _phaseCentreDec,
-                                          _facetCentreRA, _facetCentreDec);
+    // aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
+    //                                       _phaseCentreRA, _phaseCentreDec,
+    //                                       _facetDirectionRA,
+    //                                       _facetDirectionDec);
+    aocommon::ImageCoordinates::LMToRaDec(
+        _facetDirectionDL, _facetDirectionDM, _phaseCentreRA, _phaseCentreDec,
+        _facetDirectionRA, _facetDirectionDec);
   }
 
   void resetMetaData() { _hasFrequencies = false; }
@@ -392,7 +410,9 @@ class MSGridderBase {
                              float* weightBuffer);
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-  double _facetCentreRA, _facetCentreDec;
+  double _facetDirectionRA, _facetDirectionDec;
+  double _facetDirectionDL;
+  double _facetDirectionDM;
   size_t _facetIndex;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
   /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,

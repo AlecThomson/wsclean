@@ -701,9 +701,7 @@ void WStackingGridder<T>::finalizeImage(double multiplicationFactor,
   }
   num_t *dataPtr = dataArray[0].data();
   for (size_t y = 0; y != _height; ++y) {
-    // double m = ((double) y-(_height/2)) * _pixelSizeY + _phaseCentreDM;
     for (size_t x = 0; x != _width; ++x) {
-      // double l = ((_width/2)-(double) x) * _pixelSizeX + _phaseCentreDL;
       *dataPtr *= multiplicationFactor;
       ++dataPtr;
     }

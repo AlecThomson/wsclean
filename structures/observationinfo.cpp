@@ -19,6 +19,8 @@ void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
       .Bool(hasShiftedPhaseCentre)
       .Double(shiftL)
       .Double(shiftM)
+      .Double(facetShiftL)
+      .Double(facetShiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);
@@ -30,6 +32,8 @@ void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
       .Bool(hasShiftedPhaseCentre)
       .Double(shiftL)
       .Double(shiftM)
+      .Double(facetShiftL)
+      .Double(facetShiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);

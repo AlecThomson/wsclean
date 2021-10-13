@@ -715,8 +715,8 @@ void MSGridderBase::writeVisibilities(
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       const size_t responseSize = _cachedMSTimes[_msIndex].size() *
                                   freqs.size() * antennaNames.size() * nparms;
-      const std::string dirName =
-          _h5parms[_msIndex]->GetNearestSource(_facetCentreRA, _facetCentreDec);
+      const std::string dirName = _h5parms[_msIndex]->GetNearestSource(
+          _facetDirectionRA, _facetDirectionDec);
       const size_t dirIndex = _h5SolTabs[_msIndex].first->GetDirIndex(dirName);
       JonesParameters jonesParameters(
           freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType[_msIndex],
@@ -786,7 +786,7 @@ void MSGridderBase::writeVisibilities(
         _pointResponse->CalculateAllStations(
             &_cachedBeamResponse[ch *
                                  _pointResponse->GetAllStationsBufferSize()],
-            _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+            _facetDirectionRA, _facetDirectionDec, curBand.ChannelFrequency(ch),
             metaData.fieldId);
       }
     }
@@ -843,7 +843,7 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       _pointResponse->CalculateAllStations(
           &_cachedBeamResponse[ch * _pointResponse->GetAllStationsBufferSize()],
-          _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+          _facetDirectionRA, _facetDirectionDec, curBand.ChannelFrequency(ch),
           metaData.fieldId);
     }
   }
@@ -887,8 +887,8 @@ void MSGridderBase::ApplyConjugatedH5Parm(
     const std::vector<double> freqs(curBand.begin(), curBand.end());
     const size_t responseSize = _cachedMSTimes[_msIndex].size() * freqs.size() *
                                 antennaNames.size() * nparms;
-    const std::string dirName =
-        _h5parms[_msIndex]->GetNearestSource(_facetCentreRA, _facetCentreDec);
+    const std::string dirName = _h5parms[_msIndex]->GetNearestSource(
+        _facetDirectionRA, _facetDirectionDec);
     const size_t dirIndex = _h5SolTabs[_msIndex].first->GetDirIndex(dirName);
     JonesParameters jonesParameters(
         freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType[_msIndex],
