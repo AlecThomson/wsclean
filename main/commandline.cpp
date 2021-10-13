@@ -887,7 +887,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         settings.beamMode = beamMode;
       } else {
         throw std::runtime_error(
-            "Invalid beam-mode: should be either array_factor, element or full (case insensitive)");
+            "Invalid beam-mode: should be either array_factor, element or full "
+            "(case insensitive)");
       }
     } else if (param == "apply-primary-beam") {
       settings.applyPrimaryBeam = true;

@@ -57,12 +57,13 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _undersample(computeUndersamplingFactor(settings)),
-      _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime) 
+      _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime)
 #ifdef HAVE_EVERYBEAM
       ,
       _beamMode(everybeam::ParseBeamMode(settings.beamMode))
 #endif
-      {}
+{
+}
 
 PrimaryBeam::~PrimaryBeam() {}
 
@@ -461,8 +462,8 @@ double PrimaryBeam::MakeBeamForMS(
 
   // Note: field id is hard coded to 0
   grid_response->IntegratedResponse(_beamMode, buffer.data(), time_array,
-                                             centralFrequency, 0, _undersample,
-                                             baseline_weights);
+                                    centralFrequency, 0, _undersample,
+                                    baseline_weights);
   return ms_weight;
 }
 

@@ -552,7 +552,8 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // IDG can allocate two visibility buffers: (for parallel processing)
   memPerTimestep *= 2;
 
-  _buffersize = std::min<size_t>(10, std::max<size_t>(1, memSize / memPerTimestep));
+  _buffersize =
+      std::min<size_t>(10, std::max<size_t>(1, memSize / memPerTimestep));
   // _buffersize = std::max<size_t>(1, memSize / memPerTimestep);
 
   Logger::Debug << "Allocatable timesteps (" << nStations << " stations, "
