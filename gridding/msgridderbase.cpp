@@ -209,6 +209,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _phaseCentreDec(0.0),
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
+      _facetDirectionRA(0.0),
+      _facetDirectionDec(0.0),
       _facetIndex(0),
       _facetGroupIndex(0),
       _msIndex(0),
