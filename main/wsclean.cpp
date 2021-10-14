@@ -2002,13 +2002,6 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
                             _settings.trimmedImageWidth / 2;
       entry->centreShiftY = _facets[f]->GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
-      // TODO: maybe set as data member to Facet
-      _observationInfo.facetShiftL =
-          _observationInfo.shiftL -
-          _facets[f]->Direction().x * _settings.pixelScaleX;
-      _observationInfo.facetShiftM =
-          _observationInfo.shiftM +
-          _facets[f]->Direction().y * _settings.pixelScaleY;
 
       _imagingTable.AddEntry(std::move(entry));
     }

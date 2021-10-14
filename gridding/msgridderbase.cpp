@@ -253,7 +253,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _correctType(),
       _cachedMSTimes(),
       _timeOffset() {
-  computeFacetCentre();
+  // computeFacetCentre();
 }
 
 std::vector<std::string> MSGridderBase::getAntennaNames(
