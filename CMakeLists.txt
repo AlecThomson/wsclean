@@ -177,12 +177,14 @@ find_package(EveryBeam NO_MODULE QUIET)
 if(${EVERYBEAM_FOUND})
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.3" OR ${EVERYBEAM_VERSION}
                                                   VERSION_GREATER_EQUAL "0.3.0")
-    message("EveryBeam version is incompatible")
+    message(STATUS "EveryBeam version is incompatible")
     message(
-      "WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EveryBeam_VERSION}"
+      STATUS
+        "WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EveryBeam_VERSION}"
     )
     message(
-      "Functionality for calculating beams for telescopes such as LOFAR will not be available."
+      STATUS
+        "Functionality for calculating beams for telescopes such as LOFAR will not be available."
     )
     set(EVERYBEAM_LIB "")
   else()
@@ -192,9 +194,10 @@ if(${EVERYBEAM_FOUND})
   endif()
 else(${EVERYBEAM_FOUND})
   message(
-    "EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
-    set
-    (EVERYBEAM_LIB ""))
+    STATUS
+      "EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
+      set
+      (EVERYBEAM_LIB ""))
 endif(${EVERYBEAM_FOUND})
 
 find_package(IDGAPI NO_MODULE QUIET)
