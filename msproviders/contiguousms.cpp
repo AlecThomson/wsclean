@@ -67,7 +67,7 @@ void ContiguousMS::open() {
   _nAntenna = _ms->antenna().nrow();
 
   _msHasWeightSpectrum =
-      OpenWeightSpectrumColumn(*_ms, _weightSpectrumColumn, shape);
+      OpenWeightSpectrumColumn(*_ms, _weightSpectrumColumn);
   if (!_msHasWeightSpectrum) {
     casacore::IPosition scalarShape(1, shape[0]);
     _weightScalarArray = casacore::Array<float>(scalarShape);
