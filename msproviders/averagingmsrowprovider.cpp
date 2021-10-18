@@ -192,9 +192,12 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                       uint32_t& dataDescId, uint32_t& antenna1,
                                       uint32_t& antenna2, uint32_t& fieldId,
                                       double& time) {
-  const size_t bufferSize = data.shape()[0] * data.shape()[1];
+  const size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
+  data.resize(_currentData.shape());
   std::copy_n(_currentData.data(), bufferSize, data.data());
+  flags.resize(_currentFlags.shape());
   std::copy_n(_currentFlags.data(), bufferSize, flags.data());
+  weights.resize(_currentWeights.shape());
   std::copy_n(_currentWeights.data(), bufferSize, weights.data());
   u = _currentUVWArray.data()[0];
   v = _currentUVWArray.data()[1];
