@@ -249,6 +249,9 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0),
       _predictReader(nullptr),
+#ifdef HAVE_EVERYBEAM
+      _beamMode(everybeam::ParseBeamMode(settings.beamMode)),
+#endif
       _cachedParmResponse(),
       _h5parms(),
       _h5SolTabs(),
@@ -256,9 +259,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _cachedMSTimes(),
       _timeOffset() {
   computeFacetCentre();
-#ifdef HAVE_EVERYBEAM
-  _beamMode = everybeam::ParseBeamMode(settings.beamMode);
-#endif
 }
 
 std::vector<std::string> MSGridderBase::getAntennaNames(

@@ -165,15 +165,7 @@ else(MPI_FOUND)
   set(MPI_CPP_FILES)
 endif(MPI_FOUND)
 
-# First try to find the required version of EveryBeam
-# ensuring the correct version will be found, even if
-# multiple versions are installed
-find_package(EveryBeam 2.2.3 NO_MODULE QUIET)
-
-# If EveryBeam is not yet found, look for non matching versions too,
-# This allows to give a more informative message
 find_package(EveryBeam NO_MODULE QUIET)
-
 if(${EVERYBEAM_FOUND})
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.3" OR ${EVERYBEAM_VERSION}
                                                   VERSION_GREATER_EQUAL "0.3.0")
@@ -188,7 +180,7 @@ if(${EVERYBEAM_FOUND})
     )
     set(EVERYBEAM_LIB "")
   else()
-    include_directories(${EVERYBEAM_INCLUDE_DIR})
+    include_directories(${EVERYBEAM_INCLUDE_DIRS})
     add_definitions(-DHAVE_EVERYBEAM)
     message(STATUS "EveryBeam library found.")
   endif()

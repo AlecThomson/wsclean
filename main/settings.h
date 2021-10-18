@@ -269,6 +269,7 @@ inline Settings::Settings()
       fullResWidth(0),
       fullResPad(0),
       beamModel(),
+      beamMode("default"),
       applyPrimaryBeam(false),
       reusePrimaryBeam(false),
       useDifferentialLofarBeam(false),
