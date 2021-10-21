@@ -171,14 +171,9 @@ if(${EVERYBEAM_FOUND})
                                                   VERSION_GREATER_EQUAL "0.3.0")
     message(STATUS "EveryBeam version is incompatible")
     message(
-      STATUS
-        "WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EveryBeam_VERSION}"
+      FATAL_ERROR
+        "WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EVERYBEAM_VERSION}"
     )
-    message(
-      STATUS
-        "Functionality for calculating beams for telescopes such as LOFAR will not be available."
-    )
-    set(EVERYBEAM_LIB "")
   else()
     include_directories(${EVERYBEAM_INCLUDE_DIRS})
     add_definitions(-DHAVE_EVERYBEAM)
