@@ -251,6 +251,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _predictReader(nullptr),
 #ifdef HAVE_EVERYBEAM
       _beamMode(everybeam::ParseBeamMode(settings.beamMode)),
+      _beamNormalisationMode(everybeam::ParseBeamNormalisationMode(
+          settings.beamNormalisationMode)),
 #endif
       _cachedParmResponse(),
       _h5parms(),
@@ -332,8 +334,8 @@ void MSGridderBase::initializePointResponse(
     everybeam::Options options =
         everybeam::aterms::ATermConfig::ConvertToEBOptions(
             *ms, aterm_settings, frequency_interpolation,
-            _settings.useDifferentialLofarBeam, use_channel_frequency,
-            element_response_string);
+            _settings.beamNormalisationMode, use_channel_frequency,
+            element_response_string, _settings.beamMode);
 
     _telescope = everybeam::Load(*ms, options);
     _pointResponse =

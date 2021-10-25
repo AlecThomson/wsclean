@@ -891,12 +891,27 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "Invalid beam-mode: should be either array_factor, element or full "
             "(case insensitive)");
       }
+    } else if (param == "beam-normalisation-mode") {
+      ++argi;
+      std::string beamNormalisationMode = argv[argi];
+      boost::to_upper(beamNormalisationMode);
+      if (beamNormalisationMode == "NONE" ||
+          beamNormalisationMode == "PREAPPLIED" ||
+          beamNormalisationMode == "AMPLITUDE" ||
+          beamNormalisationMode == "FULL") {
+        settings.beamNormalisationMode = beamNormalisationMode;
+      } else {
+        throw std::runtime_error(
+            "Invalid beam-normalisation-mode: should be either none, "
+            "preapplied, amplitude or full "
+            "(case insensitive)");
+      }
     } else if (param == "apply-primary-beam") {
       settings.applyPrimaryBeam = true;
     } else if (param == "reuse-primary-beam") {
       settings.reusePrimaryBeam = true;
     } else if (param == "use-differential-lofar-beam") {
-      settings.useDifferentialLofarBeam = true;
+      settings.beamNormalisationMode = "full";
     } else if (param == "primary-beam-limit") {
       ++argi;
       settings.primaryBeamLimit =
