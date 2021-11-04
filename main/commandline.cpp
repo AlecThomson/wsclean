@@ -911,7 +911,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "reuse-primary-beam") {
       settings.reusePrimaryBeam = true;
     } else if (param == "use-differential-lofar-beam") {
-      settings.beamNormalisationMode = "full";
+      settings.beamNormalisationMode = "preapplied_or_full";
     } else if (param == "primary-beam-limit") {
       ++argi;
       settings.primaryBeamLimit =
