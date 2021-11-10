@@ -917,6 +917,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "reuse-primary-beam") {
       settings.reusePrimaryBeam = true;
     } else if (param == "use-differential-lofar-beam") {
+      // pre_applied_or_full is the beam normalisation mode
+      // that implements the behaviour of
+      // the old use_differential_beam option of EveryBeam
       settings.beamNormalisationMode = "preapplied_or_full";
     } else if (param == "primary-beam-limit") {
       ++argi;
