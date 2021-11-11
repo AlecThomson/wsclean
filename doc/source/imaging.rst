@@ -13,4 +13,3 @@ Imaging modes
    distributed_imaging
    primary_beam_correction
    facet_based_imaging
-   ds9-facet-file

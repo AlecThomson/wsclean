@@ -43,22 +43,25 @@ This is done via the command-line option:
 
     -apply-facet-solutions <path-to-h5parm> <name1[,name2]>
 
-where :code:`<path-to-h5parm>` is the path to the H5Parm file and :code:`<name1[,name2]>`
-is a comma-separated list of strings specifying which "soltabs" from the provided H5Parm file are used.
+where :code:`<path-to-h5parm>` is the path to the H5Parm solution file and :code:`<name1[,name2]>`
+is a comma-separated list of strings specifying which "soltabs" from the provided H5Parm solution file are used.
 Acceptable names are :code:`ampl000` and/or :code:`phase000`.
 
-In case WSClean uses multiple Measurement Sets as input, either one H5Parm file or a distinct H5Parm file per Measurement Set can be specified.
-The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is assumed to be identical for all H5Parm files.
-As an illustration, assume that :code:`N` Measurement Sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a
+In case WSClean uses multiple measurement sets as input, either one H5Parm solution file or a distinct H5Parm solution file per seasurement set can be specified.
+The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is assumed to be identical for all H5Parm solution files.
+As an illustration, assume that :code:`N` measurement sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a
 scalar amplitude correction.
-The syntax for applying the facet solution files on its corresponding Measurement Set thus becomes:
+The syntax for applying the facet solution files on its corresponding measurement set thus becomes:
 
 .. code-block:: text
 
     -apply-facet-solutions h5parm1.h5,h5parm2.h5,...,h5parmN.h5 ampl000
 
-**NOTE**: to find the matching direction in the solution file for the specified facets, the (RA, Dec) pointing of each facet is matched against the
-direction with the smallest (Euclidean) distance in the solution file. For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9-facet-file`.
+.. note::
+    To find the matching direction in the solution file for the specified facets,
+    the (RA, Dec) pointing of each facet is matched against the direction with
+    the smallest (Euclidean) distance in the solution file.
+    For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9-facet-file`.
 
 
 Example command
