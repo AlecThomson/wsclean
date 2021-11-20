@@ -52,6 +52,8 @@ class MSDataDescription {
   std::unique_ptr<MSProvider> GetProvider() const;
 
   const MSSelection& Selection() const { return _selection; }
+  
+  size_t DataDescId() const { return _dataDescId; }
 
   void Serialize(aocommon::SerialOStream& stream) const;
   static std::unique_ptr<MSDataDescription> Unserialize(

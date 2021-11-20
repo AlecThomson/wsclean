@@ -488,7 +488,7 @@ std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
     return _imageWeightCache->GetMFWeights();
   } else {
     std::shared_ptr<ImageWeights> weights = _imageWeightCache->Get(
-        msList, entry.outputChannelIndex, entry.outputIntervalIndex);
+        msList, _msBands, entry.outputChannelIndex, entry.outputIntervalIndex);
     if (_settings.isWeightImageSaved) {
       std::string prefix = ImageFilename::GetPSFPrefix(
           _settings, entry.outputChannelIndex, entry.outputIntervalIndex);
@@ -520,7 +520,11 @@ void WSClean::initializeMFSImageWeights() {
             PartitionedMS msProvider(_partitionedMSHandles[msIndex],
                                      ms.bands[dataDescId].partIndex, pol,
                                      dataDescId);
-            weights->Grid(msProvider, partSelection);
+            aocommon::BandData selectedBand(_msBands[msIndex][dataDescId]);
+            if(partSelection.HasChannelRange()) {
+              selectedBand = aocommon::BandData(selectedBand, partSelection.ChannelRangeStart(), partSelection.ChannelRangeEnd());
+            }
+            weights->Grid(msProvider, selectedBand);
           }
         }
       }
@@ -534,7 +538,10 @@ void WSClean::initializeMFSImageWeights() {
         ContiguousMS msProvider(_settings.filenames[i],
                                 _settings.dataColumnName, _globalSelection, pol,
                                 d, _settings.useMPI);
-        weights->Grid(msProvider, _globalSelection);
+        aocommon::BandData selectedBand = _msBands[i][d];
+        if(_globalSelection.HasChannelRange())
+          selectedBand = aocommon::BandData(selectedBand, _globalSelection.ChannelRangeStart(), _globalSelection.ChannelRangeEnd());
+        weights->Grid(msProvider, selectedBand);
         Logger::Info << '.';
         Logger::Info.Flush();
       }
@@ -857,8 +864,8 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
                              size_t dataDescId,
                              const ImagingTableEntry& entry) {
   const BandData& band = _msBands[msIndex][dataDescId];
-  double firstCh = band.ChannelFrequency(0),
-         lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
+  double firstCh = band.ChannelFrequency(0);
+  double lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
   // Some mses have decreasing (i.e. reversed) channel frequencies in them
   bool isReversed = false;
   if (firstCh > lastCh) {

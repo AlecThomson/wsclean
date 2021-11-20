@@ -23,7 +23,7 @@ class MSReader;
 /**
  * The abstract MSProvider class is the base class for classes that read and
  * write the visibilities. Write functionality is directly provided by classes
- * that derive from MSProvider, whereas reading functionality is provided a
+ * that derive from MSProvider, whereas reading functionality is provided in a
  * separate class (MSReader), which can be instantiated with @ref
  * MSProvider::MakeReader. An MSProvider knows which rows are selected and
  * doesn't write to unselected rows. This information on selected rows is also
@@ -35,6 +35,11 @@ class MSReader;
  * The class maintains an index for the write position. The index for the
  * reading position is maintained by the closely connected @ref MSReader class.
  * Writing (and reading) goes sequentially through the data.
+ * 
+ * An MS provider provides data for a single dataDescID, and therefore for
+ * a single spectral window. Measurement sets with multiple data desc IDs
+ * require creating multiple MS providers. Because of this, all rows of a
+ * single MS provider have the same number of channels.
  */
 class MSProvider {
  public:

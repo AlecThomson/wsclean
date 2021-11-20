@@ -294,10 +294,9 @@ PartitionedMS::Handle PartitionedMS::Partition(
   // TODO rather than writing we can just skip and write later
   std::vector<std::unique_ptr<std::ofstream>> metaFiles(
       selectedDataDescIds.size());
-  for (std::map<size_t, size_t>::const_iterator i = selectedDataDescIds.begin();
-       i != selectedDataDescIds.end(); ++i) {
-    size_t dataDescId = i->first;
-    size_t spwIndex = i->second;
+  for (const std::pair<const size_t, size_t>& p : selectedDataDescIds) {
+    const size_t dataDescId = p.first;
+    const size_t spwIndex = p.second;
     std::string metaFilename =
         getMetaFilename(msPath, temporaryDirectory, dataDescId);
     metaFiles[spwIndex].reset(new std::ofstream(metaFilename));
@@ -345,6 +344,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
     rowProvider->ReadData(dataArray, flagArray, weightSpectrumArray, meta.u,
                           meta.v, meta.w, dataDescId, antenna1, antenna2,
                           fieldId, time);
+    /**
+     * TODO: it's not necessary to write dataDescId to disk, because it is always
+     * the same for a file.
+     */
     meta.dataDescId = dataDescId;
     meta.antenna1 = antenna1;
     meta.antenna2 = antenna2;
@@ -410,9 +413,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
   rowProvider->OutputStatistics();
 
   // Rewrite meta headers to include selected row count
-  for (std::map<size_t, size_t>::const_iterator i = selectedDataDescIds.begin();
-       i != selectedDataDescIds.end(); ++i) {
-    size_t spwIndex = i->second;
+  for (std::pair<const size_t, size_t>& p : selectedDataDescIds) {
+    size_t spwIndex = p.second;
     MetaHeader metaHeader;
     memset(&metaHeader, 0, sizeof(MetaHeader));
     metaHeader.selectedRowCount = selectedRowCountPerSpwIndex[spwIndex];

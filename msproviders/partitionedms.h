@@ -45,7 +45,7 @@ class PartitionedMS final : public MSProvider {
   PartitionedMS(const PartitionedMS&) = delete;
   PartitionedMS& operator=(const PartitionedMS&) = delete;
 
-  std::unique_ptr<MSReader> MakeReader() final override;
+  std::unique_ptr<MSReader> MakeReader() override;
 
   SynchronizedMS MS() override {
     return SynchronizedMS(_handle._data->_msPath.data());
@@ -57,7 +57,7 @@ class PartitionedMS final : public MSProvider {
 
   void NextOutputRow() override;
 
-  void ResetWritePosition() final override { _currentOutputRow = 0; };
+  void ResetWritePosition() override { _currentOutputRow = 0; };
 
   void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 
