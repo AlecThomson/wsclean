@@ -73,6 +73,8 @@ class PartitionedMS final : public MSProvider {
   size_t NPolarizations() override { return _polarizationCountInFile; }
   size_t NAntennas() override { return _handle._data->_nAntennas; }
 
+  size_t DataDescId() override { return _partHeader.dataDescId; }
+
   static Handle Partition(const string& msPath,
                           const std::vector<ChannelRange>& channels,
                           class MSSelection& selection,
@@ -164,7 +166,7 @@ class PartitionedMS final : public MSProvider {
   } _metaHeader;
   struct MetaRecord {
     double u, v, w, time;
-    uint16_t antenna1, antenna2, dataDescId, fieldId;
+    uint16_t antenna1, antenna2, fieldId;
     static constexpr size_t BINARY_SIZE = 8 * 4 + 2 * 4;
     void read(std::istream& str) {
       str.read(reinterpret_cast<char*>(&u), sizeof(double));
@@ -173,7 +175,6 @@ class PartitionedMS final : public MSProvider {
       str.read(reinterpret_cast<char*>(&time), sizeof(double));
       str.read(reinterpret_cast<char*>(&antenna1), sizeof(uint16_t));
       str.read(reinterpret_cast<char*>(&antenna2), sizeof(uint16_t));
-      str.read(reinterpret_cast<char*>(&dataDescId), sizeof(uint16_t));
       str.read(reinterpret_cast<char*>(&fieldId), sizeof(uint16_t));
     }
     void write(std::ostream& str) const {
@@ -183,7 +184,6 @@ class PartitionedMS final : public MSProvider {
       str.write(reinterpret_cast<const char*>(&time), sizeof(double));
       str.write(reinterpret_cast<const char*>(&antenna1), sizeof(uint16_t));
       str.write(reinterpret_cast<const char*>(&antenna2), sizeof(uint16_t));
-      str.write(reinterpret_cast<const char*>(&dataDescId), sizeof(uint16_t));
       str.write(reinterpret_cast<const char*>(&fieldId), sizeof(uint16_t));
     }
   };

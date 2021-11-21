@@ -38,8 +38,7 @@ class ContiguousMS final : public MSProvider {
 
   void ResetWritePosition() override;
 
-  void WriteModel(const std::complex<float>* buffer,
-                  bool addToMS) override;
+  void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 
   void ReopenRW() override { _ms->reopenRW(); }
 
@@ -48,6 +47,8 @@ class ContiguousMS final : public MSProvider {
   void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override;
 
   aocommon::PolarizationEnum Polarization() override { return _polOut; }
+
+  size_t DataDescId() override { return _dataDescId; }
 
   size_t NChannels() override;
 

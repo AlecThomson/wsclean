@@ -344,16 +344,11 @@ PartitionedMS::Handle PartitionedMS::Partition(
     rowProvider->ReadData(dataArray, flagArray, weightSpectrumArray, meta.u,
                           meta.v, meta.w, dataDescId, antenna1, antenna2,
                           fieldId, time);
-    /**
-     * TODO: it's not necessary to write dataDescId to disk, because it is always
-     * the same for a file.
-     */
-    meta.dataDescId = dataDescId;
     meta.antenna1 = antenna1;
     meta.antenna2 = antenna2;
     meta.fieldId = fieldId;
     meta.time = time;
-    size_t spwIndex = selectedDataDescIds[meta.dataDescId];
+    const size_t spwIndex = selectedDataDescIds[dataDescId];
     ++selectedRowCountPerSpwIndex[spwIndex];
     ++selectedRowsTotal;
     std::ofstream& metaFile = *metaFiles[spwIndex];
@@ -365,7 +360,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
     fileIndex = 0;
     for (size_t part = 0; part != channelParts; ++part) {
-      if (channels[part].dataDescId == int(meta.dataDescId)) {
+      if (channels[part].dataDescId == int(dataDescId)) {
         const size_t partStartCh = channels[part].start;
         const size_t partEndCh = channels[part].end;
 

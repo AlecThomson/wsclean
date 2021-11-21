@@ -72,8 +72,9 @@ void ImageWeights::Unserialize(aocommon::SerialIStream& stream) {
       .Bool(_weightsAsTaper);
 }
 
-void ImageWeights::Grid(MSProvider& msProvider, const aocommon::BandData& selectedBand) {
-  assert (!_isGriddingFinished);
+void ImageWeights::Grid(MSProvider& msProvider,
+                        const aocommon::BandData& selectedBand) {
+  assert(!_isGriddingFinished);
   size_t polarizationCount =
       (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
                                                                           : 1;
@@ -84,8 +85,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const aocommon::BandData& select
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
     while (msReader->CurrentRowAvailable()) {
       double uInM, vInM, wInM;
-      size_t dataDescId;
-      msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
+      msReader->ReadMeta(uInM, vInM, wInM);
       msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
         for (float& w : weightBuffer) {

@@ -17,8 +17,7 @@ class ContiguousMSReader final : public MSReader {
 
   void NextInputRow() override;
 
-  void ReadMeta(double& u, double& v, double& w,
-                size_t& dataDescId) override;
+  void ReadMeta(double& u, double& v, double& w) override;
 
   void ReadMeta(MSProvider::MetaData& metaData) override;
 

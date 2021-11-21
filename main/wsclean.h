@@ -11,11 +11,12 @@
 #include "../io/cachedimageset.h"
 #include "../io/wscfitswriter.h"
 
+#include "../structures/imagingtable.h"
 #include "../structures/msselection.h"
+#include "../structures/multibanddata.h"
 #include "../structures/observationinfo.h"
 #include "../structures/outputchannelinfo.h"
 #include "../structures/weightmode.h"
-#include "../structures/imagingtable.h"
 
 #include "../gridding/msgridderbase.h"
 

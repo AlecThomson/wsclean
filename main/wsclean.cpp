@@ -521,8 +521,10 @@ void WSClean::initializeMFSImageWeights() {
                                      ms.bands[dataDescId].partIndex, pol,
                                      dataDescId);
             aocommon::BandData selectedBand(_msBands[msIndex][dataDescId]);
-            if(partSelection.HasChannelRange()) {
-              selectedBand = aocommon::BandData(selectedBand, partSelection.ChannelRangeStart(), partSelection.ChannelRangeEnd());
+            if (partSelection.HasChannelRange()) {
+              selectedBand = aocommon::BandData(
+                  selectedBand, partSelection.ChannelRangeStart(),
+                  partSelection.ChannelRangeEnd());
             }
             weights->Grid(msProvider, selectedBand);
           }
@@ -539,8 +541,10 @@ void WSClean::initializeMFSImageWeights() {
                                 _settings.dataColumnName, _globalSelection, pol,
                                 d, _settings.useMPI);
         aocommon::BandData selectedBand = _msBands[i][d];
-        if(_globalSelection.HasChannelRange())
-          selectedBand = aocommon::BandData(selectedBand, _globalSelection.ChannelRangeStart(), _globalSelection.ChannelRangeEnd());
+        if (_globalSelection.HasChannelRange())
+          selectedBand = aocommon::BandData(
+              selectedBand, _globalSelection.ChannelRangeStart(),
+              _globalSelection.ChannelRangeEnd());
         weights->Grid(msProvider, selectedBand);
         Logger::Info << '.';
         Logger::Info.Flush();
@@ -569,7 +573,7 @@ void WSClean::performReordering(bool isPredictMode) {
   if (_settings.parallelReordering != 1) Logger::Info << "Reordering...\n";
 
   aocommon::ParallelFor<size_t> loop(_settings.parallelReordering);
-  loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
+  loop.Run(0, _settings.filenames.size(), [&](size_t msIndex, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<PolarizationEnum, size_t> nextIndex;
     for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
@@ -581,9 +585,9 @@ void WSClean::performReordering(bool isPredictMode) {
         // The band information is determined from the first facet in the group.
         // After this, all facet entries inside the group are updated.
         const ImagingTableEntry& entry = facetGroup.Front();
-        for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
+        for (size_t d = 0; d != _msBands[msIndex].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selectChannels(selection, i, d, entry)) {
+          if (selectChannels(selection, msIndex, d, entry)) {
             if (entry.polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
@@ -592,7 +596,7 @@ void WSClean::performReordering(bool isPredictMode) {
               channels.push_back(r);
             }
             for (ImagingTableEntry& facetEntry : facetGroup) {
-              facetEntry.msData[i].bands[d].partIndex =
+              facetEntry.msData[msIndex].bands[d].partIndex =
                   nextIndex[entry.polarization];
             }
             ++nextIndex[entry.polarization];
@@ -602,13 +606,13 @@ void WSClean::performReordering(bool isPredictMode) {
     }
 
     PartitionedMS::Handle partMS = PartitionedMS::Partition(
-        _settings.filenames[i], channels, _globalSelection,
+        _settings.filenames[msIndex], channels, _globalSelection,
         _settings.dataColumnName, useModel, initialModelRequired, _settings);
     std::lock_guard<std::mutex> lock(mutex);
-    _partitionedMSHandles[i] = std::move(partMS);
+    _partitionedMSHandles[msIndex] = std::move(partMS);
     if (_settings.parallelReordering != 1)
-      Logger::Info << "Finished reordering " << _settings.filenames[i] << " ["
-                   << i << "]\n";
+      Logger::Info << "Finished reordering " << _settings.filenames[msIndex]
+                   << " [" << msIndex << "]\n";
   });
 }
 
@@ -877,10 +881,10 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
       entry.highestFrequency >= firstCh) {
     size_t newStart, newEnd;
     if (isReversed) {
-      BandData::const_reverse_iterator lowPtr, highPtr;
-      lowPtr =
+      BandData::const_reverse_iterator lowPtr =
           std::lower_bound(band.rbegin(), band.rend(), entry.lowestFrequency);
-      highPtr = std::lower_bound(lowPtr, band.rend(), entry.highestFrequency);
+      BandData::const_reverse_iterator highPtr =
+          std::lower_bound(lowPtr, band.rend(), entry.highestFrequency);
 
       if (highPtr == band.rend()) --highPtr;
       newStart = band.ChannelCount() - 1 - (highPtr - band.rbegin());
@@ -895,7 +899,8 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
       newStart = lowPtr - band.begin();
       newEnd = highPtr - band.begin() + 1;
     }
-
+    Logger::Debug << "msIndex=" << msIndex << ", dataDescId=" << dataDescId
+                  << ", range=[" << newStart << ":" << newEnd << "]\n";
     selection.SetChannelRange(newStart, newEnd);
     return true;
   } else {
@@ -1369,19 +1374,21 @@ void WSClean::initializeMSList(
       _settings.useIDG ? Polarization::Instrumental : entry.polarization;
 
   msList.clear();
-  for (size_t i = 0; i != _settings.filenames.size(); ++i) {
-    for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
+  for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
+    for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();
+         ++dataDescId) {
       MSSelection selection(_globalSelection);
-      if (selectChannels(selection, i, d, entry)) {
+      if (selectChannels(selection, msIndex, dataDescId, entry)) {
         std::unique_ptr<MSDataDescription> dataDescription;
         if (_settings.doReorder)
           dataDescription = MSDataDescription::ForPartitioned(
-              _partitionedMSHandles[i], selection,
-              entry.msData[i].bands[d].partIndex, pol, d, _settings.useMPI);
+              _partitionedMSHandles[msIndex], selection,
+              entry.msData[msIndex].bands[dataDescId].partIndex, pol,
+              dataDescId, _settings.useMPI);
         else
           dataDescription = MSDataDescription::ForContiguous(
-              _settings.filenames[i], _settings.dataColumnName, selection, pol,
-              d, _settings.useMPI);
+              _settings.filenames[msIndex], _settings.dataColumnName, selection,
+              pol, dataDescId, _settings.useMPI);
         msList.emplace_back(std::move(dataDescription));
       }
     }
