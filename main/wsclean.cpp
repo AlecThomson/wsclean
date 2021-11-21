@@ -899,8 +899,7 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
       newStart = lowPtr - band.begin();
       newEnd = highPtr - band.begin() + 1;
     }
-    Logger::Debug << "msIndex=" << msIndex << ", dataDescId=" << dataDescId
-                  << ", range=[" << newStart << ":" << newEnd << "]\n";
+
     selection.SetChannelRange(newStart, newEnd);
     return true;
   } else {
