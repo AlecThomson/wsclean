@@ -36,6 +36,10 @@ using everybeam::aterms::ATermConfig;
 using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
+namespace {
+constexpr const size_t kGridderIndex = 0;
+}
+
 IdgMsGridder::IdgMsGridder(const Settings& settings)
     : MSGridderBase(settings),
       _averageBeam(nullptr),
@@ -196,7 +200,8 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
         if (aTermMaker->Calculate(aTermBuffer.data(), currentTime,
                                   _selectedBand.CentreFrequency(),
                                   metaData.fieldId, uvws.data())) {
-          _bufferset->get_gridder(0)->set_aterm(timeIndex, aTermBuffer.data());
+          _bufferset->get_gridder(kGridderIndex)
+              ->set_aterm(timeIndex, aTermBuffer.data());
           Logger::Debug << "Calculated a-terms for timestep " << timeIndex
                         << "\n";
         }
@@ -220,9 +225,9 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
     rowData.uvw[2] = -metaData.wInM;  //
 
-    _bufferset->get_gridder(0)->grid_visibilities(
-        timeIndex, metaData.antenna1, metaData.antenna2, rowData.uvw,
-        rowData.data, weightBuffer.data());
+    _bufferset->get_gridder(kGridderIndex)
+        ->grid_visibilities(timeIndex, metaData.antenna1, metaData.antenna2,
+                            rowData.uvw, rowData.data, weightBuffer.data());
   }
   _bufferset->finished();
 
@@ -351,8 +356,8 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
         if (aTermMaker->Calculate(aTermBuffer.data(), currentTime,
                                   _selectedBand.CentreFrequency(),
                                   metaData.fieldId, uvws.data())) {
-          _bufferset->get_degridder(0)->set_aterm(timeIndex,
-                                                  aTermBuffer.data());
+          _bufferset->get_degridder(kGridderIndex)
+              ->set_aterm(timeIndex, aTermBuffer.data());
           Logger::Debug << "Calculated new a-terms for timestep " << timeIndex
                         << "\n";
         }
@@ -376,21 +381,22 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
 
 void IdgMsGridder::predictRow(IDGPredictionRow& row,
                               const std::vector<std::string>& antennaNames) {
-  while (_bufferset->get_degridder(0)->request_visibilities(
-      row.rowId, row.timeIndex, row.antenna1, row.antenna2, row.uvw)) {
+  while (_bufferset->get_degridder(kGridderIndex)
+             ->request_visibilities(row.rowId, row.timeIndex, row.antenna1,
+                                    row.antenna2, row.uvw)) {
     computePredictionBuffer(antennaNames);
   }
 }
 
 void IdgMsGridder::computePredictionBuffer(
     const std::vector<std::string>& antennaNames) {
-  auto available_row_ids = _bufferset->get_degridder(0)->compute();
+  auto available_row_ids = _bufferset->get_degridder(kGridderIndex)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   for (auto i : available_row_ids) {
     writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
                                               _selectedBand, i.second);
   }
-  _bufferset->get_degridder(0)->finished_reading();
+  _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();
 }
 
@@ -492,11 +498,11 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
   // TODO for now we map the ms antennas directly to the gridder's antenna,
   // including non-selected antennas. Later this can be made more efficient.
-  size_t nStations = msData.msProvider->MS()->antenna().nrow();
+  const size_t nStations = msData.msProvider->MS()->antenna().nrow();
 
   std::vector<std::vector<double>> bands;
   bands.emplace_back(_selectedBand.begin(), _selectedBand.end());
-  size_t nChannels = _selectedBand.ChannelCount();
+  const size_t nChannels = _selectedBand.ChannelCount();
 
   uint64_t memSize =
       getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
@@ -510,7 +516,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 #ifdef HAVE_EVERYBEAM
   aTermMaker = getATermMaker(msData);
   if (aTermMaker) {
-    size_t subgridsize = _bufferset->get_subgridsize();
+    const size_t subgridsize = _bufferset->get_subgridsize();
     aTermBuffer.resize(subgridsize * subgridsize * 4 * nStations);
     // When a-terms are used, they will also take memory. Here we calculate
     // their approx contribution.
@@ -518,7 +524,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
     Logger::Debug << "A-terms change on average every " << avgUpdate
                   << " s, once every " << (avgUpdate / msData.integrationTime)
                   << " timesteps.\n";
-    uint64_t atermMemPerTimestep =
+    const uint64_t atermMemPerTimestep =
         subgridsize * subgridsize * nStations *  // size of grid x nr of grids
         (4 * 8) *  // 4 pol, 8 bytes per complex value
         (msData.integrationTime /

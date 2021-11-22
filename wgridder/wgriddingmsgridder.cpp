@@ -64,7 +64,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   size_t totalNRows = 0;
   aocommon::UVector<double> frequencies(selectedBand.ChannelCount());
   for (size_t i = 0; i != frequencies.size(); ++i)
-    frequencies[i] = selectedBand.Channel(i).Frequency();
+    frequencies[i] = selectedBand.ChannelFrequency(i);
 
   size_t maxNRows = calculateMaxNRowsInMemory(selectedBand.ChannelCount());
 
@@ -132,7 +132,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
   aocommon::UVector<double> frequencies(selectedBand.ChannelCount());
   for (size_t i = 0; i != frequencies.size(); ++i)
-    frequencies[i] = selectedBand.Channel(i).Frequency();
+    frequencies[i] = selectedBand.ChannelFrequency(i);
 
   size_t maxNRows = calculateMaxNRowsInMemory(selectedBand.ChannelCount());
 

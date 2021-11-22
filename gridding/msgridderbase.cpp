@@ -428,8 +428,8 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
     const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
                                          metaData.vInM * metaData.vInM +
                                          metaData.wInM * metaData.wInM);
-    const double halfWidth = 0.5 * ImageWidth(),
-                 halfHeight = 0.5 * ImageHeight();
+    const double halfWidth = 0.5 * ImageWidth();
+    const double halfHeight = 0.5 * ImageHeight();
     if (wHi > msData.maxW || wLo < msData.minW ||
         baselineInM / selectedBand.SmallestWavelength() >
             msData.maxBaselineUVW) {

@@ -966,8 +966,10 @@ template <typename T>
 void WStackingGridder<T>::AddData(const std::complex<float> *data, double uInM,
                                   double vInM, double wInM) {
   for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
-    double wavelength = _bandData.ChannelWavelength(ch), u = uInM / wavelength,
-           v = vInM / wavelength, w = wInM / wavelength;
+    const double wavelength = _bandData.ChannelWavelength(ch);
+    const double u = uInM / wavelength;
+    const double v = vInM / wavelength;
+    const double w = wInM / wavelength;
     AddDataSample(data[ch], u, v, w);
   }
 }
@@ -976,8 +978,10 @@ template <typename T>
 void WStackingGridder<T>::SampleData(std::complex<float> *data, double uInM,
                                      double vInM, double wInM) {
   for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
-    double wavelength = _bandData.ChannelWavelength(ch), u = uInM / wavelength,
-           v = vInM / wavelength, w = wInM / wavelength;
+    const double wavelength = _bandData.ChannelWavelength(ch);
+    const double u = uInM / wavelength;
+    const double v = vInM / wavelength;
+    const double w = wInM / wavelength;
     SampleDataSample(data[ch], u, v, w);
   }
 }
