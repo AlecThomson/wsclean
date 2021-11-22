@@ -423,12 +423,12 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
       lastTime = curTimestep;
     }
 
-    double wHi = std::fabs(metaData.wInM / smallestWavelength);
-    double wLo = std::fabs(metaData.wInM / longestWavelength);
-    double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
+    const double wHi = std::fabs(metaData.wInM / smallestWavelength);
+    const double wLo = std::fabs(metaData.wInM / longestWavelength);
+    const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
                                    metaData.vInM * metaData.vInM +
                                    metaData.wInM * metaData.wInM);
-    double halfWidth = 0.5 * ImageWidth(), halfHeight = 0.5 * ImageHeight();
+    const double halfWidth = 0.5 * ImageWidth(), halfHeight = 0.5 * ImageHeight();
     if (wHi > msData.maxW || wLo < msData.minW ||
         baselineInM / selectedBand.SmallestWavelength() >
             msData.maxBaselineUVW) {
