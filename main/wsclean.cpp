@@ -112,31 +112,21 @@ void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   GriddingResult result = loadExistingImage(entry, true);
 
   if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
-    // Same gridding task as doImagePSF, except that imagePSF now equals
-    // false, such that only the scalar average beam is computed.
-    GriddingTask task;
-    task.operation = GriddingTask::Invert;
-    task.imagePSF = false;
-    task.polarization = entry.polarization;
-    task.subtractModel = false;
-    task.verbose = _isFirstInversion;
-    task.cache = std::move(_msGridderMetaCache[entry.index]);
-    task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
-    task.observationInfo = _observationInfo;
-    task.facet = entry.facet;
-    task.facetIndex = entry.facetIndex;
-    task.facetGroupIndex = entry.facetGroupIndex;
-    applyFacetPhaseShift(entry, task.observationInfo);
-    initializeMSList(entry, task.msList);
-    task.imageWeights = initializeImageWeights(entry, task.msList);
+    ImageFilename imageName(entry.outputChannelIndex,
+                            entry.outputIntervalIndex);
 
-    _griddingTaskManager->Run(std::move(task),
-                              [this, &entry](GriddingResult& result) {
-                                imagePSFCallback(entry, result);
-                              });
-  } else {
-    imagePSFCallback(entry, result);
+    const std::string beamImageName =
+        imageName.GetBeamPrefix(_settings) + ".fits";
+    if (!boost::filesystem::exists(beamImageName)) {
+      throw std::runtime_error(
+          "When reuse-psf is used in combination with the IDG gridder, please "
+          "make sure that a corresponding beam image can be found. Expected "
+          "file name: " +
+          beamImageName);
+    }
   }
+  const bool writeBeamImage = false;
+  imagePSFCallback(entry, result, writeBeamImage);
 }
 
 void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
@@ -165,14 +155,15 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
+  const bool writeBeamImage = true;
   _griddingTaskManager->Run(std::move(task),
                             [this, &entry](GriddingResult& result) {
-                              imagePSFCallback(entry, result);
+                              imagePSFCallback(entry, result, writeBeamImage);
                             });
 }
 
-void WSClean::imagePSFCallback(ImagingTableEntry& entry,
-                               GriddingResult& result) {
+void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
+                               bool writeBeamImage) {
   const size_t channelIndex = entry.outputChannelIndex;
   entry.imageWeight = result.imageWeight;
   entry.normalizationFactor = result.normalizationFactor;
@@ -197,14 +188,22 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
 
-  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+  if (writeBeamImage &&
+      (_settings.gridWithBeam || !_settings.atermConfigFilename.empty())) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
-    IdgMsGridder::SaveBeamImage(
-        entry, imageName, _settings, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, _observationInfo.shiftL,
-        _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
+    // TODO: maybe remove this check, but the absence of this check
+    // exactly caused a segfault when reuse-psf was used.
+    if (_msGridderMetaCache[entry.index]) {
+      IdgMsGridder::SaveBeamImage(
+          entry, imageName, _settings, _observationInfo.phaseCentreRA,
+          _observationInfo.phaseCentreDec, _observationInfo.shiftL,
+          _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
+    } else {
+      throw std::runtime_error(
+          "Beam cannot be saved, since ms gridder meta cache is empty.");
+    }
   }
 
   _isFirstInversion = false;
