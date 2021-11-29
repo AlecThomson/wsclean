@@ -6,6 +6,7 @@
 
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
+const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
 
 std::vector<const char*> baseArgs() {
   return {"wsclean", "-size",           "1024",   "512",        "-scale",
@@ -100,6 +101,46 @@ BOOST_AUTO_TEST_CASE(h5parm) {
   BOOST_CHECK_EQUAL(settings3.facetSolutionFiles.size(), 2u);
   BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[0], std::string("dummy1.h5"));
   BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[1], std::string("dummy2.h5"));
+}
+
+BOOST_AUTO_TEST_CASE(idg_bda_averaging) {
+  BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
+
+  WSClean wsclean;
+  CommandLine commandLine;
+
+  std::vector<const char*> args = baseArgs();
+  // Make square again
+  args[3] = "1024";
+
+  args.push_back("-use-idg");
+  args.push_back("-idg-mode");
+  args.push_back("cpu");
+  args.push_back("-baseline-averaging");
+  args.push_back("10.0");
+  args.push_back(kMWA_MS);
+
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+                    std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(idg_bda_mset) {
+  BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_BDA_MS));
+
+  WSClean wsclean;
+  CommandLine commandLine;
+
+  std::vector<const char*> args = baseArgs();
+  // Make square again
+  args[3] = "1024";
+
+  args.push_back("-use-idg");
+  args.push_back("-idg-mode");
+  args.push_back("cpu");
+  args.push_back(kMWA_BDA_MS);
+
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+                    std::runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
