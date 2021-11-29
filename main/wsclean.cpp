@@ -110,7 +110,33 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   Logger::Info << "Loading existing PSF from disk...\n";
   GriddingResult result = loadExistingImage(entry, true);
-  imagePSFCallback(entry, result);
+
+  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+    // Same gridding task as doImagePSF, except that imagePSF now equals
+    // false, such that only the scalar average beam is computed.
+    GriddingTask task;
+    task.operation = GriddingTask::Invert;
+    task.imagePSF = false;
+    task.polarization = entry.polarization;
+    task.subtractModel = false;
+    task.verbose = _isFirstInversion;
+    task.cache = std::move(_msGridderMetaCache[entry.index]);
+    task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
+    task.observationInfo = _observationInfo;
+    task.facet = entry.facet;
+    task.facetIndex = entry.facetIndex;
+    task.facetGroupIndex = entry.facetGroupIndex;
+    applyFacetPhaseShift(entry, task.observationInfo);
+    initializeMSList(entry, task.msList);
+    task.imageWeights = initializeImageWeights(entry, task.msList);
+
+    _griddingTaskManager->Run(std::move(task),
+                              [this, &entry](GriddingResult& result) {
+                                imagePSFCallback(entry, result);
+                              });
+  } else {
+    imagePSFCallback(entry, result);
+  }
 }
 
 void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
