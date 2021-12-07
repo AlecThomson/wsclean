@@ -193,17 +193,10 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
-    // TODO: maybe remove this check, but the absence of this check
-    // exactly caused a segfault when reuse-psf was used.
-    if (_msGridderMetaCache[entry.index]) {
-      IdgMsGridder::SaveBeamImage(
-          entry, imageName, _settings, _observationInfo.phaseCentreRA,
-          _observationInfo.phaseCentreDec, _observationInfo.shiftL,
-          _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
-    } else {
-      throw std::runtime_error(
-          "Beam cannot be saved, since ms gridder meta cache is empty.");
-    }
+    IdgMsGridder::SaveBeamImage(
+        entry, imageName, _settings, _observationInfo.phaseCentreRA,
+        _observationInfo.phaseCentreDec, _observationInfo.shiftL,
+        _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
   }
 
   _isFirstInversion = false;
