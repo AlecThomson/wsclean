@@ -13,6 +13,11 @@ std::vector<const char*> baseArgs() {
           "1amin",   "-multiscale",     "-niter", "1000000",    "-mgain",
           "0.8",     "-auto-threshold", "1",      "-auto-mask", "4"};
 }
+
+std::vector<const char*> baseArgsBda() {
+  return {"wsclean", "-size",    "1024",      "1024", "-scale",
+          "1amin",   "-use-idg", "-idg-mode", "cpu"};
+}
 }  // namespace
 
 /**
@@ -109,13 +114,8 @@ BOOST_AUTO_TEST_CASE(idg_bda_averaging) {
   WSClean wsclean;
   CommandLine commandLine;
 
-  std::vector<const char*> args = baseArgs();
-  // Make square again
-  args[3] = "1024";
+  std::vector<const char*> args = baseArgsBda();
 
-  args.push_back("-use-idg");
-  args.push_back("-idg-mode");
-  args.push_back("cpu");
   args.push_back("-baseline-averaging");
   args.push_back("10.0");
   args.push_back(kMWA_MS);
@@ -130,13 +130,7 @@ BOOST_AUTO_TEST_CASE(idg_bda_mset) {
   WSClean wsclean;
   CommandLine commandLine;
 
-  std::vector<const char*> args = baseArgs();
-  // Make square again
-  args[3] = "1024";
-
-  args.push_back("-use-idg");
-  args.push_back("-idg-mode");
-  args.push_back("cpu");
+  std::vector<const char*> args = baseArgsBda();
   args.push_back(kMWA_BDA_MS);
 
   BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),

@@ -139,7 +139,9 @@ void Settings::Validate() const {
                            (ms.keywordSet().asTable(bda_factors).nrow() > 0);
       if (has_bda) {
         throw std::runtime_error(
-            "IDG cannot be combined with BDA-ed measurement set " + filename);
+            "IDG cannot be combined with the baseline-dependently averaged "
+            "measurement set " +
+            filename);
       }
     }
   }
