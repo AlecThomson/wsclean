@@ -29,6 +29,9 @@ using everybeam::ATermSettings;
 using everybeam::aterms::ATermConfig;
 #endif
 
+using aocommon::Polarization;
+using aocommon::PolarizationEnum;
+
 namespace {
 void writeBeamImages(const ImageFilename& imageName,
                      const PrimaryBeamImageSet& beamImages,
@@ -70,7 +73,7 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
 
 PrimaryBeam::~PrimaryBeam() {}
 
-void PrimaryBeam::AddMS(std::unique_ptr<class MSDataDescription> description) {
+void PrimaryBeam::AddMS(std::unique_ptr<MSDataDescription> description) {
   _msList.emplace_back(std::move(description));
 }
 
@@ -86,8 +89,7 @@ void PrimaryBeam::CorrectImages(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
 
     if (_settings.polarizations ==
-        std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
-                                             aocommon::Polarization::YY}) {
+        std::set<PolarizationEnum>{Polarization::XX, Polarization::YY}) {
       // FIXME: to be implemented
       // This should multiply the 16 images (representing a Hermitian 4x4
       // matrix) with the diagonal 4x4 matrix with diagonal entries [1/sqrt(mx*
@@ -117,9 +119,16 @@ void PrimaryBeam::CorrectImages(
   }
 
   if (_settings.polarizations.size() == 1 || filenameKind == "psf") {
-    aocommon::PolarizationEnum pol = *_settings.polarizations.begin();
+    PolarizationEnum pol = *_settings.polarizations.begin();
 
-    if (pol == aocommon::Polarization::StokesI) {
+    const bool psuedo_correction =
+        _settings.polarizations.size() == 1 &&
+        (pol == Polarization::RR || pol == Polarization::LL);
+    if (psuedo_correction)
+      Logger::Warn
+          << "Warning: not all polarizations are available for full beam "
+             "correction, performing psuedo-Stokes I beam correction.\n";
+    if (pol == Polarization::StokesI || psuedo_correction) {
       ImageFilename stokesIName(imageName);
       stokesIName.SetPolarization(pol);
       std::string prefix;
@@ -442,6 +451,7 @@ double PrimaryBeam::MakeBeamForMS(
       break;
     case everybeam::TelescopeType::kVLATelescope:
     case everybeam::TelescopeType::kATCATelescope:
+    case everybeam::TelescopeType::kGMRTTelescope:
       if (telescope_type == everybeam::TelescopeType::kATCATelescope) {
         Logger::Warn << "ATCA primary beam correction not yet tested!\n";
       }
