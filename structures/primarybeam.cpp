@@ -121,14 +121,14 @@ void PrimaryBeam::CorrectImages(
   if (_settings.polarizations.size() == 1 || filenameKind == "psf") {
     PolarizationEnum pol = *_settings.polarizations.begin();
 
-    const bool psuedo_correction =
+    const bool pseudo_correction =
         _settings.polarizations.size() == 1 &&
         (pol == Polarization::RR || pol == Polarization::LL);
-    if (psuedo_correction)
+    if (pseudo_correction)
       Logger::Warn
           << "Warning: not all polarizations are available for full beam "
-             "correction, performing psuedo-Stokes I beam correction.\n";
-    if (pol == Polarization::StokesI || psuedo_correction) {
+             "correction, performing pseudo-Stokes I beam correction.\n";
+    if (pol == Polarization::StokesI || pseudo_correction) {
       ImageFilename stokesIName(imageName);
       stokesIName.SetPolarization(pol);
       std::string prefix;
@@ -452,8 +452,10 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kVLATelescope:
     case everybeam::TelescopeType::kATCATelescope:
     case everybeam::TelescopeType::kGMRTTelescope:
-      if (telescope_type == everybeam::TelescopeType::kATCATelescope) {
-        Logger::Warn << "ATCA primary beam correction not yet tested!\n";
+      if (telescope_type == everybeam::TelescopeType::kATCATelescope ||
+          telescope_type == everybeam::TelescopeType::kGMRTTelescope) {
+        Logger::Warn << "Warning: ATCA and GMRT primary beam corrections have "
+                        "not yet been tested!\n";
       }
       // Assign weight of 1 for these "time independent" telescopes
       ms_weight = 1.0;
