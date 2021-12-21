@@ -73,7 +73,7 @@ void IdgMsGridder::Invert() {
 
   bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
   _options["stokes_I_only"] = stokes_I_only;
-  int nr_polarizations = stokes_I_only ? 1 : 4;
+  const size_t nr_polarizations = stokes_I_only ? 1 : 4;
 
   if (!_metaDataCache->averageBeam)
     _metaDataCache->averageBeam.reset(new AverageBeam());
@@ -251,7 +251,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
   _options["stokes_I_only"] = stokes_I_only;
-  int nr_polarizations = stokes_I_only ? 1 : 4;
+  const size_t nr_polarizations = stokes_I_only ? 1 : 4;
 
   _image.assign(nr_polarizations * width * height, 0.0);
   if (!_metaDataCache->averageBeam) {
