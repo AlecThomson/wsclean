@@ -196,6 +196,19 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   include_directories(${IDGAPI_INCLUDE_DIRS})
   add_definitions(-DHAVE_IDG)
   message("Image domain gridder libraries found.")
+  find_library(
+    CUDA_CUDA_LIBRARY
+    NAMES cuda
+    HINTS ${CUDA_ROOT_DIR}
+    PATH_SUFFIXES lib64/stubs)
+  if(CUDA_CUDA_LIBRARY)
+    message("Found CUDA library: " ${CUDA_CUDA_LIBRARY})
+  else()
+    message(
+      WARNING
+        "CUDA library was not found, but required to build WSClean with Image domain gridder support. Either configure CUDA_ROOT_DIR, or try again on a system with a NVIDIA driver installed."
+    )
+  endif(CUDA_CUDA_LIBRARY)
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
@@ -370,6 +383,7 @@ set(ALL_LIBRARIES
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
     ${EVERYBEAM_LIB}
+    ${CUDA_CUDA_LIBRARY}
     schaapcommon)
 
 # Perform the BLAS check from aocommon
