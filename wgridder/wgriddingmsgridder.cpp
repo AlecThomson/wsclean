@@ -179,13 +179,26 @@ template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kYY>(
 template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
     MSData& msData);
 
-void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
-                                        size_t& trimmedHeight) const {
-  double padding = double(ImageWidth()) / TrimWidth();
-  trimmedWidth = std::floor(ActualInversionWidth() / padding);
-  trimmedHeight = std::floor(ActualInversionHeight() / padding);
-  if (trimmedWidth & 1) --trimmedWidth;
-  if (trimmedHeight & 1) --trimmedHeight;
+void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
+                                              size_t& trimmedHeight) const {
+  trimmedWidth = std::ceil(_actualInversionWidth / ImagePadding());
+  trimmedHeight = std::ceil(_actualInversionHeight / ImagePadding());
+
+  // In facet-based imaging, the alignment is 4, see wsclean.cpp. For monolithic
+  // imaging: trimmedWidth and trimmedHeight should be even.
+  const size_t alignment = IsFacet() ? 4 : 2;
+  if (trimmedWidth % alignment != 0) {
+    trimmedWidth += alignment - (trimmedWidth % alignment);
+  }
+  if (trimmedHeight % alignment != 0) {
+    trimmedHeight += alignment - (trimmedHeight % alignment);
+  }
+  if (trimmedWidth > _actualInversionWidth ||
+      trimmedHeight > _actualInversionHeight) {
+    throw std::runtime_error(
+        "Trimmed width or height larger than actual inversion height. Increase "
+        "padding!");
+  }
 }
 
 void WGriddingMSGridder::Invert() {
@@ -193,7 +206,7 @@ void WGriddingMSGridder::Invert() {
   initializeMSDataVector(msDataVector);
 
   size_t trimmedWidth, trimmedHeight;
-  getTrimmedSize(trimmedWidth, trimmedHeight);
+  getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
   _gridder.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
@@ -257,7 +270,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   initializeMSDataVector(msDataVector);
 
   size_t trimmedWidth, trimmedHeight;
-  getTrimmedSize(trimmedWidth, trimmedHeight);
+  getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
   _gridder.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,

@@ -60,7 +60,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   }
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  gridder.SetAdditivePredict(task.facet != nullptr);
+  gridder.SetIsFacet(task.facet != nullptr);
   if (task.facet != nullptr) {
     gridder.SetFacetIndex(task.facetIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
@@ -75,6 +75,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetTrimSize(_settings.trimmedImageWidth,
                         _settings.trimmedImageHeight);
   }
+  gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
   gridder.SetPhaseCentreDM(task.observationInfo.shiftM);

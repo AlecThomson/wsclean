@@ -219,7 +219,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetIndex(0),
       _facetGroupIndex(0),
       _msIndex(0),
-      _additivePredict(false),
+      _isFacet(false),
+      _imagePadding(1.0),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
@@ -825,7 +826,10 @@ void MSGridderBase::writeVisibilities(
   {
     WriterLockManager::LockGuard guard = _writerLockManager->GetLock(
         _facetGroupIndex * MeasurementSetCount() + _msIndex);
-    msProvider.WriteModel(buffer, _additivePredict);
+    // For facet-based imaging, the model data in the MSProvider is reset to
+    // zeros in every major cycle, and predicted data should be add-assigned to
+    // the model data (IsFacet() == true) rather than overwriting it.
+    msProvider.WriteModel(buffer, IsFacet());
   }
   msProvider.NextOutputRow();
 }
