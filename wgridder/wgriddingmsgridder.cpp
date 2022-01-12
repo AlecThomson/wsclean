@@ -181,6 +181,7 @@ template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
 
 void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
                                               size_t& trimmedHeight) const {
+  // TODO: ceil vs floor might be relevant for AST-611
   trimmedWidth = std::ceil(_actualInversionWidth / ImagePadding());
   trimmedHeight = std::ceil(_actualInversionHeight / ImagePadding());
 
