@@ -11,7 +11,7 @@ include(CMakeVersionInfo.txt)
 
 # Using pybind11 requires using -fvisibility=hidden.
 # See https://pybind11.readthedocs.io/en/stable/faq.html
-add_compile_options(-O3 -Wall -Werror=zero-as-null-pointer-constant
+add_compile_options(-O3 -Wall -Wzero-as-null-pointer-constant
                     -fvisibility=hidden)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
