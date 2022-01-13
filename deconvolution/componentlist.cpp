@@ -2,13 +2,11 @@
 
 #include "../system/dp3.h"
 
-#include "../io/imagefilename.h"
-
-#include "../structures/imagingtable.h"
-
 #include "../structures/primarybeamimageset.h"
 
 #include "../multiscale/multiscalealgorithm.h"
+
+#include <aocommon/imagecoordinates.h>
 
 using aocommon::ImageCoordinates;
 

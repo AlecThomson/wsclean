@@ -14,8 +14,6 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-#include "../system/dp3.h"
-
 #include "../structures/image.h"
 #include "../structures/imagingtable.h"
 
@@ -25,6 +23,7 @@
 #include <aocommon/imagecoordinates.h>
 
 using aocommon::FitsReader;
+using aocommon::FitsWriter;
 using aocommon::ImageCoordinates;
 
 Deconvolution::Deconvolution(const class Settings& settings)
@@ -361,7 +360,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     for (size_t i = 0; i != _imgWidth * _imgHeight; ++i)
       image[i] = _cleanMask[i] ? 1.0 : 0.0;
 
-    FitsWriter writer;
+    aocommon::FitsWriter writer;
     writer.SetImageDimensions(_imgWidth, _imgHeight, _settings.pixelScaleX,
                               _settings.pixelScaleY);
     writer.Write(_settings.prefixName + "-horizon-mask.fits", image.data());
