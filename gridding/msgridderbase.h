@@ -176,8 +176,8 @@ class MSGridderBase {
    */
   virtual void FreeImagingData() {}
 
-  size_t ActualInversionWidth() const { return _actualImageWidth; }
-  size_t ActualInversionHeight() const { return _actualImageHeight; }
+  size_t ActualInversionWidth() const { return _actualInversionWidth; }
+  size_t ActualInversionHeight() const { return _actualInversionHeight; }
 
   GridMode GetGridMode() const { return _gridMode; }
   void SetGridMode(GridMode gridMode) { _gridMode = gridMode; }
