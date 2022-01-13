@@ -4,12 +4,12 @@
 
 #include <fftw3.h>
 
-#include "system.h"
+#include <aocommon/threadpool.h>
 
 FFTWManager::FFTWManager(bool verbose)
     : _multiThreadEnabledDepth(0),
       _verbose(verbose),
-      _nThreads(std::min(System::ProcessorCount(), 4u)) {}
+      _nThreads(std::min(aocommon::ThreadPool::NCPUs(), 4u)) {}
 
 FFTWManager::FFTWManager(size_t nThreads, bool verbose)
     : _multiThreadEnabledDepth(0), _verbose(verbose), _nThreads(nThreads) {}
