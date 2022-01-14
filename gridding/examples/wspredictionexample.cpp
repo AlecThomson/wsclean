@@ -2,14 +2,14 @@
 
 #include "../wstackinggridder.h"
 
-#include <aocommon/threadpool.h>
+#include "../system/system.h"
 
 int main(int argc, char* argv[]) {
   const size_t width = 4000, height = 4000;
   const double pixelScale =
       1.0 / 60.0 * (M_PI / 180.0);  // one arcmin in radians
   const size_t threadCount =
-      aocommon::ThreadPool::NCPUs();  // number of CPUs in system
+      System::ProcessorCount();  // number of CPUs in system
 
   // Calculate available memory
   const long int pageCount = sysconf(_SC_PHYS_PAGES),
