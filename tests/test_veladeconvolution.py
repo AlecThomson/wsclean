@@ -135,11 +135,7 @@ def test_vela_iuwt():
     assert data_residual.shape == (npixels, npixels)
 
     rms_residual = np.sqrt(np.mean(data_residual ** 2))
-<<<<<<< HEAD
     assert rms_residual < 0.28
-=======
-    assert rms_residual < 0.25
->>>>>>> c20c75d (Add an IUWT test)
 
     # Remove
     [os.remove(fpath) for fpath in fpaths]
