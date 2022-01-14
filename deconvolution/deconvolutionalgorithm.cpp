@@ -1,6 +1,6 @@
 #include "deconvolutionalgorithm.h"
 
-#include <aocommon/threadpool.h>
+#include "../system/system.h"
 
 DeconvolutionAlgorithm::DeconvolutionAlgorithm()
     : _threshold(0.0),
@@ -10,7 +10,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm()
       _cleanBorderRatio(0.05),
       _maxIter(500),
       _iterationNumber(0),
-      _threadCount(aocommon::ThreadPool::NCPUs()),
+      _threadCount(System::ProcessorCount()),
       _allowNegativeComponents(true),
       _stopOnNegativeComponent(false),
       _cleanMask(nullptr),
