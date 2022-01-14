@@ -360,7 +360,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     for (size_t i = 0; i != _imgWidth * _imgHeight; ++i)
       image[i] = _cleanMask[i] ? 1.0 : 0.0;
 
-    aocommon::FitsWriter writer;
+    FitsWriter writer;
     writer.SetImageDimensions(_imgWidth, _imgHeight, _settings.pixelScaleX,
                               _settings.pixelScaleY);
     writer.Write(_settings.prefixName + "-horizon-mask.fits", image.data());
