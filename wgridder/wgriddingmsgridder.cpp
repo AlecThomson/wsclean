@@ -181,25 +181,21 @@ template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
 
 void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
                                               size_t& trimmedHeight) const {
-  // TODO: ceil vs floor might be relevant for AST-611
-  trimmedWidth = std::ceil(_actualInversionWidth / ImagePadding());
-  trimmedHeight = std::ceil(_actualInversionHeight / ImagePadding());
+  trimmedWidth = std::ceil(ActualInversionWidth() / ImagePadding());
+  trimmedHeight = std::ceil(ActualInversionHeight() / ImagePadding());
 
-  // In facet-based imaging, the alignment is 4, see wsclean.cpp. For monolithic
-  // imaging: trimmedWidth and trimmedHeight should be even.
-  const size_t alignment = IsFacet() ? 4 : 2;
+  // In facet-based imaging, the alignment is 4, see wsclean.cpp. Also for
+  // monolithic imaging - in which just an even number would suffice -
+  // the trimmedWidth and trimmedHeight are defined to be divisable by 4.
+  const size_t alignment = 4;
   if (trimmedWidth % alignment != 0) {
     trimmedWidth += alignment - (trimmedWidth % alignment);
   }
   if (trimmedHeight % alignment != 0) {
     trimmedHeight += alignment - (trimmedHeight % alignment);
   }
-  if (trimmedWidth > _actualInversionWidth ||
-      trimmedHeight > _actualInversionHeight) {
-    throw std::runtime_error(
-        "Trimmed width or height larger than actual inversion height. Increase "
-        "padding!");
-  }
+  trimmedWidth = std::min(trimmedWidth, ActualInversionWidth());
+  trimmedHeight = std::min(trimmedHeight, ActualInversionHeight());
 }
 
 void WGriddingMSGridder::Invert() {

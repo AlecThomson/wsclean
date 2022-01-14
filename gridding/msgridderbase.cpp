@@ -204,12 +204,12 @@ MSGridderBase::MSData::MSData()
       antennaNames() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
-    : _actualInversionWidth(0),
+    : _metaDataCache(nullptr),
+      _settings(settings),
+      _actualInversionWidth(0),
       _actualInversionHeight(0),
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
-      _metaDataCache(nullptr),
-      _settings(settings),
       _phaseCentreRA(0.0),
       _phaseCentreDec(0.0),
       _phaseCentreDL(0.0),
@@ -219,7 +219,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetIndex(0),
       _facetGroupIndex(0),
       _msIndex(0),
-      _isFacet(false),
+      _additivePredict(false),
       _imagePadding(1.0),
       _imageWidth(0),
       _imageHeight(0),
@@ -826,10 +826,7 @@ void MSGridderBase::writeVisibilities(
   {
     WriterLockManager::LockGuard guard = _writerLockManager->GetLock(
         _facetGroupIndex * MeasurementSetCount() + _msIndex);
-    // For facet-based imaging, the model data in the MSProvider is reset to
-    // zeros in every major cycle, and predicted data should be add-assigned to
-    // the model data (IsFacet() == true) rather than overwriting it.
-    msProvider.WriteModel(buffer, IsFacet());
+    msProvider.WriteModel(buffer, _additivePredict);
   }
   msProvider.NextOutputRow();
 }

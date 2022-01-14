@@ -58,7 +58,6 @@ class MSGridderBase {
   double PixelSizeX() const { return _pixelSizeX; }
   double PixelSizeY() const { return _pixelSizeY; }
   size_t ActualWGridSize() const { return _actualWGridSize; }
-  bool IsFacet() const { return _isFacet; }
 
   void ClearMeasurementSetList() {
     _measurementSets.clear();
@@ -95,7 +94,14 @@ class MSGridderBase {
 
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
-  void SetIsFacet(bool isFacet) { _isFacet = isFacet; }
+  /**
+   * @brief In case of facet-based imaging, the model data in the @param
+   * MSProvider is reset to zeros in every major cycle, and predicted data
+   * should be add-assigned to the model data (_additivePredict = true) rather
+   * than overwriting it. For "standard" imaging, the model data should
+   * be overwritten (_additivePredict = false).
+   */
+  void SetAdditivePredict(bool hasFacets) { _additivePredict = hasFacets; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
@@ -410,8 +416,8 @@ class MSGridderBase {
   /// only relevant for prediction.
   size_t _facetGroupIndex;
   size_t _msIndex;
-  /// @see SetIsFacet()
-  bool _isFacet;
+  /// @see SetAdditivePredict()
+  bool _additivePredict;
   double _imagePadding;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
