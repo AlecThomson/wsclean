@@ -1,6 +1,6 @@
 #include "componentlist.h"
 
-#include "../system/dp3.h"
+#include "../model/writemodel.h"
 
 #include "../structures/primarybeamimageset.h"
 
@@ -56,7 +56,8 @@ void ComponentList::write(const std::string& filename,
       useLogSI = true;
       break;
   }
-  DP3::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
+  wsclean::model::WriteHeaderForSpectralTerms(file,
+                                              fitter.ReferenceFrequency());
   aocommon::UVector<float> terms;
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex) {
     ScaleList& list = _listPerScale[scaleIndex];
@@ -90,11 +91,11 @@ void ComponentList::write(const std::string& filename,
       std::ostringstream name;
       name << 's' << scaleIndex << 'c' << componentIndex;
       if (scale == 0.0)
-        DP3::WritePolynomialPointComponent(file, name.str(), ra, dec, stokesI,
-                                           useLogSI, terms,
-                                           fitter.ReferenceFrequency());
+        wsclean::model::WritePolynomialPointComponent(
+            file, name.str(), ra, dec, stokesI, useLogSI, terms,
+            fitter.ReferenceFrequency());
       else {
-        DP3::WritePolynomialGaussianComponent(
+        wsclean::model::WritePolynomialGaussianComponent(
             file, name.str(), ra, dec, stokesI, useLogSI, terms,
             fitter.ReferenceFrequency(), scaleFWHML, scaleFWHMM, 0.0);
       }
