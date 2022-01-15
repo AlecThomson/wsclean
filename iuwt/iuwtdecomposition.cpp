@@ -56,7 +56,7 @@ void IUWTDecomposition::convolveMT(aocommon::StaticFor<size_t>& loop,
   });
 
   loop.Run(0, width, [&](size_t x_start, size_t x_end) {
-    convolveVerticalPartialFast(output, image, width, height, x_start, x_end,
+    convolveVerticalPartialFast(output, scratch, width, height, x_start, x_end,
                                 scale);
   });
 }
