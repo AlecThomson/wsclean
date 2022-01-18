@@ -107,7 +107,6 @@ def test_veladeconvolution(gridder):
     [os.remove(fpath) for fpath in fpaths]
 
 def test_vela_iuwt():
-    nchannels = 8
     npixels = 1024
     name = "mwa_vela_iuwt"
     s = f"{tcf.WSCLEAN} -quiet -size {npixels} {npixels} -scale 1amin -iuwt -niter 100 -gain 0.2 -mgain 0.8 -name {name} {MWA_MOCK_MS}"
