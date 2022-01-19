@@ -5,13 +5,12 @@
 
 #include "../io/logger.h"
 
-#include "../units/fluxdensity.h"
-
 #include "../structures/numberlist.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/radeccoord.h>
 #include <aocommon/units/angle.h>
+#include <aocommon/units/fluxdensity.h>
 
 #include <schaapcommon/h5parm/jonesparameters.h>
 
@@ -23,6 +22,7 @@
 #include <sstream>
 
 using aocommon::units::Angle;
+using aocommon::units::FluxDensity;
 
 void CommandLine::printHelp() {
   std::cout
@@ -834,7 +834,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "threshold") {
       ++argi;
       settings.deconvolutionThreshold = FluxDensity::Parse(
-          argv[argi], "threshold parameter", FluxDensity::Jansky);
+          argv[argi], "threshold parameter", FluxDensity::kJansky);
     } else if (param == "auto-threshold") {
       ++argi;
       settings.autoDeconvolutionThreshold = true;
