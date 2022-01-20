@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pytest
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError, STDOUT
 import shutil
 import sys
 import warnings
@@ -294,6 +294,31 @@ def test_facetbeamimages(mpi):
     basic_image_check("facet-imaging-reorder-dirty.fits")
 
 
+def test_inconsistent_facet_solution_file():
+    """
+    Check whether an error is thrown in case the number of directional sources
+    in the h5parm file mismatches the number of facets.
+    """
+
+    h5download = f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
+    check_call(h5download.split())
+
+    s = f"{tcf.WSCLEAN} -quiet -use-wgridder -name facet-mismatch -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_2FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
+
+    try:
+        check_output(
+            s.split(), stderr=STDOUT,
+        )
+    except CalledProcessError as e:
+        if not (
+            "Number of source directions in one of the h5 facet solution files"
+            in e.output.decode()
+        ):
+            raise e
+        else:
+            pass
+
+
 def test_parallel_gridding():
     # Compare serial, threaded and mpi run for facet based imaging
     # with h5 corrections. Number of used threads/processes is
@@ -308,7 +333,7 @@ def test_parallel_gridding():
         f"mpirun -np 3 {tcf.WSCLEAN_MP}",
     ]
     for name, command in zip(names, wsclean_commands):
-        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions  mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
+        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
         check_call(s.split())
 
     # Compare images, the threshold is chosen relatively large since the difference

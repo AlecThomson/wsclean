@@ -24,6 +24,7 @@ add_executable(
   structures/testimagingtable.cpp
   ${WSCLEANFILES})
 
+message("HEY")
 add_custom_target(
   download_mocks
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
