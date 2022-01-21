@@ -853,7 +853,7 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
                                              InversionRow& rowData,
                                              const aocommon::BandData& curBand,
-                                             float* weightBuffer) {
+                                             const float* weightBuffer) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -870,7 +870,7 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
 
   // rowData.data contains the visibilities
   std::complex<float>* iter = rowData.data;
-  float* weightIter = weightBuffer;
+  const float* weightIter = weightBuffer;
   for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
     const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
     const size_t offset1 = offset + metaData.antenna1 * 4u;
@@ -895,7 +895,7 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedH5Parm(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
-    float* weightBuffer) {
+    const float* weightBuffer) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -937,7 +937,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   // Conditional could be templated once C++ supports partial function
   // specialization
   std::complex<float>* iter = rowData.data;
-  float* weightIter = weightBuffer;
+  const float* weightIter = weightBuffer;
   if (nparms == 2) {
     for (size_t ch = 0; ch < nchannels; ++ch) {
       // Column major indexing
@@ -954,6 +954,10 @@ void MSGridderBase::ApplyConjugatedH5Parm(
 
       const float weight = *weightIter * _scratchWeights[ch];
       _metaDataCache->h5Sum += (conj(g) * weight * g).real();
+
+      // TODO:
+      // _metaDataCache->correctionSum += (conj(g_h5) * conj(g_b) * weight * g_b
+      // * g_h5).real();
 
       // Only admissible PolarizationCount for applying gains from solution
       // file is 1.
@@ -1066,6 +1070,7 @@ void MSGridderBase::readAndWeightVisibilities(
     }
   }
 
+  // TODO: move before applying the facet beam / h5 solutions
   // Calculate imaging weights
   std::complex<float>* dataIter = rowData.data;
   float* weightIter = weightBuffer;

@@ -1186,6 +1186,11 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
         if (!_settings.facetSolutionFiles.empty())
           m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
                facetEntry.imageWeight;
+        // TODO
+        // if (facetBeam or facetSolutionFiles){
+        //   m *= _msGridderMetaCache[facetEntry.index]->correctionSum /
+        //        facetEntry.imageWeight;
+        // }
         facetImage *= 1.0f / std::sqrt(m);
       }
     }

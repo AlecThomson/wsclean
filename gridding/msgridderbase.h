@@ -398,14 +398,14 @@ class MSGridderBase {
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
                                 const aocommon::BandData& curBand,
-                                float* weightBuffer);
+                                const float* weightBuffer);
 
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
                              InversionRow& rowData,
                              const aocommon::BandData& curBand,
-                             float* weightBuffer);
+                             const float* weightBuffer);
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetDirectionRA, _facetDirectionDec;
