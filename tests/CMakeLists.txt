@@ -24,10 +24,13 @@ add_executable(
   structures/testimagingtable.cpp
   ${WSCLEANFILES})
 
-message("HEY")
+add_definitions(
+  -DFACET_DEFINITION_FILE="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_4facets.reg")
+
 add_custom_target(
   download_mocks
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_h5solution_file.sh
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # A dataset generated using the following command:

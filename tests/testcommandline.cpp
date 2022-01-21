@@ -7,6 +7,8 @@
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
 const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
+const char* kFacetFile = FACET_DEFINITION_FILE;
+const char* kFacetSolutionFile = "test_data/mock_soltab_2pol.h5";
 
 std::vector<const char*> baseArgs() {
   return {"wsclean", "-quiet", "-size",           "1024",   "512",
@@ -59,6 +61,9 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
 
 BOOST_AUTO_TEST_CASE(h5parm) {
   BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
+  std::cout << "Facet file " << kFacetFile << std::endl;
+  BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacetFile));
+  BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacetSolutionFile));
 
   CommandLine commandLine;
 
@@ -66,15 +71,16 @@ BOOST_AUTO_TEST_CASE(h5parm) {
   WSClean wsclean;
   std::vector<const char*> args1 = baseArgs();
   args1.push_back("-facet-regions");
-  args1.push_back("dummy.reg");
+  args1.push_back(kFacetFile);
   args1.push_back("-apply-facet-solutions");
-  args1.push_back("dummy1.h5");
+  args1.push_back(kFacetSolutionFile);
   args1.push_back("amplitude000,phase000");
   args1.push_back(kMWA_MS);
   commandLine.Parse(wsclean, args1.size(), args1.data(), false);
   const Settings settings1 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings1.facetSolutionFiles.size(), 1u);
-  BOOST_CHECK_EQUAL(settings1.facetSolutionFiles[0], std::string("dummy1.h5"));
+  BOOST_CHECK_EQUAL(settings1.facetSolutionFiles[0],
+                    std::string(kFacetSolutionFile));
 
   // Two MSets, one h5parm
   wsclean.ResetSettings();
@@ -83,15 +89,20 @@ BOOST_AUTO_TEST_CASE(h5parm) {
   const Settings settings2 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings2.filenames.size(), 2u);
   BOOST_CHECK_EQUAL(settings2.facetSolutionFiles.size(), 1u);
-  BOOST_CHECK_EQUAL(settings2.facetSolutionFiles[0], std::string("dummy1.h5"));
+  BOOST_CHECK_EQUAL(settings2.facetSolutionFiles[0],
+                    std::string(kFacetSolutionFile));
 
   // One MSet, two h5parm files
   wsclean.ResetSettings();
   std::vector<const char*> args3 = baseArgs();
   args3.push_back("-facet-regions");
-  args3.push_back("dummy.reg");
+  args3.push_back(kFacetFile);
   args3.push_back("-apply-facet-solutions");
-  args3.push_back("dummy1.h5,dummy2.h5");
+  // args3.push_back("dummy1.h5,dummy2.h5");
+  const std::string facet_solutions_str =
+      std::string(kFacetSolutionFile) + "," + std::string(kFacetSolutionFile);
+  const char* facet_solutions_char = facet_solutions_str.c_str();
+  args3.push_back(facet_solutions_char);
   args3.push_back("amplitude000,phase000");
   args3.push_back(kMWA_MS);
   BOOST_CHECK_THROW(
@@ -105,8 +116,10 @@ BOOST_AUTO_TEST_CASE(h5parm) {
   const Settings settings3 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings3.filenames.size(), 2u);
   BOOST_CHECK_EQUAL(settings3.facetSolutionFiles.size(), 2u);
-  BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[0], std::string("dummy1.h5"));
-  BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[1], std::string("dummy2.h5"));
+  BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[0],
+                    std::string(kFacetSolutionFile));
+  BOOST_CHECK_EQUAL(settings3.facetSolutionFiles[1],
+                    std::string(kFacetSolutionFile));
 }
 
 BOOST_AUTO_TEST_CASE(idg_bda_averaging) {
