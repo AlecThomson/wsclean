@@ -1056,22 +1056,6 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchWeights.data());
 
-  if (!DoImagePSF()) {
-#ifdef HAVE_EVERYBEAM
-    if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-      ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
-          msReader, rowData, curBand, weightBuffer);
-    }
-#endif
-
-    if (!_h5parms.empty()) {
-      ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
-          msReader, antennaNames, rowData, curBand, weightBuffer);
-    }
-  }
-
-  // TODO: move before applying the facet beam / h5 solutions
-  // Calculate imaging weights
   std::complex<float>* dataIter = rowData.data;
   float* weightIter = weightBuffer;
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
@@ -1091,6 +1075,23 @@ void MSGridderBase::readAndWeightVisibilities(
       ++weightIter;
     }
   }
+
+  if (!DoImagePSF()) {
+#ifdef HAVE_EVERYBEAM
+    if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+      ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
+          msReader, rowData, curBand, weightBuffer);
+    }
+#endif
+
+    if (!_h5parms.empty()) {
+      ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
+          msReader, antennaNames, rowData, curBand, weightBuffer);
+    }
+  }
+
+  // TODO: move before applying the facet beam / h5 solutions
+  // Calculate imaging weights
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kXX>(
