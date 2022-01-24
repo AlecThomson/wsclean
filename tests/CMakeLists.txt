@@ -25,7 +25,9 @@ add_executable(
   ${WSCLEANFILES})
 
 add_definitions(
-  -DFACET_DEFINITION_FILE="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_4facets.reg")
+  -DFACET_DEFINITION_FILE_2FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_2facets.reg"
+  -DFACET_DEFINITION_FILE_4FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_4facets.reg"
+)
 
 add_custom_target(
   download_mocks
