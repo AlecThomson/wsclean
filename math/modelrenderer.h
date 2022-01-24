@@ -63,10 +63,15 @@ class ModelRenderer {
   void RenderModel(float* imageData, size_t imageWidth, size_t imageHeight,
                    const class Model& model, long double startFrequency,
                    long double endFrequency,
-                   aocommon::PolarizationEnum polarization) {
-    renderModel(imageData, imageWidth, imageHeight, model, startFrequency,
-                endFrequency, polarization);
-  }
+                   aocommon::PolarizationEnum polarization);
+
+  static void RenderGaussianComponent(
+      float* imageData, size_t imageWidth, size_t imageHeight,
+      long double phaseCentreRA, long double phaseCentreDec,
+      long double pixelScaleL, long double pixelScaleM,
+      long double phaseCentreDL, long double phaseCentreDM, long double posRA,
+      long double posDec, long double gausMaj, long double gausMin,
+      long double gausPA, long double flux);
 
  private:
   void renderPointComponent(float* imageData, size_t imageWidth,
@@ -77,12 +82,12 @@ class ModelRenderer {
                                size_t imageHeight, long double posRA,
                                long double posDec, long double gausMaj,
                                long double gausMin, long double gausPA,
-                               long double flux);
-
-  void renderModel(float* imageData, size_t imageWidth, size_t imageHeight,
-                   const class Model& model, long double startFrequency,
-                   long double endFrequency,
-                   aocommon::PolarizationEnum polarization);
+                               long double flux) {
+    RenderGaussianComponent(imageData, imageWidth, imageHeight, _phaseCentreRA,
+                            _phaseCentreDec, _pixelScaleL, _pixelScaleM,
+                            _phaseCentreDL, _phaseCentreDM, posRA, posDec,
+                            gausMaj, gausMin, gausPA, flux);
+  }
 
   long double _phaseCentreRA;
   long double _phaseCentreDec;

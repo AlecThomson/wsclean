@@ -77,15 +77,18 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
   }
 }
 
-void ModelRenderer::renderGaussianComponent(
-    float* imageData, size_t imageWidth, size_t imageHeight, long double posRA,
-    long double posDec, long double gausMaj, long double gausMin,
-    long double gausPA, long double flux) {
+void ModelRenderer::RenderGaussianComponent(
+    float* imageData, size_t imageWidth, size_t imageHeight,
+    long double phaseCentreRA, long double phaseCentreDec,
+    long double pixelScaleL, long double pixelScaleM, long double phaseCentreDL,
+    long double phaseCentreDM, long double posRA, long double posDec,
+    long double gausMaj, long double gausMin, long double gausPA,
+    long double flux) {
   // Using the FWHM formula for a Gaussian:
   long double sigmaMaj = gausMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
   long double sigmaMin = gausMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
   // TODO this won't work for non-equally spaced dimensions
-  long double minPixelScale = std::min(_pixelScaleL, _pixelScaleM);
+  long double minPixelScale = std::min(pixelScaleL, pixelScaleM);
 
   // Make rotation matrix
   long double transf[4];
@@ -104,14 +107,14 @@ void ModelRenderer::renderGaussianComponent(
   transf[3] = transf[3] / sigmaMin;
   int boundingBoxSize = ceil(sigmaMax * 20.0 / minPixelScale);
   long double sourceL, sourceM;
-  ImageCoordinates::RaDecToLM(posRA, posDec, _phaseCentreRA, _phaseCentreDec,
+  ImageCoordinates::RaDecToLM(posRA, posDec, phaseCentreRA, phaseCentreDec,
                               sourceL, sourceM);
 
   // Calculate the bounding box
   int sourceX, sourceY;
   ImageCoordinates::LMToXY<long double>(
-      sourceL - _phaseCentreDL, sourceM - _phaseCentreDM, _pixelScaleL,
-      _pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
+      sourceL - phaseCentreDL, sourceM - phaseCentreDM, pixelScaleL,
+      pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
   const int xLeft = clamp(sourceX - boundingBoxSize, 0, int(imageWidth));
   const int xRight = clamp(sourceX + boundingBoxSize, xLeft, int(imageWidth));
   const int yTop = clamp(sourceY - boundingBoxSize, 0, int(imageHeight));
@@ -122,15 +125,15 @@ void ModelRenderer::renderGaussianComponent(
   for (int y = yTop; y != yBottom; ++y) {
     for (int x = xLeft; x != xRight; ++x) {
       long double l, m;
-      ImageCoordinates::XYToLM<long double>(x, y, _pixelScaleL, _pixelScaleM,
+      ImageCoordinates::XYToLM<long double>(x, y, pixelScaleL, pixelScaleM,
                                             imageWidth, imageHeight, l, m);
-      l += _phaseCentreDL;
-      m += _phaseCentreDM;
+      l += phaseCentreDL;
+      m += phaseCentreDM;
       long double lTransf =
                       (l - sourceL) * transf[0] + (m - sourceM) * transf[1],
                   mTransf =
                       (l - sourceL) * transf[2] + (m - sourceM) * transf[3];
-      long double dist = sqrt(lTransf * lTransf + mTransf * mTransf);
+      long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
       long double v = gaus(dist, 1.0L) * flux;
       fluxSum += double(v);
       values.emplace_back(v);
@@ -178,7 +181,7 @@ void ModelRenderer::Restore(float* imageData, size_t imageWidth,
                             aocommon::PolarizationEnum polarization,
                             size_t threadCount) {
   aocommon::UVector<float> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
-  renderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
+  RenderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
               startFrequency, endFrequency, polarization);
   Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
           beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
@@ -257,7 +260,7 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
 /**
  * Render without beam convolution, such that each point-source is one pixel.
  */
-void ModelRenderer::renderModel(float* imageData, size_t imageWidth,
+void ModelRenderer::RenderModel(float* imageData, size_t imageWidth,
                                 size_t imageHeight, const Model& model,
                                 long double startFrequency,
                                 long double endFrequency,
