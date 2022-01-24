@@ -78,17 +78,6 @@ class ModelRenderer {
                             size_t imageHeight, long double posRA,
                             long double posDec, long double flux);
 
-  void renderGaussianComponent(float* imageData, size_t imageWidth,
-                               size_t imageHeight, long double posRA,
-                               long double posDec, long double gausMaj,
-                               long double gausMin, long double gausPA,
-                               long double flux) {
-    RenderGaussianComponent(imageData, imageWidth, imageHeight, _phaseCentreRA,
-                            _phaseCentreDec, _pixelScaleL, _pixelScaleM,
-                            _phaseCentreDL, _phaseCentreDM, posRA, posDec,
-                            gausMaj, gausMin, gausPA, flux);
-  }
-
   long double _phaseCentreRA;
   long double _phaseCentreDec;
   long double _pixelScaleL, _pixelScaleM;

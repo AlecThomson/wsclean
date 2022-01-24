@@ -85,27 +85,28 @@ void ModelRenderer::RenderGaussianComponent(
     long double gausMaj, long double gausMin, long double gausPA,
     long double flux) {
   // Using the FWHM formula for a Gaussian:
-  long double sigmaMaj = gausMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
-  long double sigmaMin = gausMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
+  const long double fwhm_constant = (2.0L * std::sqrt(2.0L * std::log(2.0L)));
+  const long double sigmaMaj = gausMaj / fwhm_constant;
+  const long double sigmaMin = gausMin / fwhm_constant;
   // TODO this won't work for non-equally spaced dimensions
-  long double minPixelScale = std::min(pixelScaleL, pixelScaleM);
+  const long double minPixelScale = std::min(pixelScaleL, pixelScaleM);
 
   // Make rotation matrix
   long double transf[4];
   // Position angle is angle from North:
-  long double angle = gausPA + 0.5 * M_PI;
-  transf[2] = sin(angle);
-  transf[0] = cos(angle);
+  const long double angle = gausPA + 0.5 * M_PI;
+  transf[2] = std::sin(angle);
+  transf[0] = std::cos(angle);
   transf[1] = -transf[2];
   transf[3] = transf[0];
-  double sigmaMax = std::max(std::fabs(sigmaMaj * transf[0]),
-                             std::fabs(sigmaMaj * transf[1]));
+  const double sigmaMax = std::max(std::fabs(sigmaMaj * transf[0]),
+                                   std::fabs(sigmaMaj * transf[1]));
   // Multiply with scaling matrix to make variance 1.
   transf[0] = transf[0] / sigmaMaj;
   transf[1] = transf[1] / sigmaMaj;
   transf[2] = transf[2] / sigmaMin;
   transf[3] = transf[3] / sigmaMin;
-  int boundingBoxSize = ceil(sigmaMax * 20.0 / minPixelScale);
+  const int boundingBoxSize = std::ceil(sigmaMax * 20.0 / minPixelScale);
   long double sourceL, sourceM;
   ImageCoordinates::RaDecToLM(posRA, posDec, phaseCentreRA, phaseCentreDec,
                               sourceL, sourceM);
@@ -129,18 +130,18 @@ void ModelRenderer::RenderGaussianComponent(
                                             imageWidth, imageHeight, l, m);
       l += phaseCentreDL;
       m += phaseCentreDM;
-      long double lTransf =
-                      (l - sourceL) * transf[0] + (m - sourceM) * transf[1],
-                  mTransf =
-                      (l - sourceL) * transf[2] + (m - sourceM) * transf[3];
-      long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
+      const long double lTransf =
+          (l - sourceL) * transf[0] + (m - sourceM) * transf[1];
+      const long double mTransf =
+          (l - sourceL) * transf[2] + (m - sourceM) * transf[3];
+      const long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
       long double v = gaus(dist, 1.0L) * flux;
       fluxSum += double(v);
       values.emplace_back(v);
     }
   }
   const double* iter = values.data();
-  double factor = flux / fluxSum;
+  const double factor = flux / fluxSum;
   for (int y = yTop; y != yBottom; ++y) {
     float* imageDataPtr = imageData + y * imageWidth + xLeft;
     for (int x = xLeft; x != xRight; ++x) {
@@ -275,8 +276,10 @@ void ModelRenderer::RenderModel(float* imageData, size_t imageWidth,
       if (comp->Type() == ModelComponent::GaussianSource) {
         long double gausMaj = comp->MajorAxis(), gausMin = comp->MinorAxis(),
                     gausPA = comp->PositionAngle();
-        renderGaussianComponent(imageData, imageWidth, imageHeight, posRA,
-                                posDec, gausMaj, gausMin, gausPA, intFlux);
+        RenderGaussianComponent(
+            imageData, imageWidth, imageHeight, _phaseCentreRA, _phaseCentreDec,
+            _pixelScaleL, _pixelScaleM, _phaseCentreDL, _phaseCentreDM, posRA,
+            posDec, gausMaj, gausMin, gausPA, intFlux);
       } else
         renderPointComponent(imageData, imageWidth, imageHeight, posRA, posDec,
                              intFlux);
