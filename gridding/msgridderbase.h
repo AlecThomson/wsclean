@@ -396,16 +396,29 @@ class MSGridderBase {
   void initializePredictReader(MSProvider& msProvider);
 
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
-  void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
-                                const aocommon::BandData& curBand,
-                                const float* weightBuffer);
-
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
                              InversionRow& rowData,
                              const aocommon::BandData& curBand,
                              const float* weightBuffer);
+
+#ifdef HAVE_EVERYBEAM
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
+                                const aocommon::BandData& curBand,
+                                const float* weightBuffer);
+
+  /**
+   * @brief Applies both the conjugated facet beam and the conjugated h5 parm
+   * solutions to the visibilities and computes the weight corresponding to the
+   * combined effect.
+   */
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  void ApplyConjugatedFacetDdEffects(
+      MSReader& msReader, const std::vector<std::string>& antennaNames,
+      InversionRow& rowData, const aocommon::BandData& curBand,
+      const float* weightBuffer);
+#endif  // HAVE_EVERYBEAM
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetDirectionRA, _facetDirectionDec;
