@@ -1756,17 +1756,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-      float m = 1.0;
-      // if (_settings.applyFacetBeam)
-      //   m *= _msGridderMetaCache[facetEntry.index]->beamSum /
-      //        facetEntry.imageWeight;
-      // if (!_settings.facetSolutionFiles.empty())
-      //   m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
-      //        facetEntry.imageWeight;
-      if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
-        m *= _msGridderMetaCache[facetEntry.index]->correctionSum /
-             facetEntry.imageWeight;
-      }
+      const float m = _msGridderMetaCache[facetEntry.index]->correctionSum /
+                      facetEntry.imageWeight;
       facetImage *= 1.0f / std::sqrt(m);
     }
 

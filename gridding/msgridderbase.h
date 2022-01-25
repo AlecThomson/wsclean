@@ -361,6 +361,23 @@ class MSGridderBase {
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
 
+#ifdef HAVE_EVERYBEAM
+  /**
+   * @brief Compute and cache the beam response if no cached response
+   * present for the provided time.
+   */
+  void CacheBeamResponse(double time, size_t fieldId,
+                         const aocommon::BandData& curBand);
+#endif
+
+  /**
+   * @brief Cache the solutions from a h5 solution file and update the
+   * associated time.
+   */
+  void CacheParmResponse(double time,
+                         const std::vector<std::string>& antennaNames,
+                         const aocommon::BandData& curBand);
+
   void resetMetaData() { _hasFrequencies = false; }
 
   void calculateMSLimits(const aocommon::BandData& selectedBand,
