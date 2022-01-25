@@ -769,6 +769,7 @@ void MSGridderBase::writeVisibilities(
   assert(!DoImagePSF());  // The PSF is never predicted.
 
   if (!_h5parms.empty()) {
+    assert(!_settings.facetRegionFilename.empty());
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
@@ -816,7 +817,8 @@ void MSGridderBase::writeVisibilities(
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+  if (_settings.applyFacetBeam) {
+    assert(!_settings.facetRegionFilename.empty());
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
     _predictReader->NextInputRow();
