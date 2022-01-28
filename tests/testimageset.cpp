@@ -11,11 +11,11 @@ using aocommon::Image;
 using aocommon::PolarizationEnum;
 
 struct ImageSetFixtureBase {
-  void addToImageSet(ImagingTable& table, size_t index, size_t joinedGroup,
-                     size_t outChannel, size_t squaredIndex,
+  void addToImageSet(DeconvolutionTable& table, size_t index,
+                     size_t joinedGroup, size_t outChannel, size_t squaredIndex,
                      PolarizationEnum pol, size_t frequencyMHz,
                      double imageWeight = 1.0) {
-    std::unique_ptr<ImagingTableEntry> e(new ImagingTableEntry());
+    std::unique_ptr<DeconvolutionTableEntry> e(new DeconvolutionTableEntry());
     e->index = index;
     e->joinedGroupIndex = joinedGroup;
     e->outputChannelIndex = outChannel;
@@ -42,7 +42,7 @@ struct ImageSetFixtureBase {
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
-  ImagingTable table;
+  DeconvolutionTable table;
   Settings settings;
 };
 
@@ -65,8 +65,6 @@ BOOST_FIXTURE_TEST_SUITE(imageset, ImageSetFixture)
 BOOST_AUTO_TEST_CASE(squaredGroupCount) {
   BOOST_CHECK_EQUAL(table.SquaredGroups().size(), 2u);
 }
-
-BOOST_AUTO_TEST_CASE(entryCount) { BOOST_CHECK_EQUAL(table.EntryCount(), 4u); }
 
 BOOST_AUTO_TEST_CASE(entriesInGroup) {
   BOOST_CHECK_EQUAL(table.SquaredGroups().front().size(), 2u);

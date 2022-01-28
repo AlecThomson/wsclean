@@ -8,16 +8,19 @@
 
 #include <cstring>
 
+class DeconvolutionTable;
+struct DeconvolutionTableEntry;
+
 class Deconvolution {
  public:
   explicit Deconvolution(const class Settings& settings);
   ~Deconvolution();
 
-  void Perform(const class ImagingTable& groupTable,
+  void Perform(const DeconvolutionTable& groupTable,
                bool& reachedMajorThreshold, size_t majorIterationNr);
 
   void InitializeDeconvolutionAlgorithm(
-      const ImagingTable& groupTable,
+      const DeconvolutionTable& groupTable,
       aocommon::PolarizationEnum psfPolarization, double beamSize,
       size_t threadCount);
 
@@ -37,13 +40,13 @@ class Deconvolution {
   /// Return IterationNumber of the underlying \c DeconvolutionAlgorithm
   size_t IterationNumber() const;
 
-  void SaveSourceList(const class ImagingTable& table,
+  void SaveSourceList(const DeconvolutionTable& table,
                       long double phaseCentreRA, long double phaseCentreDec) {
     _parallelDeconvolution.SaveSourceList(*_modelImages, table, phaseCentreRA,
                                           phaseCentreDec);
   }
 
-  void SavePBSourceList(const class ImagingTable& table,
+  void SavePBSourceList(const DeconvolutionTable& table,
                         long double phaseCentreRA, long double phaseCentreDec) {
     _parallelDeconvolution.SavePBSourceList(*_modelImages, table, phaseCentreRA,
                                             phaseCentreDec);
@@ -51,9 +54,9 @@ class Deconvolution {
 
  private:
   void correctChannelForPB(class ComponentList& list,
-                           const struct ImagingTableEntry& entry) const;
+                           const DeconvolutionTableEntry& entry) const;
 
-  void readMask(const ImagingTable& groupTable);
+  void readMask(const DeconvolutionTable& groupTable);
 
   const class Settings& _settings;
 

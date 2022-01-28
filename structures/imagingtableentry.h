@@ -13,6 +13,8 @@ class Facet;
 }
 }  // namespace schaapcommon
 
+struct DeconvolutionTableEntry;
+
 struct ImagingTableEntry {
   struct MSBandInfo {
     size_t bandIndex;
@@ -24,6 +26,8 @@ struct ImagingTableEntry {
   };
 
   ImagingTableEntry();
+
+  std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry() const;
 
   /**
    * Unique index of the entry within its ImagingTable.
