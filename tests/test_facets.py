@@ -334,7 +334,7 @@ def test_multi_ms():
 
     names = ["facets-single-ms", "facets-multiple-ms"]
     commands = [
-        # f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
+        f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
         f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5,mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS} {MWA_MOCK_FULL}",
     ]
     for name, command in zip(names, commands):
@@ -344,7 +344,7 @@ def test_multi_ms():
     # Compare images, the threshold is chosen relatively large since the difference
     # fluctuates between runs.
     # AST-611 aims to investigate this.
-    threshold = 8e-3
+    threshold = 1.2e-2
     compare_rms_fits(f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold)
 
     # Model data columns should be equal
