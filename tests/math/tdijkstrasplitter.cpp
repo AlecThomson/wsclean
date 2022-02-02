@@ -2,9 +2,11 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../structures/image.h"
+#include <aocommon/image.h>
 
 #include <random>
+
+using aocommon::Image;
 
 BOOST_AUTO_TEST_SUITE(dijkstra_splitter)
 

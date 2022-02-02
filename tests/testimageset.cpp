@@ -1,12 +1,13 @@
 #include "../deconvolution/imageset.h"
 #include "../deconvolution/spectralfitter.h"
 #include "../io/cachedimageset.h"
-#include "../structures/image.h"
 
+#include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
 #include <boost/test/unit_test.hpp>
 
+using aocommon::Image;
 using aocommon::PolarizationEnum;
 
 struct ImageSetFixtureBase {

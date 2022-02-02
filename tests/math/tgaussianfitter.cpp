@@ -3,10 +3,10 @@
 #include "../../math/gaussianfitter.h"
 #include "../../math/modelrenderer.h"
 
-#include "../../structures/image.h"
-
 #include "../../model/model.h"
 #include "../../model/powerlawsed.h"
+
+#include <aocommon/image.h>
 
 BOOST_AUTO_TEST_SUITE(gaussian_fitter)
 
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(conversions) {
 BOOST_AUTO_TEST_CASE(fit) {
   for (size_t beamPAindex = 0; beamPAindex != 10; ++beamPAindex) {
     const size_t width = 512, height = 512;
-    Image model(width, height, 0.0), restored(width, height, 0.0);
+    aocommon::Image model(width, height, 0.0), restored(width, height, 0.0);
     model[((height / 2) * width) + (width / 2)] = 1.0;
     long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0),
                 beamMaj = 20 * pixelScale, beamMin = 5 * pixelScale,
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(fit) {
 
 BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
   const size_t width = 64, height = 64;
-  Image restored(width, height, 0.0);
+  aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
 
 BOOST_AUTO_TEST_CASE(fit_circular) {
   const size_t width = 64, height = 64;
-  Image restored(width, height, 0.0);
+  aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
 
 BOOST_AUTO_TEST_CASE(fit_small_beam) {
   const size_t width = 64, height = 64;
-  Image restored(width, height, 0.0);
+  aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);

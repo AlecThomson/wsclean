@@ -1,10 +1,11 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../../structures/image.h"
-
+#include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
 #include <random>
+
+usiing aocommon::Image;
 
 BOOST_AUTO_TEST_SUITE(image_operations)
 
