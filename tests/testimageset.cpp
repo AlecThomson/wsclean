@@ -463,7 +463,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
       addToImageSet(table, index, 0, ch, ch, pols[p], 100 + ch, weights[ch]);
 
       storedImage = (1 << index);  // assign the entire image to 2^index
-      cachedImgs.Store(storedImage.data(), pols[p], ch, false);
+      cachedImgs.Store(storedImage.Data(), pols[p], ch, false);
     }
   }
   settings.linkedPolarizations = std::set<PolarizationEnum>{
