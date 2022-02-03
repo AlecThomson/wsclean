@@ -96,13 +96,11 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups()[sqIndex];
     for (const DeconvolutionTable::EntryPtr& e : sqGroup) {
-      for (size_t i = 0; i != e->imageCount; ++i) {
-        imageSet.Load(scratch.Data(), e->polarization, e->outputChannelIndex,
-                      i == 1);
-        _images[imgIndex].AddWithFactor(scratch, e->imageWeight);
-        averagedWeights[imgIndex] += e->imageWeight;
-        ++imgIndex;
-      }
+      imageSet.Load(scratch.Data(), e->polarization, e->outputChannelIndex,
+                    e->isImaginary);
+      _images[imgIndex].AddWithFactor(scratch, e->imageWeight);
+      averagedWeights[imgIndex] += e->imageWeight;
+      ++imgIndex;
     }
     const size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
                                     _imagingTable.SquaredGroups().size();
@@ -227,11 +225,9 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
          _imagingTable.SquaredGroups()) {
       size_t imgIndexForChannel = imgIndex;
       for (const DeconvolutionTable::EntryPtr& e : sqGroup) {
-        for (size_t i = 0; i != e->imageCount; ++i) {
-          imageSet.Store(_images[imgIndex].Data(), e->polarization,
-                         e->outputChannelIndex, i == 1);
-          ++imgIndex;
-        }
+        imageSet.Store(_images[imgIndex].Data(), e->polarization,
+                       e->outputChannelIndex, e->isImaginary);
+        ++imgIndex;
       }
       size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
                                 _imagingTable.SquaredGroups().size();
@@ -246,11 +242,9 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
 void ImageSet::directStore(CachedImageSet& imageSet) {
   size_t imgIndex = 0;
   for (const DeconvolutionTableEntry& e : _imagingTable) {
-    for (size_t i = 0; i != e.imageCount; ++i) {
-      imageSet.Store(_images[imgIndex].Data(), e.polarization,
-                     e.outputChannelIndex, i == 1);
-      ++imgIndex;
-    }
+    imageSet.Store(_images[imgIndex].Data(), e.polarization,
+                   e.outputChannelIndex, e.isImaginary);
+    ++imgIndex;
   }
 }
 

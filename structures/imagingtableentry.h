@@ -27,7 +27,8 @@ struct ImagingTableEntry {
 
   ImagingTableEntry();
 
-  std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry() const;
+  std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry(
+      bool isImaginary) const;
 
   /**
    * Unique index of the entry within its ImagingTable.

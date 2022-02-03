@@ -26,7 +26,7 @@ ImagingTableEntry::ImagingTableEntry()
       imageWeight(0.0) {}
 
 std::unique_ptr<DeconvolutionTableEntry>
-ImagingTableEntry::CreateDeconvolutionEntry() const {
+ImagingTableEntry::CreateDeconvolutionEntry(bool isImaginary) const {
   auto entry = boost::make_unique<DeconvolutionTableEntry>();
 
   entry->index = index;
@@ -36,7 +36,7 @@ ImagingTableEntry::CreateDeconvolutionEntry() const {
   entry->outputChannelIndex = outputChannelIndex;
   entry->outputIntervalIndex = outputIntervalIndex;
   entry->squaredDeconvolutionIndex = squaredDeconvolutionIndex;
-  entry->imageCount = imageCount;
+  entry->isImaginary = isImaginary;
   entry->imageWeight = imageWeight;
 
   return entry;

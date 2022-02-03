@@ -35,11 +35,10 @@ struct DeconvolutionTableEntry {
   size_t squaredDeconvolutionIndex = 0;
 
   /**
-   * A normal inversion results in '1' image. However, an XY
-   * imaging run results in 2 (real and imaginary), while an
-   * YX imaging run results in 0, as it is added to XY.
+   * Flag that indicates if the image is real or imaginary. This flag is
+   * passed on to CachedImageSet when loading and storing the image.
    */
-  size_t imageCount = 0;
+  bool isImaginary = false;
 
   /**
    * A number that scales with the estimated inverse-variance of the image. It

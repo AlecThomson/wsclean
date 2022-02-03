@@ -21,7 +21,7 @@ struct ImageSetFixtureBase {
     e->polarization = pol;
     e->bandStartFrequency = frequencyMHz;
     e->bandEndFrequency = frequencyMHz;
-    e->imageCount = 1;
+    e->isImaginary = false;
     e->imageWeight = imageWeight;
     table.AddEntry(std::move(e));
   }
