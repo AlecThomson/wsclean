@@ -208,7 +208,7 @@ class ImageSet {
     const DeconvolutionTable::Group& firstChannelGroup =
         _imagingTable.SquaredGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
-    for (const DeconvolutionTable::EntryPtr& entry : firstChannelGroup) {
+    for (const DeconvolutionTableEntry* entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
           _linkedPolarizations.count(entry->polarization) != 0) {
         pols.insert(entry->polarization);

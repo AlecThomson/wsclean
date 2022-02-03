@@ -200,7 +200,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   const DeconvolutionTable::Group& firstSquaredGroup =
       groupTable.SquaredGroups().front();
   _polarizations.clear();
-  for (const DeconvolutionTable::EntryPtr& entry : firstSquaredGroup) {
+  for (const DeconvolutionTableEntry* entry : firstSquaredGroup) {
     // TODO: condition below needs attention when extending facetting
     // to deconvolution. We'd rather want to read one entry per full image
     // (independent of number of facets), this might need additional

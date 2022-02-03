@@ -13,8 +13,8 @@
  */
 class DeconvolutionTable {
  public:
-  using EntryPtr = std::shared_ptr<DeconvolutionTableEntry>;
-  using Group = std::vector<EntryPtr>;
+  using Entries = std::vector<std::unique_ptr<DeconvolutionTableEntry>>;
+  using Group = std::vector<const DeconvolutionTableEntry*>;
   using Groups = std::vector<Group>;
 
   /**
@@ -24,7 +24,7 @@ class DeconvolutionTable {
    * of a reference to the shared pointer for the object.
    */
   class EntryIterator {
-    using BaseIterator = Group::const_iterator;
+    using BaseIterator = Entries::const_iterator;
 
    public:
     explicit EntryIterator(BaseIterator baseIt) : _baseIterator(baseIt) {}
@@ -62,7 +62,7 @@ class DeconvolutionTable {
   const DeconvolutionTableEntry& Front() const { return *_entries.front(); }
 
  private:
-  Group _entries;
+  Entries _entries;
   Groups _squaredGroups;
 };
 

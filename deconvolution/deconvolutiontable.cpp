@@ -12,8 +12,8 @@ void DeconvolutionTable::AddEntry(
   sqIndex -= _entries.front()->squaredDeconvolutionIndex;
   assert(sqIndex <= _squaredGroups.size());
   if (sqIndex == _squaredGroups.size()) {
-    _squaredGroups.emplace_back(1, _entries.back());
+    _squaredGroups.emplace_back(1, _entries.back().get());
   } else {
-    _squaredGroups[sqIndex].push_back(_entries.back());
+    _squaredGroups[sqIndex].push_back(_entries.back().get());
   }
 }
