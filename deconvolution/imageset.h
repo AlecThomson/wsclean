@@ -281,8 +281,8 @@ class ImageSet {
   }
 
   const aocommon::Image& entryToImage(
-      const DeconvolutionTable::EntryPtr& entry) const {
-    size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
+      const DeconvolutionTableEntry& entry) const {
+    size_t imageIndex = _entryIndexToImageIndex.find(entry.index)->second;
     return _images[imageIndex];
   }
 

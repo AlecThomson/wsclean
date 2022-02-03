@@ -256,20 +256,20 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups().front();
     if (sqGroup.size() == 1) {
-      const DeconvolutionTable::EntryPtr& entry = sqGroup.front();
+      const DeconvolutionTableEntry& entry = *sqGroup.front();
       dest = entryToImage(entry);
     } else {
       const bool useAllPolarizations = _linkedPolarizations.empty();
       bool isFirst = true;
-      for (const DeconvolutionTable::EntryPtr& entry : sqGroup) {
+      for (const DeconvolutionTable::EntryPtr& entry_ptr : sqGroup) {
         if (useAllPolarizations ||
-            _linkedPolarizations.count(entry->polarization) != 0) {
+            _linkedPolarizations.count(entry_ptr->polarization) != 0) {
           if (isFirst) {
-            dest = entryToImage(entry);
+            dest = entryToImage(*entry_ptr);
             dest.Square();
             isFirst = false;
           } else {
-            dest.AddSquared(entryToImage(entry));
+            dest.AddSquared(entryToImage(*entry_ptr));
           }
         }
       }
@@ -288,20 +288,20 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
         if (sqGroup.size() == 1) {
-          const DeconvolutionTable::EntryPtr& entry = sqGroup.front();
+          const DeconvolutionTableEntry& entry = *sqGroup.front();
           scratch = entryToImage(entry);
         } else {
           const bool useAllPolarizations = _linkedPolarizations.empty();
           bool isFirstPolarization = true;
-          for (const DeconvolutionTable::EntryPtr& entry : sqGroup) {
+          for (const DeconvolutionTable::EntryPtr& entry_ptr : sqGroup) {
             if (useAllPolarizations ||
-                _linkedPolarizations.count(entry->polarization) != 0) {
+                _linkedPolarizations.count(entry_ptr->polarization) != 0) {
               if (isFirstPolarization) {
-                scratch = entryToImage(entry);
+                scratch = entryToImage(*entry_ptr);
                 scratch.Square();
                 isFirstPolarization = false;
               } else {
-                scratch.AddSquared(entryToImage(entry));
+                scratch.AddSquared(entryToImage(*entry_ptr));
               }
             }
           }
@@ -333,15 +333,15 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
       size_t sqIndex = channelToSqIndex(channel);
       const DeconvolutionTable::Group& sqGroup =
           _imagingTable.SquaredGroups()[sqIndex];
-      for (const DeconvolutionTable::EntryPtr& entry : sqGroup) {
+      for (const DeconvolutionTable::EntryPtr& entry_ptr : sqGroup) {
         if (useAllPolarizations ||
-            _linkedPolarizations.count(entry->polarization) != 0) {
+            _linkedPolarizations.count(entry_ptr->polarization) != 0) {
           if (isFirst) {
-            dest = entryToImage(entry);
+            dest = entryToImage(*entry_ptr);
             dest.SquareWithFactor(groupWeight);
             isFirst = false;
           } else {
-            dest.AddSquared(entryToImage(entry), groupWeight);
+            dest.AddSquared(entryToImage(*entry_ptr), groupWeight);
           }
         }
       }
@@ -359,7 +359,7 @@ void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
       _imagingTable.SquaredGroups().front().size() == 1) {
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups().front();
-    const DeconvolutionTable::EntryPtr& entry = sqGroup.front();
+    const DeconvolutionTableEntry& entry = *sqGroup.front();
     dest = entryToImage(entry);
   } else {
     bool isFirst = true;
@@ -373,14 +373,14 @@ void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
       // shouldn't add it to the total in that case.
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
-        for (const DeconvolutionTable::EntryPtr& entry : sqGroup) {
+        for (const DeconvolutionTable::EntryPtr& entry_ptr : sqGroup) {
           if (useAllPolarizations ||
-              _linkedPolarizations.count(entry->polarization) != 0) {
+              _linkedPolarizations.count(entry_ptr->polarization) != 0) {
             if (isFirst) {
-              assignMultiply(dest, entryToImage(entry), groupWeight);
+              assignMultiply(dest, entryToImage(*entry_ptr), groupWeight);
               isFirst = false;
             } else {
-              dest.AddWithFactor(entryToImage(entry), groupWeight);
+              dest.AddWithFactor(entryToImage(*entry_ptr), groupWeight);
             }
           }
         }
