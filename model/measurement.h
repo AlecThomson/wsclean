@@ -10,24 +10,11 @@
 
 class Measurement {
  public:
-  Measurement() : _frequencyHz(0.0), _bandWidthHz(0.0) {
-    _fluxDensities.fill(0.0);
-    _fluxDensityStddevs.fill(0.0);
-  }
-
-  Measurement(const Measurement &source)
-      : _frequencyHz(source._frequencyHz), _bandWidthHz(source._bandWidthHz) {
-    _fluxDensities = source._fluxDensities;
-    _fluxDensityStddevs = source._fluxDensityStddevs;
-  }
-
-  Measurement &operator=(const Measurement &source) {
-    _frequencyHz = source._frequencyHz;
-    _bandWidthHz = source._bandWidthHz;
-    _fluxDensities = source._fluxDensities;
-    _fluxDensityStddevs = source._fluxDensityStddevs;
-    return *this;
-  }
+  Measurement()
+      : _frequencyHz(0.0),
+        _bandWidthHz(0.0),
+        _fluxDensities{},
+        _fluxDensityStddevs{} {}
 
   void operator+=(const Measurement &rhs) {
     for (size_t p = 0; p != 4; ++p) {
