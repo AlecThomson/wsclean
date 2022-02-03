@@ -44,12 +44,20 @@ class DeconvolutionTable {
   EntryIterator begin() const { return EntryIterator(_entries.begin()); }
   EntryIterator end() const { return EntryIterator(_entries.end()); }
 
-  void AddEntry(std::unique_ptr<DeconvolutionTableEntry> entry) {
-    entry->index = _entries.size();
-    _entries.push_back(std::move(entry));
-  }
-
-  void Update();
+  /**
+   * @brief Adds an entry to the table.
+   *
+   * When adding multiple entries, these restrictions apply to the
+   * the squaredDeconvolutionIndex ('sqIndex') of the entries:
+   * - The sqIndex must be greater than or equal to the sqIndex of the first
+   *   entry. (The first entry must have the smallest sqIndex of all entries.)
+   * - The sqIndex must be at most 1 larger than the sqIndex of any of the
+   *   previously added entries.
+   * For example, valid indices are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
+   *
+   * @param entry A new entry.
+   */
+  void AddEntry(std::unique_ptr<DeconvolutionTableEntry> entry);
 
   const DeconvolutionTableEntry& Front() const { return *_entries.front(); }
 

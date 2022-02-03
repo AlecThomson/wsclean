@@ -104,6 +104,5 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable()
     assert(entry_ptr);
     table->AddEntry(entry_ptr->CreateDeconvolutionEntry());
   }
-  table->Update();
   return table;
 }

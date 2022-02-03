@@ -1,17 +1,19 @@
 #include "deconvolutiontable.h"
 
-#include <map>
+#include <cassert>
 
-void DeconvolutionTable::Update() {
-  std::map<size_t, Group> group_map;
+void DeconvolutionTable::AddEntry(
+    std::unique_ptr<DeconvolutionTableEntry> entry) {
+  entry->index = _entries.size();
+  _entries.push_back(std::move(entry));
 
-  for (const EntryPtr& e : _entries) {
-    group_map[e->squaredDeconvolutionIndex].push_back(e);
-  }
-
-  _squaredGroups.clear();
-  _squaredGroups.reserve(group_map.size());
-  for (auto& item : group_map) {
-    _squaredGroups.emplace_back(std::move(item.second));
+  size_t sqIndex = _entries.back()->squaredDeconvolutionIndex;
+  assert(sqIndex >= _entries.front()->squaredDeconvolutionIndex);
+  sqIndex -= _entries.front()->squaredDeconvolutionIndex;
+  assert(sqIndex <= _squaredGroups.size());
+  if (sqIndex == _squaredGroups.size()) {
+    _squaredGroups.emplace_back(1, _entries.back());
+  } else {
+    _squaredGroups[sqIndex].push_back(_entries.back());
   }
 }
