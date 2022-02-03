@@ -628,7 +628,7 @@ class WStackingGridder {
   std::vector<double> _1dKernel;
   std::vector<std::vector<num_t>> _griddingKernels;
 
-  std::vector<aocommon::ImageBaseComplex<num_t>> _layeredUVData;
+  std::vector<aocommon::ComplexImageBase<num_t>> _layeredUVData;
   std::vector<aocommon::ImageBase<num_t>> _imageData, _imageDataImaginary;
   std::vector<num_t> _sqrtLMLookupTable;
   size_t _nFFTThreads;
