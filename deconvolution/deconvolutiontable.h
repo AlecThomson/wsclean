@@ -21,7 +21,7 @@ class DeconvolutionTable {
    * Iterator class for looping over entries.
    *
    * Dereferencing this iterator yields a reference to the actual object instead
-   * of a reference to the shared pointer for the object.
+   * of a reference to the pointer for the object.
    */
   class EntryIterator {
     using BaseIterator = Entries::const_iterator;

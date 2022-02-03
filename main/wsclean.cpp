@@ -1511,7 +1511,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       groupTable.GetFacet(0).CreateDeconvolutionTable();
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
-      *deconvolution_table, *_settings.polarizations.begin(),
+      std::move(deconvolution_table), *_settings.polarizations.begin(),
       minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
   if (_settings.deconvolutionIterationCount > 0) {
@@ -1522,8 +1522,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       _deconvolution.InitializeImages(_residualImages, _modelImages,
                                       _psfImages);
       _deconvolutionWatch.Start();
-      _deconvolution.Perform(*deconvolution_table, reachedMajorThreshold,
-                             _majorIterationNr);
+      _deconvolution.Perform(reachedMajorThreshold, _majorIterationNr);
       _deconvolutionWatch.Pause();
 
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&

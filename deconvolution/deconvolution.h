@@ -16,11 +16,10 @@ class Deconvolution {
   explicit Deconvolution(const class Settings& settings);
   ~Deconvolution();
 
-  void Perform(const DeconvolutionTable& groupTable,
-               bool& reachedMajorThreshold, size_t majorIterationNr);
+  void Perform(bool& reachedMajorThreshold, size_t majorIterationNr);
 
   void InitializeDeconvolutionAlgorithm(
-      const DeconvolutionTable& groupTable,
+      std::unique_ptr<DeconvolutionTable> table,
       aocommon::PolarizationEnum psfPolarization, double beamSize,
       size_t threadCount);
 
@@ -33,6 +32,7 @@ class Deconvolution {
 
   void FreeDeconvolutionAlgorithms() {
     _parallelDeconvolution.FreeDeconvolutionAlgorithms();
+    _table.reset();
   }
 
   bool IsInitialized() const { return _parallelDeconvolution.IsInitialized(); }
@@ -59,6 +59,8 @@ class Deconvolution {
   void readMask(const DeconvolutionTable& groupTable);
 
   const class Settings& _settings;
+
+  std::unique_ptr<DeconvolutionTable> _table;
 
   ParallelDeconvolution _parallelDeconvolution;
 

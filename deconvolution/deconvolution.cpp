@@ -27,6 +27,7 @@ using aocommon::units::FluxDensity;
 
 Deconvolution::Deconvolution(const class Settings& settings)
     : _settings(settings),
+      _table(),
       _parallelDeconvolution(settings),
       _autoMaskIsFinished(false),
       _imgWidth(0),  // these are not yet set the in settings obj -- load later
@@ -37,14 +38,15 @@ Deconvolution::Deconvolution(const class Settings& settings)
 
 Deconvolution::~Deconvolution() { FreeDeconvolutionAlgorithms(); }
 
-void Deconvolution::Perform(const DeconvolutionTable& groupTable,
-                            bool& reachedMajorThreshold,
+void Deconvolution::Perform(bool& reachedMajorThreshold,
                             size_t majorIterationNr) {
+  assert(_table);
+
   Logger::Info.Flush();
   Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
-  ImageSet residualSet(groupTable, _settings, _imgWidth, _imgHeight);
-  ImageSet modelSet(groupTable, _settings, _imgWidth, _imgHeight);
+  ImageSet residualSet(*_table, _settings, _imgWidth, _imgHeight);
+  ImageSet modelSet(*_table, _settings, _imgWidth, _imgHeight);
 
   Logger::Debug << "Loading residual images...\n";
   residualSet.LoadAndAverage(*_residualImages);
@@ -176,7 +178,7 @@ void Deconvolution::Perform(const DeconvolutionTable& groupTable,
 }
 
 void Deconvolution::InitializeDeconvolutionAlgorithm(
-    const DeconvolutionTable& groupTable,
+    std::unique_ptr<DeconvolutionTable> table,
     aocommon::PolarizationEnum psfPolarization, double beamSize,
     size_t threadCount) {
   _imgWidth = _settings.trimmedImageWidth;
@@ -189,7 +191,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   _autoMaskIsFinished = false;
   _autoMask.clear();
   FreeDeconvolutionAlgorithms();
-  if (groupTable.SquaredGroups().empty())
+  _table = std::move(table);
+  if (_table->SquaredGroups().empty())
     throw std::runtime_error("Nothing to clean");
 
   if (!std::isfinite(_beamSize)) {
@@ -198,7 +201,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   }
 
   const DeconvolutionTable::Group& firstSquaredGroup =
-      groupTable.SquaredGroups().front();
+      _table->SquaredGroups().front();
   _polarizations.clear();
   for (const DeconvolutionTableEntry* entry : firstSquaredGroup) {
     // TODO: condition below needs attention when extending facetting
@@ -261,7 +264,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
                                     _settings.spectralFittingTerms);
 
   ImageSet::CalculateDeconvolutionFrequencies(
-      groupTable, _channelFrequencies, _channelWeights,
+      *_table, _channelFrequencies, _channelWeights,
       _settings.deconvolutionChannelCount);
   algorithm->InitializeFrequencies(_channelFrequencies, _channelWeights);
   _parallelDeconvolution.SetAlgorithm(std::move(algorithm));
@@ -279,7 +282,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     _parallelDeconvolution.SetSpectrallyForcedImages(std::move(terms));
   }
 
-  readMask(groupTable);
+  readMask(*_table);
 }
 
 size_t Deconvolution::IterationNumber() const {
