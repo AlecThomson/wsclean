@@ -158,9 +158,9 @@ class PrimaryBeamImageSet {
     componentList.MergeDuplicates();
 
     for (size_t i = 0; i != componentList.NScales(); ++i) {
-      std::vector<std::pair<size_t, size_t>> positions =
+      aocommon::UVector<std::pair<size_t, size_t>> positions =
           componentList.GetPositions(i);
-      std::vector<double> beamCorrectionFactors;
+      aocommon::UVector<double> beamCorrectionFactors;
       size_t x;
       size_t y;
       // For C++ >=17, the tie can be part of range-based for-loop

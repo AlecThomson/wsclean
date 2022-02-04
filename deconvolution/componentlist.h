@@ -108,8 +108,9 @@ class ComponentList {
    * Size of corrections factors vector should match the number of positions
    * for the specified scale.
    */
-  void MultiplyScaleComponent(size_t scaleIndex, size_t channel,
-                              const std::vector<double>& correctionFactors) {
+  void MultiplyScaleComponent(
+      size_t scaleIndex, size_t channel,
+      const aocommon::UVector<double>& correctionFactors) {
     assert(correctionFactors.size() ==
            _listPerScale[scaleIndex].positions.size);
     for (size_t i = 0; i != _listPerScale[scaleIndex].positions.size(); ++i) {
@@ -119,9 +120,13 @@ class ComponentList {
     }
   }
 
-  std::vector<std::pair<size_t, size_t>> GetPositions(size_t scaleIndex) const {
+  /**
+   * @brief Get the positions per scale index as a vector of (x,y)-pairs
+   */
+  aocommon::UVector<std::pair<size_t, size_t>> GetPositions(
+      size_t scaleIndex) const {
     assert(scaleIndex <= _listPerScale.size());
-    std::vector<std::pair<size_t, size_t>> positions;
+    aocommon::UVector<std::pair<size_t, size_t>> positions;
     for (const Position& position : _listPerScale[scaleIndex].positions) {
       positions.emplace_back(std::make_pair(position.x, position.y));
     }
