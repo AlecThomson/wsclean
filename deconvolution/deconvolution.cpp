@@ -200,22 +200,19 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     _beamSize = 0.0;
   }
 
-  const DeconvolutionTable::Group& firstSquaredGroup =
-      _table->SquaredGroups().front();
-  _polarizations.clear();
-  for (const DeconvolutionTableEntry* entry : firstSquaredGroup) {
-    // TODO: condition below needs attention when extending facetting
-    // to deconvolution. We'd rather want to read one entry per full image
-    // (independent of number of facets), this might need additional
-    // functionality in the imaging table, e.g. CollapseFacetGroup
-    // MAIK: Check what's required when splitting off deconvolution ???
-    if (/* entry->facet == nullptr && */
-        _polarizations.count(entry->polarization) != 0)
-      throw std::runtime_error(
-          "Two equal polarizations were given to the deconvolution algorithm "
-          "within a single polarized group");
-    else
-      _polarizations.insert(entry->polarization);
+  {
+    const DeconvolutionTable::Group& firstSquaredGroup =
+        _table->SquaredGroups().front();
+    std::set<std::pair<aocommon::PolarizationEnum, bool>> polarizations;
+    for (const DeconvolutionTableEntry* entry : firstSquaredGroup) {
+      const auto inserted =
+          polarizations.emplace(entry->polarization, entry->isImaginary);
+      if (!inserted.second) {  // Item already existed in the set.
+        throw std::runtime_error(
+            "Two equal polarizations were given to the deconvolution algorithm "
+            "within a single polarized group");
+      }
+    }
   }
 
   std::unique_ptr<class DeconvolutionAlgorithm> algorithm;
