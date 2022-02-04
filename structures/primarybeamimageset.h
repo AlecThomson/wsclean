@@ -151,10 +151,12 @@ class PrimaryBeamImageSet {
   }
 
   /**
-   * @brief Correct component list for primary beam given a
-   * channel.
+   * @brief Correct component list for primary beam given a (output)
+   * channel index
    */
   void CorrectComponentList(ComponentList& componentList, size_t channel) {
+    componentList.MergeDuplicates();
+
     for (size_t i = 0; i != componentList.NScales(); ++i) {
       std::vector<std::pair<size_t, size_t>> positions =
           componentList.GetPositions(i);

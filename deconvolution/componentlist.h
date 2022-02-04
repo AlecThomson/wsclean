@@ -101,14 +101,21 @@ class ComponentList {
       values[f] = _listPerScale[scaleIndex].values[index * _nFrequencies + f];
   }
 
+  /**
+   * @brief Multiply the components for a given scale index and channel
+   * index with corresponding (primary beam) correction factors.
+   *
+   * Size of corrections factors vector should match the number of positions
+   * for the specified scale.
+   */
   void MultiplyScaleComponent(size_t scaleIndex, size_t channel,
-                              const std::vector<double>& correctionFactor) {
+                              const std::vector<double>& correctionFactors) {
     assert(correctionFactors.size() ==
            _listPerScale[scaleIndex].positions.size);
     for (size_t i = 0; i != _listPerScale[scaleIndex].positions.size(); ++i) {
       float& value =
           _listPerScale[scaleIndex].values[channel + i * _nFrequencies];
-      value *= correctionFactor[i];
+      value *= correctionFactors[i];
     }
   }
 
@@ -120,8 +127,6 @@ class ComponentList {
     }
     return positions;
   }
-
-  void CorrectForBeam(class PrimaryBeamImageSet& beam, size_t channel);
 
   size_t NScales() const { return _listPerScale.size(); }
 

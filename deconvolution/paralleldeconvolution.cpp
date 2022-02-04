@@ -417,8 +417,8 @@ void ParallelDeconvolution::correctChannelForPB(
   ImageFilename filename(entry.outputChannelIndex, entry.outputIntervalIndex);
   filename.SetPolarization(entry.polarization);
   PrimaryBeam pb(_settings);
-  PrimaryBeamImageSet beam = pb.Load(filename);
-  list.CorrectForBeam(beam, entry.outputChannelIndex);
+  PrimaryBeamImageSet beamImages = pb.Load(filename);
+  beamImages.CorrectComponentList(list, entry.outputChannelIndex);
 }
 
 void ParallelDeconvolution::SavePBSourceList(const CachedImageSet& modelImages,
@@ -455,7 +455,7 @@ void ParallelDeconvolution::SavePBSourceList(const CachedImageSet& modelImages,
       Logger::Debug << "Correcting source list of channel " << ch
                     << " for averaged beam\n";
       PrimaryBeamImageSet beamImages = loadAveragePrimaryBeam(ch, table);
-      list->CorrectForBeam(beamImages, ch);
+      beamImages.CorrectComponentList(*list, ch);
     }
   }
 

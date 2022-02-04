@@ -2,8 +2,6 @@
 
 #include "../model/writemodel.h"
 
-#include "../structures/primarybeamimageset.h"
-
 #include "../multiscale/multiscalealgorithm.h"
 
 #include <aocommon/imagecoordinates.h>
@@ -125,18 +123,6 @@ void ComponentList::loadFromImageSet(ImageSet& imageSet, size_t scaleIndex) {
           _listPerScale[scaleIndex].values.push_back(
               imageSet[imageIndex][posIndex]);
       }
-    }
-  }
-}
-
-void ComponentList::CorrectForBeam(PrimaryBeamImageSet& beam, size_t channel) {
-  MergeDuplicates();
-
-  for (ScaleList& list : _listPerScale) {
-    for (size_t i = 0; i != list.positions.size(); ++i) {
-      const Position& pos = list.positions[i];
-      float& value = list.values[channel + i * _nFrequencies];
-      value *= beam.GetUnpolarizedCorrectionFactor(pos.x, pos.y);
     }
   }
 }
