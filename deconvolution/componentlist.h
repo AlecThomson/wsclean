@@ -68,11 +68,13 @@ class ComponentList {
                         long double phaseCentreRA, long double phaseCentreDec);
 
   void MergeDuplicates() {
-    for (size_t scaleIndex = 0; scaleIndex != _listPerScale.size();
-         ++scaleIndex) {
-      mergeDuplicates(scaleIndex);
+    if (_componentsAddedSinceLastMerge != 0) {
+      for (size_t scaleIndex = 0; scaleIndex != _listPerScale.size();
+           ++scaleIndex) {
+        mergeDuplicates(scaleIndex);
+      }
+      _componentsAddedSinceLastMerge = 0;
     }
-    _componentsAddedSinceLastMerge = 0;
   }
 
   void Clear() {
@@ -91,15 +93,39 @@ class ComponentList {
 
   void GetComponent(size_t scaleIndex, size_t index, size_t& x, size_t& y,
                     float* values) const {
+    assert(scaleIndex <= _listPerScale.size());
+    assert(index <= _listPerScale[scaleIndex].positions.size());
     x = _listPerScale[scaleIndex].positions[index].x;
     y = _listPerScale[scaleIndex].positions[index].y;
     for (size_t f = 0; f != _nFrequencies; ++f)
       values[f] = _listPerScale[scaleIndex].values[index * _nFrequencies + f];
   }
 
+  void MultiplyScaleComponent(size_t scaleIndex, size_t channel,
+                              const std::vector<double>& correctionFactor) {
+    assert(correctionFactors.size() ==
+           _listPerScale[scaleIndex].positions.size);
+    for (size_t i = 0; i != _listPerScale[scaleIndex].positions.size(); ++i) {
+      float& value =
+          _listPerScale[scaleIndex].values[channel + i * _nFrequencies];
+      value *= correctionFactor[i];
+    }
+  }
+
+  std::vector<std::pair<size_t, size_t>> GetPositions(size_t scaleIndex) const {
+    assert(scaleIndex <= _listPerScale.size());
+    std::vector<std::pair<size_t, size_t>> positions;
+    for (const Position& position : _listPerScale[scaleIndex].positions) {
+      positions.emplace_back(std::make_pair(position.x, position.y));
+    }
+    return positions;
+  }
+
   void CorrectForBeam(class PrimaryBeamImageSet& beam, size_t channel);
 
   size_t NScales() const { return _listPerScale.size(); }
+
+  size_t NFrequencies() const { return _nFrequencies; }
 
   void SetNScales(size_t nScales) { _listPerScale.resize(nScales); }
 

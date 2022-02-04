@@ -1,6 +1,8 @@
 #ifndef PRIMARY_BEAM_IMAGE_SET
 #define PRIMARY_BEAM_IMAGE_SET
 
+#include "../deconvolution/componentlist.h"
+
 #include <array>
 
 #include <boost/filesystem/operations.hpp>
@@ -145,6 +147,27 @@ class PrimaryBeamImageSet {
         for (size_t p = 0; p != 4; ++p)
           images[p][j] = std::numeric_limits<float>::quiet_NaN();
       }
+    }
+  }
+
+  /**
+   * @brief Correct component list for primary beam given a
+   * channel.
+   */
+  void CorrectComponentList(ComponentList& componentList, size_t channel) {
+    for (size_t i = 0; i != componentList.NScales(); ++i) {
+      std::vector<std::pair<size_t, size_t>> positions =
+          componentList.GetPositions(i);
+      std::vector<double> beamCorrectionFactors;
+      size_t x;
+      size_t y;
+      // For C++ >=17, the tie can be part of range-based for-loop
+      for (const auto& position : positions) {
+        std::tie(x, y) = position;
+        beamCorrectionFactors.emplace_back(
+            GetUnpolarizedCorrectionFactor(x, y));
+      }
+      componentList.MultiplyScaleComponent(i, channel, beamCorrectionFactors);
     }
   }
 

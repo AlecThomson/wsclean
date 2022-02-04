@@ -37,7 +37,7 @@ void ComponentList::write(const std::string& filename,
                           long double pixelScaleX, long double pixelScaleY,
                           long double phaseCentreRA,
                           long double phaseCentreDec) {
-  if (_componentsAddedSinceLastMerge != 0) MergeDuplicates();
+  MergeDuplicates();
 
   const SpectralFitter& fitter = algorithm.Fitter();
   if (fitter.Mode() == SpectralFittingMode::NoFitting && _nFrequencies > 1)
@@ -130,7 +130,7 @@ void ComponentList::loadFromImageSet(ImageSet& imageSet, size_t scaleIndex) {
 }
 
 void ComponentList::CorrectForBeam(PrimaryBeamImageSet& beam, size_t channel) {
-  if (_componentsAddedSinceLastMerge != 0) MergeDuplicates();
+  MergeDuplicates();
 
   for (ScaleList& list : _listPerScale) {
     for (size_t i = 0; i != list.positions.size(); ++i) {
