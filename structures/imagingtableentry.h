@@ -79,10 +79,10 @@ struct ImagingTableEntry {
   std::vector<MSInfo> msData;
 
   /**
-   * The group of entries with equal squaredDeconvolutionIndex
-   * should be 'joinedly' deconvolved by adding their squared powers
-   * together. Normally, all the polarizations from a single
-   * (output)channel / timestep form such a group.
+   * The group of entries with equal squaredDeconvolutionIndex should be
+   * 'joinedly' deconvolved by adding their squared flux density values
+   * together. Normally, all the polarizations from a single (output)channel /
+   * timestep form such a group.
    */
   size_t squaredDeconvolutionIndex;
 
