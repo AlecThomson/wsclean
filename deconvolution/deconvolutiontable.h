@@ -15,7 +15,6 @@ class DeconvolutionTable {
  public:
   using Entries = std::vector<std::unique_ptr<DeconvolutionTableEntry>>;
   using Group = std::vector<const DeconvolutionTableEntry*>;
-  using Groups = std::vector<Group>;
 
   /**
    * Iterator class for looping over entries.
@@ -39,7 +38,7 @@ class DeconvolutionTable {
     BaseIterator _baseIterator;
   };
 
-  const Groups& SquaredGroups() const { return _squaredGroups; }
+  const std::vector<Group>& SquaredGroups() const { return _squaredGroups; }
 
   EntryIterator begin() const { return EntryIterator(_entries.begin()); }
   EntryIterator end() const { return EntryIterator(_entries.end()); }
@@ -63,7 +62,7 @@ class DeconvolutionTable {
 
  private:
   Entries _entries;
-  Groups _squaredGroups;
+  std::vector<Group> _squaredGroups;
 };
 
 #endif

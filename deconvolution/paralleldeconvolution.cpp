@@ -497,7 +497,8 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
   /// TODO : use real weights of images
   size_t count = 0;
   PrimaryBeam pb(_settings);
-  const DeconvolutionTable::Groups& squaredGroups = table.SquaredGroups();
+  const std::vector<DeconvolutionTable::Group>& squaredGroups =
+      table.SquaredGroups();
   for (size_t sqIndex = 0; sqIndex != squaredGroups.size(); ++sqIndex) {
     size_t curImageIndex =
         (sqIndex * deconvolutionChannels) / squaredGroups.size();
