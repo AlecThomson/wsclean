@@ -158,18 +158,14 @@ class PrimaryBeamImageSet {
     componentList.MergeDuplicates();
 
     for (size_t i = 0; i != componentList.NScales(); ++i) {
-      aocommon::UVector<std::pair<size_t, size_t>> positions =
+      const aocommon::UVector<ComponentList::Position>& positions =
           componentList.GetPositions(i);
-      aocommon::UVector<double> beamCorrectionFactors;
-      size_t x;
-      size_t y;
-      // For C++ >=17, the tie can be part of range-based for-loop
-      for (const auto& position : positions) {
-        std::tie(x, y) = position;
-        beamCorrectionFactors.emplace_back(
-            GetUnpolarizedCorrectionFactor(x, y));
+      for (size_t j = 0; j != positions.size(); ++j) {
+        const double beamCorrectionFactor =
+            GetUnpolarizedCorrectionFactor(positions[j].x, positions[j].y);
+        componentList.MultiplyScaleComponent(i, j, channel,
+                                             beamCorrectionFactor);
       }
-      componentList.MultiplyScaleComponent(i, channel, beamCorrectionFactors);
     }
   }
 

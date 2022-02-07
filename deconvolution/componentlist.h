@@ -35,6 +35,11 @@ class ComponentList {
         _maxComponentsBeforeMerge(100000),
         _listPerScale(nScales) {}
 
+  struct Position {
+    Position(size_t _x, size_t _y) : x(_x), y(_y) {}
+    size_t x, y;
+  };
+
   void Add(size_t x, size_t y, size_t scaleIndex, const float* values) {
     _listPerScale[scaleIndex].values.push_back(values, values + _nFrequencies);
     _listPerScale[scaleIndex].positions.emplace_back(x, y);
@@ -44,9 +49,7 @@ class ComponentList {
   }
 
   void Add(const ComponentList& other, int offsetX, int offsetY) {
-    if (other._nFrequencies != _nFrequencies)
-      throw std::runtime_error(
-          "Add(ComponentList...) called with incorrect frequency count");
+    assert(other._nFrequencies == _nFrequencies);
     if (other.NScales() > NScales()) SetNScales(other.NScales());
     for (size_t scale = 0; scale != other.NScales(); ++scale) {
       const ScaleList& list = other._listPerScale[scale];
@@ -93,8 +96,8 @@ class ComponentList {
 
   void GetComponent(size_t scaleIndex, size_t index, size_t& x, size_t& y,
                     float* values) const {
-    assert(scaleIndex <= _listPerScale.size());
-    assert(index <= _listPerScale[scaleIndex].positions.size());
+    assert(scaleIndex < _listPerScale.size());
+    assert(index < _listPerScale[scaleIndex].positions.size());
     x = _listPerScale[scaleIndex].positions[index].x;
     y = _listPerScale[scaleIndex].positions[index].y;
     for (size_t f = 0; f != _nFrequencies; ++f)
@@ -102,35 +105,25 @@ class ComponentList {
   }
 
   /**
-   * @brief Multiply the components for a given scale index and channel
-   * index with corresponding (primary beam) correction factors.
-   *
-   * Size of corrections factors vector should match the number of positions
-   * for the specified scale.
+   * @brief Multiply the components for a given scale index, position index and
+   * channel index with corresponding (primary beam) correction factors.
    */
-  void MultiplyScaleComponent(
-      size_t scaleIndex, size_t channel,
-      const aocommon::UVector<double>& correctionFactors) {
-    assert(correctionFactors.size() ==
-           _listPerScale[scaleIndex].positions.size);
-    for (size_t i = 0; i != _listPerScale[scaleIndex].positions.size(); ++i) {
-      float& value =
-          _listPerScale[scaleIndex].values[channel + i * _nFrequencies];
-      value *= correctionFactors[i];
-    }
+  inline void MultiplyScaleComponent(size_t scaleIndex, size_t positionIndex,
+                                     size_t channel, double correctionFactor) {
+    assert(scaleIndex < _listPerScale.size());
+    assert(positionIndex < _listPerScale[scaleIndex].positions.size());
+    assert(channel < _nFrequencies);
+    float& value = _listPerScale[scaleIndex]
+                       .values[channel + positionIndex * _nFrequencies];
+    value *= correctionFactor;
   }
 
   /**
-   * @brief Get the positions per scale index as a vector of (x,y)-pairs
+   * @brief Get vector of positions per scale index.
    */
-  aocommon::UVector<std::pair<size_t, size_t>> GetPositions(
-      size_t scaleIndex) const {
-    assert(scaleIndex <= _listPerScale.size());
-    aocommon::UVector<std::pair<size_t, size_t>> positions;
-    for (const Position& position : _listPerScale[scaleIndex].positions) {
-      positions.emplace_back(std::make_pair(position.x, position.y));
-    }
-    return positions;
+  const aocommon::UVector<Position>& GetPositions(size_t scaleIndex) const {
+    assert(scaleIndex < _listPerScale.size());
+    return _listPerScale[scaleIndex].positions;
   }
 
   size_t NScales() const { return _listPerScale.size(); }
@@ -140,10 +133,6 @@ class ComponentList {
   void SetNScales(size_t nScales) { _listPerScale.resize(nScales); }
 
  private:
-  struct Position {
-    Position(size_t _x, size_t _y) : x(_x), y(_y) {}
-    size_t x, y;
-  };
   struct ScaleList {
     /**
      * This list contains nFrequencies values for each
