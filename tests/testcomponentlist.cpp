@@ -2,7 +2,6 @@
 
 #include "../deconvolution/componentlist.h"
 
-
 BOOST_AUTO_TEST_SUITE(component_list)
 
 struct ComponentListFixture {
