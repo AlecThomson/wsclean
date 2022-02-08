@@ -324,5 +324,4 @@ def test_masked_parallel_deconvolution():
     check_call(s.split())
     for f in glob.glob(f"{name('masked-parallel-deconvolution-prepare')}*.fits"):
       os.remove(f)
-    error
     
