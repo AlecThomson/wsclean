@@ -147,6 +147,23 @@ class ImageSet {
     return p;
   }
 
+  /**
+   * Like Trim(), but only copies values that are in the mask. All other values
+   * are set to zero.
+   * @param mask A mask of size (x2-x1) x (y2-y1)
+   */
+  std::unique_ptr<ImageSet> TrimMasked(size_t x1, size_t y1, size_t x2, size_t y2,
+                                 size_t oldWidth, bool* mask) const {
+    std::unique_ptr<ImageSet> p = Trim(x1, y1, x2, y2, oldWidth);
+    for(aocommon::Image& image : p->_images) {
+      for(size_t pixel=0; pixel!=image.Size(); ++pixel) {
+        if(!mask[pixel])
+          image[pixel] = 0.0;
+      }
+    }
+    return p;
+  }
+
   void CopyMasked(const ImageSet& from, size_t toX, size_t toY,
                   const bool* fromMask) {
     for (size_t i = 0; i != _images.size(); ++i) {

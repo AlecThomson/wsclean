@@ -101,10 +101,10 @@ void ParallelDeconvolution::runSubImage(
   std::unique_ptr<ImageSet> subModel, subData;
   {
     std::lock_guard<std::mutex> lock(*mutex);
-    subModel = modelImage.Trim(subImg.x, subImg.y, subImg.x + subImg.width,
-                               subImg.y + subImg.height, width);
     subData = dataImage.Trim(subImg.x, subImg.y, subImg.x + subImg.width,
                              subImg.y + subImg.height, width);
+    subModel = modelImage.TrimMasked(subImg.x, subImg.y, subImg.x + subImg.width,
+                               subImg.y + subImg.height, width, subImg.boundaryMask.data());
   }
 
   // Construct the smaller psfs
