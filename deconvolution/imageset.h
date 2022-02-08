@@ -19,6 +19,8 @@ class ImageSet {
   ImageSet(const DeconvolutionTable& table, const Settings& settings,
            size_t width, size_t height);
 
+  ImageSet(const ImageSet&) = default;
+
   void AllocateImages() {
     _images.clear();
     allocateImages();
@@ -217,7 +219,6 @@ class ImageSet {
       size_t nDeconvolutionChannels);
 
  private:
-  ImageSet(const ImageSet&) = delete;
   ImageSet& operator=(const ImageSet&) = delete;
 
   void allocateImages() {

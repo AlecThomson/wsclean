@@ -83,10 +83,11 @@ void ImageSet::initializeIndices() {
 }
 
 void ImageSet::SetImages(ImageSet&& source) {
-  assert(source._images.size() == _images.size());
   for (size_t imageIndex = 0; imageIndex != _images.size(); ++imageIndex) {
     _images[imageIndex] = std::move(source._images[imageIndex]);
   }
+  _width = source._width;
+  _height = source._height;
   source._width = 0;
   source._height = 0;
 }
