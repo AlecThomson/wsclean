@@ -200,14 +200,13 @@ void ParallelDeconvolution::runSubImage(
     algorithm.ClearComponentList();
   }
 
-  if (findPeakOnly) _algorithms[subImg.index]->SetMaxNIter(maxNIter);
-
-  if (!findPeakOnly) {
+  if (findPeakOnly) {
+    _algorithms[subImg.index]->SetMaxNIter(maxNIter);
+  }
+  else {
     std::lock_guard<std::mutex> lock(*mutex);
-    dataImage.CopyMasked(*subData, subImg.x, subImg.y, width, subImg.width,
-                         subImg.height, subImg.mask.data());
-    modelImage.CopyMasked(*subModel, subImg.x, subImg.y, width, subImg.width,
-                          subImg.height, subImg.mask.data());
+    dataImage.CopyMasked(*subData, subImg.x, subImg.y, subImg.mask.data());
+    modelImage.AddSubImage(*subModel, subImg.x, subImg.y);
   }
 }
 

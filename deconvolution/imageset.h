@@ -138,19 +138,20 @@ class ImageSet {
     return p;
   }
 
-  void Copy(const ImageSet& from, size_t toX, size_t toY, size_t toWidth,
-            size_t fromWidth, size_t fromHeight) {
+  void CopyMasked(const ImageSet& from, size_t toX, size_t toY, const bool* fromMask) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      copyToLarger(_images[i], toX, toY, toWidth, from._images[i], fromWidth,
-                   fromHeight);
+      aocommon::Image::CopyMasked(_images[i].Data(), toX, toY, _images[i].Width(), from._images[i].Data(), from._images[i].Width(), from._images[i].Height(), fromMask);
     }
   }
 
-  void CopyMasked(const ImageSet& from, size_t toX, size_t toY, size_t toWidth,
-                  size_t fromWidth, size_t fromHeight, const bool* fromMask) {
+  /**
+   * Place all images in @c from onto the images in this ImageSet at a
+   * given position. The dimensions of @c from can be smaller or equal
+   * to ones in this.
+   */
+  void AddSubImage(const ImageSet& from, size_t toX, size_t toY) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      copyToLarger(_images[i], toX, toY, toWidth, from._images[i], fromWidth,
-                   fromHeight, fromMask);
+      aocommon::Image::AddSubImage(_images[i].Data(), toX, toY, _images[i].Width(), from._images[i].Data(), from._images[i].Width(), from._images[i].Height());
     }
   }
 
@@ -234,27 +235,6 @@ class ImageSet {
       float* newPtr = &output[(y - y1) * newWidth];
       for (size_t x = x1; x != x2; ++x) {
         newPtr[x - x1] = oldPtr[x];
-      }
-    }
-  }
-
-  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
-                           size_t toWidth, const aocommon::Image& from,
-                           size_t fromWidth, size_t fromHeight) {
-    for (size_t y = 0; y != fromHeight; ++y) {
-      std::copy(from.Data() + y * fromWidth, from.Data() + (y + 1) * fromWidth,
-                to.Data() + toX + (toY + y) * toWidth);
-    }
-  }
-
-  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
-                           size_t toWidth, const aocommon::Image& from,
-                           size_t fromWidth, size_t fromHeight,
-                           const bool* fromMask) {
-    for (size_t y = 0; y != fromHeight; ++y) {
-      for (size_t x = 0; x != fromWidth; ++x) {
-        if (fromMask[y * fromWidth + x])
-          to[toX + (toY + y) * toWidth + x] = from[y * fromWidth + x];
       }
     }
   }
