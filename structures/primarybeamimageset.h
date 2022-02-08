@@ -152,7 +152,7 @@ class PrimaryBeamImageSet {
 
   /**
    * @brief Correct component list for primary beam given a (output)
-   * channel index
+   * channel index.
    */
   void CorrectComponentList(ComponentList& componentList, size_t channel) {
     componentList.MergeDuplicates();
