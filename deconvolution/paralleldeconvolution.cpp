@@ -17,7 +17,9 @@
 
 using aocommon::Image;
 
-ParallelDeconvolution::ParallelDeconvolution(const class Settings& settings)
+class ImageSet;
+
+ParallelDeconvolution::ParallelDeconvolution(const Settings& settings)
     : _horImages(0),
       _verImages(0),
       _settings(settings),
@@ -90,9 +92,9 @@ void ParallelDeconvolution::SetSpectrallyForcedImages(
 }
 
 void ParallelDeconvolution::runSubImage(
-    SubImage& subImg, ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const float*>& psfImages, double majorIterThreshold,
-    bool findPeakOnly, std::mutex* mutex) {
+    SubImage& subImg, ImageSet& dataImage, const ImageSet& modelImage,
+    ImageSet& resultModel, const aocommon::UVector<const float*>& psfImages,
+    double majorIterThreshold, bool findPeakOnly, std::mutex* mutex) {
   const size_t width = _settings.trimmedImageWidth,
                height = _settings.trimmedImageHeight;
 
@@ -206,12 +208,12 @@ void ParallelDeconvolution::runSubImage(
     std::lock_guard<std::mutex> lock(*mutex);
     dataImage.CopyMasked(*subData, subImg.x, subImg.y,
                          subImg.boundaryMask.data());
-    modelImage.AddSubImage(*subModel, subImg.x, subImg.y);
+    resultModel.AddSubImage(*subModel, subImg.x, subImg.y);
   }
 }
 
 void ParallelDeconvolution::ExecuteMajorIteration(
-    class ImageSet& dataImage, class ImageSet& modelImage,
+    ImageSet& dataImage, ImageSet& modelImage,
     const aocommon::UVector<const float*>& psfImages,
     bool& reachedMajorThreshold) {
   const size_t width = _settings.trimmedImageWidth,
@@ -227,7 +229,7 @@ void ParallelDeconvolution::ExecuteMajorIteration(
 }
 
 void ParallelDeconvolution::executeParallelRun(
-    class ImageSet& dataImage, class ImageSet& modelImage,
+    ImageSet& dataImage, ImageSet& modelImage,
     const aocommon::UVector<const float*>& psfImages,
     bool& reachedMajorThreshold) {
   const size_t width = _settings.trimmedImageWidth,
@@ -305,7 +307,7 @@ void ParallelDeconvolution::executeParallelRun(
                      subImage.width, subImage.height, mask.data(), width,
                      height);
       subImage.boundaryMask = subImage.mask;
-      // If a user mask is active, take the union of that mask with the division
+      // If a user mask is active, take the union of that mask with the boundary
       // mask (note that 'mask' is reused as a scratch space)
       if (_mask != nullptr) {
         Image::TrimBox(mask.data(), subImage.x, subImage.y, subImage.width,
@@ -325,10 +327,12 @@ void ParallelDeconvolution::executeParallelRun(
 
   // Find the starting peak over all subimages
   aocommon::ParallelFor<size_t> loop(_settings.parallelDeconvolutionMaxThreads);
+  ImageSet resultModel(modelImage.UnsetCopy());
+  resultModel = 0.0;
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
-    runSubImage(subImages[index], dataImage, modelImage, psfImages, 0.0, true,
-                &mutex);
+    runSubImage(subImages[index], dataImage, modelImage, resultModel, psfImages,
+                0.0, true, &mutex);
     _logs.Deactivate(index);
 
     _logs[index].Mute(false);
@@ -350,7 +354,7 @@ void ParallelDeconvolution::executeParallelRun(
   // Run the deconvolution
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
-    runSubImage(subImages[index], dataImage, modelImage, psfImages,
+    runSubImage(subImages[index], dataImage, modelImage, resultModel, psfImages,
                 mIterThreshold, false, &mutex);
     _logs.Deactivate(index);
 
@@ -359,6 +363,7 @@ void ParallelDeconvolution::executeParallelRun(
                       << " finished its deconvolution iteration.\n";
     _logs[index].Mute(true);
   });
+  modelImage.SetImages(std::move(resultModel));
 
   _rmsImage.Reset();
 

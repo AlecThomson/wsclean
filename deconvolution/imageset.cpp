@@ -82,6 +82,15 @@ void ImageSet::initializeIndices() {
   }
 }
 
+void ImageSet::SetImages(ImageSet&& source) {
+  assert(source._images.size() == _images.size());
+  for (size_t imageIndex = 0; imageIndex != _images.size(); ++imageIndex) {
+    _images[imageIndex] = std::move(source._images[imageIndex]);
+  }
+  source._width = 0;
+  source._height = 0;
+}
+
 void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
   for (Image& image : _images) {
     image = 0.0;

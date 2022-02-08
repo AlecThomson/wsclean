@@ -31,6 +31,13 @@ class ImageSet {
     allocateImages();
   }
 
+  /**
+   * Make a new image set with the same dimensions and uninitialized image data.
+   */
+  ImageSet UnsetCopy() const {
+    return ImageSet(_imagingTable, _settings, _width, _height);
+  }
+
   aocommon::Image Release(size_t imageIndex) {
     return std::move(_images[imageIndex]);
   }
@@ -38,6 +45,8 @@ class ImageSet {
   void SetImage(size_t imageIndex, aocommon::Image&& data) {
     _images[imageIndex] = std::move(data);
   }
+
+  void SetImages(ImageSet&& source);
 
   bool IsAllocated() const { return _width * _height != 0; }
 

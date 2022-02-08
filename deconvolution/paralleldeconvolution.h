@@ -85,7 +85,7 @@ class ParallelDeconvolution {
   };
 
   void runSubImage(SubImage& subImg, ImageSet& dataImage,
-                   class ImageSet& modelImage,
+                   const ImageSet& modelImage, ImageSet& resultModel,
                    const aocommon::UVector<const float*>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex* mutex);
