@@ -185,7 +185,7 @@ void ParallelDeconvolution::runSubImage(
       if (i < _scaleMasks.size())
         Image::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width,
                           msMask.data(), subImg.width, subImg.height,
-                          subImg.mask.data());
+                          subImg.boundaryMask.data());
     }
   }
 
@@ -202,10 +202,10 @@ void ParallelDeconvolution::runSubImage(
 
   if (findPeakOnly) {
     _algorithms[subImg.index]->SetMaxNIter(maxNIter);
-  }
-  else {
+  } else {
     std::lock_guard<std::mutex> lock(*mutex);
-    dataImage.CopyMasked(*subData, subImg.x, subImg.y, subImg.mask.data());
+    dataImage.CopyMasked(*subData, subImg.x, subImg.y,
+                         subImg.boundaryMask.data());
     modelImage.AddSubImage(*subModel, subImg.x, subImg.y);
   }
 }
@@ -304,7 +304,7 @@ void ParallelDeconvolution::executeParallelRun(
       Image::TrimBox(subImage.mask.data(), subImage.x, subImage.y,
                      subImage.width, subImage.height, mask.data(), width,
                      height);
-
+      subImage.boundaryMask = subImage.mask;
       // If a user mask is active, take the union of that mask with the division
       // mask (note that 'mask' is reused as a scratch space)
       if (_mask != nullptr) {

@@ -138,9 +138,13 @@ class ImageSet {
     return p;
   }
 
-  void CopyMasked(const ImageSet& from, size_t toX, size_t toY, const bool* fromMask) {
+  void CopyMasked(const ImageSet& from, size_t toX, size_t toY,
+                  const bool* fromMask) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      aocommon::Image::CopyMasked(_images[i].Data(), toX, toY, _images[i].Width(), from._images[i].Data(), from._images[i].Width(), from._images[i].Height(), fromMask);
+      aocommon::Image::CopyMasked(_images[i].Data(), toX, toY,
+                                  _images[i].Width(), from._images[i].Data(),
+                                  from._images[i].Width(),
+                                  from._images[i].Height(), fromMask);
     }
   }
 
@@ -151,7 +155,10 @@ class ImageSet {
    */
   void AddSubImage(const ImageSet& from, size_t toX, size_t toY) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      aocommon::Image::AddSubImage(_images[i].Data(), toX, toY, _images[i].Width(), from._images[i].Data(), from._images[i].Width(), from._images[i].Height());
+      aocommon::Image::AddSubImage(_images[i].Data(), toX, toY,
+                                   _images[i].Width(), from._images[i].Data(),
+                                   from._images[i].Width(),
+                                   from._images[i].Height());
     }
   }
 
