@@ -48,6 +48,11 @@ class ImageSet {
     _images[imageIndex] = std::move(data);
   }
 
+  /**
+   * Replace the images of this ImageSet. The images may be of a different size.
+   * Both ImageSets are expected to be for the same deconvolution configuration:
+   * besides the images and their dimension, no fields are changed.
+   */
   void SetImages(ImageSet&& source);
 
   bool IsAllocated() const { return _width * _height != 0; }
@@ -156,7 +161,7 @@ class ImageSet {
    */
   std::unique_ptr<ImageSet> TrimMasked(size_t x1, size_t y1, size_t x2,
                                        size_t y2, size_t oldWidth,
-                                       bool* mask) const {
+                                       const bool* mask) const {
     std::unique_ptr<ImageSet> p = Trim(x1, y1, x2, y2, oldWidth);
     for (aocommon::Image& image : p->_images) {
       for (size_t pixel = 0; pixel != image.Size(); ++pixel) {
@@ -166,13 +171,13 @@ class ImageSet {
     return p;
   }
 
-  void CopyMasked(const ImageSet& from, size_t toX, size_t toY,
+  void CopyMasked(const ImageSet& fromImageSet, size_t toX, size_t toY,
                   const bool* fromMask) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      aocommon::Image::CopyMasked(_images[i].Data(), toX, toY,
-                                  _images[i].Width(), from._images[i].Data(),
-                                  from._images[i].Width(),
-                                  from._images[i].Height(), fromMask);
+      aocommon::Image::CopyMasked(
+          _images[i].Data(), toX, toY, _images[i].Width(),
+          fromImageSet._images[i].Data(), fromImageSet._images[i].Width(),
+          fromImageSet._images[i].Height(), fromMask);
     }
   }
 

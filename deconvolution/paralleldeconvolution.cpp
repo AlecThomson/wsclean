@@ -95,14 +95,19 @@ void ParallelDeconvolution::runSubImage(
     SubImage& subImg, ImageSet& dataImage, const ImageSet& modelImage,
     ImageSet& resultModel, const aocommon::UVector<const float*>& psfImages,
     double majorIterThreshold, bool findPeakOnly, std::mutex* mutex) {
-  const size_t width = _settings.trimmedImageWidth,
-               height = _settings.trimmedImageHeight;
+  const size_t width = _settings.trimmedImageWidth;
+  const size_t height = _settings.trimmedImageHeight;
 
   std::unique_ptr<ImageSet> subModel, subData;
   {
     std::lock_guard<std::mutex> lock(*mutex);
     subData = dataImage.Trim(subImg.x, subImg.y, subImg.x + subImg.width,
                              subImg.y + subImg.height, width);
+    // Because the model of this subimage might extend outside of its boundaries
+    // (because of multiscale components), the model is placed back on the image
+    // by adding its values. This requires that values outside the boundary are
+    // set to zero at this point, otherwise multiple subimages could add the
+    // same sources.
     subModel = modelImage.TrimMasked(
         subImg.x, subImg.y, subImg.x + subImg.width, subImg.y + subImg.height,
         width, subImg.boundaryMask.data());
