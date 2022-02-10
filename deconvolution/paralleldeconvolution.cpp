@@ -30,14 +30,56 @@ ParallelDeconvolution::ParallelDeconvolution(const Settings& settings)
 
 ParallelDeconvolution::~ParallelDeconvolution() {}
 
+ComponentList ParallelDeconvolution::GetComponentList(
+    const DeconvolutionTable& table, const CachedImageSet& modelImages) const {
+  // TODO make this work with subimages
+  ComponentList list;
+  if (_settings.useMultiscale) {
+    // If no parallel deconvolution was used, the component list must be
+    // retrieved from the deconvolution algorithm.
+    if (_algorithms.size() == 1) {
+      list = static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())
+                 ->GetComponentList();
+    } else {
+      list = *_componentList;
+    }
+  } else {
+    const size_t w = _settings.trimmedImageWidth;
+    const size_t h = _settings.trimmedImageHeight;
+    ImageSet modelSet(table, _settings, w, h);
+    modelSet.LoadAndAverage(modelImages);
+    list = ComponentList(w, h, modelSet);
+  }
+  list.MergeDuplicates();
+  return list;
+}
+
+const DeconvolutionAlgorithm& ParallelDeconvolution::MaxScaleCountAlgorithm()
+    const {
+  if (_settings.useMultiscale) {
+    MultiScaleAlgorithm* maxAlgorithm =
+        static_cast<MultiScaleAlgorithm*>(_algorithms.front().get());
+    for (size_t i = 1; i != _algorithms.size(); ++i) {
+      MultiScaleAlgorithm* mAlg =
+          static_cast<MultiScaleAlgorithm*>(_algorithms[i].get());
+      if (mAlg->ScaleCount() > maxAlgorithm->ScaleCount()) {
+        maxAlgorithm = mAlg;
+      }
+    }
+    return *maxAlgorithm;
+  } else {
+    return FirstAlgorithm();
+  }
+}
+
 void ParallelDeconvolution::SetAlgorithm(
     std::unique_ptr<class DeconvolutionAlgorithm> algorithm) {
   if (_settings.parallelDeconvolutionMaxSize == 0) {
     _algorithms.resize(1);
     _algorithms.front() = std::move(algorithm);
   } else {
-    const size_t width = _settings.trimmedImageWidth,
-                 height = _settings.trimmedImageHeight;
+    const size_t width = _settings.trimmedImageWidth;
+    const size_t height = _settings.trimmedImageHeight;
     size_t maxSubImageSize = _settings.parallelDeconvolutionMaxSize;
     _horImages = (width + maxSubImageSize - 1) / maxSubImageSize,
     _verImages = (height + maxSubImageSize - 1) / maxSubImageSize;
@@ -474,7 +516,8 @@ void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
   writeSourceList(*list, filename, phaseCentreRA, phaseCentreDec);
 }
 
-void ParallelDeconvolution::writeSourceList(ComponentList& componentList,
+// TODO: remove here
+void ParallelDeconvolution::writeSourceList(const ComponentList& componentList,
                                             const std::string& filename,
                                             long double phaseCentreRA,
                                             long double phaseCentreDec) const {
@@ -495,6 +538,7 @@ void ParallelDeconvolution::writeSourceList(ComponentList& componentList,
   }
 }
 
+// TODO: remove here
 PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
     size_t imageIndex, const DeconvolutionTable& table) const {
   Logger::Debug << "Averaging beam for deconvolution channel " << imageIndex

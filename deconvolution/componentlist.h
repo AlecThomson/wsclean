@@ -10,6 +10,14 @@
 
 class ComponentList {
  public:
+  ComponentList()
+      : _width(0),
+        _height(0),
+        _nFrequencies(0),
+        _componentsAddedSinceLastMerge(0),
+        _maxComponentsBeforeMerge(0),
+        _listPerScale() {}
+
   /**
    * Constructor for single-scale clean
    */
@@ -60,15 +68,33 @@ class ComponentList {
     }
   }
 
+  // TODO: remove
   void Write(const std::string& filename,
              const class MultiScaleAlgorithm& multiscale,
              long double pixelScaleX, long double pixelScaleY,
-             long double phaseCentreRA, long double phaseCentreDec);
+             long double phaseCentreRA, long double phaseCentreDec) const;
 
+  // TODO: remove
   void WriteSingleScale(const std::string& filename,
                         const class DeconvolutionAlgorithm& algorithm,
                         long double pixelScaleX, long double pixelScaleY,
-                        long double phaseCentreRA, long double phaseCentreDec);
+                        long double phaseCentreRA,
+                        long double phaseCentreDec) const;
+
+  /**
+   * @brief Write component lists over all scales, typically
+   * used for writing components of a multiscale clean.
+   */
+  // void Write(const std::string& filename,
+  //            const SpectralFitter& fitter,
+  //            long double pixelScaleX, long double pixelScaleY,
+  //            long double phaseCentreRA, long double phaseCentreDec) const;
+
+  // void WriteSingleScale(const std::string& filename,
+  //                       const class DeconvolutionAlgorithm& algorithm,
+  //                       long double pixelScaleX, long double pixelScaleY,
+  //                       long double phaseCentreRA,
+  //                       long double phaseCentreDec) const;
 
   void MergeDuplicates() {
     if (_componentsAddedSinceLastMerge != 0) {
@@ -143,11 +169,20 @@ class ComponentList {
     aocommon::UVector<Position> positions;
   };
 
+  // TODO: remove
   void write(const std::string& filename,
              const class DeconvolutionAlgorithm& algorithm,
              const aocommon::UVector<double>& scaleSizes,
              long double pixelScaleX, long double pixelScaleY,
-             long double phaseCentreRA, long double phaseCentreDec);
+             long double phaseCentreRA, long double phaseCentreDec) const {
+    write(filename, algorithm.Fitter(), scaleSizes, pixelScaleX, pixelScaleY,
+          phaseCentreRA, phaseCentreDec);
+  }
+
+  void write(const std::string& filename, const SpectralFitter& fitter,
+             const aocommon::UVector<double>& scaleSizes,
+             long double pixelScaleX, long double pixelScaleY,
+             long double phaseCentreRA, long double phaseCentreDec) const;
 
   void loadFromImageSet(ImageSet& imageSet, size_t scaleIndex);
 
@@ -191,7 +226,8 @@ class ComponentList {
     std::swap(_listPerScale[scaleIndex].values, newValues);
     std::swap(_listPerScale[scaleIndex].positions, newPositions);
   }
-  const size_t _width, _height;
+  size_t _width;
+  size_t _height;
   size_t _nFrequencies;
   size_t _componentsAddedSinceLastMerge;
   size_t _maxComponentsBeforeMerge;

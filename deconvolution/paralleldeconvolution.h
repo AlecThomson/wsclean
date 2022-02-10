@@ -14,6 +14,8 @@
 #include <mutex>
 #include <vector>
 
+class ComponentList;
+
 class ParallelDeconvolution {
  public:
   ParallelDeconvolution(const class Settings& settings);
@@ -26,6 +28,15 @@ class ParallelDeconvolution {
   const class DeconvolutionAlgorithm& FirstAlgorithm() const {
     return *_algorithms.front();
   }
+
+  ComponentList GetComponentList(const DeconvolutionTable& table,
+                                 const CachedImageSet& modelImages) const;
+
+  /**
+   * @brief Same as @c FirstAlgorithm , except that for a multi-scale clean
+   * the algorithm with the maximum number of scale counts is returned.
+   */
+  const DeconvolutionAlgorithm& MaxScaleCountAlgorithm() const;
 
   void SetAllocator(class ImageBufferAllocator* allocator) {
     _allocator = allocator;
@@ -95,7 +106,7 @@ class ParallelDeconvolution {
   PrimaryBeamImageSet loadAveragePrimaryBeam(
       size_t imageIndex, const class DeconvolutionTable& table) const;
 
-  void writeSourceList(ComponentList& componentList,
+  void writeSourceList(const ComponentList& componentList,
                        const std::string& filename, long double phaseCentreRA,
                        long double phaseCentreDec) const;
 
