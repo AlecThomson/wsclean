@@ -15,9 +15,9 @@ A typical run in multi-frequency deconvolution would look like:
     wsclean -join-channels -channels-out 4 [other parameters] \
       <measurement set>
 
-This outputs 4 deconvolved images at the different frequencies and the weighted average of those 4. This mode can be combined with Cotton-Schwab imaging (with ``-mgain ...``) which would fill the ``MODEL_DATA`` column with frequency dependent model info, so that it is possible to perform self-cal with the proper frequency information. Joining channels can also be combined with joining polarizations (``-join-polarizations``, see :doc:`polarimetric deconvolution <polarimetric_deconvolution>`) to clean polarizations and channels both joinedly (from :doc:`version 1.5 <changelogs/v1.5>`).
+This outputs 4 deconvolved images at the different frequencies and the weighted average of those 4. This mode can be combined with Cotton-Schwab imaging (with ``-mgain ...``) which would fill the ``MODEL_DATA`` column with frequency dependent model info, so that it is possible to perform self-cal with the proper frequency information. Joining channels can also be combined with joining polarizations (``-join-polarizations``, see :doc:`polarimetric deconvolution <polarimetric_deconvolution>`) to clean polarizations and channels both joinedly. This is available from :doc:`version 1.5 <changelogs/v1.5>`.
 
-Joined channel deconvolution computationally more expensive than bandwidth-integrated clean. If the performance time (or memory) becomes untractable, the speed can be improved by using channel interpolation (see description of ``-deconvolution-channels`` below) or by using :doc:`parallel/subimage deconvolution <parallel_deconvolution>`.
+Joined channel deconvolution is computationally more expensive than bandwidth-integrated cleaning. If the processing time (or memory) becomes untractable, the speed and memory usage can be improved by using channel interpolation (see description of ``-deconvolution-channels`` below) or by using :doc:`parallel/subimage deconvolution <parallel_deconvolution>`.
 
 .. note::
    Something to be aware of is that the ``-join-channels`` parameter turns on :doc:`MF weighting <mf_weighting>`.
