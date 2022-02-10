@@ -81,11 +81,11 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 BOOST_AUTO_TEST_SUITE(imageset)
 
 BOOST_FIXTURE_TEST_CASE(squaredGroupCount, ImageSetFixture) {
-  BOOST_CHECK_EQUAL(table.SquaredGroups().size(), 2u);
+  BOOST_CHECK_EQUAL(table.ChannelGroups().size(), 2u);
 }
 
 BOOST_FIXTURE_TEST_CASE(entriesInGroup, ImageSetFixture) {
-  BOOST_CHECK_EQUAL(table.SquaredGroups().front().size(), 2u);
+  BOOST_CHECK_EQUAL(table.ChannelGroups().front().size(), 2u);
 }
 
 BOOST_FIXTURE_TEST_CASE(psfCount1, ImageSetFixture) {

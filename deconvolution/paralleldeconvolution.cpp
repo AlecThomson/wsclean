@@ -454,9 +454,9 @@ void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
   }
 
   if (_settings.deconvolutionChannelCount == 0 ||
-      _settings.deconvolutionChannelCount == table.SquaredGroups().size()) {
+      _settings.deconvolutionChannelCount == table.ChannelGroups().size()) {
     // No beam averaging is required
-    for (const DeconvolutionTable::Group& sqGroup : table.SquaredGroups()) {
+    for (const DeconvolutionTable::Group& sqGroup : table.ChannelGroups()) {
       correctChannelForPB(*list, *sqGroup.front());
     }
   } else {
@@ -507,7 +507,7 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
   size_t count = 0;
   PrimaryBeam pb(_settings);
   const std::vector<DeconvolutionTable::Group>& squaredGroups =
-      table.SquaredGroups();
+      table.ChannelGroups();
   for (size_t sqIndex = 0; sqIndex != squaredGroups.size(); ++sqIndex) {
     size_t curImageIndex =
         (sqIndex * deconvolutionChannels) / squaredGroups.size();

@@ -193,7 +193,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   _autoMask.clear();
   FreeDeconvolutionAlgorithms();
   _table = std::move(table);
-  if (_table->SquaredGroups().empty())
+  if (_table->ChannelGroups().empty())
     throw std::runtime_error("Nothing to clean");
 
   if (!std::isfinite(_beamSize)) {
