@@ -1646,19 +1646,12 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     componentListWriter.SaveSourceList(_deconvolution,
                                        _observationInfo.phaseCentreRA,
                                        _observationInfo.phaseCentreDec);
-
-    // _deconvolution.SaveSourceList(*deconvolution_table,
-    //                               _observationInfo.phaseCentreRA,
-    //                               _observationInfo.phaseCentreDec);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
         !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
         !_settings.atermConfigFilename.empty()) {
       componentListWriter.SavePbCorrectedSourceList(
           _deconvolution, _observationInfo.phaseCentreRA,
           _observationInfo.phaseCentreDec);
-      // _deconvolution.SavePBSourceList(*deconvolution_table,
-      //                                 _observationInfo.phaseCentreRA,
-      //                                 _observationInfo.phaseCentreDec);
     }
   }
 

@@ -169,16 +169,6 @@ class ComponentList {
     aocommon::UVector<Position> positions;
   };
 
-  // TODO: remove
-  void write(const std::string& filename,
-             const class DeconvolutionAlgorithm& algorithm,
-             const aocommon::UVector<double>& scaleSizes,
-             long double pixelScaleX, long double pixelScaleY,
-             long double phaseCentreRA, long double phaseCentreDec) const {
-    write(filename, algorithm.Fitter(), scaleSizes, pixelScaleX, pixelScaleY,
-          phaseCentreRA, phaseCentreDec);
-  }
-
   void write(const std::string& filename, const SpectralFitter& fitter,
              const aocommon::UVector<double>& scaleSizes,
              long double pixelScaleX, long double pixelScaleY,
@@ -226,6 +216,7 @@ class ComponentList {
     std::swap(_listPerScale[scaleIndex].values, newValues);
     std::swap(_listPerScale[scaleIndex].positions, newPositions);
   }
+
   size_t _width;
   size_t _height;
   size_t _nFrequencies;

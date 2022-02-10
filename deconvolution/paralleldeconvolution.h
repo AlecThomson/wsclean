@@ -3,8 +3,7 @@
 
 #include "../system/fftwmanager.h"
 
-#include "../structures/primarybeamimageset.h"
-
+#include "componentlist.h"
 #include "controllablelog.h"
 
 #include <aocommon/image.h>
@@ -13,8 +12,6 @@
 #include <memory>
 #include <mutex>
 #include <vector>
-
-class ComponentList;
 
 class ParallelDeconvolution {
  public:
@@ -66,13 +63,6 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  void SaveSourceList(const DeconvolutionTable& table,
-                      long double phaseCentreRA, long double phaseCentreDec);
-
-  void SavePBSourceList(const DeconvolutionTable& table,
-                        long double phaseCentreRA,
-                        long double phaseCentreDec) const;
-
   class FFTWManager& GetFFTWManager() {
     return _fftwManager;
   }
@@ -98,17 +88,6 @@ class ParallelDeconvolution {
                    const aocommon::UVector<const float*>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex* mutex);
-
-  void correctChannelForPB(class ComponentList& list,
-                           const struct DeconvolutionTableEntry& entry,
-                           size_t channel_index_offset) const;
-
-  PrimaryBeamImageSet loadAveragePrimaryBeam(
-      size_t imageIndex, const class DeconvolutionTable& table) const;
-
-  void writeSourceList(const ComponentList& componentList,
-                       const std::string& filename, long double phaseCentreRA,
-                       long double phaseCentreDec) const;
 
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
