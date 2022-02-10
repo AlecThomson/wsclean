@@ -43,17 +43,6 @@ class Deconvolution {
   /// Return IterationNumber of the underlying \c DeconvolutionAlgorithm
   size_t IterationNumber() const;
 
-  void SaveSourceList(const DeconvolutionTable& table,
-                      long double phaseCentreRA, long double phaseCentreDec) {
-    _parallelDeconvolution.SaveSourceList(table, phaseCentreRA, phaseCentreDec);
-  }
-
-  void SavePBSourceList(const DeconvolutionTable& table,
-                        long double phaseCentreRA, long double phaseCentreDec) {
-    _parallelDeconvolution.SavePBSourceList(table, phaseCentreRA,
-                                            phaseCentreDec);
-  }
-
  private:
   void correctChannelForPB(class ComponentList& list,
                            const DeconvolutionTableEntry& entry) const;

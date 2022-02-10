@@ -8,16 +8,27 @@
 
 #include "../structures/primarybeamimageset.h"
 
+/**
+ * @brief Class for extracting the component list from the deconvolution
+ * algorithm and writing it to a text file on disk - optionally, components are
+ * corrected for the primary beam before writing to disk.
+ */
 class ComponentListWriter {
  public:
   ComponentListWriter(const Settings& settings,
                       std::unique_ptr<DeconvolutionTable> table)
       : settings_(settings), deconvolution_table_(std::move(table)) {}
 
+  /**
+   * @brief Save source component list to disk.
+   */
   void SaveSourceList(const Deconvolution& deconvolution,
                       long double phase_centre_ra,
                       long double phase_centre_dec) const;
 
+  /**
+   * @brief Save primary beam corrected source components to disk.
+   */
   void SavePbCorrectedSourceList(const Deconvolution& deconvolution,
                                  long double phase_centre_ra,
                                  long double phase_centre_dec) const;
