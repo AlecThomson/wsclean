@@ -293,10 +293,9 @@ void Deconvolution::readMask(const DeconvolutionTable& groupTable) {
       maskReader.Read(maskData.data());
     } else if (maskReader.NFrequencies() == _settings.channelsOut) {
       Logger::Debug << "Reading mask '" << _settings.fitsDeconvolutionMask
-                    << "' (" << (groupTable.Front().output_channel_index + 1)
+                    << "' (" << (groupTable.Front().channel_index + 1)
                     << ")...\n";
-      maskReader.ReadIndex(maskData.data(),
-                           groupTable.Front().output_channel_index);
+      maskReader.ReadIndex(maskData.data(), groupTable.Front().channel_index);
     } else {
       std::stringstream msg;
       msg << "The number of frequencies in the specified fits mask ("

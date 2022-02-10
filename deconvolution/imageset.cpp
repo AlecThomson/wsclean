@@ -54,7 +54,7 @@ void ImageSet::initializeIndices() {
   size_t imgIndex = 0;
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
   for (const DeconvolutionTableEntry& entry : _deconvolutionTable) {
-    size_t outChannel = entry.output_channel_index;
+    size_t outChannel = entry.channel_index;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
                      _deconvolutionTable.ChannelGroups().size();
     if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {

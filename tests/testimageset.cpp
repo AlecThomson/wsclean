@@ -35,8 +35,7 @@ struct ImageSetFixtureBase {
                      PolarizationEnum pol, size_t frequencyMHz,
                      double imageWeight = 1.0) {
     auto e = boost::make_unique<DeconvolutionTableEntry>();
-    e->output_channel_index = outChannel;
-    e->channel_group_id = squaredIndex;
+    e->channel_index = outChannel;
     e->polarization = pol;
     e->band_start_frequency = frequencyMHz;
     e->band_end_frequency = frequencyMHz;
