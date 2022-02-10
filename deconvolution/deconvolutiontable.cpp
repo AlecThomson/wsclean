@@ -7,9 +7,9 @@ void DeconvolutionTable::AddEntry(
   entry->index = _entries.size();
   _entries.push_back(std::move(entry));
 
-  size_t sqIndex = _entries.back()->squaredDeconvolutionIndex;
-  assert(sqIndex >= _entries.front()->squaredDeconvolutionIndex);
-  sqIndex -= _entries.front()->squaredDeconvolutionIndex;
+  size_t sqIndex = _entries.back()->channel_group_id;
+  assert(sqIndex >= _entries.front()->channel_group_id);
+  sqIndex -= _entries.front()->channel_group_id;
 
   // As documented in deconvolutiontable.h, sqIndex may be at most 1 larger
   // than the largest existing sqIndex.

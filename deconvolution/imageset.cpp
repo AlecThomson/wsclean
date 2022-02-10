@@ -54,7 +54,7 @@ void ImageSet::initializeIndices() {
   size_t imgIndex = 0;
   _entryIndexToImageIndex.reserve(_imagingTable.Size());
   for (const DeconvolutionTableEntry& entry : _imagingTable) {
-    size_t outChannel = entry.outputChannelIndex;
+    size_t outChannel = entry.output_channel_index;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
                      _imagingTable.SquaredGroups().size();
     if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {
@@ -115,8 +115,8 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
       } else {
         entry_ptr->model_accessor->Load(scratch);
       }
-      _images[imgIndex].AddWithFactor(scratch, entry_ptr->imageWeight);
-      averagedWeights[imgIndex] += entry_ptr->imageWeight;
+      _images[imgIndex].AddWithFactor(scratch, entry_ptr->image_weight);
+      averagedWeights[imgIndex] += entry_ptr->image_weight;
       ++imgIndex;
     }
     const size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
@@ -148,7 +148,7 @@ void ImageSet::LoadAndAveragePSFs(
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups()[sqIndex];
     const DeconvolutionTableEntry& entry = *sqGroup.front();
-    const double inputChannelWeight = entry.imageWeight;
+    const double inputChannelWeight = entry.image_weight;
     entry.psf_accessor->Load(scratch);
     for (size_t i = 0; i != _width * _height; ++i) {
       psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
@@ -419,7 +419,7 @@ void ImageSet::CalculateDeconvolutionFrequencies(
     const DeconvolutionTableEntry& entry =
         *groupTable.SquaredGroups()[i].front();
     const double freq = entry.CentralFrequency();
-    const double weight = entry.imageWeight;
+    const double weight = entry.image_weight;
     const size_t deconvolutionChannel =
         i * nDeconvolutionChannels / nInputChannels;
 
