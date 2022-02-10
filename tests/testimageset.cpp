@@ -80,7 +80,7 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 
 BOOST_AUTO_TEST_SUITE(imageset)
 
-BOOST_FIXTURE_TEST_CASE(squaredGroupCount, ImageSetFixture) {
+BOOST_FIXTURE_TEST_CASE(channelGroupCount, ImageSetFixture) {
   BOOST_CHECK_EQUAL(table.ChannelGroups().size(), 2u);
 }
 

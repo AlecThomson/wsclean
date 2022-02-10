@@ -506,13 +506,14 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
   /// TODO : use real weights of images
   size_t count = 0;
   PrimaryBeam pb(_settings);
-  const std::vector<DeconvolutionTable::Group>& squaredGroups =
+  const std::vector<DeconvolutionTable::Group>& channelGroups =
       table.ChannelGroups();
-  for (size_t sqIndex = 0; sqIndex != squaredGroups.size(); ++sqIndex) {
+  for (size_t groupIndex = 0; groupIndex != channelGroups.size();
+       ++groupIndex) {
     size_t curImageIndex =
-        (sqIndex * deconvolutionChannels) / squaredGroups.size();
+        (groupIndex * deconvolutionChannels) / channelGroups.size();
     if (curImageIndex == imageIndex) {
-      const DeconvolutionTableEntry& e = *squaredGroups[sqIndex].front();
+      const DeconvolutionTableEntry& e = *channelGroups[groupIndex].front();
       Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
                     << " MHz\n";
       ImageFilename filename(e.output_channel_index, e.output_interval_index);
