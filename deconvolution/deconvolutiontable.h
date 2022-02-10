@@ -50,12 +50,12 @@ class DeconvolutionTable {
    * @brief Adds an entry to the table.
    *
    * When adding multiple entries, these restrictions apply to the
-   * the squaredDeconvolutionIndex ('sqIndex') of the entries:
-   * - The sqIndex must be greater than or equal to the sqIndex of the first
-   *   entry. (The first entry must have the smallest sqIndex of all entries.)
-   * - The sqIndex must be at most 1 larger than the sqIndex of any of the
+   * the channel group id of the entries:
+   * - The group id must be greater than or equal to the group id of the first
+   *   entry. (The first entry must have the smallest group id of all entries.)
+   * - The group id must be at most 1 larger than the group id of any of the
    *   previously added entries.
-   * For example, valid indices are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
+   * For example, valid group id's are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
    *
    * @param entry A new entry.
    */
