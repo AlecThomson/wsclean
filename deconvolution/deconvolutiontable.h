@@ -55,7 +55,7 @@ class DeconvolutionTable {
    *   entry. (The first entry must have the smallest group id of all entries.)
    * - The group id must be at most 1 larger than the group id of any of the
    *   previously added entries.
-   * For example, valid group id's are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
+   * For example, valid group ids are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
    *
    * @param entry A new entry.
    */
