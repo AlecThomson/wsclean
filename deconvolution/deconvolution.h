@@ -16,6 +16,19 @@ class Deconvolution {
   explicit Deconvolution(const class Settings& settings);
   ~Deconvolution();
 
+  ComponentList GetComponentList() const {
+    return _parallelDeconvolution.GetComponentList(*_table, *_modelImages);
+  }
+
+  /**
+   * @brief Exposes a const reference to either the first algorithm, or - in
+   * case of a multiscale clean - the algorithm with the maximum number of scale
+   * counts.
+   */
+  const DeconvolutionAlgorithm& MaxScaleCountAlgorithm() const {
+    return _parallelDeconvolution.MaxScaleCountAlgorithm();
+  }
+
   void Perform(bool& reachedMajorThreshold, size_t majorIterationNr);
 
   void InitializeDeconvolutionAlgorithm(
