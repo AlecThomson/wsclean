@@ -308,14 +308,14 @@ class ImageSet {
 
   void getLinearIntegratedWithNormalChannels(aocommon::Image& dest) const;
 
-  size_t channelToSqIndex(size_t channel) const {
+  size_t channelIndexToGroupIndex(size_t chIndex) const {
     // Calculate reverse of
     // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.ChannelGroups().size();
-    size_t fromFloor = channel * _deconvolutionTable.ChannelGroups().size() /
+    size_t fromFloor = chIndex * _deconvolutionTable.ChannelGroups().size() /
                        _channelsInDeconvolution;
     while (fromFloor * _channelsInDeconvolution /
                _deconvolutionTable.ChannelGroups().size() !=
-           channel)
+           chIndex)
       ++fromFloor;
     return fromFloor;
   }

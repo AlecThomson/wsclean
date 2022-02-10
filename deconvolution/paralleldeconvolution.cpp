@@ -456,8 +456,8 @@ void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
   if (_settings.deconvolutionChannelCount == 0 ||
       _settings.deconvolutionChannelCount == table.ChannelGroups().size()) {
     // No beam averaging is required
-    for (const DeconvolutionTable::Group& sqGroup : table.ChannelGroups()) {
-      correctChannelForPB(*list, *sqGroup.front());
+    for (const DeconvolutionTable::Group& group : table.ChannelGroups()) {
+      correctChannelForPB(*list, *group.front());
     }
   } else {
     for (size_t ch = 0; ch != _settings.deconvolutionChannelCount; ++ch) {
