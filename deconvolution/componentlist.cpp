@@ -35,14 +35,12 @@ void ComponentList::write(const std::string& filename,
                           long double pixelScaleX, long double pixelScaleY,
                           long double phaseCentreRA,
                           long double phaseCentreDec) const {
-  // MergeDuplicates();
   if (_componentsAddedSinceLastMerge != 0) {
     throw std::runtime_error(
         "ComponentList::write called while there are yet unmerged components. "
         "Run ComponentList::MergeDuplicates() first.");
   }
 
-  // const SpectralFitter& fitter = algorithm.Fitter();
   if (fitter.Mode() == SpectralFittingMode::NoFitting && _nFrequencies > 1)
     throw std::runtime_error(
         "Can't write component list, because you have not specified a spectral "

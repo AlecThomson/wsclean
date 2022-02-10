@@ -11,7 +11,7 @@
 void ComponentListWriter::SaveSourceList(const Deconvolution& deconvolution,
                                          long double phase_centre_ra,
                                          long double phase_centre_dec) const {
-  std::string filename = settings_.prefixName + "-sources.txt";
+  const std::string filename = settings_.prefixName + "-sources.txt";
   ComponentList list = deconvolution.GetComponentList();
   const DeconvolutionAlgorithm& deconvolution_algorithm =
       deconvolution.MaxScaleCountAlgorithm();
@@ -22,8 +22,7 @@ void ComponentListWriter::SaveSourceList(const Deconvolution& deconvolution,
 void ComponentListWriter::SavePbCorrectedSourceList(
     const Deconvolution& deconvolution, long double phase_centre_ra,
     long double phase_centre_dec) const {
-  std::string filename = settings_.prefixName + "-sources-pb.txt";
-  // TODO: fix this here. ComponentList isn't a member.
+  const std::string filename = settings_.prefixName + "-sources-pb.txt";
   ComponentList list = deconvolution.GetComponentList();
 
   if (settings_.deconvolutionChannelCount == 0 ||
