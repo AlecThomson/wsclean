@@ -44,11 +44,12 @@ class DeconvolutionTable {
   /**
    * @brief Constructs a new DeconvolutionTable object.
    *
-   * @param n_channel_groups The number of channel groups. When adding entries,
-   * their channel index must be less than the number of channel groups.
+   * @param n_original_groups The number of original channel groups. When adding
+   * entries, their original channel index must be less than the number of
+   * original groups.
    */
-  explicit DeconvolutionTable(size_t n_channel_groups)
-      : entries_(), original_groups_(n_channel_groups) {}
+  explicit DeconvolutionTable(size_t n_original_groups)
+      : entries_(), original_groups_(n_original_groups) {}
 
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
 
@@ -58,9 +59,9 @@ class DeconvolutionTable {
   /**
    * @brief Adds an entry to the table.
    *
-   * The channel index of the entry determines the channel group for the entry.
-   * It must be less than the number of channel groups, as given in the
-   * constructor.
+   * The original channel index of the entry determines the original group for
+   * the entry. It must be less than the number of original channel groups, as
+   * given in the constructor.
    *
    * @param entry A new entry.
    */
