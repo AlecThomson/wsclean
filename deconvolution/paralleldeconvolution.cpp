@@ -26,8 +26,33 @@ ParallelDeconvolution::ParallelDeconvolution(const Settings& settings)
 
 ParallelDeconvolution::~ParallelDeconvolution() {}
 
+// ComponentList ParallelDeconvolution::GetComponentList(
+//     const DeconvolutionTable& table, const CachedImageSet& modelImages) const
+//     {
+//   // TODO make this work with subimages
+//   ComponentList list;
+//   if (_settings.useMultiscale) {
+//     // If no parallel deconvolution was used, the component list must be
+//     // retrieved from the deconvolution algorithm.
+//     if (_algorithms.size() == 1) {
+//       list = static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())
+//                  ->GetComponentList();
+//     } else {
+//       list = *_componentList;
+//     }
+//   } else {
+//     const size_t w = _settings.trimmedImageWidth;
+//     const size_t h = _settings.trimmedImageHeight;
+//     ImageSet modelSet(table, _settings, w, h);
+//     modelSet.LoadAndAverage(modelImages);
+//     list = ComponentList(w, h, modelSet);
+//   }
+//   list.MergeDuplicates();
+//   return list;
+// }
+
 ComponentList ParallelDeconvolution::GetComponentList(
-    const DeconvolutionTable& table, const CachedImageSet& modelImages) const {
+    const DeconvolutionTable& table) const {
   // TODO make this work with subimages
   ComponentList list;
   if (_settings.useMultiscale) {
@@ -43,7 +68,7 @@ ComponentList ParallelDeconvolution::GetComponentList(
     const size_t w = _settings.trimmedImageWidth;
     const size_t h = _settings.trimmedImageHeight;
     ImageSet modelSet(table, _settings, w, h);
-    modelSet.LoadAndAverage(modelImages);
+    modelSet.LoadAndAverage(false);
     list = ComponentList(w, h, modelSet);
   }
   list.MergeDuplicates();
