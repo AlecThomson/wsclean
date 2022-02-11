@@ -53,19 +53,24 @@ class DeconvolutionTable {
    * @param n_original_groups The number of original channel groups. When adding
    * entries, their original channel index must be less than the number of
    * original groups.
+   * @param n_deconvolution_groups The number of deconvolution groups.
+   * A deconvolution group consist of one or more channel groups, which are then
+   * joinedly deconvolved.
+   * If the value is zero (default) or larger than the number of channel groups,
+   * all channels are deconvolved separately.
    * @param channel_index_offset The index of the first channel in the caller.
    */
   explicit DeconvolutionTable(size_t n_original_groups,
-                              size_t channel_index_offset = 0)
-      : entries_(),
-        original_groups_(n_original_groups),
-        channel_index_offset_(channel_index_offset) {}
-
+                              size_t n_deconvolution_groups = 0,
+                              size_t channel_index_offset = 0);
   /**
    * @return The table entries, grouped by their original channel index.
    * @see AddEntry()
    */
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
+  const std::vector<Group>& DeconvolutionGroups() const {
+    return deconvolution_groups_;
+  }
 
   /**
    * begin() and end() allow writing range-based loops over all entries.
@@ -107,11 +112,6 @@ class DeconvolutionTable {
   Entries entries_;
 
   /**
-   * An original group has entries with equal original channel indices.
-   */
-  std::vector<Group> original_groups_;
-
-  /**
    * A user of the DeconvolutionTable may use different channel indices than
    * the DeconvolutionTable. This offset is the difference between those
    * indices.
@@ -119,6 +119,19 @@ class DeconvolutionTable {
    * 0, 1, and 2. When the user indices are 4, 5, and 6, this offset will be 4.
    */
   const std::size_t channel_index_offset_;
+
+  /**
+   * An original group has entries with equal original channel indices.
+   */
+  std::vector<Group> original_groups_;
+
+  /**
+   * A deconvolution group has entries that are deconvolved together.
+   * The number of deconvolution groups is always less or equal to the number of
+   * channel groups. If it is less, multiple channel groups are combined into a
+   * single deconvolution group.
+   */
+  std::vector<Group> deconvolution_groups_;
 };
 
 #endif
