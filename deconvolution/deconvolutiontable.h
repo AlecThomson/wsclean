@@ -48,9 +48,9 @@ class DeconvolutionTable {
    * their channel index must be less than the number of channel groups.
    */
   explicit DeconvolutionTable(size_t n_channel_groups)
-      : entries_(), channel_groups_(n_channel_groups) {}
+      : entries_(), original_groups_(n_channel_groups) {}
 
-  const std::vector<Group>& ChannelGroups() const { return channel_groups_; }
+  const std::vector<Group>& OriginalGroups() const { return original_groups_; }
 
   EntryIterator begin() const { return EntryIterator(entries_.begin()); }
   EntryIterator end() const { return EntryIterator(entries_.end()); }
@@ -78,7 +78,11 @@ class DeconvolutionTable {
 
  private:
   Entries entries_;
-  std::vector<Group> channel_groups_;
+
+  /**
+   * An original group has entries with equal original channel indices.
+   */
+  std::vector<Group> original_groups_;
 };
 
 #endif
