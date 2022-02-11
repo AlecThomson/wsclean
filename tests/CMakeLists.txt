@@ -11,6 +11,7 @@ add_executable(
   testpeakfinder.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
+  deconvolution/testdeconvolutiontable.cpp
   deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp

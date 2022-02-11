@@ -1,8 +1,11 @@
+#include "../../structures/imagingtable.h"
+
+#include <array>
+
 #include <boost/test/unit_test.hpp>
 
 #include "../../io/cachedimageaccessor.h"
 #include "../../io/cachedimageset.h"
-#include "../../structures/imagingtable.h"
 
 #include "../common/smartptr.h"
 
