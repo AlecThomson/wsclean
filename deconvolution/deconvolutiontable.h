@@ -51,6 +51,10 @@ class DeconvolutionTable {
   explicit DeconvolutionTable(size_t n_original_groups)
       : entries_(), original_groups_(n_original_groups) {}
 
+  /**
+   * @return The table entries, grouped by their original channel index.
+   * @see AddEntry()
+   */
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
 
   EntryIterator begin() const { return EntryIterator(entries_.begin()); }
