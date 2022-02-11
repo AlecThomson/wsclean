@@ -26,8 +26,6 @@ class ParallelDeconvolution {
     return *_algorithms.front();
   }
 
-  // ComponentList GetComponentList(const DeconvolutionTable& table,
-  //                                const CachedImageSet& modelImages) const;
   ComponentList GetComponentList(const DeconvolutionTable& table) const;
 
   /**
