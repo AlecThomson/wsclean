@@ -26,8 +26,9 @@ class ParallelDeconvolution {
     return *_algorithms.front();
   }
 
-  ComponentList GetComponentList(const DeconvolutionTable& table,
-                                 const CachedImageSet& modelImages) const;
+  // ComponentList GetComponentList(const DeconvolutionTable& table,
+  //                                const CachedImageSet& modelImages) const;
+  ComponentList GetComponentList(const DeconvolutionTable& table) const;
 
   /**
    * @brief Same as @c FirstAlgorithm , except that for a multi-scale clean
