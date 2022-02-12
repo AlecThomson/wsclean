@@ -4,9 +4,9 @@
 #include "../deconvolution/deconvolution.h"
 #include "../deconvolution/deconvolutiontable.h"
 
-#include "../main/settings.h"
-
 #include "../structures/primarybeamimageset.h"
+
+class Settings;
 
 /**
  * @brief Class for extracting the component list from the deconvolution
@@ -44,7 +44,7 @@ class ComponentListWriter {
                        const std::string& filename, long double phase_centre_ra,
                        long double phase_centre_dec) const;
 
-  Settings settings_;
+  const Settings& settings_;
   std::unique_ptr<DeconvolutionTable> deconvolution_table_;
 };
 

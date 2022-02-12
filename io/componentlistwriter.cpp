@@ -2,6 +2,8 @@
 
 #include "../io/logger.h"
 
+#include "../main/settings.h"
+
 #include "../multiscale/multiscalealgorithm.h"
 
 #include "../structures/primarybeam.h"
@@ -55,9 +57,9 @@ void ComponentListWriter::CorrectChannelForPrimaryBeam(
   ImageFilename filename(entry.output_channel_index,
                          entry.output_interval_index);
   filename.SetPolarization(entry.polarization);
-  PrimaryBeam pb(settings_);
-  PrimaryBeamImageSet beamImages = pb.Load(filename);
-  beamImages.CorrectComponentList(list, entry.output_channel_index);
+  PrimaryBeam beam(settings_);
+  PrimaryBeamImageSet beam_images = beam.Load(filename);
+  beam_images.CorrectComponentList(list, entry.output_channel_index);
 }
 
 PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
@@ -73,7 +75,7 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
 
   /// TODO : use real weights of images
   size_t count = 0;
-  PrimaryBeam pb(settings_);
+  PrimaryBeam beam(settings_);
   const std::vector<DeconvolutionTable::Group>& channel_groups =
       deconvolution_table_->ChannelGroups();
   for (size_t channel_index = 0; channel_index != channel_groups.size();
@@ -87,14 +89,14 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
       ImageFilename filename(e.output_channel_index, e.output_interval_index);
 
       if (count == 0) {
-        beam_images = pb.Load(filename);
+        beam_images = beam.Load(filename);
       } else {
-        beam_images += pb.Load(filename);
+        beam_images += beam.Load(filename);
       }
       count++;
     }
   }
-  beam_images *= (1.0 / double(count));
+  beam_images *= 1.0 / count;
   return beam_images;
 }
 
@@ -103,7 +105,7 @@ void ComponentListWriter::WriteSourceList(
     const DeconvolutionAlgorithm& deconvolution_algorithm,
     const std::string& filename, long double phase_centre_ra,
     long double phase_centre_dec) const {
-  if (const auto multiscale_algorithm =
+  if (const auto* multiscale_algorithm =
           dynamic_cast<const MultiScaleAlgorithm*>(&deconvolution_algorithm)) {
     list.Write(filename, *multiscale_algorithm, settings_.pixelScaleX,
                settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);

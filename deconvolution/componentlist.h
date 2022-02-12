@@ -68,33 +68,20 @@ class ComponentList {
     }
   }
 
-  // TODO: remove
+  /**
+   * @brief Write component lists over all scales, typically
+   * used for writing components of a multiscale clean.
+   */
   void Write(const std::string& filename,
              const class MultiScaleAlgorithm& multiscale,
              long double pixelScaleX, long double pixelScaleY,
              long double phaseCentreRA, long double phaseCentreDec) const;
 
-  // TODO: remove
   void WriteSingleScale(const std::string& filename,
                         const class DeconvolutionAlgorithm& algorithm,
                         long double pixelScaleX, long double pixelScaleY,
                         long double phaseCentreRA,
                         long double phaseCentreDec) const;
-
-  /**
-   * @brief Write component lists over all scales, typically
-   * used for writing components of a multiscale clean.
-   */
-  // void Write(const std::string& filename,
-  //            const SpectralFitter& fitter,
-  //            long double pixelScaleX, long double pixelScaleY,
-  //            long double phaseCentreRA, long double phaseCentreDec) const;
-
-  // void WriteSingleScale(const std::string& filename,
-  //                       const class DeconvolutionAlgorithm& algorithm,
-  //                       long double pixelScaleX, long double pixelScaleY,
-  //                       long double phaseCentreRA,
-  //                       long double phaseCentreDec) const;
 
   void MergeDuplicates() {
     if (_componentsAddedSinceLastMerge != 0) {

@@ -17,7 +17,6 @@ class Deconvolution {
   ~Deconvolution();
 
   ComponentList GetComponentList() const {
-    // return _parallelDeconvolution.GetComponentList(*_table, *_modelImages);
     return _parallelDeconvolution.GetComponentList(*_table);
   }
 
