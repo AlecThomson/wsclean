@@ -12,7 +12,7 @@ class CachedImageSet;
 class AverageBeam {
  public:
   AverageBeam() {}
-  bool Empty() { return (!_scalarBeam || !_matrixInverseBeam); }
+  bool Empty() const { return (!_scalarBeam || !_matrixInverseBeam); }
   void SetScalarBeam(const std::shared_ptr<std::vector<float>>& scalarBeam) {
     _scalarBeam = scalarBeam;
   }
