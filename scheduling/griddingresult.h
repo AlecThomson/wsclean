@@ -12,6 +12,7 @@ class AverageBeam;
 
 struct GriddingResult {
   GriddingResult();
+  GriddingResult(const GriddingResult& source) = delete;
   GriddingResult(GriddingResult&& source) noexcept;
   ~GriddingResult();
   GriddingResult& operator=(const GriddingResult& rhs) = delete;

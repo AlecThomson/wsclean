@@ -23,7 +23,7 @@ class Facet;
 class GriddingTask {
  public:
   GriddingTask();
-  GriddingTask(GriddingTask&) = delete;
+  GriddingTask(const GriddingTask&) = delete;
   GriddingTask(GriddingTask&& source) noexcept;
   ~GriddingTask() noexcept;
   GriddingTask& operator=(const GriddingTask& source) = delete;
