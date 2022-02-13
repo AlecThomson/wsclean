@@ -1,7 +1,7 @@
 Wideband deconvolution
 ======================
 
-WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the psf is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation and deconvolves each channel with its own PSF.
+WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the PSF is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation and deconvolves each channel with its own PSF.
 
 Wideband options are available since :doc:`WSClean version 1.1 <changelogs/v1.1>`.
 
