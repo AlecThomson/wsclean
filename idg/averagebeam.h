@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+class CachedImageSet;
+
 class AverageBeam {
  public:
   AverageBeam() {}
@@ -29,6 +31,9 @@ class AverageBeam {
    * they can be treated as such.
    */
   std::shared_ptr<std::vector<float>>& ScalarBeam() { return _scalarBeam; }
+  std::shared_ptr<const std::vector<float>> ScalarBeam() const {
+    return _scalarBeam;
+  }
 
   /**
    * The matrix inverse beam is applied while gridding. It is the inverse of the
@@ -37,6 +42,17 @@ class AverageBeam {
   std::shared_ptr<std::vector<std::complex<float>>>& MatrixInverseBeam() {
     return _matrixInverseBeam;
   }
+  std::shared_ptr<const std::vector<std::complex<float>>> MatrixInverseBeam()
+      const {
+    return _matrixInverseBeam;
+  }
+
+  static std::unique_ptr<AverageBeam> Load(const CachedImageSet& scalar_cache,
+                                           const CachedImageSet& matrix_cache,
+                                           size_t frequency_index,
+                                           size_t n_pixels);
+  void Store(CachedImageSet& scalar_cache, CachedImageSet& matrix_cache,
+             size_t frequency_index) const;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

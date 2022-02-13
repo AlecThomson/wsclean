@@ -121,6 +121,11 @@ class CachedImageSet {
   }
 
   /**
+   * A CachedImageSet is empty as long as Store() has not been called.
+   */
+  bool Empty() const { return _storedNames.empty() && _image.Empty(); }
+
+  /**
    * @return The filenames of the temporarily stored files, for testing only.
    */
   const std::set<std::string>& GetStoredNames() const { return _storedNames; };
