@@ -988,7 +988,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         writer.Writer(), 1, groupTable.SquaredGroups().size(), _facets.size(),
         _settings.prefixName + "-scalar-beam");
     _matrixBeamImages.Initialize(
-        writer.Writer(), 8, groupTable.SquaredGroups().size(), _facets.size(),
+        writer.Writer(), 2, groupTable.SquaredGroups().size(), _facets.size(),
         _settings.prefixName + "-matrix-beam");
   }
 
