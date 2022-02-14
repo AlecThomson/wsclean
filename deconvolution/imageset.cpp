@@ -46,27 +46,25 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
 }
 
 void ImageSet::initializeIndices() {
-  size_t lastDeconvolutionChannel = 0;
-  size_t deconvolutionChannelStartIndex = 0, lastOutChannel = 0;
-  size_t imgIndex = 0;
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
-  for (const DeconvolutionTableEntry& entry : _deconvolutionTable) {
-    size_t outChannel = entry.original_channel_index;
-    size_t chIndex = (outChannel * ChannelsInDeconvolution()) /
-                     _deconvolutionTable.OriginalGroups().size();
-    if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {
-      // New output channel maps to an earlier deconvolution channel:
-      // start at index of previous deconvolution channel
-      imgIndex = deconvolutionChannelStartIndex;
+  size_t imgIndex = 0;
+  for (const DeconvolutionTable::Group& group :
+       _deconvolutionTable.DeconvolutionGroups()) {
+    const size_t deconvolutionChannelStartIndex = imgIndex;
+    size_t lastChannel = group.front()->original_channel_index;
+    for (const DeconvolutionTableEntry* entry : group) {
+      if (entry->original_channel_index != lastChannel) {
+        // New original channel maps to the same deconvolution channel:
+        // Start at index of the first original channel in the group.
+        imgIndex = deconvolutionChannelStartIndex;
+      }
+
+      assert(entry->index == _entryIndexToImageIndex.size());
+      _entryIndexToImageIndex.push_back(imgIndex);
+
+      lastChannel = entry->original_channel_index;
+      ++imgIndex;
     }
-    if (chIndex != lastDeconvolutionChannel) {
-      deconvolutionChannelStartIndex = imgIndex;
-    }
-    assert(entry.index == _entryIndexToImageIndex.size());
-    _entryIndexToImageIndex.push_back(imgIndex);
-    lastOutChannel = outChannel;
-    lastDeconvolutionChannel = chIndex;
-    ++imgIndex;
   }
 
   for (size_t chIndex = 0; chIndex != ChannelsInDeconvolution(); ++chIndex) {
