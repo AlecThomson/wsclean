@@ -99,7 +99,11 @@ class DeconvolutionTable {
   std::vector<Group> original_groups_;
 
   /**
-   * The index of the first channel in the user of the DeconvolutionTable.
+   * A user of the DeconvolutionTable may use different channel indices than
+   * the DeconvolutionTable. This offset is the difference between those
+   * indices.
+   * For example, with three channels, the DeconvolutionTable indices are always
+   * 0, 1, and 2. When the user indices are 4, 5, and 6, this offset will be 4.
    */
   const std::size_t channel_index_offset_;
 };
