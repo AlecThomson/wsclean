@@ -61,8 +61,9 @@ class DeconvolutionTable {
    * @param channel_index_offset The index of the first channel in the caller.
    */
   explicit DeconvolutionTable(size_t n_original_groups,
-                              size_t n_deconvolution_groups = 0,
+                              size_t n_deconvolution_groups,
                               size_t channel_index_offset = 0);
+
   /**
    * @return The table entries, grouped by their original channel index.
    * @see AddEntry()
