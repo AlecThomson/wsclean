@@ -7,7 +7,7 @@ DeconvolutionTable::DeconvolutionTable(size_t n_original_groups,
                                        size_t n_deconvolution_groups,
                                        size_t channel_index_offset)
     : entries_(),
-    channel_index_offset_(channel_index_offset),
+      channel_index_offset_(channel_index_offset),
       original_groups_(n_original_groups),
       deconvolution_groups_(
           (n_deconvolution_groups == 0)

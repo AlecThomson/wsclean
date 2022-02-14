@@ -73,6 +73,23 @@ class DeconvolutionTable {
   }
 
   /**
+   * Find the first group of original channels, given a deconvolution group
+   * index.
+   *
+   * @param deconvolution_index Index for a deconvolution group. Must be less
+   * than the number of deconvolution groups.
+   * @return A reference to the first original group for the deconvolution
+   * group.
+   */
+  const Group& FirstOriginalGroup(size_t deconvolution_index) const {
+    const Group& deconvolution_group =
+        deconvolution_groups_[deconvolution_index];
+    assert(!deconvolution_group.empty());
+    return original_groups_[deconvolution_group.front()
+                                ->original_channel_index];
+  }
+
+  /**
    * begin() and end() allow writing range-based loops over all entries.
    * @{
    */
