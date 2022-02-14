@@ -51,13 +51,14 @@ class CachedImageSet {
       throw std::runtime_error("Writer is not set.");
     Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary)
                   << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0)
+    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
+      assert(!isImaginary);
       if (_image.Empty())
         throw std::runtime_error("Loading image before store");
       else
         std::copy(_image.Data(),
                   _image.Data() + _writer.Width() * _writer.Height(), image);
-    else {
+    } else {
       FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
     }
@@ -88,6 +89,7 @@ class CachedImageSet {
     Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary)
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
+      assert(!isImaginary);
       if (_image.Empty()) {
         _image = aocommon::Image(_writer.Width(), _writer.Height());
       }
