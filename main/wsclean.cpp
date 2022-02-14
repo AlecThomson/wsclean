@@ -212,12 +212,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
-    const size_t image_size =
-        _settings.trimmedImageWidth * _settings.trimmedImageHeight;
-    std::unique_ptr<AverageBeam> average_beam =
-        AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                          entry.outputChannelIndex, image_size);
-    if (!average_beam || average_beam->Empty()) {
+    if (!result.averageBeam || result.averageBeam->Empty()) {
       throw std::runtime_error(
           "Trying to write the IDG beam while the beam has not been computed "
           "yet.");
@@ -225,7 +220,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
     IdgMsGridder::SaveBeamImage(
         entry, imageName, _settings, _observationInfo.phaseCentreRA,
         _observationInfo.phaseCentreDec, _observationInfo.shiftL,
-        _observationInfo.shiftM, *average_beam);
+        _observationInfo.shiftM, *result.averageBeam);
   }
 
   _isFirstInversion = false;

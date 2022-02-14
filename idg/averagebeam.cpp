@@ -88,10 +88,11 @@ void AverageBeam::Store(CachedImageSet& scalar_cache,
         aocommon::PolarizationEnum::YX,
         aocommon::PolarizationEnum::YY,
     };
-    aocommon::UVector<float> real_image(_matrixInverseBeam->size() /
-                                        kNPolarizations);
-    aocommon::UVector<float> imaginary_image(_matrixInverseBeam->size() /
-                                             kNPolarizations);
+    // TODO the matrix beam does not have the size of the full image!
+    // assert(_matrixInverseBeam->size() == kNPolarizations *
+    // _scalarBeam->size());
+    aocommon::UVector<float> real_image(_scalarBeam->size());
+    aocommon::UVector<float> imaginary_image(_scalarBeam->size());
     for (size_t p = 0; p != kNPolarizations; ++p) {
       for (size_t i = 0; i != real_image.size(); ++i) {
         real_image[i] = (*_matrixInverseBeam)[i * kNPolarizations + p].real();
