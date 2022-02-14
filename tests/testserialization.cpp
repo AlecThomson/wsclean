@@ -103,8 +103,8 @@ BOOST_AUTO_TEST_CASE(average_beam_empty) {
   BOOST_CHECK_NE(ostr.size(), 0u);
 
   b.SetMatrixInverseBeam(
-      std::make_shared<std::vector<std::complex<float>>>(12, 3));
-  b.SetScalarBeam(std::make_shared<std::vector<float>>(11, 4));
+      std::make_shared<std::vector<std::complex<float>>>(12, 3), 3, 4);
+  b.SetScalarBeam(std::make_shared<std::vector<float>>(10, 4), 5, 2);
 
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_CASE(average_beam_empty) {
 BOOST_AUTO_TEST_CASE(average_beam_filled) {
   AverageBeam a, b;
   a.SetMatrixInverseBeam(
-      std::make_shared<std::vector<std::complex<float>>>(12, 3));
-  a.SetScalarBeam(std::make_shared<std::vector<float>>(11, 4));
+      std::make_shared<std::vector<std::complex<float>>>(12, 3), 3, 4);
+  a.SetScalarBeam(std::make_shared<std::vector<float>>(10, 4), 5, 2);
 
   SerialOStream ostr;
   a.Serialize(ostr);
@@ -125,8 +125,12 @@ BOOST_AUTO_TEST_CASE(average_beam_filled) {
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
   BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->size(), 12u);
-  BOOST_CHECK_EQUAL(b.ScalarBeam()->size(), 11u);
+  BOOST_CHECK_EQUAL(b.MatrixWidth(), 3u);
+  BOOST_CHECK_EQUAL(b.MatrixHeight(), 4u);
   BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->at(8), std::complex<float>(3, 0));
+  BOOST_CHECK_EQUAL(b.ScalarBeam()->size(), 10u);
+  BOOST_CHECK_EQUAL(b.ScalarWidth(), 5u);
+  BOOST_CHECK_EQUAL(b.ScalarHeight(), 2u);
   BOOST_CHECK_EQUAL(b.ScalarBeam()->at(7), 4);
 }
 
