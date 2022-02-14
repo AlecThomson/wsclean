@@ -41,6 +41,9 @@ class CachedImageSet {
 
   void SetFitsWriter(const FitsWriter& writer) { _writer = writer; }
 
+  FitsWriter& Writer() { return _writer; }
+  const FitsWriter& Writer() const { return _writer; }
+
   template <typename NumT>
   void Load(NumT* image, aocommon::PolarizationEnum polarization,
             size_t freqIndex, bool isImaginary) const {

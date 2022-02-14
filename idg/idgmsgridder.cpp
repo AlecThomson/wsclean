@@ -111,8 +111,10 @@ void IdgMsGridder::Invert() {
       gridMeasurementSet(msData);
     }
     _bufferset->finalize_compute_avg_beam();
-    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
-    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
+    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
+    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
+                                       _bufferset->get_subgridsize(),
+                                       _bufferset->get_subgridsize());
     _image.assign(nr_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
 
@@ -139,8 +141,10 @@ void IdgMsGridder::Invert() {
       }
       _bufferset->finalize_compute_avg_beam();
       Logger::Debug << "Finished computing average beam.\n";
-      _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
-      _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
+      _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
+      _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
+                                         _bufferset->get_subgridsize(),
+                                         _bufferset->get_subgridsize());
     }
 
     resetVisibilityCounters();

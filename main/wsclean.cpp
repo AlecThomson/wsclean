@@ -296,10 +296,8 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
-  const size_t image_size =
-      _settings.trimmedImageWidth * _settings.trimmedImageHeight;
   task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                       entry.outputChannelIndex, image_size);
+                                       entry.outputChannelIndex);
 
   applyFacetPhaseShift(entry, task.observationInfo);
 
@@ -500,10 +498,8 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
-  const size_t image_size =
-      _settings.trimmedImageWidth * _settings.trimmedImageHeight;
   task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                       entry.outputChannelIndex, image_size);
+                                       entry.outputChannelIndex);
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
