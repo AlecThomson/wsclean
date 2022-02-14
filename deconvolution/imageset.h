@@ -125,9 +125,11 @@ class ImageSet {
   void GetIntegratedPSF(aocommon::Image& dest,
                         const aocommon::UVector<const float*>& psfs);
 
-  size_t PSFCount() const { return _channelsInDeconvolution; }
+  size_t PSFCount() const { return ChannelsInDeconvolution(); }
 
-  size_t ChannelsInDeconvolution() const { return _channelsInDeconvolution; }
+  size_t ChannelsInDeconvolution() const {
+    return _deconvolutionTable.DeconvolutionGroups().size();
+  }
 
   ImageSet& operator=(float val) {
     for (aocommon::Image& image : _images) image = val;
@@ -308,25 +310,13 @@ class ImageSet {
 
   void getLinearIntegratedWithNormalChannels(aocommon::Image& dest) const;
 
-  size_t channelIndexToGroupIndex(size_t chIndex) const {
-    // Calculate reverse of
-    // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.OriginalGroups().size();
-    size_t fromFloor = chIndex * _deconvolutionTable.OriginalGroups().size() /
-                       _channelsInDeconvolution;
-    while (fromFloor * _channelsInDeconvolution /
-               _deconvolutionTable.OriginalGroups().size() !=
-           chIndex)
-      ++fromFloor;
-    return fromFloor;
-  }
-
   const aocommon::Image& entryToImage(
       const DeconvolutionTableEntry& entry) const {
     return _images[_entryIndexToImageIndex[entry.index]];
   }
 
   std::vector<aocommon::Image> _images;
-  size_t _width, _height, _channelsInDeconvolution;
+  size_t _width, _height;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
