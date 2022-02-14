@@ -102,7 +102,7 @@ void AverageBeam::Store(CachedImageSet& scalar_cache,
     // Matrix beam
     constexpr size_t kNPolarizations = 4;
     const size_t n_pixels =
-        matrix_width_ * matrix_width_ * kNPolarizations * kNPolarizations;
+        matrix_width_ * matrix_height_ * kNPolarizations * kNPolarizations;
     matrix_cache.Writer().SetImageDimensions(
         matrix_width_ * kNPolarizations * kNPolarizations, matrix_height_);
     aocommon::UVector<float> real_image(n_pixels);
