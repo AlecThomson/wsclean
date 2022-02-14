@@ -39,6 +39,10 @@ class AverageBeam {
    * no guarantee that Stokes Q, U, V will be flat noise, nor that there is no
    * correlation between the noise in I,Q,U,V, but for all practical purposes
    * they can be treated as such.
+   * 
+   * This image has the size of the (trimmed) full gridded image. The size of
+   * this image can also be obtained with @ref ScalarWidth() and
+   * @ref ScalarHeight().
    */
   std::shared_ptr<std::vector<float>>& ScalarBeam() { return scalar_beam_; }
   std::shared_ptr<const std::vector<float>> ScalarBeam() const {
@@ -50,6 +54,9 @@ class AverageBeam {
   /**
    * The matrix inverse beam is applied while gridding. It is the inverse of the
    * mean square matrix beam.
+   * 
+   * The returned vector contains sub_grid_size^2 matrices, where
+   * each matrix is 4x4 complex numbers.
    */
   std::shared_ptr<std::vector<std::complex<float>>>& MatrixInverseBeam() {
     return matrix_inverse_beam_;
