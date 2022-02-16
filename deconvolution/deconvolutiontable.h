@@ -69,7 +69,12 @@ class DeconvolutionTable {
    * @see AddEntry()
    */
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
-  const std::vector<Group>& DeconvolutionGroups() const {
+
+  /**
+   * @return The original group indices for each deconvolution group.
+   */
+
+  const std::vector<std::vector<int>>& DeconvolutionGroups() const {
     return deconvolution_groups_;
   }
 
@@ -83,11 +88,7 @@ class DeconvolutionTable {
    * group.
    */
   const Group& FirstOriginalGroup(size_t deconvolution_index) const {
-    const Group& deconvolution_group =
-        deconvolution_groups_[deconvolution_index];
-    assert(!deconvolution_group.empty());
-    return original_groups_[deconvolution_group.front()
-                                ->original_channel_index];
+    return original_groups_[deconvolution_groups_[deconvolution_index].front()];
   }
 
   /**
@@ -144,12 +145,11 @@ class DeconvolutionTable {
   std::vector<Group> original_groups_;
 
   /**
-   * A deconvolution group has entries that are deconvolved together.
-   * The number of deconvolution groups is always less or equal to the number of
-   * channel groups. If it is less, multiple channel groups are combined into a
-   * single deconvolution group.
+   * A deconvolution group consists of one or more original groups, which
+   * are deconvolved together. Each entry contains the indices of the original
+   * groups that are part of the deconvolution group.
    */
-  std::vector<Group> deconvolution_groups_;
+  std::vector<std::vector<int>> deconvolution_groups_;
 };
 
 #endif

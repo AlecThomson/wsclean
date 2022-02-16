@@ -48,22 +48,19 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
 void ImageSet::initializeIndices() {
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
   size_t imgIndex = 0;
-  for (const DeconvolutionTable::Group& group :
+  for (const std::vector<int>& group :
        _deconvolutionTable.DeconvolutionGroups()) {
     const size_t deconvolutionChannelStartIndex = imgIndex;
-    size_t lastChannel = group.front()->original_channel_index;
-    for (const DeconvolutionTableEntry* entry : group) {
-      if (entry->original_channel_index != lastChannel) {
-        // New original channel maps to the same deconvolution channel:
-        // Start at index of the first original channel in the group.
-        imgIndex = deconvolutionChannelStartIndex;
+    for (const int originalIndex : group) {
+      imgIndex = deconvolutionChannelStartIndex;
+
+      for (const DeconvolutionTableEntry* entry :
+           _deconvolutionTable.OriginalGroups()[originalIndex]) {
+        assert(entry->index == _entryIndexToImageIndex.size());
+        _entryIndexToImageIndex.push_back(imgIndex);
+
+        ++imgIndex;
       }
-
-      assert(entry->index == _entryIndexToImageIndex.size());
-      _entryIndexToImageIndex.push_back(imgIndex);
-
-      lastChannel = entry->original_channel_index;
-      ++imgIndex;
     }
   }
 
@@ -95,38 +92,33 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
   Image scratch(_width, _height);
 
   aocommon::UVector<double> averagedWeights(_images.size(), 0.0);
+
   size_t imgIndex = 0;
-  for (size_t groupIndex = 0;
-       groupIndex != _deconvolutionTable.OriginalGroups().size();
-       ++groupIndex) {
-    // The next loop iterates over the polarizations. The logic in the next loop
-    // makes sure that images of the same polarizations and that belong to the
-    // same deconvolution channel are averaged together.
-    const size_t imgIndexForChannel = imgIndex;
-    const DeconvolutionTable::Group& channelGroup =
-        _deconvolutionTable.OriginalGroups()[groupIndex];
-    for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
-      if (use_residual_image) {
-        entry_ptr->residual_accessor->Load(scratch);
-      } else {
-        entry_ptr->model_accessor->Load(scratch);
+  for (const std::vector<int>& group :
+       _deconvolutionTable.DeconvolutionGroups()) {
+    const size_t deconvolutionChannelStartIndex = imgIndex;
+    for (const int originalIndex : group) {
+      // The next loop iterates over the polarizations. The logic in the next
+      // loop makes sure that images of the same polarizations and that belong
+      // to the same deconvolution channel are averaged together.
+      imgIndex = deconvolutionChannelStartIndex;
+      for (const DeconvolutionTableEntry* entry_ptr :
+           _deconvolutionTable.OriginalGroups()[originalIndex]) {
+        if (use_residual_image) {
+          entry_ptr->residual_accessor->Load(scratch);
+        } else {
+          entry_ptr->model_accessor->Load(scratch);
+        }
+        _images[imgIndex].AddWithFactor(scratch, entry_ptr->image_weight);
+        averagedWeights[imgIndex] += entry_ptr->image_weight;
+        ++imgIndex;
       }
-      _images[imgIndex].AddWithFactor(scratch, entry_ptr->image_weight);
-      averagedWeights[imgIndex] += entry_ptr->image_weight;
-      ++imgIndex;
     }
-    const size_t thisChannelIndex = (groupIndex * ChannelsInDeconvolution()) /
-                                    _deconvolutionTable.OriginalGroups().size();
-    const size_t nextChannelIndex =
-        ((groupIndex + 1) * ChannelsInDeconvolution()) /
-        _deconvolutionTable.OriginalGroups().size();
-    // If the next loaded image belongs to the same deconvolution channel as the
-    // previously loaded, they need to be averaged together.
-    if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
   }
 
-  for (size_t i = 0; i != _images.size(); ++i)
+  for (size_t i = 0; i != _images.size(); ++i) {
     _images[i] *= 1.0 / averagedWeights[i];
+  }
 }
 
 void ImageSet::LoadAndAveragePSFs(
