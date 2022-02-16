@@ -90,23 +90,16 @@ std::unique_ptr<AverageBeam> AverageBeam::Load(
     // not for interpretation.
     assert(!matrix_cache.Empty());
     result->matrix_width_ =
-        matrix_cache.Writer().Width() / (kNPolarizations * kNPolarizations);
+        matrix_cache.Writer().Width() / (kNPolarizations * kNPolarizations * 2);
     result->matrix_height_ = matrix_cache.Writer().Height();
-    const size_t n_matrix_pixels =
-        matrix_cache.Writer().Width() * matrix_cache.Writer().Height();
+    const size_t n_matrix_pixels = result->matrix_width_ *
+                                   result->matrix_height_ * kNPolarizations *
+                                   kNPolarizations;
     result->matrix_inverse_beam_ =
         std::make_shared<std::vector<std::complex<float>>>(n_matrix_pixels);
-    aocommon::UVector<float> real_image(n_matrix_pixels);
-    aocommon::UVector<float> imaginary_image(n_matrix_pixels);
-    matrix_cache.Load(real_image.data(), aocommon::PolarizationEnum::StokesI,
-                      frequency_index, false);
-    matrix_cache.Load(imaginary_image.data(),
-                      aocommon::PolarizationEnum::StokesI, frequency_index,
-                      true);
-    for (size_t i = 0; i != n_matrix_pixels; ++i) {
-      (*result->matrix_inverse_beam_)[i] =
-          std::complex<float>(real_image[i], imaginary_image[i]);
-    }
+    matrix_cache.Load(
+        reinterpret_cast<float*>(result->matrix_inverse_beam_->data()),
+        aocommon::PolarizationEnum::StokesI, frequency_index, false);
   }
   return result;
 }
@@ -122,20 +115,10 @@ void AverageBeam::Store(CachedImageSet& scalar_cache,
                        false);
 
     // Matrix beam
-    const size_t n_matrix_pixels =
-        matrix_width_ * matrix_height_ * kNPolarizations * kNPolarizations;
     matrix_cache.Writer().SetImageDimensions(
-        matrix_width_ * kNPolarizations * kNPolarizations, matrix_height_);
-    aocommon::UVector<float> real_image(n_matrix_pixels);
-    aocommon::UVector<float> imaginary_image(n_matrix_pixels);
-    for (size_t i = 0; i != n_matrix_pixels; ++i) {
-      real_image[i] = (*matrix_inverse_beam_)[i].real();
-      imaginary_image[i] = (*matrix_inverse_beam_)[i].imag();
-    }
-    matrix_cache.Store(real_image.data(), aocommon::PolarizationEnum::StokesI,
-                       frequency_index, false);
-    matrix_cache.Store(imaginary_image.data(),
+        matrix_width_ * kNPolarizations * kNPolarizations * 2, matrix_height_);
+    matrix_cache.Store(reinterpret_cast<float*>(matrix_inverse_beam_->data()),
                        aocommon::PolarizationEnum::StokesI, frequency_index,
-                       true);
+                       false);
   }
 }
