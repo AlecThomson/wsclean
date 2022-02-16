@@ -75,7 +75,25 @@ BOOST_AUTO_TEST_CASE(filled_serialization) {
   CheckBeam(b);
 }
 
-BOOST_AUTO_TEST_CASE(store_load) {
+BOOST_AUTO_TEST_CASE(empty_store_load) {
+  CachedImageSet scalar_cache;
+  CachedImageSet matrix_cache;
+  FitsWriter writer;
+  scalar_cache.Initialize(writer, 2, 1, 0, "test_scalar");
+  matrix_cache.Initialize(writer, 2, 1, 0, "test_matrix");
+
+  const size_t frequency_index = 0;
+  AverageBeam a;
+  a.Store(scalar_cache, matrix_cache, frequency_index);
+  BOOST_CHECK(scalar_cache.Empty());
+  BOOST_CHECK(matrix_cache.Empty());
+
+  std::unique_ptr<AverageBeam> b =
+      AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
+  BOOST_ASSERT(b == nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(filled_store_load) {
   AverageBeam a = FilledBeam();
 
   CachedImageSet scalar_cache;

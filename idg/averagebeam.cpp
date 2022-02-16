@@ -5,34 +5,56 @@
 #include <aocommon/io/serialistream.h>
 #include <aocommon/io/serialostream.h>
 
+#include <cassert>
+
+namespace {
+constexpr size_t kNPolarizations = 4;
+}  // namespace
+
+void AverageBeam::SetMatrixInverseBeam(
+    const std::shared_ptr<std::vector<std::complex<float>>>&
+        matrix_inverse_beam,
+    size_t width, size_t height) {
+  assert(matrix_inverse_beam->size() ==
+         width * height * kNPolarizations * kNPolarizations);
+  matrix_inverse_beam_ = matrix_inverse_beam;
+  matrix_width_ = width;
+  matrix_height_ = height;
+}
+
+void AverageBeam::SetScalarBeam(
+    const std::shared_ptr<std::vector<float>>& scalar_beam, size_t width,
+    size_t height) {
+  assert(scalar_beam->size() == width * height);
+  scalar_beam_ = scalar_beam;
+  scalar_width_ = width;
+  scalar_height_ = height;
+}
+
 void AverageBeam::Serialize(aocommon::SerialOStream& stream) const {
+  stream.Bool(static_cast<bool>(scalar_beam_));
   if (scalar_beam_) {
-    stream.Bool(true);
     stream.Vector(*scalar_beam_).UInt64(scalar_width_).UInt64(scalar_height_);
-  } else {
-    stream.Bool(false);
   }
 
+  stream.Bool(static_cast<bool>(matrix_inverse_beam_));
   if (matrix_inverse_beam_) {
-    stream.Bool(true);
     stream.Vector(*matrix_inverse_beam_)
         .UInt64(matrix_width_)
         .UInt64(matrix_height_);
-  } else {
-    stream.Bool(false);
   }
 }
 
 void AverageBeam::Unserialize(aocommon::SerialIStream& stream) {
-  const bool hasScalar = stream.Bool();
-  if (hasScalar) {
+  const bool has_scalar = stream.Bool();
+  if (has_scalar) {
     scalar_beam_.reset(new std::vector<float>());
     stream.Vector(*scalar_beam_).UInt64(scalar_width_).UInt64(scalar_height_);
   } else
     scalar_beam_.reset();
 
-  const bool hasMatrixInverse = stream.Bool();
-  if (hasMatrixInverse) {
+  const bool has_matrix_inverse = stream.Bool();
+  if (has_matrix_inverse) {
     matrix_inverse_beam_.reset(new std::vector<std::complex<float>>());
     stream.Vector(*matrix_inverse_beam_)
         .UInt64(matrix_width_)
@@ -62,27 +84,26 @@ std::unique_ptr<AverageBeam> AverageBeam::Load(
 
     // Inverse matrix beam
     // It is stored as one real and one imaginary fits image. The 16 elements
-    // are consecutively stored along the X axis, so its width is 4x its height.
-    // This makes these images not easy to interpret, but it avoids having to
-    // reshuffle the data, and they are only for temporary storage, not for
-    // interpretation.
-    constexpr size_t kNPolarizations = 4;
+    // are consecutively stored along the X axis, so its width is 16x its
+    // height. This makes these images not easy to interpret, but it avoids
+    // having to reshuffle the data, and they are only for temporary storage,
+    // not for interpretation.
     assert(!matrix_cache.Empty());
     result->matrix_width_ =
         matrix_cache.Writer().Width() / (kNPolarizations * kNPolarizations);
     result->matrix_height_ = matrix_cache.Writer().Height();
-    const size_t n_matrix_elements =
+    const size_t n_matrix_pixels =
         matrix_cache.Writer().Width() * matrix_cache.Writer().Height();
     result->matrix_inverse_beam_ =
-        std::make_shared<std::vector<std::complex<float>>>(n_matrix_elements);
-    aocommon::UVector<float> real_image(n_matrix_elements);
-    aocommon::UVector<float> imaginary_image(n_matrix_elements);
+        std::make_shared<std::vector<std::complex<float>>>(n_matrix_pixels);
+    aocommon::UVector<float> real_image(n_matrix_pixels);
+    aocommon::UVector<float> imaginary_image(n_matrix_pixels);
     matrix_cache.Load(real_image.data(), aocommon::PolarizationEnum::StokesI,
                       frequency_index, false);
     matrix_cache.Load(imaginary_image.data(),
                       aocommon::PolarizationEnum::StokesI, frequency_index,
                       true);
-    for (size_t i = 0; i != n_matrix_elements; ++i) {
+    for (size_t i = 0; i != n_matrix_pixels; ++i) {
       (*result->matrix_inverse_beam_)[i] =
           std::complex<float>(real_image[i], imaginary_image[i]);
     }
@@ -101,14 +122,13 @@ void AverageBeam::Store(CachedImageSet& scalar_cache,
                        false);
 
     // Matrix beam
-    constexpr size_t kNPolarizations = 4;
-    const size_t n_pixels =
+    const size_t n_matrix_pixels =
         matrix_width_ * matrix_height_ * kNPolarizations * kNPolarizations;
     matrix_cache.Writer().SetImageDimensions(
         matrix_width_ * kNPolarizations * kNPolarizations, matrix_height_);
-    aocommon::UVector<float> real_image(n_pixels);
-    aocommon::UVector<float> imaginary_image(n_pixels);
-    for (size_t i = 0; i != n_pixels; ++i) {
+    aocommon::UVector<float> real_image(n_matrix_pixels);
+    aocommon::UVector<float> imaginary_image(n_matrix_pixels);
+    for (size_t i = 0; i != n_matrix_pixels; ++i) {
       real_image[i] = (*matrix_inverse_beam_)[i].real();
       imaginary_image[i] = (*matrix_inverse_beam_)[i].imag();
     }

@@ -17,20 +17,14 @@ class AverageBeam {
         matrix_width_(0),
         matrix_height_(0) {}
   bool Empty() const { return (!scalar_beam_ || !matrix_inverse_beam_); }
-  void SetScalarBeam(const std::shared_ptr<std::vector<float>>& scalarBeam,
-                     size_t width, size_t height) {
-    scalar_beam_ = scalarBeam;
-    scalar_width_ = width;
-    scalar_height_ = height;
-  }
+
+  void SetScalarBeam(const std::shared_ptr<std::vector<float>>& scalar_beam,
+                     size_t width, size_t height);
+
   void SetMatrixInverseBeam(
       const std::shared_ptr<std::vector<std::complex<float>>>&
-          matrixInverseBeam,
-      size_t width, size_t height) {
-    matrix_inverse_beam_ = matrixInverseBeam;
-    matrix_width_ = width;
-    matrix_height_ = height;
-  }
+          matrix_inverse_beam,
+      size_t width, size_t height);
 
   /**
    * The image resulting from IDG gridding is multiplied by the scalar beam. It
