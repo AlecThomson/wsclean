@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(empty_store_load) {
 
   std::unique_ptr<AverageBeam> b =
       AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
-  BOOST_ASSERT(b == nullptr);
+  BOOST_CHECK(b == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(filled_store_load) {
