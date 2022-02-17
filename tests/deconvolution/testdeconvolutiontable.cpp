@@ -16,8 +16,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
     BOOST_TEST(group.empty());
   }
 
-  // DeconvolutionTable::EntryIterator has no operator==
-  BOOST_TEST(!(table.begin() != table.end()));
+  BOOST_TEST((table.begin() == table.end()));
   BOOST_TEST(table.Size() == 0);
 }
 
