@@ -224,8 +224,8 @@ class ImageSet {
 
   static void CalculateDeconvolutionFrequencies(
       const DeconvolutionTable& groupTable,
-      aocommon::UVector<double>& frequencies, aocommon::UVector<float>& weights,
-      size_t nDeconvolutionChannels);
+      aocommon::UVector<double>& frequencies,
+      aocommon::UVector<float>& weights);
 
  private:
   ImageSet& operator=(const ImageSet&) = delete;

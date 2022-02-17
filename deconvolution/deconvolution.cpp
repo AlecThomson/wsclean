@@ -248,9 +248,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   algorithm->SetSpectralFittingMode(_settings.spectralFittingMode,
                                     _settings.spectralFittingTerms);
 
-  ImageSet::CalculateDeconvolutionFrequencies(
-      *_table, _channelFrequencies, _channelWeights,
-      _settings.deconvolutionChannelCount);
+  ImageSet::CalculateDeconvolutionFrequencies(*_table, _channelFrequencies,
+                                              _channelWeights);
   algorithm->InitializeFrequencies(_channelFrequencies, _channelWeights);
   _parallelDeconvolution.SetAlgorithm(std::move(algorithm));
 
