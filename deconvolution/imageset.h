@@ -125,9 +125,13 @@ class ImageSet {
   void GetIntegratedPSF(aocommon::Image& dest,
                         const aocommon::UVector<const float*>& psfs);
 
-  size_t PSFCount() const { return ChannelsInDeconvolution(); }
+  size_t NOriginalChannels() const {
+    return _deconvolutionTable.OriginalGroups().size();
+  }
 
-  size_t ChannelsInDeconvolution() const {
+  size_t PSFCount() const { return NDeconvolutionChannels(); }
+
+  size_t NDeconvolutionChannels() const {
     return _deconvolutionTable.DeconvolutionGroups().size();
   }
 
@@ -316,7 +320,8 @@ class ImageSet {
   }
 
   std::vector<aocommon::Image> _images;
-  size_t _width, _height;
+  size_t _width;
+  size_t _height;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;

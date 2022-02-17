@@ -73,7 +73,6 @@ class DeconvolutionTable {
   /**
    * @return The original group indices for each deconvolution group.
    */
-
   const std::vector<std::vector<int>>& DeconvolutionGroups() const {
     return deconvolution_groups_;
   }
