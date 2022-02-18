@@ -168,7 +168,7 @@ std::complex<float> ComputeGain<DDGainMatrix::kTrace>(
 
 template <>
 std::complex<float> ComputeGain<DDGainMatrix::kFull>(
-    const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
+    const aocommon::MC2x2F& /*gain1*/, const aocommon::MC2x2F& /*gain2*/) {
   throw std::runtime_error("Not implemented!");
 }
 

@@ -31,9 +31,9 @@ class GriddingTaskManager : protected WriterLockManager {
    *
    * @param nWriterGroups The number of writer groups.
    */
-  virtual void Start(size_t nWriterGroups) {}
+  virtual void Start(size_t /*nWriterGroups*/) {}
 
-  LockGuard GetLock(size_t writerGroupIndex) override {
+  LockGuard GetLock(size_t /*writerGroupIndex*/) override {
     static DummyWriterLock dummy;
     return LockGuard(dummy);
   }
