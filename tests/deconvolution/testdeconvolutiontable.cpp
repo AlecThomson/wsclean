@@ -9,9 +9,10 @@
 BOOST_AUTO_TEST_SUITE(deconvolutiontable)
 
 BOOST_AUTO_TEST_CASE(constructor) {
-  DeconvolutionTable table(42);
+  DeconvolutionTable table(42, 17);
 
   BOOST_TEST(table.OriginalGroups().size() == 42);
+  BOOST_TEST(table.DeconvolutionGroups().size() == 17);
   for (const DeconvolutionTable::Group& group : table.OriginalGroups()) {
     BOOST_TEST(group.empty());
   }
@@ -21,7 +22,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 }
 
 BOOST_AUTO_TEST_CASE(add_entries) {
-  DeconvolutionTable table(3);
+  DeconvolutionTable table(3, 1);
 
   std::array<test::UniquePtr<DeconvolutionTableEntry>, 3> entries;
   entries[0]->original_channel_index = 1;
