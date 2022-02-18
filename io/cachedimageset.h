@@ -37,8 +37,8 @@ class CachedImageSet {
 
   void SetFitsWriter(const aocommon::FitsWriter& writer) { _writer = writer; }
 
-  FitsWriter& Writer() { return _writer; }
-  const FitsWriter& Writer() const { return _writer; }
+  aocommon::FitsWriter& Writer() { return _writer; }
+  const aocommon::FitsWriter& Writer() const { return _writer; }
 
   template <typename NumT>
   void Load(NumT* image, aocommon::PolarizationEnum polarization,
@@ -47,14 +47,14 @@ class CachedImageSet {
       throw std::runtime_error("Writer is not set.");
     aocommon::Logger::Debug
         << "Loading " << name(polarization, freqIndex, isImaginary) << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0){
+    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       assert(!isImaginary);
       if (_image.Empty())
         throw std::runtime_error("Loading image before store");
       else
         std::copy(_image.Data(),
                   _image.Data() + _writer.Width() * _writer.Height(), image);
-    }else {
+    } else {
       aocommon::FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
     }
