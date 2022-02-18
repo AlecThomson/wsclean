@@ -89,26 +89,20 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 
 BOOST_AUTO_TEST_SUITE(imageset)
 
-BOOST_FIXTURE_TEST_CASE(channelGroupCount, ImageSetFixture<1>) {
-  BOOST_CHECK_EQUAL(table->OriginalGroups().size(), 2u);
-}
-
-BOOST_FIXTURE_TEST_CASE(entriesInGroup, ImageSetFixture<1>) {
-  BOOST_CHECK_EQUAL(table->OriginalGroups().front().size(), 2u);
-}
-
-BOOST_FIXTURE_TEST_CASE(psfCount1, ImageSetFixture<1>) {
-  settings.squaredJoins = false;
-  settings.linkedPolarizations = std::set<PolarizationEnum>();
+BOOST_FIXTURE_TEST_CASE(constructor_1, ImageSetFixture<1>) {
   ImageSet dset(*table, settings, 2, 2);
+  BOOST_CHECK_EQUAL(&dset.Table(), table.get());
+  BOOST_CHECK_EQUAL(&dset.Settings(), &settings);
+  BOOST_CHECK_EQUAL(dset.NOriginalChannels(), 2u);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 1u);
+  BOOST_CHECK_EQUAL(dset.NDeconvolutionChannels(), 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(psfCount2, ImageSetFixture<2>) {
-  settings.squaredJoins = false;
-  settings.linkedPolarizations = std::set<PolarizationEnum>();
+BOOST_FIXTURE_TEST_CASE(constructor_2, ImageSetFixture<2>) {
   ImageSet dset(*table, settings, 2, 2);
+  BOOST_CHECK_EQUAL(dset.NOriginalChannels(), 2u);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 2u);
+  BOOST_CHECK_EQUAL(dset.NDeconvolutionChannels(), 2u);
 }
 
 template <size_t NDeconvolutionChannels>

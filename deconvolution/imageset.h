@@ -217,12 +217,6 @@ class ImageSet {
       _images[i].AddWithFactor(rhs._images[i], factor);
   }
 
-  bool SquareJoinedChannels() const { return _squareJoinedChannels; }
-
-  const std::set<aocommon::PolarizationEnum>& LinkedPolarizations() const {
-    return _linkedPolarizations;
-  }
-
   const class Settings& Settings() const { return _settings; }
 
   static void CalculateDeconvolutionFrequencies(
