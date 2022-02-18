@@ -37,8 +37,8 @@ struct ImageSetFixtureBase {
   ImageSetFixtureBase() {}
 
   void initTable(size_t n_original_channels, size_t n_deconvolution_channels) {
-    table = boost::make_unique<DeconvolutionTable>(n_original_channels,
-                                                   n_deconvolution_channels);
+    table = std::make_unique<DeconvolutionTable>(n_original_channels,
+                                                 n_deconvolution_channels);
   }
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,
