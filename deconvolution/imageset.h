@@ -63,8 +63,7 @@ class ImageSet {
    */
   void LoadAndAverage(bool use_residual_images);
 
-  void LoadAndAveragePSFs(std::vector<aocommon::UVector<float>>& psfImages,
-                          aocommon::PolarizationEnum psfPolarization);
+  void LoadAndAveragePSFs(std::vector<aocommon::UVector<float>>& psfImages);
 
   void InterpolateAndStoreModel(const class SpectralFitter& fitter);
 

@@ -1557,8 +1557,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _residualImages);
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
-      std::move(deconvolution_table), *_settings.polarizations.begin(),
-      minTheoreticalBeamSize(groupTable), _settings.threadCount);
+      std::move(deconvolution_table), minTheoreticalBeamSize(groupTable),
+      _settings.threadCount);
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop

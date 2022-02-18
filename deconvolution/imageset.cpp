@@ -120,8 +120,7 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
 }
 
 void ImageSet::LoadAndAveragePSFs(
-    std::vector<aocommon::UVector<float>>& psfImages,
-    aocommon::PolarizationEnum psfPolarization) {
+    std::vector<aocommon::UVector<float>>& psfImages) {
   for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     psfImages[chIndex].assign(_width * _height, 0.0);
   }
