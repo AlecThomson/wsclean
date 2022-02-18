@@ -9,16 +9,43 @@
 BOOST_AUTO_TEST_SUITE(deconvolutiontable)
 
 BOOST_AUTO_TEST_CASE(constructor) {
-  DeconvolutionTable table(42, 17);
+  const size_t kTableSize = 42;
 
-  BOOST_TEST(table.OriginalGroups().size() == 42);
-  BOOST_TEST(table.DeconvolutionGroups().size() == 17);
+  DeconvolutionTable table(kTableSize, kTableSize);
+
+  BOOST_TEST(table.OriginalGroups().size() == kTableSize);
   for (const DeconvolutionTable::Group& group : table.OriginalGroups()) {
     BOOST_TEST(group.empty());
   }
 
+  BOOST_TEST_REQUIRE(table.DeconvolutionGroups().size() == kTableSize);
+  for (int index = 0; index < int(kTableSize); ++index) {
+    BOOST_TEST(table.DeconvolutionGroups()[index] ==
+               std::vector<int>(1, index));
+  }
+
   BOOST_TEST((table.begin() == table.end()));
   BOOST_TEST(table.Size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(single_deconvolution_group) {
+  DeconvolutionTable table(7, 1);
+  const std::vector<std::vector<int>> kExpectedGroups{{0, 1, 2, 3, 4, 5, 6}};
+  BOOST_TEST_REQUIRE(table.DeconvolutionGroups() == kExpectedGroups);
+}
+
+BOOST_AUTO_TEST_CASE(multiple_deconvolution_groups) {
+  DeconvolutionTable table(7, 3);
+  const std::vector<std::vector<int>> kExpectedGroups{
+      {0, 1, 2}, {3, 4}, {5, 6}};
+  BOOST_TEST_REQUIRE(table.DeconvolutionGroups() == kExpectedGroups);
+}
+
+BOOST_AUTO_TEST_CASE(too_many_deconvolution_groups) {
+  DeconvolutionTable table(7, 42);
+  const std::vector<std::vector<int>> kExpectedGroups{{0}, {1}, {2}, {3},
+                                                      {4}, {5}, {6}};
+  BOOST_TEST_REQUIRE(table.DeconvolutionGroups() == kExpectedGroups);
 }
 
 BOOST_AUTO_TEST_CASE(add_entries) {
