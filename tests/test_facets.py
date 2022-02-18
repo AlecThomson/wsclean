@@ -16,6 +16,10 @@ MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
+# FOR MULTI MSET tests
+MWA_MOCK_COPY_1 = "MWA_MOCK_COPY_1.ms"
+MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
+#
 MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
 EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
 SIZE_SCALE = "-size 256 256 -scale 4amin"
@@ -59,6 +63,8 @@ def cleanup(request):
             os.remove(MWA_MOCK_ARCHIVE)
             shutil.rmtree(os.environ["MWA_MOCK_FULL"])
             shutil.rmtree(os.environ["MWA_MOCK_FACET"])
+            shutil.rmtree(MWA_MOCK_COPY_1, ignore_errors=True)
+            shutil.rmtree(MWA_MOCK_COPY_2, ignore_errors=True)
 
     request.addfinalizer(remove_mwa)
 
@@ -322,31 +328,50 @@ def test_parallel_gridding():
     )
 
 
-def test_multi_ms():
-    # Check that identical images are obtained in case multiple (identical) MSets and H5Parm
-    # files are provided compared to imaging one MSet
+@pytest.mark.parametrize("beam", [False, True])
+@pytest.mark.parametrize("h5", [None, "one", "two"])
+def test_multi_ms(beam, h5):
+    """
+    Check that identical images are obtained in case multiple (identical) MSets and H5Parm
+    files are provided compared to imaging one MSet
+    """
 
     h5download = f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
     check_call(h5download.split())
 
-    # Make a new copy of MWA_MOCK_MS into MWA_MOCK_FULL
-    check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_FULL}".split())
+    # Make a new copy of MWA_MOCK_MS into two MSets
+    check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_COPY_1}".split())
+    check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_COPY_2}".split())
 
     names = ["facets-single-ms", "facets-multiple-ms"]
-    commands = [
-        f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
-        f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5,mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS} {MWA_MOCK_FULL}",
-    ]
+    commands = [f"{MWA_MOCK_MS}", f"{MWA_MOCK_COPY_1} {MWA_MOCK_COPY_2}"]
+
+    if beam:
+        commands = ["-mwa-path . -apply-facet-beam " + command for command in commands]
+
+    if h5 is not None:
+        h5list = ["-apply-facet-solutions", "mock_soltab_2pol.h5", "ampl000,phase000"]
+        commands[0] = " ".join(h5list) + " " + commands[0]
+        if h5 == "two":
+            h5list[1] = f"{h5list[1]},{h5list[1]}"
+        commands[1] = " ".join(h5list) + " " + commands[1]
+
+    # Note: -j 1 enabled to ensure deterministic iteration over visibilities
     for name, command in zip(names, commands):
-        s = f"{tcf.WSCLEAN} -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
+        s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
         check_call(s.split())
 
-    # Compare images, the threshold is chosen relatively large since the difference
-    # fluctuates between runs.
-    # AST-611 aims to investigate this.
-    threshold = 1.2e-2
+    # Compare images.
+    threshold = 1.0e-6
     compare_rms_fits(f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold)
 
     # Model data columns should be equal
-    taql_command = f"select from {MWA_MOCK_MS} t1, {MWA_MOCK_FULL} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-4))"
-    assert_taql(taql_command)
+    taql_commands = [
+        f"select from {MWA_MOCK_MS} t1, {MWA_MOCK_COPY_1} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+    ]
+    taql_commands.append(
+        f"select from {MWA_MOCK_COPY_1} t1, {MWA_MOCK_COPY_2} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+    )
+    # assert_taql(taql_command for taql_command in taql_commands)
+    for taql_command in taql_commands:
+        assert_taql(taql_command)

@@ -12,8 +12,8 @@ struct MetaDataCache {
         integrationTime;
   };
   std::vector<Entry> msDataVector;
-  float h5Sum = 0.0;
-  float correctionSum = 0.0;
+  long double h5Sum = 0.0;
+  long double correctionSum = 0.0;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
