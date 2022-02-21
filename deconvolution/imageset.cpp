@@ -130,13 +130,13 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
   }
 }
 
-std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
+std::vector<aocommon::Image> ImageSet::LoadAndAveragePSFs() {
   const size_t image_size = Width() * Height();
 
-  std::vector<aocommon::UVector<float>> psfImages;
+  std::vector<aocommon::Image> psfImages;
   psfImages.reserve(NDeconvolutionChannels());
   for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
-    psfImages.emplace_back(image_size, 0.0);
+    psfImages.emplace_back(Width(), Height());
   }
 
   Image scratch(Width(), Height());

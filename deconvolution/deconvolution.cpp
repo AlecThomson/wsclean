@@ -121,11 +121,11 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   integrated.Reset();
 
   Logger::Debug << "Loading PSFs...\n";
-  const std::vector<aocommon::UVector<float>> psfVecs =
+  const std::vector<aocommon::Image> psfImages =
       residualSet.LoadAndAveragePSFs();
 
   aocommon::UVector<const float*> psfs(residualSet.PSFCount());
-  for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
+  for (size_t i = 0; i != psfImages.size(); ++i) psfs[i] = psfImages[i].Data();
 
   if (_settings.useMultiscale) {
     if (_settings.autoMask) {

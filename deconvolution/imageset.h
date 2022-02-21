@@ -50,7 +50,7 @@ class ImageSet {
    */
   void LoadAndAverage(bool use_residual_images);
 
-  std::vector<aocommon::UVector<float>> LoadAndAveragePSFs();
+  std::vector<aocommon::Image> LoadAndAveragePSFs();
 
   void InterpolateAndStoreModel(const class SpectralFitter& fitter,
                                 size_t threadCount);
