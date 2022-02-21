@@ -15,16 +15,17 @@
 using aocommon::Image;
 using aocommon::Logger;
 
-ImageSet::ImageSet(const DeconvolutionTable& table,
-                   const class Settings& settings)
+ImageSet::ImageSet(
+    const DeconvolutionTable& table, bool squared_joins,
+    const std::set<aocommon::PolarizationEnum>& linked_polarizations,
+    size_t width, size_t height)
     : _images(),
-      _width(0),
-      _height(0),
-      _squareJoinedChannels(settings.squaredJoins),
+      _width(width),
+      _height(height),
+      _squareJoinedChannels(squared_joins),
       _deconvolutionTable(table),
       _imageIndexToPSFIndex(),
-      _linkedPolarizations(settings.linkedPolarizations),
-      _settings(settings) {
+      _linkedPolarizations(linked_polarizations) {
   const size_t nPol = table.OriginalGroups().front().size();
   const size_t nImages = nPol * NDeconvolutionChannels();
   _images.resize(nImages);
@@ -34,15 +35,13 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
   initializeIndices();
   aocommon::UVector<double> frequencies;
   CalculateDeconvolutionFrequencies(table, frequencies, _weights);
+
+  if (_width != 0 && height != 0) allocateImages();
 }
 
-ImageSet::ImageSet(const DeconvolutionTable& table,
-                   const class Settings& settings, size_t width, size_t height)
-    : ImageSet(table, settings) {
-  _width = width;
-  _height = height;
-  allocateImages();
-}
+ImageSet::ImageSet(const ImageSet& image_set, size_t width, size_t height)
+    : ImageSet(image_set._deconvolutionTable, image_set._squareJoinedChannels,
+               image_set._linkedPolarizations, width, height) {}
 
 void ImageSet::initializeIndices() {
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
@@ -154,7 +153,8 @@ std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
   return psfImages;
 }
 
-void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
+void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
+                                        size_t threadCount) {
   if (NDeconvolutionChannels() == NOriginalChannels()) {
     size_t imgIndex = 0;
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
@@ -174,7 +174,7 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
     // TODO: this assumes that polarizations are not joined!
     size_t nTerms = fitter.NTerms();
     aocommon::UVector<float> termsImage(_width * _height * nTerms);
-    aocommon::StaticFor<size_t> loop(_settings.threadCount);
+    aocommon::StaticFor<size_t> loop(threadCount);
     loop.Run(0, _height, [&](size_t yStart, size_t yEnd) {
       aocommon::UVector<float> spectralPixel(NDeconvolutionChannels());
       aocommon::UVector<float> termsPixel(nTerms);
