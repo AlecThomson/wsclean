@@ -20,19 +20,8 @@ class ImageSet {
 
   ImageSet(const ImageSet& image_set, size_t width, size_t height);
 
-  ImageSet(const ImageSet&) = default;
-
-  void AllocateImages() {
-    _images.clear();
-    allocateImages();
-  }
-
-  void AllocateImages(size_t width, size_t height) {
-    _images.clear();
-    _width = width;
-    _height = height;
-    allocateImages();
-  }
+  ImageSet(const ImageSet&) = delete;
+  ImageSet& operator=(const ImageSet&) = delete;
 
   /**
    * Make a new image set with the same dimensions and uninitialized image data.
@@ -53,8 +42,6 @@ class ImageSet {
    * besides the images and their dimension, no fields are changed.
    */
   void SetImages(ImageSet&& source);
-
-  bool IsAllocated() const { return _width * _height != 0; }
 
   /**
    * @param use_residual_images: True: Load residual images. False: Load model
@@ -228,14 +215,6 @@ class ImageSet {
       aocommon::UVector<float>& weights);
 
  private:
-  ImageSet& operator=(const ImageSet&) = delete;
-
-  void allocateImages() {
-    for (aocommon::Image& img : _images) {
-      img = aocommon::Image(_width, _height);
-    }
-  }
-
   void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
                       float factor) const {
     for (size_t i = 0; i != _width * _height; ++i) lhs[i] = rhs[i] * factor;

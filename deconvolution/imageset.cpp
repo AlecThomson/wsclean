@@ -36,7 +36,11 @@ ImageSet::ImageSet(
   aocommon::UVector<double> frequencies;
   CalculateDeconvolutionFrequencies(table, frequencies, _weights);
 
-  if (_width != 0 && height != 0) allocateImages();
+  if (_width != 0 && height != 0) {
+    for (aocommon::Image& img : _images) {
+      img = aocommon::Image(_width, _height);
+    }
+  }
 }
 
 ImageSet::ImageSet(const ImageSet& image_set, size_t width, size_t height)
