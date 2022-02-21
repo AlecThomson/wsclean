@@ -142,7 +142,7 @@ class ImagingTable {
   void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
 
   std::unique_ptr<DeconvolutionTable> CreateDeconvolutionTable(
-      size_t n_deconvolution_channels, CachedImageSet& psf_images,
+      int n_deconvolution_channels, CachedImageSet& psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images) const;
 
  private:

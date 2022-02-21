@@ -52,17 +52,17 @@ class DeconvolutionTable {
    *
    * @param n_original_groups The number of original channel groups. When adding
    * entries, their original channel index must be less than the number of
-   * original groups.
+   * original groups. If the value is zero or less, one group is used.
    * @param n_deconvolution_groups The number of deconvolution groups.
    * A deconvolution group consist of one or more channel groups, which are then
    * joinedly deconvolved.
-   * If the value is zero (default) or larger than the number of channel groups,
+   * If the value is zero or less, or larger than the number of original groups,
    * all channels are deconvolved separately.
    * @param channel_index_offset The index of the first channel in the caller.
+   * Must be >= 0.
    */
-  explicit DeconvolutionTable(size_t n_original_groups,
-                              size_t n_deconvolution_groups,
-                              size_t channel_index_offset = 0);
+  explicit DeconvolutionTable(int n_original_groups, int n_deconvolution_groups,
+                              int channel_index_offset = 0);
 
   /**
    * @return The table entries, grouped by their original channel index.
