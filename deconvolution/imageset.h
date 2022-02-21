@@ -18,15 +18,18 @@ class ImageSet {
            const std::set<aocommon::PolarizationEnum>& linked_polarizations,
            size_t width, size_t height);
 
+  /**
+   * Constructs an ImageSet with the same settings as an existing ImageSet
+   * object, but a different image size.
+   *
+   * @param image_set An existing ImageSet.
+   * @param width The image width for the new ImageSet.
+   * @param height The image height for the new ImageSet.
+   */
   ImageSet(const ImageSet& image_set, size_t width, size_t height);
 
   ImageSet(const ImageSet&) = delete;
   ImageSet& operator=(const ImageSet&) = delete;
-
-  /**
-   * Make a new image set with the same dimensions and uninitialized image data.
-   */
-  ImageSet UnsetCopy() const { return ImageSet(*this, _width, _height); }
 
   aocommon::Image Release(size_t imageIndex) {
     return std::move(_images[imageIndex]);
@@ -209,22 +212,16 @@ class ImageSet {
     return _linkedPolarizations;
   }
 
+  size_t Width() const { return _images.front().Width(); }
+
+  size_t Height() const { return _images.front().Height(); }
+
   static void CalculateDeconvolutionFrequencies(
       const DeconvolutionTable& groupTable,
       aocommon::UVector<double>& frequencies,
       aocommon::UVector<float>& weights);
 
  private:
-  void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
-                      float factor) const {
-    for (size_t i = 0; i != _width * _height; ++i) lhs[i] = rhs[i] * factor;
-  }
-
-  void squareRootMultiply(aocommon::Image& image, float factor) const {
-    for (size_t i = 0; i != _width * _height; ++i)
-      image[i] = std::sqrt(image[i]) * factor;
-  }
-
   void initializeIndices();
 
   void initializePolFactor() {
@@ -295,8 +292,6 @@ class ImageSet {
   }
 
   std::vector<aocommon::Image> _images;
-  size_t _width;
-  size_t _height;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;

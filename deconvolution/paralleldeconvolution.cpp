@@ -373,7 +373,7 @@ void ParallelDeconvolution::executeParallelRun(
 
   // Find the starting peak over all subimages
   aocommon::ParallelFor<size_t> loop(_settings.parallelDeconvolutionMaxThreads);
-  ImageSet resultModel(modelImage.UnsetCopy());
+  ImageSet resultModel(modelImage, modelImage.Width(), modelImage.Height());
   resultModel = 0.0;
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
