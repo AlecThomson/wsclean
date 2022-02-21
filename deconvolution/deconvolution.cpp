@@ -120,9 +120,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
                  _settings.deconvolutionThreshold));
   integrated.Reset();
 
-  std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
   Logger::Debug << "Loading PSFs...\n";
-  residualSet.LoadAndAveragePSFs(psfVecs);
+  const std::vector<aocommon::UVector<float>> psfVecs =
+      residualSet.LoadAndAveragePSFs();
 
   aocommon::UVector<const float*> psfs(residualSet.PSFCount());
   for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();

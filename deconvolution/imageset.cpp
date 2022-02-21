@@ -25,8 +25,8 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table.OriginalGroups().front().size();
-  size_t nImages = nPol * NDeconvolutionChannels();
+  const size_t nPol = table.OriginalGroups().front().size();
+  const size_t nImages = nPol * NDeconvolutionChannels();
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
 
@@ -119,10 +119,11 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
   }
 }
 
-void ImageSet::LoadAndAveragePSFs(
-    std::vector<aocommon::UVector<float>>& psfImages) {
-  for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
-    psfImages[chIndex].assign(_width * _height, 0.0);
+std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
+  std::vector<aocommon::UVector<float>> psfImages;
+  psfImages.reserve(NDeconvolutionChannels());
+  for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
+    psfImages.emplace_back(_width * _height, 0.0);
   }
 
   Image scratch(_width, _height);
@@ -149,6 +150,8 @@ void ImageSet::LoadAndAveragePSFs(
       psfImages[chIndex][i] *= factor;
     }
   }
+
+  return psfImages;
 }
 
 void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
