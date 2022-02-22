@@ -314,12 +314,13 @@ def test_parallel_gridding():
         f"mpirun -np 3 {tcf.WSCLEAN_MP}",
     ]
     for name, command in zip(names, wsclean_commands):
-        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
+        # -j 1 to ensure deterministic iteration over visibilities
+        s = f"{command} -j 1 -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
         check_call(s.split())
 
     # Compare images, the threshold is chosen relatively large since the difference
     # seems to fluctuate somewhat between runs.
-    threshold = 6e-3
+    threshold = 1e-6
     compare_rms_fits(
         f"{names[0]}-YY-image.fits", f"{names[1]}-YY-image.fits", threshold
     )
@@ -329,8 +330,11 @@ def test_parallel_gridding():
 
 
 @pytest.mark.parametrize("beam", [False, True])
-@pytest.mark.parametrize("h5", [None, "one", "two"])
-def test_multi_ms(beam, h5):
+@pytest.mark.parametrize(
+    "h5file",
+    [None, ["mock_soltab_2pol.h5"], ["mock_soltab_2pol.h5", "mock_soltab_2pol.h5"]],
+)
+def test_multi_ms(beam, h5file):
     """
     Check that identical images are obtained in case multiple (identical) MSets and H5Parm
     files are provided compared to imaging one MSet
@@ -349,12 +353,13 @@ def test_multi_ms(beam, h5):
     if beam:
         commands = ["-mwa-path . -apply-facet-beam " + command for command in commands]
 
-    if h5 is not None:
-        h5list = ["-apply-facet-solutions", "mock_soltab_2pol.h5", "ampl000,phase000"]
-        commands[0] = " ".join(h5list) + " " + commands[0]
-        if h5 == "two":
-            h5list[1] = f"{h5list[1]},{h5list[1]}"
-        commands[1] = " ".join(h5list) + " " + commands[1]
+    if h5file is not None:
+        commands[0] = (
+            f"-apply-facet-solutions {h5file[0]} ampl000,phase000 " + commands[0]
+        )
+        commands[1] = (
+            f"-apply-facet-solutions {','.join(h5file)} ampl000,phase000 " + commands[1]
+        )
 
     # Note: -j 1 enabled to ensure deterministic iteration over visibilities
     for name, command in zip(names, commands):

@@ -96,12 +96,12 @@ void Settings::Validate() const {
         schaapcommon::h5parm::H5Parm h5parm =
             schaapcommon::h5parm::H5Parm(facetSolutionFile);
         const size_t nsources = h5parm.GetNumSources();
-        // if (nsources != nfacets) {
-        //   throw std::runtime_error(
-        //       "Number of source directions in one of the h5 facet solution "
-        //       "files does not match the number of facets in the facet "
-        //       "definition file.");
-        // }
+        if (nsources != nfacets) {
+          throw std::runtime_error(
+              "Number of source directions in one of the h5 facet solution "
+              "files does not match the number of facets in the facet "
+              "definition file.");
+        }
       }
     }
   }
