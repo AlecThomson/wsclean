@@ -136,7 +136,7 @@ std::vector<aocommon::Image> ImageSet::LoadAndAveragePSFs() {
   std::vector<aocommon::Image> psfImages;
   psfImages.reserve(NDeconvolutionChannels());
   for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
-    psfImages.emplace_back(Width(), Height());
+    psfImages.emplace_back(Width(), Height(), 0.0);
   }
 
   Image scratch(Width(), Height());
