@@ -16,7 +16,7 @@ struct DeconvolutionSettings {
   enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow };
 
   /** @{
-   * Settings that are duplicates from top level settings, and used outside
+   * Settings that are duplicates from top level settings, and also used outside
    * deconvolution.
    */
   size_t trimmedImageWidth;

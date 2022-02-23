@@ -72,9 +72,6 @@ class Settings {
   std::string prefixName;
   bool joinedPolarizationDeconvolution;
   bool joinedFrequencyDeconvolution;
-  // std::set<aocommon::PolarizationEnum> linkedPolarizations;
-  // size_t parallelDeconvolutionMaxSize;
-  // size_t parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
       isDirtySaved, isFirstResidualSaved;
   bool reusePsf, reuseDirty;

@@ -30,13 +30,12 @@ Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
       _table(),
       _parallelDeconvolution(_settings),
       _autoMaskIsFinished(false),
-      // Set following member variables in InitializeDeconvolutionAlgorithm
-      _imgWidth(0),
-      _imgHeight(0),
+      _imgWidth(_settings.trimmedImageWidth),
+      _imgHeight(_settings.trimmedImageHeight),
+      _pixelScaleX(_settings.pixelScaleX),
+      _pixelScaleY(_settings.pixelScaleY),
       _autoMask(),
-      _beamSize(0.0),
-      _pixelScaleX(0),
-      _pixelScaleY(0) {}
+      _beamSize(0.0) {}
 
 Deconvolution::~Deconvolution() { FreeDeconvolutionAlgorithms(); }
 
@@ -184,11 +183,6 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
 void Deconvolution::InitializeDeconvolutionAlgorithm(
     std::unique_ptr<DeconvolutionTable> table, double beamSize,
     size_t threadCount) {
-  _imgWidth = _settings.trimmedImageWidth;
-  _imgHeight = _settings.trimmedImageHeight;
-  _pixelScaleX = _settings.pixelScaleX;
-  _pixelScaleY = _settings.pixelScaleY;
-
   _beamSize = beamSize;
   _autoMaskIsFinished = false;
   _autoMask.clear();

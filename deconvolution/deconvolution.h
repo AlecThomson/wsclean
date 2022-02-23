@@ -58,9 +58,12 @@ class Deconvolution {
   bool _autoMaskIsFinished;
   aocommon::UVector<double> _channelFrequencies;
   aocommon::UVector<float> _channelWeights;
-  size_t _imgWidth, _imgHeight;
+  size_t _imgWidth;
+  size_t _imgHeight;
+  double _pixelScaleX;
+  double _pixelScaleY;
   aocommon::UVector<bool> _autoMask;
-  double _beamSize, _pixelScaleX, _pixelScaleY;
+  double _beamSize;
 };
 
 #endif
