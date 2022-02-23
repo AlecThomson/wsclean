@@ -379,6 +379,7 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
 
   deconvolutionSettings.deconvolutionThreshold = deconvolutionThreshold;
   deconvolutionSettings.deconvolutionGain = deconvolutionGain;
+  deconvolutionSettings.deconvolutionMGain = deconvolutionMGain;
   deconvolutionSettings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
   deconvolutionSettings.autoMask = autoMask;
   deconvolutionSettings.autoDeconvolutionThresholdSigma =
@@ -413,6 +414,7 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.casaDeconvolutionMask = casaDeconvolutionMask;
   deconvolutionSettings.horizonMask = horizonMask;
   deconvolutionSettings.horizonMaskDistance = horizonMaskDistance;
+  deconvolutionSettings.localRMSImage = localRMSImage;
   deconvolutionSettings.pythonDeconvolutionFilename =
       pythonDeconvolutionFilename;
   deconvolutionSettings.useMoreSaneDeconvolution = useMoreSaneDeconvolution;
@@ -420,8 +422,12 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
   deconvolutionSettings.moreSaneLocation = moreSaneLocation;
   deconvolutionSettings.moreSaneArgs = moreSaneArgs;
+  deconvolutionSettings.moreSaneSigmaLevels = moreSaneSigmaLevels;
   deconvolutionSettings.spectralFittingMode = spectralFittingMode;
   deconvolutionSettings.spectralFittingTerms = spectralFittingTerms;
+  deconvolutionSettings.forcedSpectrumFilename = forcedSpectrumFilename;
+  deconvolutionSettings.deconvolutionChannelCount = deconvolutionChannelCount;
+
   return deconvolutionSettings;
 }
 

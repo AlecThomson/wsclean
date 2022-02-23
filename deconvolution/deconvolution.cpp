@@ -28,7 +28,7 @@ using aocommon::units::FluxDensity;
 Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
     : _settings(deconvolutionSettings),
       _table(),
-      _parallelDeconvolution(deconvolutionSettings),
+      _parallelDeconvolution(_settings),
       _autoMaskIsFinished(false),
       _imgWidth(0),  // these are not yet set the in settings obj -- load later
       _imgHeight(0),

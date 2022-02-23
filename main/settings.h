@@ -72,8 +72,9 @@ class Settings {
   std::string prefixName;
   bool joinedPolarizationDeconvolution;
   bool joinedFrequencyDeconvolution;
-  std::set<aocommon::PolarizationEnum> linkedPolarizations;
-  size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
+  // std::set<aocommon::PolarizationEnum> linkedPolarizations;
+  // size_t parallelDeconvolutionMaxSize;
+  // size_t parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
       isDirtySaved, isFirstResidualSaved;
   bool reusePsf, reuseDirty;
@@ -114,12 +115,16 @@ class Settings {
   /** @{
    * These settings all relate to the deconvolution.
    */
-  double deconvolutionThreshold, deconvolutionGain, deconvolutionMGain;
+  std::set<aocommon::PolarizationEnum> linkedPolarizations;
+  size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionMaxThreads;
+  double deconvolutionThreshold;
+  double deconvolutionGain;
+  double deconvolutionMGain;
   bool autoDeconvolutionThreshold, autoMask;
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
   bool localRMS;
   double localRMSWindow;
-  // enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow }
   DeconvolutionSettings::LocalRMSMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
@@ -253,9 +258,6 @@ inline Settings::Settings()
       prefixName("wsclean"),
       joinedPolarizationDeconvolution(false),
       joinedFrequencyDeconvolution(false),
-      linkedPolarizations(),
-      parallelDeconvolutionMaxSize(0),
-      parallelDeconvolutionMaxThreads(threadCount),
       smallInversion(true),
       makePSF(false),
       makePSFOnly(false),
@@ -310,6 +312,9 @@ inline Settings::Settings()
       simulatedNoiseStdDev(0.0),
       simulatedBaselineNoiseFilename(),
       // Deconvolution default settings:
+      linkedPolarizations(),
+      parallelDeconvolutionMaxSize(0),
+      parallelDeconvolutionMaxThreads(threadCount),
       deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),
       deconvolutionMGain(1.0),

@@ -26,10 +26,6 @@ struct DeconvolutionSettings {
   double pixelScaleY;
   size_t threadCount;
   std::string prefixName;
-  // TODO: actually looks like a deconvolution specific setting...
-  std::set<aocommon::PolarizationEnum> linkedPolarizations;
-  size_t parallelDeconvolutionMaxSize;
-  size_t parallelDeconvolutionMaxThreads;
   /**
    * @}
    */
@@ -37,6 +33,9 @@ struct DeconvolutionSettings {
   /** @{
    * These settings strictly pertain to deconvolution only.
    */
+  std::set<aocommon::PolarizationEnum> linkedPolarizations;
+  size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionMaxThreads;
   double deconvolutionThreshold;
   double deconvolutionGain;
   double deconvolutionMGain;
@@ -58,12 +57,12 @@ struct DeconvolutionSettings {
   double spectralCorrectionFrequency;
   aocommon::UVector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
-  double multiscaleGain, multiscaleDeconvolutionScaleBias;
+  double multiscaleGain;
+  double multiscaleDeconvolutionScaleBias;
   size_t multiscaleMaxScales;
   double multiscaleConvolutionPadding;
   aocommon::UVector<double> multiscaleScaleList;
   MultiScaleTransforms::Shape multiscaleShapeFunction;
-
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask;
   std::string casaDeconvolutionMask;
@@ -74,7 +73,8 @@ struct DeconvolutionSettings {
   bool useMoreSaneDeconvolution;
   bool useIUWTDeconvolution;
   bool iuwtSNRTest;
-  std::string moreSaneLocation, moreSaneArgs;
+  std::string moreSaneLocation;
+  std::string moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
   enum SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
@@ -92,7 +92,7 @@ struct DeconvolutionSettings {
 };
 
 inline DeconvolutionSettings::DeconvolutionSettings()
-    : trimmedImageWidth(0.0),
+    : trimmedImageWidth(0),
       trimmedImageHeight(0),
       channelsOut(1),
       pixelScaleX(0.0),

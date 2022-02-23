@@ -1913,8 +1913,6 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   templateEntry.joinedGroupIndex = 0;
   templateEntry.squaredDeconvolutionIndex = 0;
 
-  // for(size_t interval=0; interval!=_settings.intervalsOut; ++interval)
-  //{
   for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
        ++outChannelIndex) {
     makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
@@ -1926,7 +1924,6 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
     }
     addPolarizationsToImagingTable(templateEntry);
   }
-  //}
   _imagingTable.Update();
   _imagingTable.Print();
 }
