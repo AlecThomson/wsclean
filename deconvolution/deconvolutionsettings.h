@@ -1,15 +1,42 @@
 #ifndef WSCLEAN_DECONVOLUTION_SETTINGS_H_
 #define WSCLEAN_DECONVOLUTION_SETTINGS_H_
 
+#include "spectralfitter.h"
 #include "../multiscale/multiscaletransforms.h"
 
+#include <aocommon/polarization.h>
+#include <aocommon/system.h>
 #include <aocommon/uvector.h>
+
+#include <set>
 
 struct DeconvolutionSettings {
   DeconvolutionSettings();
 
   enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow };
 
+  /** @{
+   * Settings that are duplicates from top level settings, and used outside
+   * deconvolution.
+   */
+  size_t trimmedImageWidth;
+  size_t trimmedImageHeight;
+  size_t channelsOut;
+  double pixelScaleX;
+  double pixelScaleY;
+  size_t threadCount;
+  std::string prefixName;
+  // TODO: actually looks like a deconvolution specific setting...
+  std::set<aocommon::PolarizationEnum> linkedPolarizations;
+  size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionMaxThreads;
+  /**
+   * @}
+   */
+
+  /** @{
+   * These settings strictly pertain to deconvolution only.
+   */
   double deconvolutionThreshold;
   double deconvolutionGain;
   double deconvolutionMGain;
@@ -19,7 +46,6 @@ struct DeconvolutionSettings {
   double autoMaskSigma;
   bool localRMS;
   double localRMSWindow;
-  // enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow }
   LocalRMSMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount;
@@ -60,10 +86,23 @@ struct DeconvolutionSettings {
    * It is 0 when all channels should be used.
    */
   size_t deconvolutionChannelCount;
+  /**
+   * @}
+   */
 };
 
 inline DeconvolutionSettings::DeconvolutionSettings()
-    : deconvolutionThreshold(0.0),
+    : trimmedImageWidth(0.0),
+      trimmedImageHeight(0),
+      channelsOut(1),
+      pixelScaleX(0.0),
+      pixelScaleY(0.0),
+      threadCount(aocommon::system::ProcessorCount()),
+      prefixName("wsclean"),
+      linkedPolarizations(),
+      parallelDeconvolutionMaxSize(0),
+      parallelDeconvolutionMaxThreads(threadCount),
+      deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),
       deconvolutionMGain(1.0),
       autoDeconvolutionThreshold(false),

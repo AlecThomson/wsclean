@@ -1,6 +1,7 @@
 #ifndef DECONVOLUTION_H
 #define DECONVOLUTION_H
 
+#include "deconvolutionsettings.h"
 #include "paralleldeconvolution.h"
 
 #include <aocommon/polarization.h>
@@ -13,7 +14,7 @@ struct DeconvolutionTableEntry;
 
 class Deconvolution {
  public:
-  explicit Deconvolution(const class Settings& settings);
+  explicit Deconvolution(const DeconvolutionSettings& deconvolutionSettings);
   ~Deconvolution();
 
   ComponentList GetComponentList() const {
@@ -45,7 +46,7 @@ class Deconvolution {
  private:
   void readMask(const DeconvolutionTable& groupTable);
 
-  const class Settings& _settings;
+  const DeconvolutionSettings& _settings;
 
   std::unique_ptr<DeconvolutionTable> _table;
 

@@ -1,6 +1,5 @@
 #include "deconvolution.h"
 
-#include "deconvolutionsettings.h"
 #include "casamaskreader.h"
 #include "imageset.h"
 #include "simpleclean.h"
@@ -8,8 +7,6 @@
 #include "pythondeconvolution.h"
 #include "iuwtdeconvolution.h"
 #include "genericclean.h"
-
-#include "../main/settings.h"
 
 #include "../math/rmsimage.h"
 
@@ -28,10 +25,10 @@ using aocommon::ImageCoordinates;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
-Deconvolution::Deconvolution(const class Settings& settings)
-    : _settings(settings),
+Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
+    : _settings(deconvolutionSettings),
       _table(),
-      _parallelDeconvolution(settings),
+      _parallelDeconvolution(deconvolutionSettings),
       _autoMaskIsFinished(false),
       _imgWidth(0),  // these are not yet set the in settings obj -- load later
       _imgHeight(0),

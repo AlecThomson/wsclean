@@ -4,8 +4,6 @@
 
 #include "../io/imagefilename.h"
 
-#include "../main/settings.h"
-
 #include "../math/dijkstrasplitter.h"
 
 #include <aocommon/parallelfor.h>
@@ -18,10 +16,11 @@ using aocommon::Logger;
 
 class ImageSet;
 
-ParallelDeconvolution::ParallelDeconvolution(const Settings& settings)
+ParallelDeconvolution::ParallelDeconvolution(
+    const DeconvolutionSettings& deconvolutionSettings)
     : _horImages(0),
       _verImages(0),
-      _settings(settings),
+      _settings(deconvolutionSettings),
       _allocator(nullptr),
       _mask(nullptr),
       _trackPerScaleMasks(false),

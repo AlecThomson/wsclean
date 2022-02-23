@@ -362,6 +362,21 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
 DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   // TODO: use designator initialization as soon as we're using C++ 20
   DeconvolutionSettings deconvolutionSettings;
+
+  deconvolutionSettings.trimmedImageWidth = trimmedImageWidth;
+  deconvolutionSettings.trimmedImageHeight = trimmedImageHeight;
+  deconvolutionSettings.channelsOut = channelsOut;
+  deconvolutionSettings.pixelScaleX = pixelScaleX;
+  deconvolutionSettings.pixelScaleY = pixelScaleY;
+  deconvolutionSettings.threadCount = threadCount;
+  deconvolutionSettings.prefixName = prefixName;
+
+  deconvolutionSettings.linkedPolarizations = linkedPolarizations;
+  deconvolutionSettings.parallelDeconvolutionMaxSize =
+      parallelDeconvolutionMaxSize;
+  deconvolutionSettings.parallelDeconvolutionMaxThreads =
+      parallelDeconvolutionMaxThreads;
+
   deconvolutionSettings.deconvolutionThreshold = deconvolutionThreshold;
   deconvolutionSettings.deconvolutionGain = deconvolutionGain;
   deconvolutionSettings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;

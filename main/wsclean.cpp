@@ -66,7 +66,7 @@ WSClean::WSClean()
       _psfImages(),
       _modelImages(),
       _residualImages(),
-      _deconvolution(_settings),
+      _deconvolution(_settings.GetDeconvolutionSettings()),
       _lastStartTime(0.0) {}
 
 WSClean::~WSClean() {}
