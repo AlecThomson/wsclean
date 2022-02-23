@@ -359,6 +359,57 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
   }
 }
 
+DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
+  // TODO: use designator initialization as soon as we're using C++ 20
+  DeconvolutionSettings deconvolutionSettings;
+  deconvolutionSettings.deconvolutionThreshold = deconvolutionThreshold;
+  deconvolutionSettings.deconvolutionGain = deconvolutionGain;
+  deconvolutionSettings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
+  deconvolutionSettings.autoMask = autoMask;
+  deconvolutionSettings.autoDeconvolutionThresholdSigma =
+      autoDeconvolutionThresholdSigma;
+  deconvolutionSettings.autoMaskSigma = autoMaskSigma;
+  deconvolutionSettings.localRMS = localRMS;
+  deconvolutionSettings.localRMSWindow = localRMSWindow;
+  deconvolutionSettings.localRMSMethod = localRMSMethod;
+  deconvolutionSettings.saveSourceList = saveSourceList;
+  deconvolutionSettings.deconvolutionIterationCount =
+      deconvolutionIterationCount;
+  deconvolutionSettings.majorIterationCount = majorIterationCount;
+  deconvolutionSettings.allowNegativeComponents = allowNegativeComponents;
+  deconvolutionSettings.stopOnNegativeComponents = stopOnNegativeComponents;
+  deconvolutionSettings.useMultiscale = useMultiscale;
+  deconvolutionSettings.useSubMinorOptimization = useSubMinorOptimization;
+  deconvolutionSettings.squaredJoins = squaredJoins;
+  deconvolutionSettings.spectralCorrectionFrequency =
+      spectralCorrectionFrequency;
+  deconvolutionSettings.spectralCorrection = spectralCorrection;
+  deconvolutionSettings.multiscaleFastSubMinorLoop = multiscaleFastSubMinorLoop;
+  deconvolutionSettings.multiscaleGain = multiscaleGain;
+  deconvolutionSettings.multiscaleDeconvolutionScaleBias =
+      multiscaleDeconvolutionScaleBias;
+  deconvolutionSettings.multiscaleMaxScales = multiscaleMaxScales;
+  deconvolutionSettings.multiscaleConvolutionPadding =
+      multiscaleConvolutionPadding;
+  deconvolutionSettings.multiscaleScaleList = multiscaleScaleList;
+  deconvolutionSettings.multiscaleShapeFunction = multiscaleShapeFunction;
+  deconvolutionSettings.deconvolutionBorderRatio = deconvolutionBorderRatio;
+  deconvolutionSettings.fitsDeconvolutionMask = fitsDeconvolutionMask;
+  deconvolutionSettings.casaDeconvolutionMask = casaDeconvolutionMask;
+  deconvolutionSettings.horizonMask = horizonMask;
+  deconvolutionSettings.horizonMaskDistance = horizonMaskDistance;
+  deconvolutionSettings.pythonDeconvolutionFilename =
+      pythonDeconvolutionFilename;
+  deconvolutionSettings.useMoreSaneDeconvolution = useMoreSaneDeconvolution;
+  deconvolutionSettings.useIUWTDeconvolution = useIUWTDeconvolution;
+  deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
+  deconvolutionSettings.moreSaneLocation = moreSaneLocation;
+  deconvolutionSettings.moreSaneArgs = moreSaneArgs;
+  deconvolutionSettings.spectralFittingMode = spectralFittingMode;
+  deconvolutionSettings.spectralFittingTerms = spectralFittingTerms;
+  return deconvolutionSettings;
+}
+
 bool Settings::determineReorder() const {
   return ((channelsOut != 1) || (polarizations.size() >= 4) ||
           (deconvolutionMGain != 1.0) ||

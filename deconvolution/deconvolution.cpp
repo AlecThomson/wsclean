@@ -1,5 +1,6 @@
 #include "deconvolution.h"
 
+#include "deconvolutionsettings.h"
 #include "casamaskreader.h"
 #include "imageset.h"
 #include "simpleclean.h"
@@ -90,12 +91,12 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
-        case Settings::RMSWindow:
+        case DeconvolutionSettings::RMSWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
                          _settings.threadCount);
           break;
-        case Settings::RMSAndMinimumWindow:
+        case DeconvolutionSettings::RMSAndMinimumWindow:
           RMSImage::MakeWithNegativityLimit(
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY,

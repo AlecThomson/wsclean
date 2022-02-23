@@ -11,6 +11,8 @@
 #include <aocommon/parallelfor.h>
 #include <aocommon/units/fluxdensity.h>
 
+#include "deconvolutionsettings.h"
+
 using aocommon::Image;
 using aocommon::Logger;
 

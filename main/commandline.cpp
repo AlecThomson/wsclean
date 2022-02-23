@@ -865,9 +865,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string method = argv[argi];
       settings.localRMS = true;
       if (method == "rms")
-        settings.localRMSMethod = Settings::RMSWindow;
+        settings.localRMSMethod = DeconvolutionSettings::RMSWindow;
       else if (method == "rms-with-min")
-        settings.localRMSMethod = Settings::RMSAndMinimumWindow;
+        settings.localRMSMethod = DeconvolutionSettings::RMSAndMinimumWindow;
       else
         throw std::runtime_error("Unknown RMS background method specified");
       if (param == "rms-background-method")

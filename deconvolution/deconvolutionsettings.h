@@ -1,0 +1,109 @@
+#ifndef WSCLEAN_DECONVOLUTION_SETTINGS_H_
+#define WSCLEAN_DECONVOLUTION_SETTINGS_H_
+
+#include "../multiscale/multiscaletransforms.h"
+
+#include <aocommon/uvector.h>
+
+struct DeconvolutionSettings {
+  DeconvolutionSettings();
+
+  enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow };
+
+  double deconvolutionThreshold;
+  double deconvolutionGain;
+  double deconvolutionMGain;
+  bool autoDeconvolutionThreshold;
+  bool autoMask;
+  double autoDeconvolutionThresholdSigma;
+  double autoMaskSigma;
+  bool localRMS;
+  double localRMSWindow;
+  // enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow }
+  LocalRMSMethod localRMSMethod;
+  bool saveSourceList;
+  size_t deconvolutionIterationCount;
+  size_t majorIterationCount;
+  bool allowNegativeComponents;
+  bool stopOnNegativeComponents;
+  bool useMultiscale;
+  bool useSubMinorOptimization;
+  bool squaredJoins;
+  double spectralCorrectionFrequency;
+  aocommon::UVector<float> spectralCorrection;
+  bool multiscaleFastSubMinorLoop;
+  double multiscaleGain, multiscaleDeconvolutionScaleBias;
+  size_t multiscaleMaxScales;
+  double multiscaleConvolutionPadding;
+  aocommon::UVector<double> multiscaleScaleList;
+  MultiScaleTransforms::Shape multiscaleShapeFunction;
+
+  double deconvolutionBorderRatio;
+  std::string fitsDeconvolutionMask;
+  std::string casaDeconvolutionMask;
+  bool horizonMask;
+  double horizonMaskDistance;
+  std::string localRMSImage;
+  std::string pythonDeconvolutionFilename;
+  bool useMoreSaneDeconvolution;
+  bool useIUWTDeconvolution;
+  bool iuwtSNRTest;
+  std::string moreSaneLocation, moreSaneArgs;
+  aocommon::UVector<double> moreSaneSigmaLevels;
+  enum SpectralFittingMode spectralFittingMode;
+  size_t spectralFittingTerms;
+  std::string forcedSpectrumFilename;
+  /**
+   * The number of channels used during deconvolution. This can be used to
+   * image with more channels than deconvolution. Before deconvolution,
+   * channels are averaged, and after deconvolution they are interpolated.
+   * It is 0 when all channels should be used.
+   */
+  size_t deconvolutionChannelCount;
+};
+
+inline DeconvolutionSettings::DeconvolutionSettings()
+    : deconvolutionThreshold(0.0),
+      deconvolutionGain(0.1),
+      deconvolutionMGain(1.0),
+      autoDeconvolutionThreshold(false),
+      autoMask(false),
+      autoDeconvolutionThresholdSigma(0.0),
+      autoMaskSigma(0.0),
+      localRMS(false),
+      localRMSWindow(25.0),
+      localRMSMethod(RMSWindow),
+      saveSourceList(false),
+      deconvolutionIterationCount(0),
+      majorIterationCount(20),
+      allowNegativeComponents(true),
+      stopOnNegativeComponents(false),
+      useMultiscale(false),
+      useSubMinorOptimization(true),
+      squaredJoins(false),
+      spectralCorrectionFrequency(0.0),
+      spectralCorrection(),
+      multiscaleFastSubMinorLoop(true),
+      multiscaleGain(0.2),
+      multiscaleDeconvolutionScaleBias(0.6),
+      multiscaleMaxScales(0),
+      multiscaleConvolutionPadding(1.1),
+      multiscaleScaleList(),
+      multiscaleShapeFunction(MultiScaleTransforms::TaperedQuadraticShape),
+      deconvolutionBorderRatio(0.0),
+      fitsDeconvolutionMask(),
+      casaDeconvolutionMask(),
+      horizonMask(false),
+      horizonMaskDistance(0.0),
+      pythonDeconvolutionFilename(),
+      useMoreSaneDeconvolution(false),
+      useIUWTDeconvolution(false),
+      iuwtSNRTest(false),
+      moreSaneLocation(),
+      moreSaneArgs(),
+      spectralFittingMode(SpectralFittingMode::NoFitting),
+      spectralFittingTerms(0),
+      forcedSpectrumFilename(),
+      deconvolutionChannelCount(0) {}
+
+#endif

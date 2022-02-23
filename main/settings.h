@@ -9,6 +9,7 @@
 #include "../structures/msselection.h"
 
 #include "../deconvolution/deconvolutionalgorithm.h"
+#include "../deconvolution/deconvolutionsettings.h"
 #include "../multiscale/multiscaletransforms.h"
 
 #include <aocommon/system.h>
@@ -118,7 +119,8 @@ class Settings {
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
   bool localRMS;
   double localRMSWindow;
-  enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow } localRMSMethod;
+  // enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow }
+  DeconvolutionSettings::LocalRMSMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
@@ -154,6 +156,13 @@ class Settings {
   /**
    * @}
    */
+
+  /**
+   * @brief Extract the settings that are relevant to the deconvolution.
+   * Currently, it dupliates the existing settings into a DeconvolutionSettings
+   * object.
+   */
+  DeconvolutionSettings GetDeconvolutionSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -310,7 +319,7 @@ inline Settings::Settings()
       autoMaskSigma(0.0),
       localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(RMSWindow),
+      localRMSMethod(DeconvolutionSettings::RMSWindow),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
