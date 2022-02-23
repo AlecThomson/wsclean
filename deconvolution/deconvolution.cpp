@@ -30,7 +30,8 @@ Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
       _table(),
       _parallelDeconvolution(_settings),
       _autoMaskIsFinished(false),
-      _imgWidth(0),  // these are not yet set the in settings obj -- load later
+      // Set following member variables in InitializeDeconvolutionAlgorithm
+      _imgWidth(0),
       _imgHeight(0),
       _autoMask(),
       _beamSize(0.0),

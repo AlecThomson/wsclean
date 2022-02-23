@@ -1479,7 +1479,7 @@ void CommandLine::Validate(WSClean& wsclean) {
 }
 
 void CommandLine::Run(class WSClean& wsclean) {
-  Settings& settings = wsclean.GetSettings();
+  const Settings& settings = wsclean.GetSettings();
   switch (settings.mode) {
     case Settings::RestoreMode:
       WSCFitsWriter::Restore(settings);

@@ -360,7 +360,6 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
 }
 
 DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
-  // TODO: use designator initialization as soon as we're using C++ 20
   DeconvolutionSettings deconvolutionSettings;
 
   deconvolutionSettings.trimmedImageWidth = trimmedImageWidth;

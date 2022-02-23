@@ -66,7 +66,7 @@ WSClean::WSClean()
       _psfImages(),
       _modelImages(),
       _residualImages(),
-      _deconvolution(_settings.GetDeconvolutionSettings()),
+      _deconvolution(nullptr),
       _lastStartTime(0.0) {}
 
 WSClean::~WSClean() {}
@@ -672,6 +672,9 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
+  assert(_deconvolution == nullptr);
+  _deconvolution =
+      std::make_unique<Deconvolution>(_settings.GetDeconvolutionSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -861,6 +864,11 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
+  // _deconvolution member is initialized to
+  // get WSCFitsWriter working
+  assert(_deconvolution == nullptr);
+  _deconvolution =
+      std::make_unique<Deconvolution>(_settings.GetDeconvolutionSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -1557,7 +1565,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _settings.deconvolutionChannelCount, _psfImages, _modelImages,
           _residualImages);
 
-  _deconvolution.InitializeDeconvolutionAlgorithm(
+  _deconvolution->InitializeDeconvolutionAlgorithm(
       std::move(deconvolution_table), minTheoreticalBeamSize(groupTable),
       _settings.threadCount);
 
@@ -1567,7 +1575,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     bool reachedMajorThreshold = false;
     do {
       _deconvolutionWatch.Start();
-      _deconvolution.Perform(reachedMajorThreshold, _majorIterationNr);
+      _deconvolution->Perform(reachedMajorThreshold, _majorIterationNr);
       _deconvolutionWatch.Pause();
 
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
@@ -1686,19 +1694,19 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                             _residualImages);
     ComponentListWriter componentListWriter(_settings,
                                             std::move(deconvolution_table));
-    componentListWriter.SaveSourceList(_deconvolution,
+    componentListWriter.SaveSourceList(*_deconvolution,
                                        _observationInfo.phaseCentreRA,
                                        _observationInfo.phaseCentreDec);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
         !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
         !_settings.atermConfigFilename.empty()) {
       componentListWriter.SavePbCorrectedSourceList(
-          _deconvolution, _observationInfo.phaseCentreRA,
+          *_deconvolution, _observationInfo.phaseCentreRA,
           _observationInfo.phaseCentreDec);
     }
   }
 
-  _deconvolution.FreeDeconvolutionAlgorithms();
+  _deconvolution->FreeDeconvolutionAlgorithms();
 }
 
 MSSelection WSClean::selectInterval(MSSelection& fullSelection,
@@ -2106,7 +2114,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
     applyFacetPhaseShift(entry, observationInfo);
   }
 
-  return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
+  return WSCFitsWriter(entry, isImaginary, _settings, *_deconvolution,
                        observationInfo, _majorIterationNr, _commandLine,
                        _infoPerChannel[entry.outputChannelIndex], isModel,
                        _lastStartTime);
@@ -2122,7 +2130,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
   }
 
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
-                       _deconvolution, observationInfo, _majorIterationNr,
+                       *_deconvolution, observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
 }

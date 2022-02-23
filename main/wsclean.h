@@ -34,12 +34,6 @@ class FacetImage;
 }
 }  // namespace schaapcommon
 
-// namespace aocommon {
-// template <typename NumT>
-// class ImageBase;
-// using Image = ImageBase<float>;
-// }  // namespace aocommon
-
 class PrimaryBeam;
 class WSClean {
  public:
@@ -254,7 +248,7 @@ class WSClean {
   CachedImageSet _matrixBeamImages;
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
-  Deconvolution _deconvolution;
+  std::unique_ptr<Deconvolution> _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
