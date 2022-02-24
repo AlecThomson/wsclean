@@ -122,7 +122,7 @@ class Settings {
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
   bool localRMS;
   double localRMSWindow;
-  DeconvolutionSettings::LocalRMSMethod localRMSMethod;
+  DeconvolutionSettings::LocalRmsMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
@@ -321,7 +321,7 @@ inline Settings::Settings()
       autoMaskSigma(0.0),
       localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(DeconvolutionSettings::kRMSWindow),
+      localRMSMethod(DeconvolutionSettings::LocalRmsMethod::kRmsWindow),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),

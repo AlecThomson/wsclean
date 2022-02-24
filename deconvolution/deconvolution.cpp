@@ -88,12 +88,12 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
-        case DeconvolutionSettings::kRMSWindow:
+        case DeconvolutionSettings::LocalRmsMethod::kRmsWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
                          _settings.threadCount);
           break;
-        case DeconvolutionSettings::kRMSAndMinimumWindow:
+        case DeconvolutionSettings::LocalRmsMethod::kRmsAndMinimumWindow:
           RMSImage::MakeWithNegativityLimit(
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
