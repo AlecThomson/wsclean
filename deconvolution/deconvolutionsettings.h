@@ -13,7 +13,7 @@
 struct DeconvolutionSettings {
   DeconvolutionSettings();
 
-  enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow };
+  enum LocalRMSMethod { kRMSWindow, kRMSAndMinimumWindow };
 
   /** @{
    * Settings that are duplicates from top level settings, and also used outside
@@ -111,7 +111,7 @@ inline DeconvolutionSettings::DeconvolutionSettings()
       autoMaskSigma(0.0),
       localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(RMSWindow),
+      localRMSMethod(kRMSWindow),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),

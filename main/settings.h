@@ -321,7 +321,7 @@ inline Settings::Settings()
       autoMaskSigma(0.0),
       localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(DeconvolutionSettings::RMSWindow),
+      localRMSMethod(DeconvolutionSettings::kRMSWindow),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
