@@ -398,7 +398,8 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.squaredJoins = squaredJoins;
   deconvolutionSettings.spectralCorrectionFrequency =
       spectralCorrectionFrequency;
-  deconvolutionSettings.spectralCorrection = spectralCorrection;
+  deconvolutionSettings.spectralCorrection.assign(spectralCorrection.begin(),
+                                                  spectralCorrection.end());
   deconvolutionSettings.multiscaleFastSubMinorLoop = multiscaleFastSubMinorLoop;
   deconvolutionSettings.multiscaleGain = multiscaleGain;
   deconvolutionSettings.multiscaleDeconvolutionScaleBias =
@@ -406,7 +407,8 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.multiscaleMaxScales = multiscaleMaxScales;
   deconvolutionSettings.multiscaleConvolutionPadding =
       multiscaleConvolutionPadding;
-  deconvolutionSettings.multiscaleScaleList = multiscaleScaleList;
+  deconvolutionSettings.multiscaleScaleList.assign(multiscaleScaleList.begin(),
+                                                   multiscaleScaleList.end());
   deconvolutionSettings.multiscaleShapeFunction = multiscaleShapeFunction;
   deconvolutionSettings.deconvolutionBorderRatio = deconvolutionBorderRatio;
   deconvolutionSettings.fitsDeconvolutionMask = fitsDeconvolutionMask;
@@ -421,7 +423,8 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
   deconvolutionSettings.moreSaneLocation = moreSaneLocation;
   deconvolutionSettings.moreSaneArgs = moreSaneArgs;
-  deconvolutionSettings.moreSaneSigmaLevels = moreSaneSigmaLevels;
+  deconvolutionSettings.moreSaneSigmaLevels.assign(moreSaneSigmaLevels.begin(),
+                                                   moreSaneSigmaLevels.end());
   deconvolutionSettings.spectralFittingMode = spectralFittingMode;
   deconvolutionSettings.spectralFittingTerms = spectralFittingTerms;
   deconvolutionSettings.forcedSpectrumFilename = forcedSpectrumFilename;

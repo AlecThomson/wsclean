@@ -161,7 +161,7 @@ class Settings {
 
   /**
    * @brief Extract the settings that are relevant to the deconvolution.
-   * Currently, it dupliates the existing settings into a DeconvolutionSettings
+   * Currently, it duplicates the existing settings into a DeconvolutionSettings
    * object.
    */
   DeconvolutionSettings GetDeconvolutionSettings() const;

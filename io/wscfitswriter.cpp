@@ -24,11 +24,9 @@ WSCFitsWriter::WSCFitsWriter(
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution != nullptr) {
-    if (deconvolution->IsInitialized()) {
-      setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
-                                     majorIterationNr);
-    }
+  if (deconvolution && deconvolution->IsInitialized()) {
+    setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
+                                   majorIterationNr);
   }
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
@@ -46,11 +44,9 @@ WSCFitsWriter::WSCFitsWriter(
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution != nullptr) {
-    if (deconvolution->IsInitialized()) {
-      setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
-                                     majorIterationNr);
-    }
+  if (deconvolution && deconvolution->IsInitialized()) {
+    setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
+                                   majorIterationNr);
   }
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }

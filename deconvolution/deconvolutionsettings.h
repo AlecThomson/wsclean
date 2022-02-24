@@ -1,21 +1,21 @@
 #ifndef WSCLEAN_DECONVOLUTION_SETTINGS_H_
 #define WSCLEAN_DECONVOLUTION_SETTINGS_H_
 
-#include "spectralfitter.h"
-#include "../multiscale/multiscaletransforms.h"
+#include <set>
 
 #include <aocommon/polarization.h>
 #include <aocommon/system.h>
-#include <aocommon/uvector.h>
 
-#include <set>
+#include "spectralfitter.h"
+#include "../multiscale/multiscaletransforms.h"
 
 struct DeconvolutionSettings {
   DeconvolutionSettings();
 
   enum LocalRMSMethod { kRMSWindow, kRMSAndMinimumWindow };
 
-  /** @{
+  /**
+   * @{
    * Settings that are duplicates from top level settings, and also used outside
    * deconvolution.
    */
@@ -26,11 +26,10 @@ struct DeconvolutionSettings {
   double pixelScaleY;
   size_t threadCount;
   std::string prefixName;
-  /**
-   * @}
-   */
+  /** @} */
 
-  /** @{
+  /**
+   * @{
    * These settings strictly pertain to deconvolution only.
    */
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
@@ -55,13 +54,13 @@ struct DeconvolutionSettings {
   bool useSubMinorOptimization;
   bool squaredJoins;
   double spectralCorrectionFrequency;
-  aocommon::UVector<float> spectralCorrection;
+  std::vector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
   double multiscaleGain;
   double multiscaleDeconvolutionScaleBias;
   size_t multiscaleMaxScales;
   double multiscaleConvolutionPadding;
-  aocommon::UVector<double> multiscaleScaleList;
+  std::vector<double> multiscaleScaleList;
   MultiScaleTransforms::Shape multiscaleShapeFunction;
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask;
@@ -75,7 +74,7 @@ struct DeconvolutionSettings {
   bool iuwtSNRTest;
   std::string moreSaneLocation;
   std::string moreSaneArgs;
-  aocommon::UVector<double> moreSaneSigmaLevels;
+  std::vector<double> moreSaneSigmaLevels;
   enum SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
@@ -83,12 +82,10 @@ struct DeconvolutionSettings {
    * The number of channels used during deconvolution. This can be used to
    * image with more channels than deconvolution. Before deconvolution,
    * channels are averaged, and after deconvolution they are interpolated.
-   * It is 0 when all channels should be used.
+   * If it is 0, all channels should be used.
    */
   size_t deconvolutionChannelCount;
-  /**
-   * @}
-   */
+  /** @} */
 };
 
 inline DeconvolutionSettings::DeconvolutionSettings()
