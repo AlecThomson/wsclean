@@ -864,11 +864,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
-  // _deconvolution member is initialized to
-  // get WSCFitsWriter working
   assert(_deconvolution == nullptr);
-  _deconvolution =
-      std::make_unique<Deconvolution>(_settings.GetDeconvolutionSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -2114,7 +2110,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
     applyFacetPhaseShift(entry, observationInfo);
   }
 
-  return WSCFitsWriter(entry, isImaginary, _settings, *_deconvolution,
+  return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution.get(),
                        observationInfo, _majorIterationNr, _commandLine,
                        _infoPerChannel[entry.outputChannelIndex], isModel,
                        _lastStartTime);
@@ -2130,7 +2126,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
   }
 
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
-                       *_deconvolution, observationInfo, _majorIterationNr,
+                       _deconvolution.get(), observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
 }
