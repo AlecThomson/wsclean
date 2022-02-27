@@ -36,20 +36,51 @@ void MSProvider::CopyData(std::complex<float>* dest, size_t startChannel,
       data.cbegin() + startChannel * polCount;
   const size_t selectedChannelCount = endChannel - startChannel;
 
-  size_t polIndex;
   if (polOut == aocommon::Polarization::Instrumental) {
     if (polsIn.size() != 4)
       throw std::runtime_error(
           "This mode requires the four polarizations to be present in the "
           "measurement set");
-    for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
-      if (IsCFinite(*inPtr))
-        dest[ch] = *inPtr;
-      else
-        dest[ch] = 0;
-      inPtr++;
+    if (polOut == aocommon::Polarization::Instrumental) {
+      for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        ++inPtr;
+      }
     }
-  } else if (aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
+  } else if (polOut == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsIn.size() == 4) {
+      size_t ch = 0;
+      while (ch != selectedChannelCount * 2) {
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        inPtr += 3;  // skip from xx to yy
+        ++ch;
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        ++inPtr;
+        ++ch;
+      }
+    } else if (polsIn.size() == 2) {
+      for (size_t ch = 0; ch != selectedChannelCount * 2; ++ch) {
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        ++inPtr;
+      }
+    } else
+      throw std::runtime_error(
+          "Diagonal instrument visibilities requested, but this requires 2 or "
+          "4 polarizations in the data");
+  } else if (size_t polIndex;
+             aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
     inPtr += polIndex;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
       if (IsCFinite(*inPtr))
@@ -282,6 +313,39 @@ void MSProvider::CopyWeights(
       inPtr++;
       weightPtr++;
       flagPtr++;
+    }
+  } else if (polOut == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsIn.size() == 4) {
+      size_t ch = 0;
+      while (ch != selectedChannelCount * 2) {
+        if (!*flagPtr && IsCFinite(*inPtr))
+          // See explanation above for factor of 4
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        inPtr += 3;
+        weightPtr += 3;
+        flagPtr += 3;
+        ++ch;
+        if (!*flagPtr && IsCFinite(*inPtr))
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        ++inPtr;
+        ++weightPtr;
+        ++flagPtr;
+        ++ch;
+      }
+    } else if (polsIn.size() == 2) {
+      for (size_t ch = 0; ch != selectedChannelCount * 2; ++ch) {
+        if (!*flagPtr && IsCFinite(*inPtr))
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        ++inPtr;
+        ++weightPtr;
+        ++flagPtr;
+      }
     }
   } else if (aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
     inPtr += polIndex;

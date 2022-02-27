@@ -214,10 +214,14 @@ PartitionedMS::Handle PartitionedMS::Partition(
     bool initialModelRequired, const Settings& settings) {
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
-  if (settings.useIDG)
-    polsOut.insert(aocommon::Polarization::Instrumental);
-  else
+  if (settings.useIDG) {
+    if (settings.polarizations.size() == 1)
+      polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
+    else
+      polsOut.insert(aocommon::Polarization::Instrumental);
+  } else {
     polsOut = settings.polarizations;
+  }
   const std::string& temporaryDirectory = settings.temporaryDirectory;
 
   size_t channelParts = channels.size();
@@ -274,7 +278,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   } else {
     if (initialModelRequired)
       throw std::runtime_error(
-          "Baseline-dependent averaging is enabled together with a model that "
+          "Baseline-dependent averaging is enabled together with a mode that "
           "requires the model data (e.g. -continue or -subtract-model). This "
           "is not possible.");
     rowProvider.reset(new AveragingMSRowProvider(

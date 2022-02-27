@@ -48,7 +48,7 @@ namespace {
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
  * gridders.
  * @tparam GainEntry Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
@@ -82,6 +82,17 @@ void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
 }
 
 template <>
+void ApplyConjugatedGain<2, DDGainMatrix::kFull>(
+    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+    const aocommon::MC2x2F& gain2) {
+  // All polarizations
+  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
+  const aocommon::MC2x2F result =
+      gain1.HermThenMultiply(visibilities_mc2x2).Multiply(gain2);
+  result.AssignTo(visibilities);
+}
+
+template <>
 void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
     std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     const aocommon::MC2x2F& gain2) {
@@ -95,7 +106,7 @@ void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
 /**
  * @brief Apply gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
  * gridders.
  * @tparam GainEntry Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
@@ -125,6 +136,17 @@ void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
                                         const aocommon::MC2x2F& gain2) {
   // Stokes-I.
   *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
+}
+
+template <>
+void ApplyGain<2, DDGainMatrix::kFull>(std::complex<float>* visibilities,
+                                       const aocommon::MC2x2F& gain1,
+                                       const aocommon::MC2x2F& gain2) {
+  // All polarizations
+  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
+  const aocommon::MC2x2F result =
+      gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
+  result.AssignTo(visibilities);
 }
 
 template <>
@@ -869,6 +891,10 @@ template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
+template void MSGridderBase::writeVisibilities<2, DDGainMatrix::kFull>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
+
 #ifdef HAVE_EVERYBEAM
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
@@ -1200,6 +1226,12 @@ template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
+template void MSGridderBase::readAndWeightVisibilities<2, DDGainMatrix::kFull>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+
 template void MSGridderBase::readAndWeightVisibilities<4, DDGainMatrix::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
@@ -1221,6 +1253,9 @@ void MSGridderBase::rotateVisibilities(const aocommon::BandData& bandData,
 }
 
 template void MSGridderBase::rotateVisibilities<1>(
+    const aocommon::BandData& bandData, double shiftFactor,
+    std::complex<float>* dataIter);
+template void MSGridderBase::rotateVisibilities<2>(
     const aocommon::BandData& bandData, double shiftFactor,
     std::complex<float>* dataIter);
 template void MSGridderBase::rotateVisibilities<4>(
