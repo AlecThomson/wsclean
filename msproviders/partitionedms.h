@@ -157,7 +157,7 @@ class PartitionedMS final : public MSProvider {
   std::unique_ptr<std::ofstream> _modelDataFile;
   int _fd;
   const aocommon::PolarizationEnum _polarization;
-  const size_t _polarizationCountInFile;
+  size_t _polarizationCountInFile;
 
   struct MetaHeader {
     uint64_t selectedRowCount;

@@ -473,6 +473,30 @@ void MSProvider::ReverseCopyData(
       }
       dataIter++;
     }
+  } else if (polSource == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsDest.size() == 2) {
+      for (size_t chp = 0; chp != selectedChannelCount * polsDest.size();
+           ++chp) {
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        dataIter++;
+      }
+    } else {
+      size_t chp = 0;
+      while (chp != selectedChannelCount * polsDest.size()) {
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        dataIter += 3;  // skip to yy
+        ++chp;
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        ++dataIter;
+        ++chp;
+      }
+    }
   } else if (aocommon::Polarization::TypeToIndex(polSource, polsDest,
                                                  polIndex)) {
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {

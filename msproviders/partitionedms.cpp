@@ -50,7 +50,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _currentOutputRow(0),
       _polarization(polarization),
       _polarizationCountInFile(
-          _polarization == aocommon::Polarization::Instrumental ? 4 : 1) {
+          aocommon::Polarization::GetVisibilityCount(_polarization)) {
   std::ifstream metaFile(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
 
@@ -215,16 +215,19 @@ PartitionedMS::Handle PartitionedMS::Partition(
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
   if (settings.useIDG) {
-    if (settings.polarizations.size() == 1)
+    if (settings.polarizations.size() == 1) {
       polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
-    else
+    } else {
       polsOut.insert(aocommon::Polarization::Instrumental);
+    }
   } else {
     polsOut = settings.polarizations;
   }
+  const size_t polarizationsPerFile =
+      aocommon::Polarization::GetVisibilityCount(*polsOut.begin());
   const std::string& temporaryDirectory = settings.temporaryDirectory;
 
-  size_t channelParts = channels.size();
+  const size_t channelParts = channels.size();
 
   if (channelParts != 1) {
     Logger::Debug << "Partitioning in " << channels.size() << " channels:";
@@ -287,9 +290,9 @@ PartitionedMS::Handle PartitionedMS::Partition(
         initialModelRequired));
   }
 
-  std::vector<aocommon::PolarizationEnum> msPolarizations =
+  const std::vector<aocommon::PolarizationEnum> msPolarizations =
       GetMSPolarizations(rowProvider->Ms().polarization());
-  size_t nAntennas = rowProvider->Ms().antenna().nrow();
+  const size_t nAntennas = rowProvider->Ms().antenna().nrow();
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "
@@ -319,7 +322,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
   }
 
   // Write actual data
-  const size_t polarizationsPerFile = settings.useIDG ? 4 : 1;
   std::vector<std::complex<float>> dataBuffer(polarizationsPerFile *
                                               maxChannels);
   std::vector<float> weightBuffer(polarizationsPerFile * maxChannels);
@@ -552,8 +554,8 @@ void PartitionedMS::unpartition(
     const casacore::IPosition shape(dataColumn.shape(0));
     size_t channelCount = shape[1];
 
-    size_t polarizationsPerFile =
-        (*pols.begin()) == aocommon::Polarization::Instrumental ? 4 : 1;
+    const size_t polarizationsPerFile =
+        aocommon::Polarization::GetVisibilityCount(*pols.begin());
     std::vector<std::complex<float>> modelDataBuffer(channelCount *
                                                      polarizationsPerFile);
     std::vector<float> weightBuffer(channelCount * polarizationsPerFile);
