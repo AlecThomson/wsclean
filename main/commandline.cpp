@@ -1451,7 +1451,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   // and possibly set to quiet.
   if (!isSlave) printHeader();
 
-  size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
+  const size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
   settings.atermKernelSize = atermKernelSize.value_or(defaultAtermSize);
 
   settings.mfWeighting =

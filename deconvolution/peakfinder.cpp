@@ -81,7 +81,7 @@ std::optional<double> PeakFinder::Simple(const double *image, size_t width,
   if (peakIndex == width * height) {
     x = width;
     y = height;
-    return std::optional<double>();
+    return {};
   } else {
     x = peakIndex % width;
     y = peakIndex / width;
