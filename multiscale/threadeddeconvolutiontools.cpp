@@ -187,7 +187,7 @@ ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
           (*result->unnormalizedValue) /
           (*rmsFactorImage)[result->x + result->y * width];
     } else {
-      result->normalizedValue = boost::optional<float>();
+      result->normalizedValue = std::optional<float>();
     }
   }
   return result;
