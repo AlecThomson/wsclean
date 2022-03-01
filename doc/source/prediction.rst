@@ -13,6 +13,7 @@ An example prediction run:
     wsclean -predict -name my-image obs.ms
 
 Be aware that the specified name (here '``-name my-image``') still specifies the prefix of the file names in the same way as that it is normally used for imaging. That means that in this run, prediction will look for an image called 'my-image-model.fits'. If you predict for multiple polarizations, e.g. with "``-pol xx,xy,yx,yy``", the files should be named accordingly, so the XX name is "``my-image-XX-model.fits``", etc. The same applies when predicting with multiple frequency intervals with '``-channels-out``'.
+Please bear in mind: facet-based predicts that account for direction dependent effects, assumes that flat-gain model images are present. These images have a '-pb.fits' suffix, e.g. 'my-image-model-pb.fits'.
 
 The normal use-case of using prediction is for self-calibration or subtraction. For these cases one should use a "model" image, which contains the clean components. If the input image is in absolute flux, it might be necessary to first apply the beam to the model image.
 
