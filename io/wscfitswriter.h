@@ -22,7 +22,8 @@ using aocommon::FitsWriter;
 class WSCFitsWriter {
  public:
   WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
-                const Settings& settings, const Deconvolution* deconvolution,
+                const Settings& settings,
+                const std::optional<Deconvolution>& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,
@@ -30,7 +31,8 @@ class WSCFitsWriter {
 
   WSCFitsWriter(const ImagingTableEntry& entry,
                 aocommon::PolarizationEnum polarization, bool isImaginary,
-                const Settings& settings, const Deconvolution* deconvolution,
+                const Settings& settings,
+                const std::optional<Deconvolution>& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,

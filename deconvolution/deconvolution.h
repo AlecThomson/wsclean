@@ -46,7 +46,6 @@ class Deconvolution {
  private:
   void readMask(const DeconvolutionTable& groupTable);
 
-  /// Create a copy, to avoid that a reference outlives the content
   const DeconvolutionSettings _settings;
 
   std::unique_ptr<DeconvolutionTable> _table;

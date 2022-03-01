@@ -248,11 +248,8 @@ class WSClean {
   CachedImageSet _matrixBeamImages;
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
-  /**
-   * Using a unique pointer to the deconvolution class admits to
-   * defer and restrict initialization to RunClean invocations.
-   */
-  std::unique_ptr<Deconvolution> _deconvolution;
+  // Deconvolution object only needed in RunClean runs.
+  std::optional<Deconvolution> _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;

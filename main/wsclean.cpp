@@ -66,7 +66,7 @@ WSClean::WSClean()
       _psfImages(),
       _modelImages(),
       _residualImages(),
-      _deconvolution(nullptr),
+      _deconvolution(),
       _lastStartTime(0.0) {}
 
 WSClean::~WSClean() {}
@@ -672,9 +672,7 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  assert(_deconvolution == nullptr);
-  _deconvolution =
-      std::make_unique<Deconvolution>(_settings.GetDeconvolutionSettings());
+  _deconvolution.emplace(_settings.GetDeconvolutionSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -864,7 +862,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
-  assert(_deconvolution == nullptr);
+  assert(!_deconvolution.has_value());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -1917,6 +1915,8 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   templateEntry.joinedGroupIndex = 0;
   templateEntry.squaredDeconvolutionIndex = 0;
 
+  // for(size_t interval=0; interval!=_settings.intervalsOut; ++interval)
+  //{
   for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
        ++outChannelIndex) {
     makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
@@ -1928,6 +1928,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
     }
     addPolarizationsToImagingTable(templateEntry);
   }
+  //}
   _imagingTable.Update();
   _imagingTable.Print();
 }
@@ -2110,7 +2111,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
     applyFacetPhaseShift(entry, observationInfo);
   }
 
-  return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution.get(),
+  return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
                        observationInfo, _majorIterationNr, _commandLine,
                        _infoPerChannel[entry.outputChannelIndex], isModel,
                        _lastStartTime);
@@ -2126,7 +2127,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
   }
 
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
-                       _deconvolution.get(), observationInfo, _majorIterationNr,
+                       _deconvolution, observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
 }

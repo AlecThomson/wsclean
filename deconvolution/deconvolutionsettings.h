@@ -9,10 +9,14 @@
 #include "spectralfitter.h"
 #include "../multiscale/multiscaletransforms.h"
 
+/**
+ * @brief The value of LocalRmsMethod describes how the RMS map
+ * should be used.
+ */
+enum class LocalRmsMethod { kRmsWindow, kRmsAndMinimumWindow };
+
 struct DeconvolutionSettings {
   DeconvolutionSettings();
-
-  enum class LocalRmsMethod { kRmsWindow, kRmsAndMinimumWindow };
 
   /**
    * @{

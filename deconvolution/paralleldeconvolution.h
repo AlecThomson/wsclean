@@ -95,8 +95,7 @@ class ParallelDeconvolution {
   SubImageLogSet _logs;
   size_t _horImages;
   size_t _verImages;
-  /// Const reference to avoid copies. Deconvolution::_settings
-  /// outlives ParallelDeconvolution::_settings
+  // Deconvolution::_settings outlives ParallelDeconvolution::_settings
   const DeconvolutionSettings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
