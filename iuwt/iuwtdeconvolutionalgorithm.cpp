@@ -448,30 +448,6 @@ struct PointSource {
   bool operator<(const PointSource& rhs) const { return flux < rhs.flux; }
 };
 
-void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(float* image,
-                                                        const float* psf,
-                                                        size_t width,
-                                                        size_t height) {
-  Image smallerPsf(width, height, 0.0);
-  Image kernel(width, height);
-  size_t s = std::round(std::sqrt(_psfResponse[0].convolvedArea * 25.0));
-  size_t smallWidth = std::min(s, width);
-  size_t smallHeight = std::min(s, height);
-  std::cout << "Constrained PSF=" << smallWidth << " x " << smallHeight << '\n';
-  size_t xMin = width / 2 - smallWidth / 2, xMax = width / 2 + smallWidth / 2;
-  size_t yMin = height / 2 - smallHeight / 2,
-         yMax = height / 2 + smallHeight / 2;
-  for (size_t y = yMin; y != yMax; ++y) {
-    for (size_t x = xMin; x != xMax; ++x) {
-      smallerPsf[y * width + x] = psf[y * width + x];
-    }
-  }
-  FFTConvolver::PrepareKernel(kernel.Data(), smallerPsf.Data(), width, height,
-                              _staticFor->NThreads());
-  FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel.Data(), width,
-                                 height, _staticFor->NThreads());
-}
-
 bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
     IUWTDecomposition& iuwt, Image& dirty, const Image& psf,
     const Image& psfKernel, const std::vector<Image>& psfs, Image& scratch,

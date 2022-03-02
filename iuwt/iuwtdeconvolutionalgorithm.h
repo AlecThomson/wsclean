@@ -176,8 +176,6 @@ class IUWTDeconvolutionAlgorithm {
   float centralPeak(const aocommon::Image& data) {
     return data[_width / 2 + (_height / 2) * _width];
   }
-  void constrainedPSFConvolve(float* image, const float* psf, size_t width,
-                              size_t height);
 
   class FFTWManager& _fftwManager;
   size_t _width, _height;
