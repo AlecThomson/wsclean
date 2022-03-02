@@ -18,10 +18,10 @@ class MoreSane : public DeconvolutionAlgorithm {
         _prefixName(prefixName),
         _fftwManager(fftwManager) {}
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              size_t width, size_t height,
+                              bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
     return std::unique_ptr<DeconvolutionAlgorithm>(new MoreSane(*this));

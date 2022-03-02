@@ -18,17 +18,17 @@ class LSDeconvolution : public DeconvolutionAlgorithm {
 
   LSDeconvolution(const LSDeconvolution& source);
 
-  virtual double ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const double*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override {
+  double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                               const std::vector<aocommon::Image>& psfImages,
+                               size_t width, size_t height,
+                               bool& reachedMajorThreshold) final override {
     ExecuteMajorIteration(dataImage[0], modelImage[0], psfImages[0], width,
                           height, reachedMajorThreshold);
     return 0.0;
   }
 
-  virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
-    return std::unique_ptr<DeconvolutionAlgorithm>(new LSDeconvolution(*this));
+  std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
+    return std::make_unique<LSDeconvolution>(*this);
   }
 
   void ExecuteMajorIteration(double* dataImage, double* modelImage,

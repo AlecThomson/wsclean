@@ -30,21 +30,21 @@ ThreadedDeconvolutionTools::~ThreadedDeconvolutionTools() {
   for (std::thread& t : _threadGroup) t.join();
 }
 
-void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
-                                               size_t width, size_t height,
+void ThreadedDeconvolutionTools::SubtractImage(float* image,
+                                               const aocommon::Image& psf,
                                                size_t x, size_t y,
                                                float factor) {
   for (size_t thr = 0; thr != _threadCount; ++thr) {
     auto task = std::make_unique<SubtractionTask>();
     task->image = image;
-    task->psf = psf;
-    task->width = width;
-    task->height = height;
+    task->psf = psf.Data();
+    task->width = psf.Width();
+    task->height = psf.Height();
     task->x = x;
     task->y = y;
     task->factor = factor;
-    task->startY = height * thr / _threadCount;
-    task->endY = height * (thr + 1) / _threadCount;
+    task->startY = task->height * thr / _threadCount;
+    task->endY = task->height * (thr + 1) / _threadCount;
     if (thr == _threadCount - 1) {
       (*task)();
     } else {

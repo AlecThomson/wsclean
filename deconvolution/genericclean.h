@@ -20,10 +20,10 @@ class GenericClean : public DeconvolutionAlgorithm {
   explicit GenericClean(class FFTWManager& fftwManager,
                         bool useSubMinorOptimization);
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dirtySet, ImageSet& modelSet,
-      const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
-      bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
+                              const std::vector<aocommon::Image>& psfs,
+                              size_t width, size_t height,
+                              bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
     return std::unique_ptr<DeconvolutionAlgorithm>(new GenericClean(*this));

@@ -19,7 +19,7 @@ GenericClean::GenericClean(class FFTWManager& fftwManager,
 
 float GenericClean::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
-    const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
+    const std::vector<aocommon::Image>& psfs, size_t width, size_t height,
     bool& reachedMajorThreshold) {
   const size_t iterationCounterAtStart = _iterationNumber;
   if (_stopOnNegativeComponent) _allowNegativeComponents = true;
@@ -89,10 +89,10 @@ float GenericClean::ExecuteMajorIteration(
 
     for (size_t imageIndex = 0; imageIndex != dirtySet.size(); ++imageIndex) {
       // TODO this can be multi-threaded if each thread has its own temporaries
-      const float* psf = psfs[dirtySet.PSFIndex(imageIndex)];
-      subMinorLoop.CorrectResidualDirty(_fftwManager, scratchA.Data(),
-                                        scratchB.Data(), integrated.Data(),
-                                        imageIndex, dirtySet[imageIndex], psf);
+      const aocommon::Image& psf = psfs[dirtySet.PSFIndex(imageIndex)];
+      subMinorLoop.CorrectResidualDirty(
+          _fftwManager, scratchA.Data(), scratchB.Data(), integrated.Data(),
+          imageIndex, dirtySet[imageIndex], psf.Data());
 
       subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.Data());
       float* model = modelSet[imageIndex];
@@ -129,8 +129,8 @@ float GenericClean::ExecuteMajorIteration(
 
         size_t psfIndex = dirtySet.PSFIndex(i);
 
-        tools.SubtractImage(dirtySet[i], psfs[psfIndex], width, height,
-                            componentX, componentY, peakValues[i]);
+        tools.SubtractImage(dirtySet[i], psfs[psfIndex], componentX, componentY,
+                            peakValues[i]);
       }
 
       dirtySet.GetSquareIntegrated(integrated, scratchA);

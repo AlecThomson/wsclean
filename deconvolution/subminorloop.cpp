@@ -33,7 +33,7 @@ size_t SubMinorModel::GetMaxComponent(Image& scratch, float& maxValue) const {
 
 std::optional<float> SubMinorLoop::Run(
     ImageSet& convolvedResidual,
-    const aocommon::UVector<const float*>& twiceConvolvedPsfs) {
+    const std::vector<aocommon::Image>& twiceConvolvedPsfs) {
   _subMinorModel = SubMinorModel(_width, _height);
 
   findPeakPositions(convolvedResidual);
@@ -83,7 +83,7 @@ std::optional<float> SubMinorLoop::Run(
     for (size_t imgIndex = 0; imgIndex != _subMinorModel.Residual().size();
          ++imgIndex) {
       float* image = _subMinorModel.Residual()[imgIndex];
-      const float* psf =
+      const aocommon::Image& psf =
           twiceConvolvedPsfs[_subMinorModel.Residual().PSFIndex(imgIndex)];
       float psfFactor = componentValues[imgIndex];
       for (size_t px = 0; px != _subMinorModel.size(); ++px) {

@@ -64,13 +64,13 @@ void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
 
 float MoreSane::ExecuteMajorIteration(
     ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const float*>& psfImages, size_t width,
-    size_t height, bool& reachedMajorThreshold) {
+    const std::vector<aocommon::Image>& psfImages, size_t width, size_t height,
+    bool& reachedMajorThreshold) {
   for (size_t i = 0; i != dataImage.size(); ++i) {
     float* residualData = dataImage[i];
     float* modelData = modelImage[i];
-    ExecuteMajorIteration(residualData, modelData,
-                          psfImages[dataImage.PSFIndex(i)], width, height);
+    const float* psfData = psfImages[dataImage.PSFIndex(i)].Data();
+    ExecuteMajorIteration(residualData, modelData, psfData, width, height);
   }
 
   ++_iterationNumber;

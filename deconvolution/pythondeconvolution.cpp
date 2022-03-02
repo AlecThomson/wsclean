@@ -149,12 +149,12 @@ void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr,
   }
 }
 
-void PythonDeconvolution::setPsf(const aocommon::UVector<const float*>& psfs,
+void PythonDeconvolution::setPsf(const std::vector<aocommon::Image>& psfs,
                                  double* pyPtr, size_t width, size_t height) {
   size_t nFreq = psfs.size();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
-    const float* psf = psfs[freq];
+    const float* psf = psfs[freq].Data();
 
     for (size_t y = 0; y != height; ++y) {
       for (size_t x = 0; x != width; ++x) pyPtr[x] = psf[x];
@@ -167,7 +167,7 @@ void PythonDeconvolution::setPsf(const aocommon::UVector<const float*>& psfs,
 
 float PythonDeconvolution::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
-    const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
+    const std::vector<aocommon::Image>& psfs, size_t width, size_t height,
     bool& reachedMajorThreshold) {
   size_t nFreq = dirtySet.NDeconvolutionChannels();
   size_t nPol = dirtySet.size() / dirtySet.NDeconvolutionChannels();

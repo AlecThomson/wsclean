@@ -110,7 +110,7 @@ class ImageSet {
   }
 
   void GetIntegratedPSF(aocommon::Image& dest,
-                        const aocommon::UVector<const float*>& psfs);
+                        const std::vector<aocommon::Image>& psfs);
 
   size_t NOriginalChannels() const {
     return _deconvolutionTable.OriginalGroups().size();

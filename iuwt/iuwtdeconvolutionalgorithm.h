@@ -28,7 +28,7 @@ class IUWTDeconvolutionAlgorithm {
   float PerformMajorIteration(size_t& iterCounter, size_t nIter,
                               class ImageSet& modelSet,
                               class ImageSet& dirtySet,
-                              const aocommon::UVector<const float*>& psfs,
+                              const std::vector<aocommon::Image>& psfs,
                               bool& reachedMajorThreshold);
 
   void Subtract(float* dest, const aocommon::Image& rhs);
@@ -130,19 +130,18 @@ class IUWTDeconvolutionAlgorithm {
       IUWTDecomposition& iuwt, aocommon::Image& dirty,
       class ImageSet& structureModelFull, aocommon::Image& scratch,
       const aocommon::Image& psf, const aocommon::Image& psfKernel,
-      size_t curEndScale, size_t curMinScale, size_t width, size_t height,
+      const std::vector<aocommon::Image>& psfs, size_t curEndScale,
+      size_t curMinScale, size_t width, size_t height,
       const aocommon::UVector<float>& thresholds,
       const ImageAnalysis::Component& maxComp, bool allowTrimming,
       const bool* priorMask);
 
-  bool findAndDeconvolveStructure(IUWTDecomposition& iuwt,
-                                  aocommon::Image& dirty,
-                                  const aocommon::Image& psf,
-                                  const aocommon::Image& psfKernel,
-                                  aocommon::Image& scratch,
-                                  class ImageSet& structureModelFull,
-                                  size_t curEndScale, size_t curMinScale,
-                                  std::vector<ValComponent>& maxComponents);
+  bool findAndDeconvolveStructure(
+      IUWTDecomposition& iuwt, aocommon::Image& dirty,
+      const aocommon::Image& psf, const aocommon::Image& psfKernel,
+      const std::vector<aocommon::Image>& psfs, aocommon::Image& scratch,
+      class ImageSet& structureModelFull, size_t curEndScale,
+      size_t curMinScale, std::vector<ValComponent>& maxComponents);
 
   void performSubImageFitAll(IUWTDecomposition& iuwt, const IUWTMask& mask,
                              const aocommon::Image& structureModel,
@@ -150,6 +149,7 @@ class IUWTDeconvolutionAlgorithm {
                              aocommon::Image& scratchB,
                              const ImageAnalysis::Component& maxComp,
                              ImageSet& fittedModel, const float* psf,
+                             const std::vector<aocommon::Image>& psfs,
                              const aocommon::Image& dirty);
 
   void performSubImageFitSingle(IUWTDecomposition& iuwt, const IUWTMask& mask,
@@ -193,7 +193,6 @@ class IUWTDeconvolutionAlgorithm {
   bool _allowNegativeComponents, _useSNRTest;
   class ImageSet* _modelSet;
   class ImageSet* _dirtySet;
-  aocommon::UVector<const float*> _psfs;
   aocommon::StaticFor<size_t>* _staticFor;
 };
 

@@ -124,9 +124,6 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   const std::vector<aocommon::Image> psfImages =
       residualSet.LoadAndAveragePSFs();
 
-  aocommon::UVector<const float*> psfs(residualSet.PSFCount());
-  for (size_t i = 0; i != psfImages.size(); ++i) psfs[i] = psfImages[i].Data();
-
   if (_settings.useMultiscale) {
     if (_settings.autoMask) {
       if (_autoMaskIsFinished)
@@ -149,7 +146,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
     }
   }
 
-  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfs,
+  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfImages,
                                                reachedMajorThreshold);
 
   if (!reachedMajorThreshold && _settings.autoMask && !_autoMaskIsFinished) {

@@ -24,18 +24,17 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   ~MultiScaleAlgorithm();
 
   std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
-    return std::unique_ptr<DeconvolutionAlgorithm>(
-        new MultiScaleAlgorithm(*this));
+    return std::make_unique<MultiScaleAlgorithm>(*this);
   }
 
   void SetManualScaleList(const std::vector<double>& scaleList) {
     _manualScaleList = scaleList;
   }
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              size_t width, size_t height,
+                              bool& reachedMajorThreshold) final override;
 
   void SetAutoMaskMode(bool trackPerScaleMasks, bool usePerScaleMasks) {
     _trackPerScaleMasks = trackPerScaleMasks;
@@ -116,7 +115,7 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
 
   void initializeScaleInfo();
   void convolvePSFs(std::unique_ptr<aocommon::Image[]>& convolvedPSFs,
-                    const float* psf, aocommon::Image& scratch,
+                    const aocommon::Image& psf, aocommon::Image& scratch,
                     bool isIntegrated);
   void findActiveScaleConvolvedMaxima(const ImageSet& imageSet,
                                       aocommon::Image& integratedScratch,
@@ -131,10 +130,6 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
 
   void findPeakDirect(const float* image, float* scratch, size_t scaleIndex);
 
-  float* getConvolvedPSF(
-      size_t psfIndex, size_t scaleIndex,
-      const std::unique_ptr<std::unique_ptr<aocommon::Image[]>[]>&
-          convolvedPSFs);
   void getConvolutionDimensions(size_t scaleIndex, size_t& width,
                                 size_t& height) const;
 };
