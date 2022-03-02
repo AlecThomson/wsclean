@@ -39,12 +39,6 @@ class GenericClean : public DeconvolutionAlgorithm {
 
   std::string peakDescription(const float* image, size_t& x, size_t& y);
 
-  void subtractImage(float* image, const float* psf, size_t x, size_t y,
-                     float factor, size_t startY, size_t endY) const {
-    SimpleClean::PartialSubtractImage(image, _width, _height, psf, _width,
-                                      _height, x, y, factor, startY, endY);
-  }
-
   class FFTWManager& _fftwManager;
 };
 
