@@ -273,9 +273,8 @@ void IUWTDeconvolutionAlgorithm::adjustBox(size_t& x1, size_t& y1, size_t& x2,
 }
 
 void IUWTDeconvolutionAlgorithm::trim(Image& dest, const float* source,
-                                      size_t oldWidth, size_t /*oldHeight*/,
-                                      size_t x1, size_t y1, size_t x2,
-                                      size_t y2) {
+                                      size_t oldWidth, size_t x1, size_t y1,
+                                      size_t x2, size_t y2) {
   // We do this so that dest and source can be the same image.
   Image scratch((x2 - x1), (y2 - y1));
   for (size_t y = y1; y != y2; ++y) {
@@ -285,7 +284,7 @@ void IUWTDeconvolutionAlgorithm::trim(Image& dest, const float* source,
       newPtr[x - x1] = oldPtr[x];
     }
   }
-  dest = scratch;
+  dest = std::move(scratch);
 }
 
 void IUWTDeconvolutionAlgorithm::untrim(Image& image, size_t width,
@@ -562,10 +561,10 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
     std::cout << "Bounding box: (" << x1 << ',' << y1 << ")-(" << x2 << ','
               << y2 << ")\n";
     size_t newWidth = x2 - x1, newHeight = y2 - y1;
-    trim(dirty, dirty, width, height, x1, y1, x2, y2);
+    trim(dirty, dirty, x1, y1, x2, y2);
     Image smallPSF;
 
-    trimPsf(smallPSF, psf.Data(), width, height, newWidth, newHeight);
+    trimPsf(smallPSF, psf, newWidth, newHeight);
 
     Image smallPSFKernel(smallPSF.Width(), smallPSF.Height());
     FFTConvolver::PrepareKernel(smallPSFKernel.Data(), smallPSF.Data(),
@@ -655,7 +654,7 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 
     // TODO when only one image is available, this is not necessary
     performSubImageFitAll(iuwt, mask, structureModel, scratch, maskedDirty,
-                          maxComp, structureModelFull, psf.Data(), psfs, dirty);
+                          maxComp, structureModelFull, psf, psfs, dirty);
 
     return true;
   }
@@ -664,7 +663,7 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
     IUWTDecomposition& iuwt, const IUWTMask& mask, const Image& structureModel,
     Image& scratchA, Image& scratchB, const ImageAnalysis::Component& maxComp,
-    ImageSet& fittedModel, const float* psf, const std::vector<Image>& psfs,
+    ImageSet& fittedModel, const Image& psf, const std::vector<Image>& psfs,
     const Image& dirty) {
   size_t width = iuwt.Width(), height = iuwt.Height();
 
@@ -686,21 +685,21 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
       std::cout << '.' << std::flush;
       const aocommon::Image& subPsf = psfs[_dirtySet->PSFIndex(imgIndex)];
 
-      trim(scratchA, (*_dirtySet)[imgIndex], _width, _height, _curBoxXStart,
-           _curBoxYStart, _curBoxXEnd, _curBoxYEnd);
+      trim(scratchA, (*_dirtySet)[imgIndex], _curBoxXStart, _curBoxYStart,
+           _curBoxXEnd, _curBoxYEnd);
 
       Image smallSubPsf;
-      const float* subPsfData;
+      const Image* subPsfImage;
       if (_width != width || _height != height) {
-        trimPsf(smallSubPsf, subPsf.Data(), _width, _height, width, height);
-        subPsfData = smallSubPsf.Data();
+        trimPsf(smallSubPsf, subPsf, width, height);
+        subPsfImage = &smallSubPsf;
       } else {
-        subPsfData = subPsf.Data();
+        subPsfImage = &subPsf;
       }
 
       performSubImageFitSingle(iuwt, mask, structureModel, scratchB, maxComp,
-                               subPsfData, scratchA, fittedModel.Data(imgIndex),
-                               correctionFactors);
+                               *subPsfImage, scratchA,
+                               fittedModel.Data(imgIndex), correctionFactors);
     }
     std::cout << '\n';
   }
@@ -708,13 +707,13 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
 
 void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
     IUWTDecomposition& iuwt, const IUWTMask& mask, const Image& structureModel,
-    Image& scratchB, const ImageAnalysis::Component& maxComp, const float* psf,
+    Image& scratchB, const ImageAnalysis::Component& maxComp, const Image& psf,
     Image& subDirty, float* fittedSubModel,
     aocommon::UVector<float>& correctionFactors) {
   size_t width = iuwt.Width(), height = iuwt.Height();
 
   Image psfKernel(width, height);
-  FFTConvolver::PrepareKernel(psfKernel.Data(), psf, width, height,
+  FFTConvolver::PrepareKernel(psfKernel.Data(), psf.Data(), width, height,
                               _staticFor->NThreads());
 
   Image& maskedDirty = scratchB;
@@ -780,24 +779,25 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
 float IUWTDeconvolutionAlgorithm::performSubImageComponentFitBoxed(
     IUWTDecomposition& iuwt, const IUWTMask& mask,
     const std::vector<ImageAnalysis::Component2D>& area, Image& model,
-    Image& maskedDirty, const float* psf, const Image& psfKernel, size_t x1,
+    Image& maskedDirty, const Image& psf, const Image& psfKernel, size_t x1,
     size_t y1, size_t x2, size_t y2) {
-  const size_t width = iuwt.Width(), height = iuwt.Height();
+  const size_t width = iuwt.Width();
+  const size_t height = iuwt.Height();
   if (x1 > 0 || y1 > 0 || x2 < width || y2 < height) {
     size_t newWidth = x2 - x1, newHeight = y2 - y1;
     IUWTDecomposition smallIUWTW(iuwt.NScales(), newWidth, newHeight);
     std::unique_ptr<IUWTMask> smallMask(mask.CreateTrimmed(x1, y1, x2, y2));
     Image smallModel;
-    trim(smallModel, model, width, height, x1, y1, x2, y2);
+    trim(smallModel, model, x1, y1, x2, y2);
 
     Image smallPsf;
-    trimPsf(smallPsf, psf, width, height, newWidth, newHeight);
+    trimPsf(smallPsf, psf, newWidth, newHeight);
     Image smallPsfKernel(smallPsf.Width(), smallPsf.Height());
     FFTConvolver::PrepareKernel(smallPsfKernel.Data(), smallPsf.Data(),
                                 newWidth, newHeight, _staticFor->NThreads());
 
     Image smallMaskedDirty;
-    trim(smallMaskedDirty, maskedDirty, width, height, x1, y1, x2, y2);
+    trim(smallMaskedDirty, maskedDirty, x1, y1, x2, y2);
 
     float factor =
         performSubImageComponentFit(smallIUWTW, *smallMask, area, smallModel,

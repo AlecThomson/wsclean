@@ -92,19 +92,19 @@ class IUWTDeconvolutionAlgorithm {
                  size_t height, int endScale);
 
   void trim(aocommon::Image& dest, const float* source, size_t oldWidth,
-            size_t oldHeight, size_t x1, size_t y1, size_t x2, size_t y2);
+            size_t x1, size_t y1, size_t x2, size_t y2);
 
-  void trim(aocommon::Image& dest, const aocommon::Image& source,
-            size_t oldWidth, size_t oldHeight, size_t x1, size_t y1, size_t x2,
-            size_t y2) {
-    trim(dest, source.Data(), oldWidth, oldHeight, x1, y1, x2, y2);
+  void trim(aocommon::Image& dest, const aocommon::Image& source, size_t x1,
+            size_t y1, size_t x2, size_t y2) {
+    trim(dest, source.Data(), source.Width(), x1, y1, x2, y2);
   }
 
-  void trimPsf(aocommon::Image& dest, const float* source, size_t oldWidth,
-               size_t oldHeight, size_t newWidth, size_t newHeight) {
-    trim(dest, source, oldWidth, oldHeight, (oldWidth - newWidth) / 2,
-         (oldHeight - newHeight) / 2, (oldWidth + newWidth) / 2,
-         (oldHeight + newHeight) / 2);
+  void trimPsf(aocommon::Image& dest, const aocommon::Image& source,
+               size_t newWidth, size_t newHeight) {
+    const size_t oldWidth = source.Width();
+    const size_t oldHeight = source.Height();
+    trim(dest, source, (oldWidth - newWidth) / 2, (oldHeight - newHeight) / 2,
+         (oldWidth + newWidth) / 2, (oldHeight + newHeight) / 2);
   }
 
   void untrim(aocommon::Image& image, size_t width, size_t height, size_t x1,
@@ -148,7 +148,7 @@ class IUWTDeconvolutionAlgorithm {
                              aocommon::Image& scratchA,
                              aocommon::Image& scratchB,
                              const ImageAnalysis::Component& maxComp,
-                             ImageSet& fittedModel, const float* psf,
+                             ImageSet& fittedModel, const aocommon::Image& psf,
                              const std::vector<aocommon::Image>& psfs,
                              const aocommon::Image& dirty);
 
@@ -156,16 +156,17 @@ class IUWTDeconvolutionAlgorithm {
                                 const aocommon::Image& structureModel,
                                 aocommon::Image& scratchB,
                                 const ImageAnalysis::Component& maxComp,
-                                const float* psf, aocommon::Image& subDirty,
+                                const aocommon::Image& psf,
+                                aocommon::Image& subDirty,
                                 float* fittedSubModel,
                                 aocommon::UVector<float>& correctionFactors);
 
   float performSubImageComponentFitBoxed(
       IUWTDecomposition& iuwt, const IUWTMask& mask,
       const std::vector<ImageAnalysis::Component2D>& area,
-      aocommon::Image& scratch, aocommon::Image& maskedDirty, const float* psf,
-      const aocommon::Image& psfKernel, size_t x1, size_t y1, size_t x2,
-      size_t y2);
+      aocommon::Image& scratch, aocommon::Image& maskedDirty,
+      const aocommon::Image& psf, const aocommon::Image& psfKernel, size_t x1,
+      size_t y1, size_t x2, size_t y2);
 
   float performSubImageComponentFit(
       IUWTDecomposition& iuwt, const IUWTMask& mask,
