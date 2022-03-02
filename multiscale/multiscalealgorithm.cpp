@@ -190,8 +190,9 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
       transformList.push_back(convolvedPSFs[i][scaleWithPeak]);
     }
     for (size_t i = 0; i != dirtySet.size(); ++i) {
-      std::copy_n(dirtySet[i], _width * _height, individualConvolvedImages[i]);
-      transformList.emplace_back(individualConvolvedImages.Release(i));
+      transformList.emplace_back(_width, _height);
+      std::copy_n(dirtySet.Data(i), _width * _height,
+                  transformList.back().Data());
     }
     if (_scaleInfos[scaleWithPeak].scale != 0.0) {
       msTransforms.Transform(transformList, scratch,
@@ -272,7 +273,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
             convolvedPSFs[dirtySet.PSFIndex(imageIndex)][scaleWithPeak];
         subLoop.CorrectResidualDirty(_fftwManager, scratch.Data(),
                                      scratchB.Data(), integratedScratch.Data(),
-                                     imageIndex, dirtySet[imageIndex],
+                                     imageIndex, dirtySet.Data(imageIndex),
                                      psf.Data());
 
         subLoop.GetFullIndividualModel(imageIndex, scratch.Data());
@@ -288,7 +289,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
                                  _scaleInfos[scaleWithPeak].scale);
           scratch = std::move(transformList[0]);
         }
-        float* model = modelSet[imageIndex];
+        float* model = modelSet.Data(imageIndex);
         for (size_t i = 0; i != _width * _height; ++i)
           model[i] += scratch.Data()[i];
       }
@@ -314,11 +315,11 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
 
           const aocommon::Image& psf =
               convolvedPSFs[dirtySet.PSFIndex(imgIndex)][scaleWithPeak];
-          tools->SubtractImage(dirtySet[imgIndex], psf, x, y,
+          tools->SubtractImage(dirtySet.Data(imgIndex), psf, x, y,
                                componentValues[imgIndex]);
 
           // Subtract twice convolved PSFs from convolved images
-          tools->SubtractImage(individualConvolvedImages[imgIndex],
+          tools->SubtractImage(individualConvolvedImages.Data(imgIndex),
                                twiceConvolvedPSFs[dirtySet.PSFIndex(imgIndex)],
                                x, y, componentValues[imgIndex]);
           // TODO this is incorrect, but why is the residual without
@@ -327,7 +328,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
           // _width, _height, x, y, componentValues[imgIndex]);
 
           // Adjust model
-          addComponentToModel(modelSet[imgIndex], scaleWithPeak,
+          addComponentToModel(modelSet.Data(imgIndex), scaleWithPeak,
                               componentValues[imgIndex]);
         }
         if (_trackComponents) {

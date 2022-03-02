@@ -630,10 +630,10 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
         smallPSFKernel, psfs, curEndScale, curMinScale, x2 - x1, y2 - y1,
         thresholds, newMaxComp, false, trimmedPriorMaskPtr);
     for (size_t i = 0; i != structureModelFull.size(); ++i) {
-      std::copy_n((*trimmedStructureModel)[i], (y2 - y1) * (x2 - x1),
+      std::copy_n((*trimmedStructureModel)[i].Data(), (y2 - y1) * (x2 - x1),
                   scratch.Data());
       untrim(scratch, width, height, x1, y1, x2, y2);
-      std::copy_n(scratch.Data(), width * height, structureModelFull[i]);
+      std::copy_n(scratch.Data(), width * height, structureModelFull.Data(i));
     }
 
     dirty = Image(scratch.Width(), scratch.Height());
@@ -723,7 +723,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
       }
 
       performSubImageFitSingle(iuwt, mask, structureModel, scratchB, maxComp,
-                               subPsfData, scratchA, fittedModel[imgIndex],
+                               subPsfData, scratchA, fittedModel.Data(imgIndex),
                                correctionFactors);
     }
     std::cout << '\n';
@@ -931,14 +931,14 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
 
       // Calculate: dirty = dirty - structureModel (x) psf
       for (size_t i = 0; i != dirtySet.size(); ++i) {
-        scratch.Assign(structureModel[i], structureModel[i] + _width * _height);
+        scratch = structureModel[i];
         size_t psfIndex = dirtySet.PSFIndex(i);
         FFTConvolver::PrepareKernel(psfKernel.Data(), psfs[psfIndex].Data(),
                                     _width, _height, static_for.NThreads());
         FFTConvolver::ConvolveSameSize(_fftwManager, scratch.Data(),
                                        psfKernel.Data(), _width, _height,
                                        static_for.NThreads());
-        Subtract(dirtySet[i], scratch);
+        Subtract(dirtySet.Data(i), scratch);
       }
       dirtySet.GetLinearIntegrated(dirty);
 

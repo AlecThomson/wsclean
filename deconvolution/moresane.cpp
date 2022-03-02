@@ -67,8 +67,8 @@ float MoreSane::ExecuteMajorIteration(
     const std::vector<aocommon::Image>& psfImages, size_t width, size_t height,
     bool& reachedMajorThreshold) {
   for (size_t i = 0; i != dataImage.size(); ++i) {
-    float* residualData = dataImage[i];
-    float* modelData = modelImage[i];
+    float* residualData = dataImage.Data(i);
+    float* modelData = modelImage.Data(i);
     const float* psfData = psfImages[dataImage.PSFIndex(i)].Data();
     ExecuteMajorIteration(residualData, modelData, psfData, width, height);
   }

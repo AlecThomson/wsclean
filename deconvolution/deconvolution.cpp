@@ -136,7 +136,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       if (_autoMask.empty()) {
         _autoMask.resize(_imgWidth * _imgHeight);
         for (size_t imgIndex = 0; imgIndex != modelSet.size(); ++imgIndex) {
-          const float* image = modelSet[imgIndex];
+          const aocommon::Image& image = modelSet[imgIndex];
           for (size_t i = 0; i != _imgWidth * _imgHeight; ++i) {
             _autoMask[i] = (image[i] == 0.0) ? false : true;
           }

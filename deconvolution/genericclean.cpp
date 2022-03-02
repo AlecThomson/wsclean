@@ -92,10 +92,10 @@ float GenericClean::ExecuteMajorIteration(
       const aocommon::Image& psf = psfs[dirtySet.PSFIndex(imageIndex)];
       subMinorLoop.CorrectResidualDirty(
           _fftwManager, scratchA.Data(), scratchB.Data(), integrated.Data(),
-          imageIndex, dirtySet[imageIndex], psf.Data());
+          imageIndex, dirtySet.Data(imageIndex), psf.Data());
 
       subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.Data());
-      float* model = modelSet[imageIndex];
+      float* model = modelSet.Data(imageIndex);
       for (size_t i = 0; i != _width * _height; ++i)
         model[i] += scratchA.Data()[i];
     }
@@ -125,12 +125,12 @@ float GenericClean::ExecuteMajorIteration(
 
       for (size_t i = 0; i != dirtySet.size(); ++i) {
         peakValues[i] *= this->_gain;
-        modelSet[i][peakIndex] += peakValues[i];
+        modelSet.Data(i)[peakIndex] += peakValues[i];
 
         size_t psfIndex = dirtySet.PSFIndex(i);
 
-        tools.SubtractImage(dirtySet[i], psfs[psfIndex], componentX, componentY,
-                            peakValues[i]);
+        tools.SubtractImage(dirtySet.Data(i), psfs[psfIndex], componentX,
+                            componentY, peakValues[i]);
       }
 
       dirtySet.GetSquareIntegrated(integrated, scratchA);

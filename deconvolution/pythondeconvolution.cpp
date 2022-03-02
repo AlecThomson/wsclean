@@ -128,8 +128,8 @@ void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr,
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      const float* img = imageSet[freq * nPol + pol];
-      std::copy_n(img, width * height, ptr);
+      const aocommon::Image& image = imageSet[freq * nPol + pol];
+      std::copy_n(image.Data(), width * height, ptr);
       ptr += width * height;
     }
   }
@@ -142,7 +142,7 @@ void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr,
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      float* img = imageSet[freq * nPol + pol];
+      float* img = imageSet.Data(freq * nPol + pol);
       std::copy_n(ptr, width * height, img);
       ptr += width * height;
     }
