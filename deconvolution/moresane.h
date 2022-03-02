@@ -20,7 +20,6 @@ class MoreSane : public DeconvolutionAlgorithm {
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
-                              size_t width, size_t height,
                               bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {

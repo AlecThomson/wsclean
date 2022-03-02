@@ -18,12 +18,12 @@ class LSDeconvolution : public DeconvolutionAlgorithm {
 
   LSDeconvolution(const LSDeconvolution& source);
 
-  double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
-                               const std::vector<aocommon::Image>& psfImages,
-                               size_t width, size_t height,
-                               bool& reachedMajorThreshold) final override {
-    ExecuteMajorIteration(dataImage[0], modelImage[0], psfImages[0], width,
-                          height, reachedMajorThreshold);
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              bool& reachedMajorThreshold) final override {
+    ExecuteMajorIteration(dataImage[0], modelImage[0], psfImages[0],
+                          dataImage.Width(), dataImage.Height(),
+                          reachedMajorThreshold);
     return 0.0;
   }
 

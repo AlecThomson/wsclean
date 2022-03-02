@@ -20,11 +20,11 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
-                              size_t width, size_t height,
                               bool& reachedMajorThreshold) final override {
     IUWTDeconvolutionAlgorithm algorithm(
-        _fftwManager, width, height, _gain, _mGain, _cleanBorderRatio,
-        _allowNegativeComponents, _cleanMask, _threshold, _useSNRTest);
+        _fftwManager, dataImage.Width(), dataImage.Height(), _gain, _mGain,
+        _cleanBorderRatio, _allowNegativeComponents, _cleanMask, _threshold,
+        _useSNRTest);
     float val = algorithm.PerformMajorIteration(
         _iterationNumber, MaxNIter(), modelImage, dataImage, psfImages,
         reachedMajorThreshold);

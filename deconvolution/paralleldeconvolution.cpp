@@ -210,8 +210,7 @@ void ParallelDeconvolution::runSubImage(
   }
 
   subImg.peak = _algorithms[subImg.index]->ExecuteMajorIteration(
-      *subData, *subModel, subPsfs, subImg.width, subImg.height,
-      subImg.reachedMajorThreshold);
+      *subData, *subModel, subPsfs, subImg.reachedMajorThreshold);
 
   // Since this was an RMS image specifically for this subimage size, we free it
   // immediately
@@ -260,13 +259,11 @@ void ParallelDeconvolution::ExecuteMajorIteration(
     ImageSet& dataImage, ImageSet& modelImage,
     const std::vector<aocommon::Image>& psfImages,
     bool& reachedMajorThreshold) {
-  const size_t width = _settings.trimmedImageWidth,
-               height = _settings.trimmedImageHeight;
   if (_algorithms.size() == 1) {
     aocommon::ForwardingLogReceiver fwdReceiver;
     _algorithms.front()->SetLogReceiver(fwdReceiver);
-    _algorithms.front()->ExecuteMajorIteration(
-        dataImage, modelImage, psfImages, width, height, reachedMajorThreshold);
+    _algorithms.front()->ExecuteMajorIteration(dataImage, modelImage, psfImages,
+                                               reachedMajorThreshold);
   } else {
     executeParallelRun(dataImage, modelImage, psfImages, reachedMajorThreshold);
   }
@@ -276,10 +273,10 @@ void ParallelDeconvolution::executeParallelRun(
     ImageSet& dataImage, ImageSet& modelImage,
     const std::vector<aocommon::Image>& psfImages,
     bool& reachedMajorThreshold) {
-  const size_t width = _settings.trimmedImageWidth,
-               height = _settings.trimmedImageHeight,
-               avgHSubImageSize = width / _horImages,
-               avgVSubImageSize = height / _verImages;
+  const size_t width = dataImage.Width();
+  const size_t height = dataImage.Height();
+  const size_t avgHSubImageSize = width / _horImages;
+  const size_t avgVSubImageSize = height / _verImages;
 
   Image image(width, height);
   Image dividingLine(width, height, 0.0);

@@ -66,7 +66,7 @@ void MoreSane::ExecuteMajorIteration(float* residualData, float* modelData,
 
 float MoreSane::ExecuteMajorIteration(
     ImageSet& dataImage, ImageSet& modelImage,
-    const std::vector<aocommon::Image>& psfImages, size_t width, size_t height,
+    const std::vector<aocommon::Image>& psfImages,
     bool& reachedMajorThreshold) {
   for (size_t i = 0; i != dataImage.size(); ++i) {
     float* residualData = dataImage.Data(i);

@@ -22,7 +22,6 @@ class GenericClean : public DeconvolutionAlgorithm {
 
   float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
                               const std::vector<aocommon::Image>& psfs,
-                              size_t width, size_t height,
                               bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
@@ -30,14 +29,16 @@ class GenericClean : public DeconvolutionAlgorithm {
   }
 
  private:
-  size_t _width, _height, _convolutionWidth, _convolutionHeight;
+  size_t _convolutionWidth;
+  size_t _convolutionHeight;
   float _convolutionPadding;
   bool _useSubMinorOptimization;
 
-  std::optional<float> findPeak(const float* image, float* scratch, size_t& x,
-                                size_t& y);
+  std::optional<float> findPeak(const aocommon::Image& image,
+                                aocommon::Image& scratch, size_t& x, size_t& y);
 
-  std::string peakDescription(const float* image, size_t& x, size_t& y);
+  std::string peakDescription(const aocommon::Image& image, size_t& x,
+                              size_t& y);
 
   class FFTWManager& _fftwManager;
 };

@@ -14,7 +14,6 @@ class PythonDeconvolution : public DeconvolutionAlgorithm {
 
   float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
                               const std::vector<aocommon::Image>& psfs,
-                              size_t width, size_t height,
                               bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
@@ -28,12 +27,10 @@ class PythonDeconvolution : public DeconvolutionAlgorithm {
   std::shared_ptr<pybind11::scoped_interpreter> _guard;
   pybind11::function _deconvolveFunction;
 
-  void setBuffer(const ImageSet& imageSet, double* pyPtr, size_t width,
-                 size_t height);
+  void setBuffer(const ImageSet& imageSet, double* pyPtr);
   void setPsf(const std::vector<aocommon::Image>& psfs, double* pyPtr,
               size_t width, size_t height);
-  void getBuffer(ImageSet& imageSet, const double* pyPtr, size_t width,
-                 size_t height);
+  void getBuffer(ImageSet& imageSet, const double* pyPtr);
 };
 
 #endif  // PYTHON_DECONVOLUTION_H
