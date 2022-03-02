@@ -27,9 +27,8 @@ class MoreSane : public DeconvolutionAlgorithm {
     return std::unique_ptr<DeconvolutionAlgorithm>(new MoreSane(*this));
   }
 
-  void ExecuteMajorIteration(float* dataImage, float* modelImage,
-                             const float* psfImage, size_t width,
-                             size_t height);
+  void ExecuteMajorIteration(float* residualData, float* modelData,
+                             const aocommon::Image& psfImage);
 
  private:
   const std::string _moresaneLocation, _moresaneArguments;
