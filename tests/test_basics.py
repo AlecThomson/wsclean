@@ -7,6 +7,7 @@ sys.path.append(".")
 
 import testconfig as tcf
 
+
 @pytest.mark.parametrize("command", ["-version", "-this-is-not-a-valid-parameter"])
 def test_basis(command):
     if command == "-this-is-not-a-valid-parameter":

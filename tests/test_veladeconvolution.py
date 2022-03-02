@@ -13,13 +13,20 @@ import testconfig as tcf
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 
+
 def validate_call(cmdline):
     try:
-      check_call(cmdline)
+        check_call(cmdline)
     except:
-      # To avoid having to work back what the command was, the command is reported:
-      raise RuntimeError('Command failed. To run manually, cd to ' + tcf.WORKDIR + ' and execute: ' + ' '.join(cmdline))
-      
+        # To avoid having to work back what the command was, the command is reported:
+        raise RuntimeError(
+            "Command failed. To run manually, cd to "
+            + tcf.WORKDIR
+            + " and execute: "
+            + " ".join(cmdline)
+        )
+
+
 def gridders():
     return {"wstacking": "", "wgridder": "-use-wgridder"}
 
@@ -106,16 +113,14 @@ def test_veladeconvolution(gridder):
     # Remove
     [os.remove(fpath) for fpath in fpaths]
 
+
 def test_vela_iuwt():
     npixels = 1024
     name = "mwa_vela_iuwt"
     s = f"{tcf.WSCLEAN} -quiet -size {npixels} {npixels} -scale 1amin -iuwt -niter 100 -gain 0.2 -mgain 0.8 -name {name} {MWA_MOCK_MS}"
     validate_call(s.split())
     imagenames = ["dirty", "image", "model", "psf", "residual"]
-    fpaths = [
-        f"{name}-{image}.fits"
-        for image in imagenames
-    ]
+    fpaths = [f"{name}-{image}.fits" for image in imagenames]
     check_and_remove_files(fpaths, remove=False)
 
     try:
