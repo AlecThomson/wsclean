@@ -1274,10 +1274,9 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
         _settings, polarization, entry.outputChannelIndex,
         entry.outputIntervalIndex, i == 1);
 
-    // TODO: AST-815: which suffix is required for a
-    // continued run, i.e. if _settings.continuedRun == true ?
     const std::string suffix =
-        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())
+        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty() ||
+         _settings.gridWithBeam || !_settings.atermConfigFilename.empty())
             ? "-model-pb.fits"
             : "-model.fits";
     FitsReader reader(prefix + suffix);
