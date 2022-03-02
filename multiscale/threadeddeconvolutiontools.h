@@ -53,8 +53,8 @@ class ThreadedDeconvolutionTools {
     virtual std::unique_ptr<ThreadResult> operator()();
 
     float* image;
-    const float* psf;
-    size_t width, height, x, y;
+    const aocommon::Image* psf;
+    size_t x, y;
     float factor;
     size_t startY, endY;
   };

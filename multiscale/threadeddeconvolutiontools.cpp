@@ -37,14 +37,12 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image,
   for (size_t thr = 0; thr != _threadCount; ++thr) {
     auto task = std::make_unique<SubtractionTask>();
     task->image = image;
-    task->psf = psf.Data();
-    task->width = psf.Width();
-    task->height = psf.Height();
+    task->psf = &psf;
     task->x = x;
     task->y = y;
     task->factor = factor;
-    task->startY = task->height * thr / _threadCount;
-    task->endY = task->height * (thr + 1) / _threadCount;
+    task->startY = psf.Height() * thr / _threadCount;
+    task->endY = psf.Height() * (thr + 1) / _threadCount;
     if (thr == _threadCount - 1) {
       (*task)();
     } else {
@@ -59,8 +57,8 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image,
 
 std::unique_ptr<ThreadedDeconvolutionTools::ThreadResult>
 ThreadedDeconvolutionTools::SubtractionTask::operator()() {
-  SimpleClean::PartialSubtractImage(image, psf, width, height, x, y, factor,
-                                    startY, endY);
+  SimpleClean::PartialSubtractImage(image, psf->Data(), psf->Width(),
+                                    psf->Height(), x, y, factor, startY, endY);
   return std::unique_ptr<ThreadedDeconvolutionTools::ThreadResult>();
 }
 
