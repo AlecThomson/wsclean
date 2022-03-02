@@ -42,11 +42,6 @@ void Settings::Validate() const {
   if (threadCount == 0)
     throw std::runtime_error("A thread count of zero (-j 0) is not valid");
 
-  if (parallelDeconvolutionMaxThreads == 0)
-    throw std::runtime_error(
-        "A deconvolution threadcount of zero (-deconvolution-threads 0) is not "
-        "valid.");
-
   // antialiasingKernelSize should be odd
   if (antialiasingKernelSize % 2 == 0) {
     std::stringstream s;
@@ -332,9 +327,8 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
-  if (threadCount == 1 && parallelDeconvolutionMaxThreads != 1) {
+  if (parallelDeconvolutionMaxThreads == 0) {
     parallelDeconvolutionMaxThreads = threadCount;
-    Logger::Warn << "Reduce deconvolution thread count to one.\n";
   }
 
   // When using IDG with aterms, a PSF must be made, because the beam
