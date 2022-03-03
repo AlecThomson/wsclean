@@ -3,7 +3,6 @@ import shutil
 import sys
 import os
 from subprocess import check_call
-import glob
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -14,8 +13,8 @@ import testconfig as tcf
 @pytest.fixture(scope="session", autouse=True)
 def prepare():
     # Change to directory containing the data
-    os.makedirs(tcf.WORKDIR, exist_ok=True)
-    os.chdir(tcf.WORKDIR)
+    os.makedirs(tcf.WORKING_DIR, exist_ok=True)
+    os.chdir(tcf.WORKING_DIR)
     os.makedirs(tcf.RESULTS_DIR, exist_ok=True)
 
     # Download and untar beam pattern file
@@ -32,7 +31,7 @@ def prepare_large_ms():
                 "wget",
                 "-q",
                 os.path.join(
-                    "http://www.astron.nl/citt/ci_data/EveryBeam/", f"{tcf.MWA_MS}.tgz"
+                    "https://www.astron.nl/citt/ci_data/EveryBeam/", f"{tcf.MWA_MS}.tgz"
                 ),
             ]
         )
@@ -71,7 +70,7 @@ def prepare_mock_ms():
 @pytest.fixture(scope="class")
 def prepare_model_image():
     if not os.path.isfile(tcf.MODEL_IMAGE):
-        wget = f"wget -q http://www.astron.nl/citt/ci_data/wsclean/{tcf.MODEL_IMAGE}"
+        wget = f"wget -q https://www.astron.nl/citt/ci_data/wsclean/{tcf.MODEL_IMAGE}"
         check_call(wget.split())
 
 
@@ -87,6 +86,6 @@ def remove_workdir(request):
             "CLEANUP_WSCLEAN_TESTS" in os.environ
             and int(os.environ["CLEANUP_WSCLEAN_TESTS"]) == 1
         ):
-            shutil.rmtree(tcf.WORKDIR)
+            shutil.rmtree(tcf.WORKING_DIR)
 
     request.addfinalizer(collect_cleanup)

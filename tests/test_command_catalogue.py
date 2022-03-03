@@ -15,9 +15,6 @@ file can be invoked via various routes:
 
 - execute "make checksystemtests"  in your build directory
 - execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests directory
-TODO: remove
-- execute "./various-tests.sh <MWA_MS> [optional] <MWA_COEFFS_PATH>" from the scripts
-  directory in the repository
 """
 
 
@@ -35,18 +32,18 @@ class TestCommandCatalogue:
     def test_clean_rectangular_unpadded_image(self):
         # Clean a rectangular unpadded image
         s = f"{tcf.WSCLEAN} -name {name('clean-rectangular')} -padding 1 \
-              -auto-threshold 5 -mgain 0.8 -niter 100000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+              -auto-threshold 5 -mgain 0.8 -niter 100000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_automask_multiscale_clean(self):
         # Auto-masked multi-scale clean
         s = f"{tcf.WSCLEAN} -name {name('multiscale-automasked')} -auto-threshold 0.5 -auto-mask 3 \
-              -mgain 0.8 -multiscale -niter 100000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+              -mgain 0.8 -multiscale -niter 100000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multiple_intervals(self):
         # Multiple intervals
-        s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 {tcf.RECTDIMS} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multiple_intervals_and_channels(self):
@@ -58,21 +55,21 @@ class TestCommandCatalogue:
     def test_multifrequency_hogbom(self):
         # Multi-frequency Högbom clean, no parallel gridding
         s = f"{tcf.WSCLEAN} -name {name('mfhogbom')} -channels-out 4 -join-channels -auto-threshold 3 \
-            -mgain 0.8 -niter 1000000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+            -mgain 0.8 -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multifrequency_hogbom_spectral_fit(self):
         # Multi-frequency Högbom clean with spectral fitting
         s = f"{tcf.WSCLEAN} -name {name('mfhogbom-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
            -fit-spectral-pol 2 -auto-threshold 3 -mgain 0.8 \
-               -niter 1000000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+               -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_mutifrequency_multiscale_parallel(self):
         # Multi-frequency multi-scale clean with spectral fitting, pallel gridding & cleaning
         s = f"{tcf.WSCLEAN} -name {name('mfms-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
              -parallel-deconvolution 1000 -fit-spectral-pol 2 -multiscale -auto-threshold 0.5 \
-                  -auto-mask 3 -mgain 0.8 -niter 1000000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+                  -auto-mask 3 -mgain 0.8 -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_save_components(self):
@@ -87,7 +84,7 @@ class TestCommandCatalogue:
         s = f"{tcf.WSCLEAN} -name {test_name} -save-source-list -channels-out 4 \
             -join-channels -parallel-gridding 4 -fit-spectral-pol 2 \
                 -auto-threshold 0.5 -auto-mask 3 -mgain 0.8 -niter 1000000 \
-                    -multiscale -parallel-deconvolution 1000 {tcf.DIMS} {tcf.MWA_MS}"
+                    -multiscale -parallel-deconvolution 1000 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         validate_call(s.split())
 
         # Check whether source files is generated
@@ -97,22 +94,22 @@ class TestCommandCatalogue:
         # Linear joined polarizations with 4 joined channels
         s = f"{tcf.WSCLEAN} -name {name('linearpol')} -niter 1000000 -auto-threshold 3.0 \
              -pol XX,YY,XY,YX -join-polarizations -join-channels -mgain 0.85 \
-                 -channels-out 4 -parallel-gridding 16 {tcf.DIMS} {tcf.MWA_MS}"
+                 -channels-out 4 -parallel-gridding 16 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_two_timesteps(self):
         # Image two timesteps
         s = f"{tcf.WSCLEAN} -name {name('two-timesteps')} -niter 1000000 -auto-threshold 3.0 \
-            -intervals-out 2 -interval 20 22 -mgain 0.85 {tcf.RECTDIMS} {tcf.MWA_MS}"
+            -intervals-out 2 -interval 20 22 -mgain 0.85 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_stop_on_negative_components(self):
         # Stop on negative components
-        s = f"{tcf.WSCLEAN} -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.RECTDIMS} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_save_imaging_weights(self):
-        s = f"{tcf.WSCLEAN} -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     @pytest.mark.parametrize(
@@ -120,7 +117,7 @@ class TestCommandCatalogue:
     )
     def test_shift_image(self, gridder, test_name):
         # Shift the image with w-stacking and w-gridder gridder
-        s = f"{tcf.WSCLEAN} {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.DIMS_RECTANGULAR} -shift 08h09m20s -39d06m54s -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_missing_channels_in_deconvolution(self):
@@ -140,7 +137,7 @@ class TestCommandCatalogue:
             if os.path.exists(component_file):
                 os.remove(component_file)
 
-            s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+            s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS_LARGE} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
             validate_call(s.split())
             for image_type in [
                 "psf",
@@ -166,13 +163,13 @@ class TestCommandCatalogue:
     def test_two_facets(self):
         # Apply the facet to the image
         s = f"{tcf.WSCLEAN} -name {name('two-facets')} -facet-regions {tcf.FACETFILE_2FACETS} \
-            {tcf.RECTDIMS} {tcf.MWA_MS}"
+            {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_nfacets_pol_xx_yy(self):
         # Request two polarizations on approximately 25 facets
         s = f"{tcf.WSCLEAN} -name {name('nfacets-XX_YY')} -pol XX,YY \
-            -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} {tcf.MWA_MS}"
+            -facet-regions {tcf.FACETFILE_NFACETS} {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     @pytest.mark.parametrize("npol", (2, 4))
@@ -185,7 +182,7 @@ class TestCommandCatalogue:
         validate_call(h5download.split())
 
         name = f"facet-h5-{npol}pol"
-        s = f"{tcf.WSCLEAN} -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_LARGE} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
 
         # Check for output images
@@ -207,23 +204,23 @@ class TestCommandCatalogue:
     def test_facet_beam():
         # Test facet beam, using 4 polarizations
         s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
-            -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} \
+            -facet-regions {tcf.FACETFILE_NFACETS} {tcf.DIMS_RECTANGULAR} \
                 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_mpi_join_channels(self):
         # Test wsclean-mp command
-        s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-join')} {tcf.RECTDIMS} -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
+        s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-join')} {tcf.DIMS_RECTANGULAR} -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_mpi_split_channels(self):
-        s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.RECTDIMS} -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
+        s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.DIMS_RECTANGULAR} -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_idg_with_reuse_psf(self):
         # Test for issue #81: -reuse-psf gives segmentation fault in IDG
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
         validate_call(s.split())
         os.rename(
             name("idg-reuse-psf-A") + "-model.fits",
@@ -234,20 +231,20 @@ class TestCommandCatalogue:
             name("idg-reuse-psf-B") + "-beam.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
         validate_call(s.split())
         os.rename(
             name("idg-reuse-dirty-A") + "-model.fits",
             name("idg-reuse-dirty-B") + "-model.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
         validate_call(s.split())
 
 

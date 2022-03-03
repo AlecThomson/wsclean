@@ -1,8 +1,9 @@
 import numpy as np
-from subprocess import check_call, check_output
 import os
-import warnings
+import shutil
+from subprocess import check_call, check_output
 import sys
+import warnings
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
@@ -38,9 +39,9 @@ def basic_image_check(fits_file):
 
     # Test runs showed that 3.1 % of the values are zero. This regression test
     # has a higher limit, since results may vary due to floating point rounding.
-    zeroes = data.size - np.count_nonzero(data)
+    zeros = data.size - np.count_nonzero(data)
     ZERO_LIMIT = 0.035
-    assert (zeroes / data.size) <= ZERO_LIMIT
+    assert (zeros / data.size) <= ZERO_LIMIT
 
 
 def check_and_remove_files(fpaths, remove=False):
@@ -107,7 +108,7 @@ def validate_call(cmdline):
         # To avoid having to work back what the command was, the command is reported:
         raise RuntimeError(
             "Command failed. To run manually, cd to "
-            + tcf.WORKDIR
+            + tcf.WORKING_DIR
             + " and execute: "
             + " ".join(cmdline)
         )

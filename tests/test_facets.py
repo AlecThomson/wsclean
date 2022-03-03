@@ -195,7 +195,7 @@ class TestFacets:
         ]
         for name, command in zip(names, wsclean_commands):
             # -j 1 to ensure deterministic iteration over visibilities
-            s = f"{command} -j 1 -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+            s = f"{command} -j 1 -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
             validate_call(s.split())
 
         # Compare images, the threshold is chosen relatively large since the difference
@@ -225,11 +225,14 @@ class TestFacets:
         validate_call(h5download.split())
 
         # Make a new copy of tcf.MWA_MOCK_MS into two MSets
-        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_1}".split())
-        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_2}".split())
+        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_1}".split())
+        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_2}".split())
 
         names = ["facets-single-ms", "facets-multiple-ms"]
-        commands = [f"{tcf.MWA_MOCK_MS}", f"{MWA_MOCK_COPY_1} {MWA_MOCK_COPY_2}"]
+        commands = [
+            f"{tcf.MWA_MOCK_MS}",
+            f"{tcf.MWA_MOCK_COPY_1} {tcf.MWA_MOCK_COPY_2}",
+        ]
 
         if beam:
             commands = [
@@ -247,7 +250,7 @@ class TestFacets:
 
         # Note: -j 1 enabled to ensure deterministic iteration over visibilities
         for name, command in zip(names, commands):
-            s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
+            s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
             validate_call(s.split())
 
         # Compare images.
@@ -256,10 +259,10 @@ class TestFacets:
 
         # Model data columns should be equal
         taql_commands = [
-            f"select from {tcf.MWA_MOCK_MS} t1, {MWA_MOCK_COPY_1} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+            f"select from {tcf.MWA_MOCK_MS} t1, {tcf.MWA_MOCK_COPY_1} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
         ]
         taql_commands.append(
-            f"select from {MWA_MOCK_COPY_1} t1, {MWA_MOCK_COPY_2} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+            f"select from {tcf.MWA_MOCK_COPY_1} t1, {tcf.MWA_MOCK_COPY_2} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
         )
         # assert_taql(taql_command for taql_command in taql_commands)
         for taql_command in taql_commands:
