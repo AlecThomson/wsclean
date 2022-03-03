@@ -383,8 +383,6 @@ def test_idg_predict(use_beam):
         # should be used directly, but as this file can contain NaN values, a predict run
         # can bail out on these NaN values.
         os.rename(f"{run_name}-model.fits", f"{run_name}-model-pb.fits")
-    else:
-        os.remove(f"{run_name}-model-pb.fits")
 
-    s1 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS} -predict -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
+    s1 = f"{tcf.WSCLEAN} -name {name(run_name)} {tcf.DIMS} -predict -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s1.split())
