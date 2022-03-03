@@ -76,21 +76,21 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
   results.resize(scales.size());
 
   size_t size = std::min(scales.size(), _threadCount);
-  std::unique_ptr<std::unique_ptr<Image>[]> imageData(
-      new std::unique_ptr<Image>[size]);
-  std::unique_ptr<std::unique_ptr<Image>[]> scratchData(
-      new std::unique_ptr<Image>[size]);
+  std::vector<Image> imageData;
+  std::vector<Image> scratchData;
+  imageData.reserve(size);
+  scratchData.reserve(size);
   for (size_t i = 0; i != size; ++i) {
-    imageData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
-    scratchData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
+    imageData.emplace_back(msTransforms->Width(), msTransforms->Height());
+    scratchData.emplace_back(msTransforms->Width(), msTransforms->Height());
   }
 
   while (imageIndex < scales.size()) {
     std::unique_ptr<FindMultiScalePeakTask> task(new FindMultiScalePeakTask());
     task->msTransforms = msTransforms;
-    (*imageData[nextThread]) = image;
-    task->image = imageData[nextThread].get();
-    task->scratch = scratchData[nextThread].get();
+    imageData[nextThread] = image;
+    task->image = &imageData[nextThread];
+    task->scratch = &scratchData[nextThread];
     task->scale = scales[imageIndex];
     task->allowNegativeComponents = allowNegativeComponents;
     if (scaleMasks.empty())
