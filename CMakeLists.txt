@@ -61,12 +61,15 @@ list(
   https://github.com/pybind/pybind11.git
   schaapcommon
   https://git.astron.nl/RD/schaapcommon.git)
-while(ExtNameRepoPairs)
+while(ExternalNameRepoPairs)
   list(POP_FRONT ExternalNameRepoPairs ExtName ExtRepo)
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExtName})
     message(
-      STATUS
-        "The external submodule ${ExtName} is missing, will try to perform a git clone"
+      WARNING
+        "The external submodule ${ExtName} is missing, will try to perform a git clone. "
+        "This is likely caused by downloading a git tarball without submodules. "
+        "This might lead to compilation errors because of version mismatches! "
+        "In case of compilation errors, please use a git clone instead of a tarball."
     )
     execute_process(
       COMMAND ${GIT_EXECUTABLE} clone ${ExtRepo} ${ExtName} --depth 1
