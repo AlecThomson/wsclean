@@ -48,8 +48,8 @@ else()
   endif()
 endif()
 
-list(APPEND ExternalSubmoduleDirectories aocommon pybind11 schaapcommon)
-foreach(ExternalSubmodule IN LISTS ExternalSubmoduleDirectories)
+set(ExternalSubmoduleDirectories aocommon pybind11 schaapcommon)
+foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
     message(
       FATAL_ERROR
