@@ -317,8 +317,12 @@ def test_idg_with_reuse_psf():
     # First make sure input files exist:
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s.split())
+    # Model image A is copied to B-model-pb corrected image, to avoid
+    # issues due to NaN values in the A-model-pb.fits file.
+    # As such, this test is purely illlustrative.
     os.rename(
-        name("idg-reuse-psf-A") + "-model.fits", name("idg-reuse-psf-B") + "-model.fits"
+        name("idg-reuse-psf-A") + "-model.fits",
+        name("idg-reuse-psf-B") + "-model-pb.fits",
     )
     os.rename(
         name("idg-reuse-psf-A") + "-beam.fits", name("idg-reuse-psf-B") + "-beam.fits"
@@ -333,9 +337,12 @@ def test_idg_with_reuse_dirty():
     # First make sure input files exist:
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s.split())
+    # Model image A is copied to B-model-pb corrected image, to avoid
+    # issues due to NaN values in the A-model-pb.fits file.
+    # As such, this test is purely illlustrative.
     os.rename(
         name("idg-reuse-dirty-A") + "-model.fits",
-        name("idg-reuse-dirty-B") + "-model.fits",
+        name("idg-reuse-dirty-B") + "-model-pb.fits",
     )
     # Now continue:
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
