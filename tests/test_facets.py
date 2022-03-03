@@ -1,88 +1,28 @@
-import numpy as np
-import os
 import pytest
-from subprocess import check_call, check_output, CalledProcessError, STDOUT
 import shutil
 import sys
-import warnings
+from utils import (
+    assert_taql,
+    basic_image_check,
+    check_and_remove_files,
+    compare_rms_fits,
+    validate_call,
+)
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
 
-# MODEL_IMAGE = "point-source-model.fits"
-# MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
-# MWA_MOCK_MS = "MWA_MOCK.ms"
-# MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
-# MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
-# FOR MULTI MSET tests
-# MWA_MOCK_COPY_1 = "MWA_MOCK_COPY_1.ms"
-# MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
-#
-# MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
-# EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
-# # tcf.DIMS_SMALL = "-size 256 256 -scale 4amin"
-
-
-# @pytest.fixture(autouse=True)
-# def prepare():
-#     # Change to directory containing the data
-#     os.makedirs(tcf.WORKDIR, exist_ok=True)
-#     os.chdir(tcf.WORKDIR)
-
-#     if not os.path.isfile(MODEL_IMAGE):
-#         wget = f"wget -q http://www.astron.nl/citt/ci_data/wsclean/{MODEL_IMAGE}"
-#         check_call(wget.split())
-
-#     if not os.path.isfile(MWA_MOCK_ARCHIVE):
-#         wget = f"wget -q {EVERYBEAM_BASE_URL}MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
-#         check_call(wget.split())
-
-#     if not os.path.isfile(MWA_COEFF_ARCHIVE):
-#         check_call(["wget", "-q", EVERYBEAM_BASE_URL + MWA_COEFF_ARCHIVE])
-#         check_call(["tar", "xf", MWA_COEFF_ARCHIVE])
-
-#     os.makedirs(MWA_MOCK_MS, exist_ok=True)
-#     check_call(
-#         f"tar -xf {MWA_MOCK_ARCHIVE}  -C {MWA_MOCK_MS} --strip-components=1".split()
-#     )
-
-#     # Not pythonic, but works fine and fast
-#     check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_FULL}".split())
-#     check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_FACET}".split())
-
-
-# @pytest.fixture(scope="session", autouse=True)
-# def cleanup(request):
-#     # Fixture is run at end of test session and only does
-#     # executes something if CLEANUP to be in your environment
-#     def remove_mwa():
-#         if "CLEANUP" in os.environ:
-#             os.chdir(tcf.WORKDIR)
-#             os.remove(MWA_MOCK_ARCHIVE)
-#             shutil.rmtree(os.environ["MWA_MOCK_FULL"])
-#             shutil.rmtree(os.environ["MWA_MOCK_FACET"])
-#             shutil.rmtree(MWA_MOCK_COPY_1, ignore_errors=True)
-#             shutil.rmtree(MWA_MOCK_COPY_2, ignore_errors=True)
-
-#     request.addfinalizer(remove_mwa)
-
 
 def gridders():
     return {"wstacking": "", "wgridder": "-use-wgridder", "idg": "-use-idg"}
 
 
-def assert_taql(command, expected_rows=0):
-    assert shutil.which("taql") is not None, "taql executable not found!"
-    result = check_output(["taql", "-noph", command]).decode().strip()
-    assert result == f"select result of {expected_rows} rows", result
-
-
 def predict_full_image(ms, gridder):
     """Predict full image"""
     s = f"{tcf.WSCLEAN} -predict {gridder} -name point-source {ms}"
-    check_call(s.split())
+    validate_call(s.split())
 
 
 def predict_facet_image(ms, gridder, apply_facet_beam):
@@ -113,78 +53,10 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
         "-v",
         ms,
     ]
-    print("WSClean cmd: " + " ".join(s))
-    check_call(" ".join(s).split())
+    validate_call(" ".join(s).split())
 
 
-def check_and_remove_files(fpaths, remove=False):
-    """
-    Check whether the entries in the provided list of paths
-    are files, and - optionally - remove these files.
-
-    Parameters
-    ----------
-    fpaths : list
-        List of file paths to check
-    remove : bool, optional
-        Remove files, by default False
-    """
-    for fpath in fpaths:
-        assert os.path.isfile(fpath)
-
-    if remove:
-        [os.remove(fpath) for fpath in fpaths]
-
-
-def basic_image_check(fits_filename):
-    """
-    Checks that the fits file has no NaN or Inf values and that the number
-    of zeroes is below a limit.
-    """
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning("Could not import astropy, so fits image checks are skipped.")
-        )
-        return
-
-    image = fits.open(fits_filename)
-    assert len(image) == 1
-    data = image[0].data
-    assert data.shape == (1, 1, 256, 256)
-    for x in np.nditer(data):
-        assert np.isfinite(x)
-
-    # Test runs showed that 3.1 % of the values are zero. This regression test
-    # has a higher limit, since results may vary due to floating point rounding.
-    zeroes = data.size - np.count_nonzero(data)
-    ZERO_LIMIT = 0.035
-    assert (zeroes / data.size) <= ZERO_LIMIT
-
-
-def compare_rms_fits(fits1, fits2, threshold):
-    """
-    Checks the root-mean square of the difference between
-    two input fits files against a user-defined threshold.
-    """
-
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning("Could not import astropy, so fits image checks are skipped.")
-        )
-        return
-    image1 = fits.open(fits1)[0].data
-    image2 = fits.open(fits2)[0].data
-    dimage = image1.flatten() - image2.flatten()
-    rms = np.sqrt(dimage.dot(dimage) / dimage.size)
-    print(rms)
-    assert rms <= threshold
-
-
-@pytest.mark.usefixtures("prepare_facet_tests")
+@pytest.mark.usefixtures("prepare_mock_ms", "prepare_model_image")
 class TestFacets:
     def test_makepsfonly(self):
         """
@@ -197,7 +69,7 @@ class TestFacets:
             tcf.DIMS_SMALL,
             f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.MWA_MOCK_MS}",
         ]
-        check_call(" ".join(s).split())
+        validate_call(" ".join(s).split())
 
         basic_image_check("facet-psf-only-psf.fits")
 
@@ -216,7 +88,7 @@ class TestFacets:
             f"-name {prefix}",
             tcf.MWA_MOCK_MS,
         ]
-        check_call(" ".join(s).split())
+        validate_call(" ".join(s).split())
         fpaths = (
             [prefix + "-dirty.fits", prefix + "-image.fits"]
             if (gridder[0] == "idg")
@@ -272,13 +144,13 @@ class TestFacets:
         shutil.rmtree(tcf.MWA_MOCK_FACET)
 
         # Copy output to new MS, swap DATA column, and remove MODEL_DATA
-        check_call(f"cp -r {tcf.MWA_MOCK_FULL} {tcf.MWA_MOCK_FACET}".split())
+        validate_call(f"cp -r {tcf.MWA_MOCK_FULL} {tcf.MWA_MOCK_FACET}".split())
         assert shutil.which("taql") is not None, "taql executable not found!"
 
-        check_call(
+        validate_call(
             ["taql", "-noph", f"UPDATE {tcf.MWA_MOCK_FACET} SET DATA=MODEL_DATA"]
         )
-        check_call(
+        validate_call(
             [
                 "taql",
                 "-noph",
@@ -313,7 +185,7 @@ class TestFacets:
         h5download = (
             f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
         )
-        check_call(h5download.split())
+        validate_call(h5download.split())
 
         names = ["facets-h5-serial", "facets-h5-threaded", "facets-h5-mpi"]
         wsclean_commands = [
@@ -324,7 +196,7 @@ class TestFacets:
         for name, command in zip(names, wsclean_commands):
             # -j 1 to ensure deterministic iteration over visibilities
             s = f"{command} -j 1 -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
-            check_call(s.split())
+            validate_call(s.split())
 
         # Compare images, the threshold is chosen relatively large since the difference
         # seems to fluctuate somewhat between runs.
@@ -350,11 +222,11 @@ class TestFacets:
         h5download = (
             f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
         )
-        check_call(h5download.split())
+        validate_call(h5download.split())
 
         # Make a new copy of tcf.MWA_MOCK_MS into two MSets
-        check_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_1}".split())
-        check_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_2}".split())
+        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_1}".split())
+        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {MWA_MOCK_COPY_2}".split())
 
         names = ["facets-single-ms", "facets-multiple-ms"]
         commands = [f"{tcf.MWA_MOCK_MS}", f"{MWA_MOCK_COPY_1} {MWA_MOCK_COPY_2}"]
@@ -376,7 +248,7 @@ class TestFacets:
         # Note: -j 1 enabled to ensure deterministic iteration over visibilities
         for name, command in zip(names, commands):
             s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
-            check_call(s.split())
+            validate_call(s.split())
 
         # Compare images.
         threshold = 1.0e-6

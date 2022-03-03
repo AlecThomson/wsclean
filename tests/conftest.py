@@ -3,18 +3,12 @@ import shutil
 import sys
 import os
 from subprocess import check_call
+import glob
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
-
-# MODEL_IMAGE = "point-source-model.fits"
-# MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
-# EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
-# MWA_MOCK_MS = "MWA_MOCK.ms"
-# MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
-# MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -31,9 +25,17 @@ def prepare():
 
 
 @pytest.fixture(scope="class")
-def prepare_integration_tests():
+def prepare_large_ms():
     if not os.path.isfile(f"{tcf.MWA_MS}/table.f1"):
-        check_call(["wget", "-q", os.path.join(EVERYBEAM_BASE_URL, f"{MWA_MS}.tgz")])
+        check_call(
+            [
+                "wget",
+                "-q",
+                os.path.join(
+                    "http://www.astron.nl/citt/ci_data/EveryBeam/", f"{tcf.MWA_MS}.tgz"
+                ),
+            ]
+        )
         check_call(["tar", "-xf", f"{tcf.MWA_MS}.tgz"])
         os.remove(f"{tcf.MWA_MS}.tgz")
     else:
@@ -41,19 +43,22 @@ def prepare_integration_tests():
 
 
 @pytest.fixture(scope="class")
-def prepare_facet_tests():
-    if not os.path.isfile(tcf.MODEL_IMAGE):
-        wget = f"wget -q http://www.astron.nl/citt/ci_data/wsclean/{tcf.MODEL_IMAGE}"
-        check_call(wget.split())
+def prepare_mock_ms():
+    os.makedirs(tcf.MWA_MOCK_MS, exist_ok=True)
 
     if not os.path.isfile(tcf.MWA_MOCK_ARCHIVE):
-        wget = f"wget -q {tcf.EVERYBEAM_BASE_URL}MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
-        check_call(wget.split())
-
-    os.makedirs(tcf.MWA_MOCK_MS, exist_ok=True)
-    check_call(
-        f"tar -xf {tcf.MWA_MOCK_ARCHIVE}  -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
-    )
+        check_call(
+            [
+                "wget",
+                "-q",
+                os.path.join(tcf.EVERYBEAM_BASE_URL, "MWA-single-timeslot.tar.bz2"),
+                "-O",
+                tcf.MWA_MOCK_ARCHIVE,
+            ]
+        )
+        check_call(
+            f"tar -xf {tcf.MWA_MOCK_ARCHIVE}  -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
+        )
 
     # From python 3.8 onwards, use copytree(..., dirs_exist_ok=True)
     if not os.path.isdir(tcf.MWA_MOCK_FULL):
@@ -63,50 +68,25 @@ def prepare_facet_tests():
         shutil.copytree(tcf.MWA_MOCK_MS, tcf.MWA_MOCK_FACET)
 
 
+@pytest.fixture(scope="class")
+def prepare_model_image():
+    if not os.path.isfile(tcf.MODEL_IMAGE):
+        wget = f"wget -q http://www.astron.nl/citt/ci_data/wsclean/{tcf.MODEL_IMAGE}"
+        check_call(wget.split())
+
+
 @pytest.fixture(scope="session", autouse=True)
-def cleanup(request):
-    # Fixture runs only at end of test session, and only cleans-up
-    # the working directory if CLEANUP is in your environment variables
-
-    def remove_tarballs():
-        for tar in glob.glob("*.tar.*"):
-            os.remove(tar)
-
-    def remove_measurement_sets():
-        for dir in glob.glob("*.ms"):
-            shutil.rmtree(dir)
-
-    def remove_fits_images():
-        for f in glob.glob("*.fits"):
-            os.remove(f)
-
-    def remove_h5_files():
-        for f in glob.glob("*.h5"):
-            os.remove(f)
+def remove_workdir(request):
+    """
+    Fixture runs only at the end of a test session, and (NOTE!) removes
+    the entire working directory. Use with care!
+    """
 
     def collect_cleanup():
-        if "CLEANUP" in os.environ:
-            os.chdir(tcf.WORKDIR)
-            remove_tarballs()
-            remove_measurement_sets()
-            remove_fits_images()
-            remove_h5_files()
+        if (
+            "CLEANUP_WSCLEAN_TESTS" in os.environ
+            and int(os.environ["CLEANUP_WSCLEAN_TESTS"]) == 1
+        ):
+            shutil.rmtree(tcf.WORKDIR)
 
     request.addfinalizer(collect_cleanup)
-
-
-# TODO: remove
-# @pytest.fixture(scope="session", autouse=True)
-# def cleanup(request):
-#     # Fixture is run at end of test session and only does
-#     # executes something if CLEANUP to be in your environment
-#     def remove_mwa():
-#         if "CLEANUP" in os.environ:
-#             os.chdir(tcf.WORKDIR)
-#             os.remove(MWA_MOCK_ARCHIVE)
-#             shutil.rmtree(os.environ["MWA_MOCK_FULL"])
-#             shutil.rmtree(os.environ["MWA_MOCK_FACET"])
-#             shutil.rmtree(MWA_MOCK_COPY_1, ignore_errors=True)
-#             shutil.rmtree(MWA_MOCK_COPY_2, ignore_errors=True)
-
-#     request.addfinalizer(remove_mwa)
