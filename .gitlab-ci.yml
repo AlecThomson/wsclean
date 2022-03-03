@@ -166,8 +166,8 @@ test-system-das5:
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
   script:
-    # Remove MS and coefficient file at end of tests
-    - export CLEANUP="true"
+    # Remove testing directory at end of tests
+    - export CLEANUP_WSCLEAN_TESTS=1
     # Create directory for storing the output reports
     - rm -rf reports/* && mkdir -p reports
     - mkdir -p build && cd build && rm -rf *
