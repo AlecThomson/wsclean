@@ -13,7 +13,7 @@ import testconfig as tcf
 Test script containing a collection of wsclean commands, tested on an MWA measurement set. Tests contained in this
 file can be invoked via various routes:
 
-- execute "make checksystemtests"  in your build directory
+- execute "make checkcommandcatalogue"  in your build directory
 - execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests directory
 """
 

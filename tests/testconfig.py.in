@@ -2,9 +2,9 @@
 Script collecting test variables.
 """
 
-# WORKING_DIR = "@CMAKE_BINARY_DIR@/test_data"
+WORKING_DIR = "@CMAKE_BINARY_DIR@/test_data"
 # LOCAL TESTING ONLY
-WORKING_DIR = "/var/scratch/maljaars/data/test"
+# WORKING_DIR = "/var/scratch/maljaars/data/test"
 # END
 RESULTS_DIR = "test_results"
 
