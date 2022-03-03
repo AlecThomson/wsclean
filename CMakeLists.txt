@@ -48,6 +48,36 @@ else()
   endif()
 endif()
 
+# If a user downloads a tar ball, the external submodule dirs will not exist, so clone them.
+# Note that these might not be the right commit for this checkout (but that info is not
+# available), but it would at least make it possible to compile a tar ball download of the
+# master branch.
+list(
+  APPEND
+  ExternalNameRepoPairs
+  aocommon
+  https://gitlab.com/aroffringa/aocommon.git
+  pybind11
+  https://github.com/pybind/pybind11.git
+  schaapcommon
+  https://git.astron.nl/RD/schaapcommon.git)
+while(ExtNameRepoPairs)
+  list(POP_FRONT ExternalNameRepoPairs ExtName ExtRepo)
+  if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExtName})
+    message(
+      STATUS
+        "The external submodule ${ExtName} is missing, will try to perform a git clone"
+    )
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} clone ${ExtRepo} ${ExtName} --depth 1
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external
+      RESULT_VARIABLE GIT_RESULT)
+    if(NOT GIT_RESULT EQUAL "0")
+      message(FATAL_ERROR "git clone of ${ExtName} failed")
+    endif()
+  endif()
+endwhile()
+
 # Find and include git submodules
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
