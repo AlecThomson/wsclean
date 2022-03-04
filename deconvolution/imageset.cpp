@@ -67,7 +67,7 @@ void ImageSet::initializeIndices() {
     for (const int originalIndex : group) {
       imgIndex = deconvolutionChannelStartIndex;
 
-      for (const DeconvolutionTableEntry* entry :
+      for ([[maybe_unused]] const DeconvolutionTableEntry* entry :
            _deconvolutionTable.OriginalGroups()[originalIndex]) {
         assert(entry->index == _entryIndexToImageIndex.size());
         _entryIndexToImageIndex.push_back(imgIndex);
@@ -130,13 +130,13 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
   }
 }
 
-std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
+std::vector<aocommon::Image> ImageSet::LoadAndAveragePSFs() {
   const size_t image_size = Width() * Height();
 
-  std::vector<aocommon::UVector<float>> psfImages;
+  std::vector<aocommon::Image> psfImages;
   psfImages.reserve(NDeconvolutionChannels());
   for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
-    psfImages.emplace_back(image_size, 0.0);
+    psfImages.emplace_back(Width(), Height(), 0.0);
   }
 
   Image scratch(Width(), Height());
@@ -333,8 +333,8 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
 
   for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     const double groupWeight = _weights[chIndex];
-    weightSum += groupWeight;
     if (groupWeight != 0.0) {
+      weightSum += groupWeight;
       const DeconvolutionTable::Group& originalGroup =
           _deconvolutionTable.FirstOriginalGroup(chIndex);
       for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
@@ -351,8 +351,8 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
       }
     }
   }
-  double factor = weightSum > 0.0
-                      ? std::sqrt(_polarizationNormalizationFactor) / weightSum
+  const double factor =
+      weightSum > 0.0 ? std::sqrt(_polarizationNormalizationFactor / weightSum)
                       : 0.0;
   squareRootMultiply(dest, factor);
 }
@@ -431,31 +431,34 @@ void ImageSet::CalculateDeconvolutionFrequencies(
 }
 
 void ImageSet::GetIntegratedPSF(Image& dest,
-                                const aocommon::UVector<const float*>& psfs) {
+                                const std::vector<aocommon::Image>& psfs) {
+  assert(psfs.size() == NDeconvolutionChannels());
+
   const size_t image_size = Width() * Height();
 
-  if (NDeconvolutionChannels() == 1)
-    std::copy_n(psfs[0], image_size, dest.Data());
-  else {
+  if (NDeconvolutionChannels() == 1) {
+    dest = psfs.front();
+  } else {
     bool isFirst = true;
     double weightSum = 0.0;
     for (size_t channel = 0; channel != NDeconvolutionChannels(); ++channel) {
+      assert(psfs[channel].Size() == image_size);
+
       const double groupWeight = _weights[channel];
       // if the groupWeight is zero, the image might contain NaNs, so we
       // shouldn't add it to the total in that case.
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
         if (isFirst) {
-          for (size_t i = 0; i != image_size; ++i)
-            dest[i] = psfs[channel][i] * groupWeight;
+          dest = psfs[channel];
+          dest *= groupWeight;
           isFirst = false;
         } else {
-          for (size_t i = 0; i != image_size; ++i)
-            dest[i] += psfs[channel][i] * groupWeight;
+          dest.AddWithFactor(psfs[channel], groupWeight);
         }
       }
     }
     const double factor = weightSum == 0.0 ? 0.0 : 1.0 / weightSum;
-    for (size_t i = 0; i != image_size; ++i) dest[i] *= factor;
+    dest *= factor;
   }
 }

@@ -327,6 +327,10 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
+  if (parallelDeconvolutionMaxThreads == 0) {
+    parallelDeconvolutionMaxThreads = threadCount;
+  }
+
   // When using IDG with aterms, a PSF must be made, because the beam
   // image is created during the PSF imaging stage.
   if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {
@@ -357,6 +361,80 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
                     << trimmedImageHeight << ", padded to " << paddedImageWidth
                     << " x " << paddedImageHeight << ".\n";
   }
+}
+
+DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
+  DeconvolutionSettings deconvolutionSettings;
+
+  deconvolutionSettings.trimmedImageWidth = trimmedImageWidth;
+  deconvolutionSettings.trimmedImageHeight = trimmedImageHeight;
+  deconvolutionSettings.channelsOut = channelsOut;
+  deconvolutionSettings.pixelScaleX = pixelScaleX;
+  deconvolutionSettings.pixelScaleY = pixelScaleY;
+  deconvolutionSettings.threadCount = threadCount;
+  deconvolutionSettings.prefixName = prefixName;
+
+  deconvolutionSettings.linkedPolarizations = linkedPolarizations;
+  deconvolutionSettings.parallelDeconvolutionMaxSize =
+      parallelDeconvolutionMaxSize;
+  deconvolutionSettings.parallelDeconvolutionMaxThreads =
+      parallelDeconvolutionMaxThreads;
+
+  deconvolutionSettings.deconvolutionThreshold = deconvolutionThreshold;
+  deconvolutionSettings.deconvolutionGain = deconvolutionGain;
+  deconvolutionSettings.deconvolutionMGain = deconvolutionMGain;
+  deconvolutionSettings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
+  deconvolutionSettings.autoMask = autoMask;
+  deconvolutionSettings.autoDeconvolutionThresholdSigma =
+      autoDeconvolutionThresholdSigma;
+  deconvolutionSettings.autoMaskSigma = autoMaskSigma;
+  deconvolutionSettings.localRMS = localRMS;
+  deconvolutionSettings.localRMSWindow = localRMSWindow;
+  deconvolutionSettings.localRMSMethod = localRMSMethod;
+  deconvolutionSettings.saveSourceList = saveSourceList;
+  deconvolutionSettings.deconvolutionIterationCount =
+      deconvolutionIterationCount;
+  deconvolutionSettings.majorIterationCount = majorIterationCount;
+  deconvolutionSettings.allowNegativeComponents = allowNegativeComponents;
+  deconvolutionSettings.stopOnNegativeComponents = stopOnNegativeComponents;
+  deconvolutionSettings.useMultiscale = useMultiscale;
+  deconvolutionSettings.useSubMinorOptimization = useSubMinorOptimization;
+  deconvolutionSettings.squaredJoins = squaredJoins;
+  deconvolutionSettings.spectralCorrectionFrequency =
+      spectralCorrectionFrequency;
+  deconvolutionSettings.spectralCorrection.assign(spectralCorrection.begin(),
+                                                  spectralCorrection.end());
+  deconvolutionSettings.multiscaleFastSubMinorLoop = multiscaleFastSubMinorLoop;
+  deconvolutionSettings.multiscaleGain = multiscaleGain;
+  deconvolutionSettings.multiscaleDeconvolutionScaleBias =
+      multiscaleDeconvolutionScaleBias;
+  deconvolutionSettings.multiscaleMaxScales = multiscaleMaxScales;
+  deconvolutionSettings.multiscaleConvolutionPadding =
+      multiscaleConvolutionPadding;
+  deconvolutionSettings.multiscaleScaleList.assign(multiscaleScaleList.begin(),
+                                                   multiscaleScaleList.end());
+  deconvolutionSettings.multiscaleShapeFunction = multiscaleShapeFunction;
+  deconvolutionSettings.deconvolutionBorderRatio = deconvolutionBorderRatio;
+  deconvolutionSettings.fitsDeconvolutionMask = fitsDeconvolutionMask;
+  deconvolutionSettings.casaDeconvolutionMask = casaDeconvolutionMask;
+  deconvolutionSettings.horizonMask = horizonMask;
+  deconvolutionSettings.horizonMaskDistance = horizonMaskDistance;
+  deconvolutionSettings.localRMSImage = localRMSImage;
+  deconvolutionSettings.pythonDeconvolutionFilename =
+      pythonDeconvolutionFilename;
+  deconvolutionSettings.useMoreSaneDeconvolution = useMoreSaneDeconvolution;
+  deconvolutionSettings.useIUWTDeconvolution = useIUWTDeconvolution;
+  deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
+  deconvolutionSettings.moreSaneLocation = moreSaneLocation;
+  deconvolutionSettings.moreSaneArgs = moreSaneArgs;
+  deconvolutionSettings.moreSaneSigmaLevels.assign(moreSaneSigmaLevels.begin(),
+                                                   moreSaneSigmaLevels.end());
+  deconvolutionSettings.spectralFittingMode = spectralFittingMode;
+  deconvolutionSettings.spectralFittingTerms = spectralFittingTerms;
+  deconvolutionSettings.forcedSpectrumFilename = forcedSpectrumFilename;
+  deconvolutionSettings.deconvolutionChannelCount = deconvolutionChannelCount;
+
+  return deconvolutionSettings;
 }
 
 bool Settings::determineReorder() const {

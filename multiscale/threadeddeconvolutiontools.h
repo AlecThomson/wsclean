@@ -1,13 +1,12 @@
 #ifndef THREADED_DECONVOLUTION_TOOLS_H
 #define THREADED_DECONVOLUTION_TOOLS_H
 
-#include <boost/optional/optional.hpp>
-
 #include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 
 #include <cmath>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -17,13 +16,13 @@ class ThreadedDeconvolutionTools {
   ~ThreadedDeconvolutionTools();
 
   struct PeakData {
-    boost::optional<float> normalizedValue, unnormalizedValue;
+    std::optional<float> normalizedValue, unnormalizedValue;
     float rms;
     size_t x, y;
   };
 
-  void SubtractImage(float* image, const float* psf, size_t width,
-                     size_t height, size_t x, size_t y, float factor);
+  void SubtractImage(float* image, const aocommon::Image& psf, size_t x,
+                     size_t y, float factor);
 
   void FindMultiScalePeak(
       class MultiScaleTransforms* msTransforms, const aocommon::Image& image,
@@ -41,7 +40,7 @@ class ThreadedDeconvolutionTools {
  private:
   struct ThreadResult {};
   struct FindMultiScalePeakResult : public ThreadResult {
-    boost::optional<float> unnormalizedValue, normalizedValue;
+    std::optional<float> unnormalizedValue, normalizedValue;
     float rms;
     size_t x, y;
   };
@@ -54,8 +53,8 @@ class ThreadedDeconvolutionTools {
     virtual std::unique_ptr<ThreadResult> operator()();
 
     float* image;
-    const float* psf;
-    size_t width, height, x, y;
+    const aocommon::Image* psf;
+    size_t x, y;
     float factor;
     size_t startY, endY;
   };

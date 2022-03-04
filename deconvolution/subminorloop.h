@@ -2,17 +2,13 @@
 #define SUB_MINOR_LOOP_H
 
 #include <cstring>
+#include <optional>
 #include <vector>
-
-#include <boost/optional/optional.hpp>
 
 #include "../deconvolution/imageset.h"
 
 #include <aocommon/image.h>
-
-namespace aocommon {
-class LogReceiver;
-}
+#include <aocommon/logger.h>
 
 /**
  * In multi-scale, a subminor optimized loop looks like this:
@@ -163,9 +159,9 @@ class SubMinorLoop {
 
   float FluxCleaned() const { return _fluxCleaned; }
 
-  boost::optional<float> Run(
+  std::optional<float> Run(
       ImageSet& convolvedResidual,
-      const aocommon::UVector<const float*>& twiceConvolvedPsfs);
+      const std::vector<aocommon::Image>& twiceConvolvedPsfs);
 
   /**
    * The produced model is convolved with the given psf, and the result is

@@ -5,6 +5,7 @@
 
 #include "../structures/primarybeamimageset.h"
 
+#include "deconvolutionsettings.h"
 #include "subimagelogset.h"
 
 #include <aocommon/image.h>
@@ -16,7 +17,7 @@
 
 class ParallelDeconvolution {
  public:
-  ParallelDeconvolution(const class Settings& settings);
+  ParallelDeconvolution(const DeconvolutionSettings& deconvolutionSettings);
 
   ~ParallelDeconvolution();
 
@@ -55,7 +56,7 @@ class ParallelDeconvolution {
 
   void ExecuteMajorIteration(class ImageSet& dataImage,
                              class ImageSet& modelImage,
-                             const aocommon::UVector<const float*>& psfImages,
+                             const std::vector<aocommon::Image>& psfImages,
                              bool& reachedMajorThreshold);
 
   void FreeDeconvolutionAlgorithms() {
@@ -69,7 +70,7 @@ class ParallelDeconvolution {
 
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
-                          const aocommon::UVector<const float*>& psfImages,
+                          const std::vector<aocommon::Image>& psfImages,
                           bool& reachedMajorThreshold);
 
   struct SubImage {
@@ -85,15 +86,17 @@ class ParallelDeconvolution {
 
   void runSubImage(SubImage& subImg, ImageSet& dataImage,
                    const ImageSet& modelImage, ImageSet& resultModel,
-                   const aocommon::UVector<const float*>& psfImages,
+                   const std::vector<aocommon::Image>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
-                   std::mutex* mutex);
+                   std::mutex& mutex);
 
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   SubImageLogSet _logs;
-  size_t _horImages, _verImages;
-  const Settings& _settings;
+  size_t _horImages;
+  size_t _verImages;
+  // Deconvolution::_settings outlives ParallelDeconvolution::_settings
+  const DeconvolutionSettings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
   std::vector<aocommon::Image> _spectrallyForcedImages;

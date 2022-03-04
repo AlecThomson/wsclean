@@ -10,7 +10,7 @@ class MoreSane : public DeconvolutionAlgorithm {
  public:
   MoreSane(const std::string& moreSaneLocation,
            const std::string& moresaneArguments,
-           const aocommon::UVector<double>& moresaneSigmaLevels,
+           const std::vector<double>& moresaneSigmaLevels,
            const std::string& prefixName, class FFTWManager& fftwManager)
       : _moresaneLocation(moreSaneLocation),
         _moresaneArguments(moresaneArguments),
@@ -18,23 +18,21 @@ class MoreSane : public DeconvolutionAlgorithm {
         _prefixName(prefixName),
         _fftwManager(fftwManager) {}
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
     return std::unique_ptr<DeconvolutionAlgorithm>(new MoreSane(*this));
   }
 
-  void ExecuteMajorIteration(float* dataImage, float* modelImage,
-                             const float* psfImage, size_t width,
-                             size_t height);
+  void ExecuteMajorIteration(float* residualData, float* modelData,
+                             const aocommon::Image& psfImage);
 
  private:
   const std::string _moresaneLocation, _moresaneArguments;
 
-  const aocommon::UVector<double> _moresaneSigmaLevels;
+  const std::vector<double> _moresaneSigmaLevels;
   const std::string _prefixName;
 
   class FFTWManager& _fftwManager;

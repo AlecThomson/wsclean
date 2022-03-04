@@ -8,8 +8,6 @@
 #include "iuwtdeconvolution.h"
 #include "genericclean.h"
 
-#include "../main/settings.h"
-
 #include "../math/rmsimage.h"
 
 #include "../multiscale/multiscalealgorithm.h"
@@ -27,17 +25,17 @@ using aocommon::ImageCoordinates;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
-Deconvolution::Deconvolution(const class Settings& settings)
-    : _settings(settings),
+Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
+    : _settings(deconvolutionSettings),
       _table(),
-      _parallelDeconvolution(settings),
+      _parallelDeconvolution(_settings),
       _autoMaskIsFinished(false),
-      _imgWidth(0),  // these are not yet set the in settings obj -- load later
-      _imgHeight(0),
+      _imgWidth(_settings.trimmedImageWidth),
+      _imgHeight(_settings.trimmedImageHeight),
+      _pixelScaleX(_settings.pixelScaleX),
+      _pixelScaleY(_settings.pixelScaleY),
       _autoMask(),
-      _beamSize(0.0),
-      _pixelScaleX(0),
-      _pixelScaleY(0) {}
+      _beamSize(0.0) {}
 
 Deconvolution::~Deconvolution() { FreeDeconvolutionAlgorithms(); }
 
@@ -90,12 +88,12 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
-        case Settings::RMSWindow:
+        case LocalRmsMethod::kRmsWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
                          _settings.threadCount);
           break;
-        case Settings::RMSAndMinimumWindow:
+        case LocalRmsMethod::kRmsAndMinimumWindow:
           RMSImage::MakeWithNegativityLimit(
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
@@ -123,11 +121,8 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   integrated.Reset();
 
   Logger::Debug << "Loading PSFs...\n";
-  const std::vector<aocommon::UVector<float>> psfVecs =
+  const std::vector<aocommon::Image> psfImages =
       residualSet.LoadAndAveragePSFs();
-
-  aocommon::UVector<const float*> psfs(residualSet.PSFCount());
-  for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
 
   if (_settings.useMultiscale) {
     if (_settings.autoMask) {
@@ -141,7 +136,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       if (_autoMask.empty()) {
         _autoMask.resize(_imgWidth * _imgHeight);
         for (size_t imgIndex = 0; imgIndex != modelSet.size(); ++imgIndex) {
-          const float* image = modelSet[imgIndex];
+          const aocommon::Image& image = modelSet[imgIndex];
           for (size_t i = 0; i != _imgWidth * _imgHeight; ++i) {
             _autoMask[i] = (image[i] == 0.0) ? false : true;
           }
@@ -151,7 +146,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
     }
   }
 
-  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfs,
+  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfImages,
                                                reachedMajorThreshold);
 
   if (!reachedMajorThreshold && _settings.autoMask && !_autoMaskIsFinished) {
@@ -185,11 +180,6 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
 void Deconvolution::InitializeDeconvolutionAlgorithm(
     std::unique_ptr<DeconvolutionTable> table, double beamSize,
     size_t threadCount) {
-  _imgWidth = _settings.trimmedImageWidth;
-  _imgHeight = _settings.trimmedImageHeight;
-  _pixelScaleX = _settings.pixelScaleX;
-  _pixelScaleY = _settings.pixelScaleY;
-
   _beamSize = beamSize;
   _autoMaskIsFinished = false;
   _autoMask.clear();
