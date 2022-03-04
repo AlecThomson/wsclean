@@ -37,18 +37,17 @@ void MSProvider::CopyData(std::complex<float>* dest, size_t startChannel,
   const size_t selectedChannelCount = endChannel - startChannel;
 
   if (polOut == aocommon::Polarization::Instrumental) {
-    if (polsIn.size() != 4)
+    if (polsIn.size() != 4) {
       throw std::runtime_error(
           "This mode requires the four polarizations to be present in the "
           "measurement set");
-    if (polOut == aocommon::Polarization::Instrumental) {
-      for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
-        if (IsCFinite(*inPtr))
-          dest[ch] = *inPtr;
-        else
-          dest[ch] = 0;
-        ++inPtr;
-      }
+    }
+    for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
+      if (IsCFinite(*inPtr))
+        dest[ch] = *inPtr;
+      else
+        dest[ch] = 0;
+      ++inPtr;
     }
   } else if (polOut == aocommon::Polarization::DiagonalInstrumental) {
     if (polsIn.size() == 4) {

@@ -131,8 +131,7 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
 }
 
 void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
-  const PartitionedMS& partitionedms =
-      static_cast<const PartitionedMS&>(*_msProvider);
+  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
 
 #ifndef NDEBUG
   if (!partitionedms._partHeader.hasModel)
@@ -142,7 +141,8 @@ void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
                      partitionedms._polarizationCountInFile *
                      sizeof(std::complex<float>);
   memcpy(reinterpret_cast<char*>(buffer),
-         partitionedms._modelFileMap + rowLength * _currentInputRow, rowLength);
+         partitionedms._modelFile.Data() + rowLength * _currentInputRow,
+         rowLength);
 }
 
 void PartitionedMSReader::ReadWeights(std::complex<float>* buffer) {

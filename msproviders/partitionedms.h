@@ -4,6 +4,7 @@
 #include "msprovider.h"
 
 #include "../structures/msselection.h"
+#include "../system/mappedfile.h"
 
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
@@ -152,10 +153,9 @@ class PartitionedMS final : public MSProvider {
 
   const Handle _handle;
   const size_t _partIndex;
-  char* _modelFileMap;
+  MappedFile _modelFile;
   size_t _currentOutputRow;
   std::unique_ptr<std::ofstream> _modelDataFile;
-  int _fd;
   const aocommon::PolarizationEnum _polarization;
   size_t _polarizationCountInFile;
 

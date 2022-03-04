@@ -630,6 +630,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
 }
 
 template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
+template void MSGridderBase::calculateWLimits<2>(MSGridderBase::MSData& msData);
 template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
 
 void MSGridderBase::initializeMSDataVector(
@@ -701,6 +702,9 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   } else {
     if (msProvider.Polarization() == aocommon::Polarization::Instrumental)
       calculateWLimits<4>(msData);
+    else if (msProvider.Polarization() ==
+             aocommon::Polarization::DiagonalInstrumental)
+      calculateWLimits<2>(msData);
     else
       calculateWLimits<1>(msData);
     cacheEntry.maxW = msData.maxW;
@@ -887,11 +891,11 @@ template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kTrace>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
+template void MSGridderBase::writeVisibilities<2, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<2, DDGainMatrix::kFull>(
+template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
@@ -1201,7 +1205,7 @@ void MSGridderBase::readAndWeightVisibilities(
         _totalWeight += cumWeight;
       }
       *weightIter = cumWeight;
-      *dataIter *= *weightIter;
+      *dataIter *= cumWeight;
       ++dataIter;
       ++weightIter;
     }

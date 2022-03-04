@@ -75,7 +75,8 @@ void IdgMsGridder::Invert() {
 
   _options["padded_size"] = untrimmedWidth;
 
-  bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
+  const bool stokes_I_only =
+      (Polarization() == aocommon::Polarization::StokesI);
   _options["stokes_I_only"] = stokes_I_only;
   const size_t n_image_polarizations = stokes_I_only ? 1 : 4;
 
@@ -177,12 +178,18 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
 
   StartMeasurementSet(msData, false);
 
-  aocommon::UVector<float> weightBuffer(_selectedBand.ChannelCount() * 4);
+  const bool stokes_I_only =
+      (Polarization() == aocommon::Polarization::StokesI);
+  const size_t n_vis_polarizations = stokes_I_only ? 2 : 4;
+  constexpr size_t n_idg_polarizations = 4;
+  aocommon::UVector<float> weightBuffer(_selectedBand.ChannelCount() *
+                                        n_idg_polarizations);
   aocommon::UVector<std::complex<float>> modelBuffer(
-      _selectedBand.ChannelCount() * 4);
-  aocommon::UVector<bool> isSelected(_selectedBand.ChannelCount() * 4, true);
+      _selectedBand.ChannelCount() * n_idg_polarizations);
+  aocommon::UVector<bool> isSelected(
+      _selectedBand.ChannelCount() * n_idg_polarizations, true);
   aocommon::UVector<std::complex<float>> dataBuffer(
-      _selectedBand.ChannelCount() * 4);
+      _selectedBand.ChannelCount() * n_idg_polarizations);
 
   _griddingWatch.Start();
 
@@ -228,9 +235,30 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.antenna1 = metaData.antenna1;
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
-    readAndWeightVisibilities<4, DDGainMatrix::kFull>(
-        *msReader, msData.antennaNames, rowData, _selectedBand,
-        weightBuffer.data(), modelBuffer.data(), isSelected.data());
+    if (n_vis_polarizations == 2) {
+      readAndWeightVisibilities<2, DDGainMatrix::kFull>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      // The data is placed in the first half of the buffers: reverse copy it
+      // and expand it to 4 polarizations. TODO at a later time, IDG should
+      // directly accept 2 pols instead of 4.
+      size_t source_index = dataBuffer.size() / 2;
+      for (size_t i = dataBuffer.size(); i != 0; i -= 4) {
+        rowData.data[i - 1] = rowData.data[source_index - 1];
+        rowData.data[i - 2] = 0.0;
+        rowData.data[i - 3] = 0.0;
+        rowData.data[i - 4] = rowData.data[source_index - 2];
+        weightBuffer[i - 1] = weightBuffer[source_index - 1];
+        weightBuffer[i - 2] = weightBuffer[source_index - 2];
+        weightBuffer[i - 3] = weightBuffer[source_index - 2];
+        weightBuffer[i - 4] = weightBuffer[source_index - 2];
+        source_index -= 2;
+      }
+    } else {
+      readAndWeightVisibilities<4, DDGainMatrix::kFull>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+    }
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
     rowData.uvw[2] = -metaData.wInM;  //

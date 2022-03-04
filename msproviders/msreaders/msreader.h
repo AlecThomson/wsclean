@@ -72,18 +72,6 @@ class MSReader {
 
  protected:
   MSProvider* _msProvider;
-
-  static void copyData(std::complex<float>* dest, size_t startChannel,
-                       size_t endChannel,
-                       const std::vector<aocommon::PolarizationEnum>& polsIn,
-                       const casacore::Array<std::complex<float>>& data,
-                       aocommon::PolarizationEnum polOut);
-
- private:
-  template <typename NumType>
-  static bool isCFinite(const std::complex<NumType>& c) {
-    return std::isfinite(c.real()) && std::isfinite(c.imag());
-  }
 };
 
 #endif

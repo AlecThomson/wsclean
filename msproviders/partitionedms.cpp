@@ -9,13 +9,6 @@
 #include "../main/progressbar.h"
 #include "../main/settings.h"
 
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <errno.h>
-#include <fcntl.h>
-
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -46,7 +39,6 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              size_t dataDescId)
     : _handle(handle),
       _partIndex(partIndex),
-      _modelFileMap(nullptr),
       _currentOutputRow(0),
       _polarization(polarization),
       _polarizationCountInFile(
@@ -73,40 +65,15 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              ".tmp'");
 
   if (_partHeader.hasModel) {
-    _fd = open((partPrefix + "-m.tmp").c_str(), O_RDWR);
-    if (_fd == -1)
-      throw std::runtime_error("Error opening temporary model data file '" +
-                               partPrefix + "-m.tmp'");
     size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount *
                     _polarizationCountInFile * sizeof(std::complex<float>);
-    if (length == 0)
-      _modelFileMap = nullptr;
-    else {
-      _modelFileMap =
-          reinterpret_cast<char*>(mmap(NULL, length, PROT_READ | PROT_WRITE,
-                                       MAP_SHARED | MAP_NORESERVE, _fd, 0));
-      if (_modelFileMap == MAP_FAILED) {
-        std::string msg = aocommon::system::GetErrorString(errno);
-        _modelFileMap = nullptr;
-        throw std::runtime_error(
-            std::string("Error creating memory map to temporary model file: "
-                        "mmap() returned MAP_FAILED with error message: ") +
-            msg);
-      }
-    }
+    _modelFile = MappedFile(partPrefix + "-m.tmp", length);
   }
   metaFile.close();
   dataFile.close();
 }
 
-PartitionedMS::~PartitionedMS() {
-  if (_modelFileMap != nullptr) {
-    size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount *
-                    _polarizationCountInFile * sizeof(std::complex<float>);
-    if (length != 0) munmap(_modelFileMap, length);
-  }
-  if (_partHeader.hasModel) close(_fd);
-}
+PartitionedMS::~PartitionedMS() {}
 
 std::unique_ptr<MSReader> PartitionedMS::MakeReader() {
   std::unique_ptr<MSReader> reader(new PartitionedMSReader(this));
@@ -124,7 +91,7 @@ void PartitionedMS::WriteModel(const std::complex<float>* buffer,
   size_t rowLength = _partHeader.channelCount * _polarizationCountInFile *
                      sizeof(std::complex<float>);
   std::complex<float>* modelWritePtr = reinterpret_cast<std::complex<float>*>(
-      _modelFileMap + rowLength * _currentOutputRow);
+      _modelFile.Data() + rowLength * _currentOutputRow);
 
   // In case the value was not sampled in this pass, it has been set to infinite
   // and should not overwrite the current value in the set.
