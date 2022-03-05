@@ -283,7 +283,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   _options["padded_size"] = untrimmedWidth;
 
-  bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
+  const bool stokes_I_only =
+      (Polarization() == aocommon::Polarization::StokesI);
   _options["stokes_I_only"] = stokes_I_only;
   const size_t n_image_polarizations = stokes_I_only ? 1 : 4;
 
@@ -293,14 +294,13 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
     _averageBeam.reset(new AverageBeam());
   }
 
+  assert(images.size() == n_image_polarizations);
   if (Polarization() == aocommon::Polarization::FullStokes) {
-    assert(images.size() == 4);
-    for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
+    for (size_t polIndex = 0; polIndex != n_image_polarizations; ++polIndex) {
       std::copy_n(images[polIndex].Data(), width * height,
                   _image.data() + polIndex * width * height);
     }
   } else {
-    assert(images.size() == 1);
     const size_t stokesIndex =
         aocommon::Polarization::StokesToIndex(Polarization());
     std::copy_n(images[0].Data(), width * height,
@@ -368,8 +368,9 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
   _outputProvider = msData.msProvider;
   StartMeasurementSet(msData, true);
 
+  constexpr size_t n_idg_polarizations = 4;
   aocommon::UVector<std::complex<float>> buffer(_selectedBand.ChannelCount() *
-                                                4);
+                                                n_idg_polarizations);
   _degriddingWatch.Start();
 
   int timeIndex = -1;
@@ -433,9 +434,23 @@ void IdgMsGridder::computePredictionBuffer(
     const std::vector<std::string>& antennaNames) {
   auto available_row_ids = _bufferset->get_degridder(kGridderIndex)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
-  for (auto i : available_row_ids) {
-    writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
-                                              _selectedBand, i.second);
+  const bool stokes_I_only =
+      (Polarization() == aocommon::Polarization::StokesI);
+  for (std::pair<long unsigned, std::complex<float>*>& row :
+       available_row_ids) {
+    if (stokes_I_only) {
+      // Remove the XY/YX pols from the data and place the result in the first
+      // half of the array
+      for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
+        row.second[i * 2] = row.second[i * 4];
+        row.second[i * 2 + 1] = row.second[i * 4 + 3];
+      }
+      writeVisibilities<2, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
+                                                _selectedBand, row.second);
+    } else {
+      writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
+                                                _selectedBand, row.second);
+    }
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();

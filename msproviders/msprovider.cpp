@@ -474,8 +474,7 @@ void MSProvider::ReverseCopyData(
     }
   } else if (polSource == aocommon::Polarization::DiagonalInstrumental) {
     if (polsDest.size() == 2) {
-      for (size_t chp = 0; chp != selectedChannelCount * polsDest.size();
-           ++chp) {
+      for (size_t chp = 0; chp != selectedChannelCount * 2; ++chp) {
         if (std::isfinite(source[chp].real())) {
           AddOrAssign<add>(dataIter, source[chp]);
         }
@@ -483,7 +482,7 @@ void MSProvider::ReverseCopyData(
       }
     } else {
       size_t chp = 0;
-      while (chp != selectedChannelCount * polsDest.size()) {
+      while (chp != selectedChannelCount * 2) {
         if (std::isfinite(source[chp].real())) {
           AddOrAssign<add>(dataIter, source[chp]);
         }

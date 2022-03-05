@@ -153,7 +153,6 @@ void ContiguousMS::prepareModelColumn() {
 
 void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   std::unique_ptr<casacore::TableLocker> lock;
-
   if (_useMPI) {
     // When using different MPI processes, automatic casacore locks do not work.
     // -> Use UserNoReadLocking with explicit write locks.

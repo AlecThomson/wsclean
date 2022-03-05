@@ -19,6 +19,22 @@
 class MappedFile {
  public:
   MappedFile() : reserved_size_(0) {}
+  MappedFile(const MappedFile&) = delete;
+  MappedFile(MappedFile&& source)
+      : reserved_size_(source.reserved_size_),
+        memory_map_(source.memory_map_),
+        file_descriptor_(source.file_descriptor_) {
+    source.reserved_size_ = 0;
+    source.memory_map_ = nullptr;
+    source.file_descriptor_ = -1;
+  }
+
+  MappedFile& operator=(MappedFile&& rhs) {
+    Swap(*this, rhs);
+    return *this;
+  }
+  MappedFile& operator=(const MappedFile& rhs) = delete;
+
   MappedFile(const std::string& filename, size_t reserved_size)
       : reserved_size_(reserved_size) {
     file_descriptor_ = open(filename.c_str(), O_RDWR);
@@ -53,6 +69,12 @@ class MappedFile {
   char* Data() { return memory_map_; }
 
  private:
+  friend void Swap(MappedFile& lhs, MappedFile& rhs) {
+    std::swap(lhs.reserved_size_, rhs.reserved_size_);
+    std::swap(lhs.memory_map_, rhs.memory_map_);
+    std::swap(lhs.file_descriptor_, rhs.file_descriptor_);
+  }
+
   size_t reserved_size_;
   char* memory_map_ = nullptr;
   int file_descriptor_ = -1;

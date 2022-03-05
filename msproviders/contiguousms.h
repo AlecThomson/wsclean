@@ -23,7 +23,6 @@ class ContiguousMS final : public MSProvider {
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
                const MSSelection& selection, aocommon::PolarizationEnum polOut,
                size_t dataDescIndex, bool useMPI);
-  virtual ~ContiguousMS(){};
 
   ContiguousMS(const ContiguousMS&) = delete;
 
