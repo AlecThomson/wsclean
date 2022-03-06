@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <aocommon/logger.h>
-#include <aocommon/system.h>
 
 #include <boost/filesystem/path.hpp>
 

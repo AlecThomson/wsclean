@@ -35,6 +35,10 @@ class MappedFile {
   }
   MappedFile& operator=(const MappedFile& rhs) = delete;
 
+  /**
+   * Memory map a file. The file should exist prior to this call,
+   * and should contain data.
+   */
   MappedFile(const std::string& filename, size_t reserved_size)
       : reserved_size_(reserved_size) {
     file_descriptor_ = open(filename.c_str(), O_RDWR);
