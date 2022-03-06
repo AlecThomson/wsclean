@@ -481,7 +481,7 @@ class MSGridderBase {
   double _maxGriddedWeight;
   double _visibilityWeightSum;
 
-  aocommon::UVector<float> _scratchWeights;
+  aocommon::UVector<float> _scratchImageWeights;
 
   std::unique_ptr<MSReader> _predictReader;
   WriterLockManager* _writerLockManager;

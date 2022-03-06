@@ -276,7 +276,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
         getMetaFilename(msPath, temporaryDirectory, dataDescId);
     metaFiles[spwIndex].reset(new std::ofstream(metaFilename));
     MetaHeader metaHeader;
-    memset(&metaHeader, 0, sizeof(MetaHeader));
     metaHeader.selectedRowCount = 0;  // not yet known
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
@@ -385,7 +384,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
   for (std::pair<const size_t, size_t>& p : selectedDataDescIds) {
     size_t spwIndex = p.second;
     MetaHeader metaHeader;
-    memset(&metaHeader, 0, sizeof(MetaHeader));
     metaHeader.selectedRowCount = selectedRowCountPerSpwIndex[spwIndex];
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
@@ -397,7 +395,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
   // Write header to parts and write empty model files (if requested)
   PartHeader header;
-  memset(&header, 0, sizeof(PartHeader));
   header.hasModel = includeModel;
   fileIndex = 0;
   dataBuffer.assign(maxChannels * polarizationsPerFile, 0.0);

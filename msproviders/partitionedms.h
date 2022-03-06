@@ -160,9 +160,9 @@ class PartitionedMS final : public MSProvider {
   size_t _polarizationCountInFile;
 
   struct MetaHeader {
-    uint64_t selectedRowCount;
-    uint32_t filenameLength;
-    double startTime;
+    uint64_t selectedRowCount = 0;
+    uint32_t filenameLength = 0;
+    double startTime = 0.0;
   } _metaHeader;
   struct MetaRecord {
     double u, v, w, time;
@@ -188,10 +188,10 @@ class PartitionedMS final : public MSProvider {
     }
   };
   struct PartHeader {
-    uint64_t channelCount;
-    uint64_t channelStart;
-    uint32_t dataDescId;
-    bool hasModel;
+    uint64_t channelCount = 0;
+    uint64_t channelStart = 0;
+    uint32_t dataDescId = 0;
+    bool hasModel = false;
   } _partHeader;
 
   static std::string getFilenamePrefix(const std::string& msPath,

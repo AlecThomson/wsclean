@@ -146,27 +146,6 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
       contiguousms._modelArray, contiguousms._outputPolarization);
 }
 
-void ContiguousMSReader::ReadWeights(std::complex<float>* buffer) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
-
-  readData();
-  readWeights();
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel =
-        contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
-  }
-  MSProvider::CopyWeights(
-      buffer, startChannel, endChannel, contiguousms._inputPolarizations,
-      contiguousms._dataArray, contiguousms._weightSpectrumArray,
-      contiguousms._flagArray, contiguousms._outputPolarization);
-}
-
 void ContiguousMSReader::ReadWeights(float* buffer) {
   const ContiguousMS& contiguousms =
       static_cast<const ContiguousMS&>(*_msProvider);

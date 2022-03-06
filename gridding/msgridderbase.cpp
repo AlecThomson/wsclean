@@ -923,7 +923,7 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
     ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
     const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-    const float weight = *weightIter * _scratchWeights[ch];
+    const float weight = *weightIter * _scratchImageWeights[ch];
     _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
     // Only admissible PolarizationCount for applying the facet beam is 1.
@@ -984,7 +984,7 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
       const std::complex<float> g_h5 =
           ComputeGain<GainEntry>(gain_h5_1, gain_h5_2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       // h5Sum needed for the primary beam correction
       _metaDataCache->h5Sum += (conj(g_h5) * weight * g_h5).real();
       _metaDataCache->correctionSum +=
@@ -1026,7 +1026,7 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
           ComputeGain<GainEntry>(gain_h5_1, gain_h5_2);
 
       // Compute weight
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       // h5Sum needed for the primary beam correction
       _metaDataCache->h5Sum += (conj(g_h5) * weight * g_h5).real();
       _metaDataCache->correctionSum +=
@@ -1075,7 +1075,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
       // Only admissible PolarizationCount for applying gains from solution
@@ -1095,7 +1095,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
       // Only admissible PolarizationCount for applying gains from solution
@@ -1144,8 +1144,8 @@ void MSGridderBase::readAndWeightVisibilities(
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
-  for (size_t ch = 0; ch != dataSize; ++ch) {
-    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
+  for (size_t chp = 0; chp != dataSize; ++chp) {
+    if (!isSelected[chp]) weightBuffer[chp] = 0.0;
   }
 
   switch (GetVisibilityWeightingMode()) {
@@ -1166,14 +1166,14 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 
   // Precompute imaging weights
-  _scratchWeights.resize(curBand.ChannelCount());
+  _scratchImageWeights.resize(curBand.ChannelCount());
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
     const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
-    _scratchWeights[ch] = GetImageWeights()->GetWeight(u, v);
+    _scratchImageWeights[ch] = GetImageWeights()->GetWeight(u, v);
   }
   if (StoreImagingWeights())
-    msReader.WriteImagingWeights(_scratchWeights.data());
+    msReader.WriteImagingWeights(_scratchImageWeights.data());
 
   if (!DoImagePSF()) {
     if (_settings.applyFacetBeam && !_h5parms.empty()) {
@@ -1195,7 +1195,7 @@ void MSGridderBase::readAndWeightVisibilities(
   float* weightIter = weightBuffer;
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      const double cumWeight = *weightIter * _scratchWeights[ch];
+      const double cumWeight = *weightIter * _scratchImageWeights[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         _visibilityWeightSum += *weightIter;

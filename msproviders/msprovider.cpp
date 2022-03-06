@@ -291,7 +291,7 @@ void MSProvider::CopyWeights(
     const casacore::Array<float>& weights, const casacore::Array<bool>& flags,
     aocommon::PolarizationEnum polOut) {
   const size_t polCount = polsIn.size();
-  casacore::Array<std::complex<float>>::const_contiter inPtr =
+  casacore::Array<std::complex<float>>::const_contiter dataPtr =
       data.cbegin() + startChannel * polCount;
   casacore::Array<float>::const_contiter weightPtr =
       weights.cbegin() + startChannel * polCount;
@@ -302,14 +302,14 @@ void MSProvider::CopyWeights(
   size_t polIndex;
   if (polOut == aocommon::Polarization::Instrumental) {
     for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         // The factor of 4 is to be consistent with StokesI
         // It is for having conjugate visibilities and because IDG doesn't
         // separately count XX and YY visibilities
         dest[ch] = *weightPtr * 4.0f;
       else
         dest[ch] = 0.0f;
-      inPtr++;
+      dataPtr++;
       weightPtr++;
       flagPtr++;
     }
@@ -317,45 +317,45 @@ void MSProvider::CopyWeights(
     if (polsIn.size() == 4) {
       size_t ch = 0;
       while (ch != selectedChannelCount * 2) {
-        if (!*flagPtr && IsCFinite(*inPtr))
+        if (!*flagPtr && IsCFinite(*dataPtr))
           // See explanation above for factor of 4
           dest[ch] = *weightPtr * 4.0f;
         else
           dest[ch] = 0.0f;
-        inPtr += 3;
+        dataPtr += 3;
         weightPtr += 3;
         flagPtr += 3;
         ++ch;
-        if (!*flagPtr && IsCFinite(*inPtr))
+        if (!*flagPtr && IsCFinite(*dataPtr))
           dest[ch] = *weightPtr * 4.0f;
         else
           dest[ch] = 0.0f;
-        ++inPtr;
+        ++dataPtr;
         ++weightPtr;
         ++flagPtr;
         ++ch;
       }
     } else if (polsIn.size() == 2) {
       for (size_t ch = 0; ch != selectedChannelCount * 2; ++ch) {
-        if (!*flagPtr && IsCFinite(*inPtr))
+        if (!*flagPtr && IsCFinite(*dataPtr))
           dest[ch] = *weightPtr * 4.0f;
         else
           dest[ch] = 0.0f;
-        ++inPtr;
+        ++dataPtr;
         ++weightPtr;
         ++flagPtr;
       }
     }
   } else if (aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
-    inPtr += polIndex;
+    dataPtr += polIndex;
     weightPtr += polIndex;
     flagPtr += polIndex;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         dest[ch] = *weightPtr;
       else
         dest[ch] = 0.0f;
-      inPtr += polCount;
+      dataPtr += polCount;
       weightPtr += polCount;
       flagPtr += polCount;
     }
@@ -417,24 +417,24 @@ void MSProvider::CopyWeights(
     }
 
     weightPtr += polIndexA;
-    inPtr += polIndexA;
+    dataPtr += polIndexA;
     flagPtr += polIndexA;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
       NumType w;
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         w = *weightPtr * 4.0f;
       else
         w = 0.0f;
-      inPtr += polIndexB - polIndexA;
+      dataPtr += polIndexB - polIndexA;
       weightPtr += polIndexB - polIndexA;
       flagPtr += polIndexB - polIndexA;
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         w = std::min<NumType>(w, *weightPtr * 4.0f);
       else
         w = 0.0f;
       dest[ch] = w;
       weightPtr += polCount - polIndexB + polIndexA;
-      inPtr += polCount - polIndexB + polIndexA;
+      dataPtr += polCount - polIndexB + polIndexA;
       flagPtr += polCount - polIndexB + polIndexA;
     }
   }

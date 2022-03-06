@@ -178,9 +178,7 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
 
   StartMeasurementSet(msData, false);
 
-  const bool stokes_I_only =
-      (Polarization() == aocommon::Polarization::StokesI);
-  const size_t n_vis_polarizations = stokes_I_only ? 2 : 4;
+  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
   constexpr size_t n_idg_polarizations = 4;
   aocommon::UVector<float> weightBuffer(_selectedBand.ChannelCount() *
                                         n_idg_polarizations);
@@ -249,12 +247,13 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
         rowData.data[i - 3] = 0.0;
         rowData.data[i - 4] = rowData.data[source_index - 2];
         weightBuffer[i - 1] = weightBuffer[source_index - 1];
-        weightBuffer[i - 2] = weightBuffer[source_index - 2];
+        weightBuffer[i - 2] = weightBuffer[source_index - 1];
         weightBuffer[i - 3] = weightBuffer[source_index - 2];
         weightBuffer[i - 4] = weightBuffer[source_index - 2];
         source_index -= 2;
       }
     } else {
+      assert(n_vis_polarizations == 4);
       readAndWeightVisibilities<4, DDGainMatrix::kFull>(
           *msReader, msData.antennaNames, rowData, _selectedBand,
           weightBuffer.data(), modelBuffer.data(), isSelected.data());
@@ -434,11 +433,10 @@ void IdgMsGridder::computePredictionBuffer(
     const std::vector<std::string>& antennaNames) {
   auto available_row_ids = _bufferset->get_degridder(kGridderIndex)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
-  const bool stokes_I_only =
-      (Polarization() == aocommon::Polarization::StokesI);
+  const size_t n_vis_polarizations = _outputProvider->NPolarizations();
   for (std::pair<long unsigned, std::complex<float>*>& row :
        available_row_ids) {
-    if (stokes_I_only) {
+    if (n_vis_polarizations == 2) {
       // Remove the XY/YX pols from the data and place the result in the first
       // half of the array
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
@@ -448,6 +446,7 @@ void IdgMsGridder::computePredictionBuffer(
       writeVisibilities<2, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
                                                 _selectedBand, row.second);
     } else {
+      assert(n_vis_polarizations == 4);
       writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
                                                 _selectedBand, row.second);
     }

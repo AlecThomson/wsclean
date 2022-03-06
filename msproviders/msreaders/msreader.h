@@ -59,8 +59,6 @@ class MSReader {
 
   virtual void ReadWeights(float* buffer) = 0;
 
-  virtual void ReadWeights(std::complex<float>* buffer) = 0;
-
   /**
    * Write imaging weights to the current READING position.
    * Note that despite this is a write operation, the reading position is
