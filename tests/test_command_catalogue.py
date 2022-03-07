@@ -123,7 +123,7 @@ class TestCommandCatalogue:
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
         # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
-        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder -size {tcf.DIMS_LARGe} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder -size {tcf.DIMS_LARGE} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_grid_with_beam(self):
@@ -137,7 +137,7 @@ class TestCommandCatalogue:
             if os.path.exists(component_file):
                 os.remove(component_file)
 
-            s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS_LARGE} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+            s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS_LARGE} -mwa-path . {tcf.MWA_MS}"
             validate_call(s.split())
             for image_type in [
                 "psf",
@@ -205,7 +205,7 @@ class TestCommandCatalogue:
         # Test facet beam, using 4 polarizations
         s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
             -facet-regions {tcf.FACETFILE_NFACETS} {tcf.DIMS_RECTANGULAR} \
-                -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+                -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_mpi_join_channels(self):
@@ -220,7 +220,7 @@ class TestCommandCatalogue:
     def test_idg_with_reuse_psf(self):
         # Test for issue #81: -reuse-psf gives segmentation fault in IDG
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
         os.rename(
             name("idg-reuse-psf-A") + "-model.fits",
@@ -231,28 +231,27 @@ class TestCommandCatalogue:
             name("idg-reuse-psf-B") + "-beam.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
         os.rename(
             name("idg-reuse-dirty-A") + "-model.fits",
             name("idg-reuse-dirty-B") + "-model.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {tcf.MWA_COEFF_FILE} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
-
 
     def test_idg_with_reuse_psf(self):
         # Test for issue #81: -reuse-psf gives segmentation fault in IDG
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s.split())
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
+        validate_call(s.split())
         # Model image A is copied to B-model-pb corrected image, to avoid
         # issues due to NaN values in the A-model-pb.fits file.
         # As such, this test is purely illlustrative.
@@ -261,18 +260,18 @@ class TestCommandCatalogue:
             name("idg-reuse-psf-B") + "-model-pb.fits",
         )
         os.rename(
-            name("idg-reuse-psf-A") + "-beam.fits", name("idg-reuse-psf-B") + "-beam.fits"
+            name("idg-reuse-psf-A") + "-beam.fits",
+            name("idg-reuse-psf-B") + "-beam.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s.split())
-
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path . {tcf.MWA_MS}"
+        validate_call(s.split())
 
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
         # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s.split())
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
+        validate_call(s.split())
         # Model image A is copied to B-model-pb corrected image, to avoid
         # issues due to NaN values in the A-model-pb.fits file.
         # As such, this test is purely illlustrative.
@@ -281,9 +280,8 @@ class TestCommandCatalogue:
             name("idg-reuse-dirty-B") + "-model-pb.fits",
         )
         # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s.split())
-
+        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path . {tcf.MWA_MS}"
+        validate_call(s.split())
 
     def test_masked_parallel_deconvolution(self):
         # Test for two issues:
@@ -295,14 +293,13 @@ class TestCommandCatalogue:
         # on the place of the pixel.
 
         # First create a mask image with one pixel set:
-        s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution-prepare')} -size 256 256 -scale 1amin -interval 10 14 -niter 1 {os.environ['MWA_MS']}"
-        check_call(s.split())
+        s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution-prepare')} -size 256 256 -scale 1amin -interval 10 14 -niter 1 {tcf.MWA_MS}"
+        validate_call(s.split())
         # Now use this as a mask, and force a Gaussian on the position
-        s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution')} -size 256 256 -scale 1amin -fits-mask {name('masked-parallel-deconvolution-prepare')}-model.fits -interval 10 14 -niter 10 -parallel-deconvolution 128 -multiscale -multiscale-scales 10 {os.environ['MWA_MS']}"
-        check_call(s.split())
+        s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution')} -size 256 256 -scale 1amin -fits-mask {name('masked-parallel-deconvolution-prepare')}-model.fits -interval 10 14 -niter 10 -parallel-deconvolution 128 -multiscale -multiscale-scales 10 {tcf.MWA_MS}"
+        validate_call(s.split())
         for f in glob.glob(f"{name('masked-parallel-deconvolution-prepare')}*.fits"):
             os.remove(f)
-
 
     @pytest.mark.parametrize("use_beam", (False, True))
     def test_idg_predict(self, use_beam):
@@ -310,8 +307,8 @@ class TestCommandCatalogue:
         # First make sure model images exist
         run_name = name("idg-predict")
         grid_with_beam = "-grid-with-beam" if use_beam else ""
-        s0 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS} -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s0.split())
+        s0 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
+        validate_call(s0.split())
 
         # Remove the model image that shouldn't be needed for the predict
         if use_beam:
@@ -320,5 +317,5 @@ class TestCommandCatalogue:
             # can bail out on these NaN values.
             os.rename(f"{run_name}-model.fits", f"{run_name}-model-pb.fits")
 
-        s1 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS} -predict -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
-        check_call(s1.split())
+        s1 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS_LARGE} -predict -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mwa-path . {tcf.MWA_MS}"
+        validate_call(s1.split())

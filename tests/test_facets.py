@@ -33,7 +33,7 @@ def predict_facet_image(ms, gridder, apply_facet_beam):
 
     # Predict facet based image
     s = f"{tcf.WSCLEAN} -predict {gridder} {facet_beam} -facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
-    check_call(s.split())
+    validate_call(s.split())
 
 
 def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
