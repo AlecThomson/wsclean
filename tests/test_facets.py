@@ -104,7 +104,8 @@ class TestFacets:
     # FIXME: we should test wstacking and wgridder here too
     # but they fail on the taql assertion
     @pytest.mark.parametrize("gridder", ["-use-wgridder"])
-    def test_predict(self, gridder):
+    @pytest.mark.parametrize("apply_facet_beam", [False, True])
+    def test_predict(self, gridder, apply_facet_beam):
         """
         Test predict only run
 
@@ -114,10 +115,13 @@ class TestFacets:
             wsclean compatible description of gridder to be used.
         """
 
-        predict_full_image(tcf.MWA_MOCK_FULL, gridder)
-        predict_facet_image(tcf.MWA_MOCK_FACET, gridder)
-        taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
-        assert_taql(taql_command)
+        predict_facet_image(tcf.MWA_MOCK_FACET, gridder, apply_facet_beam)
+
+        # A numerical check can only be performed in case no DD effects were applied.
+        if not apply_facet_beam:
+            predict_full_image(tcf.MWA_MOCK_FULL, gridder)
+            taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
+            assert_taql(taql_command)
 
     @pytest.mark.parametrize("gridder", ["-use-wgridder"])
     @pytest.mark.parametrize("reorder", [False, True])

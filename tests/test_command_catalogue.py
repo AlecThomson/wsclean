@@ -123,7 +123,7 @@ class TestCommandCatalogue:
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
         # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
-        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder -size {tcf.DIMS_LARGE} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder {tcf.DIMS_LARGE} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_grid_with_beam(self):
