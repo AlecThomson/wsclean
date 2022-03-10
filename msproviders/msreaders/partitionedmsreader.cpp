@@ -96,9 +96,10 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
   const PartitionedMS& partitionedms =
       static_cast<const PartitionedMS&>(*_msProvider);
 
-  const uint64_t n_visibilities = partitionedms._partHeader.channelCount *
-                                  partitionedms._polarizationCountInFile;
+  const int64_t n_visibilities = partitionedms._partHeader.channelCount *
+                                 partitionedms._polarizationCountInFile;
   if (!_readPtrIsOk) {
+    // Data file position was moved forward already, so seek back by one block
     _dataFile.seekg(-n_visibilities * sizeof(std::complex<float>),
                     std::ios::cur);
   }
@@ -119,28 +120,30 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
 }
 
 void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
-  PartitionedMS& partitionedms = static_cast<PartitionedMS&>(*_msProvider);
+  const PartitionedMS& partitionedms =
+      static_cast<PartitionedMS&>(*_msProvider);
 
 #ifndef NDEBUG
   if (!partitionedms._partHeader.hasModel)
     throw std::runtime_error("Partitioned MS initialized without model");
 #endif
-  size_t rowLength = partitionedms._partHeader.channelCount *
-                     partitionedms._polarizationCountInFile *
-                     sizeof(std::complex<float>);
-  memcpy(reinterpret_cast<char*>(buffer),
-         partitionedms._modelFile.Data() + rowLength * _currentInputRow,
-         rowLength);
+  const size_t rowLength = partitionedms._partHeader.channelCount *
+                           partitionedms._polarizationCountInFile *
+                           sizeof(std::complex<float>);
+  std::copy_n(partitionedms._modelFile.Data() + rowLength * _currentInputRow,
+              rowLength, reinterpret_cast<char*>(buffer));
 }
 
 void PartitionedMSReader::ReadWeights(float* buffer) {
   const PartitionedMS& partitionedms =
       static_cast<const PartitionedMS&>(*_msProvider);
 
-  const uint64_t n_visibilities = partitionedms._partHeader.channelCount *
-                                  partitionedms._polarizationCountInFile;
-  if (!_weightPtrIsOk)
+  const int64_t n_visibilities = partitionedms._partHeader.channelCount *
+                                 partitionedms._polarizationCountInFile;
+  if (!_weightPtrIsOk) {
+    // jump to the previous block of weights
     _weightFile.seekg(-n_visibilities * sizeof(float), std::ios::cur);
+  }
   _weightFile.read(reinterpret_cast<char*>(buffer),
                    n_visibilities * sizeof(float));
   _weightPtrIsOk = false;

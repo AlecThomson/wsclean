@@ -82,14 +82,10 @@ void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
 }
 
 template <>
-void ApplyConjugatedGain<2, DDGainMatrix::kFull>(
-    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
-    const aocommon::MC2x2F& gain2) {
-  // All polarizations
-  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
-  const aocommon::MC2x2F result =
-      gain1.HermThenMultiply(visibilities_mc2x2).Multiply(gain2);
-  result.AssignTo(visibilities);
+void ApplyConjugatedGain<2, DDGainMatrix::kFull>(std::complex<float>*,
+                                                 const aocommon::MC2x2F&,
+                                                 const aocommon::MC2x2F&) {
+  throw std::runtime_error("Not implemented");
 }
 
 template <>
@@ -139,14 +135,10 @@ void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
 }
 
 template <>
-void ApplyGain<2, DDGainMatrix::kFull>(std::complex<float>* visibilities,
-                                       const aocommon::MC2x2F& gain1,
-                                       const aocommon::MC2x2F& gain2) {
-  // All polarizations
-  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
-  const aocommon::MC2x2F result =
-      gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
-  result.AssignTo(visibilities);
+void ApplyGain<2, DDGainMatrix::kFull>(std::complex<float>*,
+                                       const aocommon::MC2x2F&,
+                                       const aocommon::MC2x2F&) {
+  throw std::runtime_error("Not implemented");
 }
 
 template <>
@@ -1144,8 +1136,8 @@ void MSGridderBase::readAndWeightVisibilities(
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
-  for (size_t chp = 0; chp != dataSize; ++chp) {
-    if (!isSelected[chp]) weightBuffer[chp] = 0.0;
+  for (size_t i = 0; i != dataSize; ++i) {
+    if (!isSelected[i]) weightBuffer[i] = 0.0;
   }
 
   switch (GetVisibilityWeightingMode()) {
@@ -1154,13 +1146,12 @@ void MSGridderBase::readAndWeightVisibilities(
       break;
     case VisibilityWeightingMode::SquaredVisibilityWeighting:
       // Square the visibility weights
-      for (size_t chp = 0; chp != dataSize; ++chp)
-        weightBuffer[chp] *= weightBuffer[chp];
+      for (size_t i = 0; i != dataSize; ++i) weightBuffer[i] *= weightBuffer[i];
       break;
     case VisibilityWeightingMode::UnitVisibilityWeighting:
       // Set the visibility weights to one
-      for (size_t chp = 0; chp != dataSize; ++chp) {
-        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
+      for (size_t i = 0; i != dataSize; ++i) {
+        if (weightBuffer[i] != 0.0) weightBuffer[i] = 1.0f;
       }
       break;
   }

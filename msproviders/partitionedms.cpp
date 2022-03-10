@@ -309,7 +309,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
                              rowProvider->TotalProgress());
 
     MetaRecord meta;
-    memset(&meta, 0, sizeof(MetaRecord));
 
     double time;
     uint32_t dataDescId, antenna1, antenna2, fieldId;

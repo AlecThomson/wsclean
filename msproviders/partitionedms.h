@@ -165,8 +165,8 @@ class PartitionedMS final : public MSProvider {
     double startTime = 0.0;
   } _metaHeader;
   struct MetaRecord {
-    double u, v, w, time;
-    uint16_t antenna1, antenna2, fieldId;
+    double u = 0.0, v = 0.0, w = 0.0, time = 0.0;
+    uint16_t antenna1 = 0, antenna2 = 0, fieldId = 0;
     static constexpr size_t BINARY_SIZE = 8 * 4 + 2 * 3;
     void read(std::istream& str) {
       str.read(reinterpret_cast<char*>(&u), sizeof(double));

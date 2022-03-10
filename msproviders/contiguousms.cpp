@@ -134,12 +134,14 @@ size_t ContiguousMS::NChannels() {
 }
 
 size_t ContiguousMS::NPolarizations() {
-  if (_outputPolarization == aocommon::Polarization::DiagonalInstrumental)
-    return 2;
-  else if (_outputPolarization == aocommon::Polarization::Instrumental)
-    return 4;
-  else
-    return 1;
+  switch (_outputPolarization) {
+    case aocommon::Polarization::Instrumental:
+      return 4;
+    case aocommon::Polarization::DiagonalInstrumental:
+      return 2;
+    default:
+      return 1;
+  }
 }
 
 void ContiguousMS::prepareModelColumn() {

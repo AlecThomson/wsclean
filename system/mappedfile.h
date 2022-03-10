@@ -71,6 +71,7 @@ class MappedFile {
   }
 
   char* Data() { return memory_map_; }
+  const char* Data() const { return memory_map_; }
 
  private:
   friend void Swap(MappedFile& lhs, MappedFile& rhs) {

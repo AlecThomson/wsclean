@@ -57,7 +57,7 @@ void MSProvider::CopyData(std::complex<float>* dest, size_t startChannel,
           dest[ch] = *inPtr;
         else
           dest[ch] = 0;
-        inPtr += 3;  // skip from xx to yy
+        inPtr += 3;  // jump from xx to yy
         ++ch;
         if (IsCFinite(*inPtr))
           dest[ch] = *inPtr;
@@ -322,7 +322,7 @@ void MSProvider::CopyWeights(
           dest[ch] = *weightPtr * 4.0f;
         else
           dest[ch] = 0.0f;
-        dataPtr += 3;
+        dataPtr += 3;  // jump from xx to yy
         weightPtr += 3;
         flagPtr += 3;
         ++ch;
@@ -486,7 +486,7 @@ void MSProvider::ReverseCopyData(
         if (std::isfinite(source[chp].real())) {
           AddOrAssign<add>(dataIter, source[chp]);
         }
-        dataIter += 3;  // skip to yy
+        dataIter += 3;  // jump from xx to yy
         ++chp;
         if (std::isfinite(source[chp].real())) {
           AddOrAssign<add>(dataIter, source[chp]);
