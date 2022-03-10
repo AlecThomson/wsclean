@@ -35,7 +35,7 @@ A description of the basic cleaning parameters is given in the :doc:`basic clean
 Multiple measurement sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When specifying multiple measurement sets on the command line, the combined data from all measurement sets is imaged together. For example,
+When specifying multiple measurement sets on the command line, WSClean images the combined data from all measurement sets together. For example,
 
 .. code-block:: bash
 
