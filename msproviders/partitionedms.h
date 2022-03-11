@@ -160,9 +160,26 @@ class PartitionedMS final : public MSProvider {
   size_t _polarizationCountInFile;
 
   struct MetaHeader {
+    double startTime = 0.0;
     uint64_t selectedRowCount = 0;
     uint32_t filenameLength = 0;
-    double startTime = 0.0;
+    void read(std::istream& str) {
+      str.read(reinterpret_cast<char*>(&startTime), sizeof(startTime));
+      str.read(reinterpret_cast<char*>(&selectedRowCount),
+               sizeof(selectedRowCount));
+      str.read(reinterpret_cast<char*>(&filenameLength),
+               sizeof(filenameLength));
+    }
+    void write(std::ostream& str) const {
+      str.write(reinterpret_cast<const char*>(&startTime), sizeof(startTime));
+      str.write(reinterpret_cast<const char*>(&selectedRowCount),
+                sizeof(selectedRowCount));
+      str.write(reinterpret_cast<const char*>(&filenameLength),
+                sizeof(filenameLength));
+    }
+    static constexpr size_t BINARY_SIZE =
+        sizeof(startTime) + sizeof(selectedRowCount) + sizeof(filenameLength);
+    static_assert(BINARY_SIZE == 20);
   } _metaHeader;
   struct MetaRecord {
     double u = 0.0, v = 0.0, w = 0.0, time = 0.0;
@@ -192,6 +209,24 @@ class PartitionedMS final : public MSProvider {
     uint64_t channelStart = 0;
     uint32_t dataDescId = 0;
     bool hasModel = false;
+    static constexpr size_t BINARY_SIZE = sizeof(channelCount) +
+                                          sizeof(channelStart) +
+                                          sizeof(dataDescId) + sizeof(hasModel);
+    static_assert(BINARY_SIZE == 21);
+    void read(std::istream& str) {
+      str.read(reinterpret_cast<char*>(&channelCount), sizeof(channelCount));
+      str.read(reinterpret_cast<char*>(&channelStart), sizeof(channelStart));
+      str.read(reinterpret_cast<char*>(&dataDescId), sizeof(dataDescId));
+      str.read(reinterpret_cast<char*>(&hasModel), sizeof(hasModel));
+    }
+    void write(std::ostream& str) const {
+      str.write(reinterpret_cast<const char*>(&channelCount),
+                sizeof(channelCount));
+      str.write(reinterpret_cast<const char*>(&channelStart),
+                sizeof(channelStart));
+      str.write(reinterpret_cast<const char*>(&dataDescId), sizeof(dataDescId));
+      str.write(reinterpret_cast<const char*>(&hasModel), sizeof(hasModel));
+    }
   } _partHeader;
 
   static std::string getFilenamePrefix(const std::string& msPath,
