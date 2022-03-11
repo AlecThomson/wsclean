@@ -137,28 +137,24 @@ class TestCommandCatalogue:
             if os.path.exists(component_file):
                 os.remove(component_file)
 
-            s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS_LARGE} -mwa-path . {tcf.MWA_MS}"
-            validate_call(s.split())
-            for image_type in [
-                "psf",
-                "beam",
-                "dirty",
-                "image",
-                "image-pb",
-                "model",
-                "model-pb",
-                "residual",
-                "residual-pb",
-            ]:
-                image_name = name + "-" + image_type + ".fits"
-                assert os.path.isfile(image_name)
-            # Check whether source files are generated
-            for source_file in ["sources", "sources-pb"]:
-                assert os.path.isfile(name + "-" + source_file + ".txt")
-        else:
-            warnings.warn(
-                "MWA_PATH environment variable not set, test_grid_with_beam test will be skipped."
-            )
+        s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS_LARGE} -mwa-path . {tcf.MWA_MS}"
+        validate_call(s.split())
+        for image_type in [
+            "psf",
+            "beam",
+            "dirty",
+            "image",
+            "image-pb",
+            "model",
+            "model-pb",
+            "residual",
+            "residual-pb",
+        ]:
+            image_name = name + "-" + image_type + ".fits"
+            assert os.path.isfile(image_name)
+        # Check whether source files are generated
+        for source_file in ["sources", "sources-pb"]:
+            assert os.path.isfile(name + "-" + source_file + ".txt")
 
     def test_two_facets(self):
         # Apply the facet to the image
@@ -201,7 +197,7 @@ class TestCommandCatalogue:
                 image_name = trunk + "-" + image_type + ".fits"
                 assert os.path.isfile(image_name)
 
-    def test_facet_beam():
+    def test_facet_beam(self):
         # Test facet beam, using 4 polarizations
         s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
             -facet-regions {tcf.FACETFILE_NFACETS} {tcf.DIMS_RECTANGULAR} \
