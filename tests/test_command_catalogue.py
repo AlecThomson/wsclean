@@ -23,7 +23,11 @@ def name(name: str):
 
 
 @pytest.mark.usefixtures("prepare_large_ms")
-class TestCommandCatalogue:
+class TestLongSystem:
+    """
+    Collection of long system tests.
+    """
+    
     def test_dirty_image(self):
         # Make dirty image
         s = f"{tcf.WSCLEAN} -name {name('test-dirty')} {tcf.DIMS_LARGE} {tcf.MWA_MS}"
