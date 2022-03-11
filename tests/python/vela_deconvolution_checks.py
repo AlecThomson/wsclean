@@ -8,7 +8,8 @@ from utils import check_and_remove_files, compute_rms, validate_call
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
 
-import testconfig as tcf
+# Import configuration variables as test configuration (tcf)
+import config_vars as tcf
 
 
 def gridders():

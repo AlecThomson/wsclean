@@ -8,7 +8,8 @@ import warnings
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
 
-import testconfig as tcf
+# Import configuration variables as test configuration (tcf)
+import config_vars as tcf
 
 
 def assert_taql(command, expected_rows=0):

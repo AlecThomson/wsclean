@@ -7,7 +7,8 @@ from subprocess import check_call
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
-import testconfig as tcf
+# Import configuration variables as test configuration (tcf)
+import config_vars as tcf
 
 
 @pytest.fixture(scope="session", autouse=True)
