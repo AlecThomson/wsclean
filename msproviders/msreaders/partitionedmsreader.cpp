@@ -70,7 +70,7 @@ void PartitionedMSReader::ReadMeta(double& u, double& v, double& w) {
   _metaPtrIsOk = false;
 
   PartitionedMS::MetaRecord record;
-  record.read(_metaFile);
+  record.Read(_metaFile);
   u = record.u;
   v = record.v;
   w = record.w;
@@ -82,7 +82,7 @@ void PartitionedMSReader::ReadMeta(MSProvider::MetaData& metaData) {
   _metaPtrIsOk = false;
 
   PartitionedMS::MetaRecord record;
-  record.read(_metaFile);
+  record.Read(_metaFile);
   metaData.uInM = record.u;
   metaData.vInM = record.v;
   metaData.wInM = record.w;

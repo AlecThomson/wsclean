@@ -45,7 +45,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   std::ifstream metaFile(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
 
-  _metaHeader.read(metaFile);
+  _metaHeader.Read(metaFile);
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
   metaFile.read(msPath.data(), _metaHeader.filenameLength);
   Logger::Info << "Opening reordered part " << partIndex << " spw "
@@ -58,7 +58,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   if (!dataFile.good())
     throw std::runtime_error("Error opening temporary data file '" +
                              partPrefix + ".tmp'");
-  _partHeader.read(dataFile);
+  _partHeader.Read(dataFile);
   if (!dataFile.good())
     throw std::runtime_error("Error reading header from file '" + partPrefix +
                              ".tmp'");
@@ -279,7 +279,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     metaHeader.selectedRowCount = 0;  // not yet known
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
-    metaHeader.write(*metaFiles[spwIndex]);
+    metaHeader.Write(*metaFiles[spwIndex]);
     metaFiles[spwIndex]->write(msPath.c_str(), msPath.size());
     if (!metaFiles[spwIndex]->good())
       throw std::runtime_error("Error writing to temporary file " +
@@ -323,7 +323,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     ++selectedRowCountPerSpwIndex[spwIndex];
     ++selectedRowsTotal;
     std::ofstream& metaFile = *metaFiles[spwIndex];
-    meta.write(metaFile);
+    meta.Write(metaFile);
     if (!metaFile.good())
       throw std::runtime_error("Error writing to temporary file");
 
@@ -386,7 +386,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
     metaFiles[spwIndex]->seekp(0);
-    metaHeader.write(*metaFiles[spwIndex]);
+    metaHeader.Write(*metaFiles[spwIndex]);
     metaFiles[spwIndex]->write(msPath.c_str(), msPath.size());
   }
 
@@ -407,7 +407,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
          p != polsOut.end(); ++p) {
       PartitionFiles& f = files[fileIndex];
       f.data->seekp(0, std::ios::beg);
-      header.write(*f.data);
+      header.Write(*f.data);
       if (!f.data->good())
         throw std::runtime_error("Error writing to temporary data file");
 
@@ -453,7 +453,7 @@ void PartitionedMS::unpartition(
     std::ifstream metaFile(getMetaFilename(
         handle._msPath, handle._temporaryDirectory, dataDescId.first));
     MetaHeader& metaHeader = metaHeaders[dataDescId.second];
-    metaHeader.read(metaFile);
+    metaHeader.Read(metaFile);
     std::vector<char> msPath(metaHeader.filenameLength + 1, char(0));
     metaFile.read(msPath.data(), metaHeader.filenameLength);
   }
@@ -467,7 +467,7 @@ void PartitionedMS::unpartition(
   if (!firstDataFile.good())
     throw std::runtime_error("Error opening temporary data file");
   PartHeader firstPartHeader;
-  firstPartHeader.read(firstDataFile);
+  firstPartHeader.Read(firstDataFile);
   if (!firstDataFile.good())
     throw std::runtime_error("Error reading from temporary data file");
 
