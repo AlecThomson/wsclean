@@ -172,10 +172,10 @@ float GenericClean::ExecuteMajorIteration(
 }
 
 std::string GenericClean::peakDescription(const aocommon::Image& image,
-                                          size_t& x, size_t& y) {
+                                          size_t x, size_t y) {
   std::ostringstream str;
-  size_t index = x + y * image.Width();
-  float peak = image[index];
+  const size_t index = x + y * image.Width();
+  const float peak = image[index];
   str << FluxDensity::ToNiceString(peak) << " at " << x << "," << y;
   return str.str();
 }
