@@ -34,8 +34,10 @@ class GenericClean : public DeconvolutionAlgorithm {
   float _convolutionPadding;
   bool _useSubMinorOptimization;
 
+  // Scratch buffer should at least accomodate space for image.Size() floats
+  // and is only used to avoid unnecessary memory allocations.
   std::optional<float> findPeak(const aocommon::Image& image,
-                                aocommon::Image& scratch, size_t& x, size_t& y);
+                                float* scratch_buffer, size_t& x, size_t& y);
 
   static std::string peakDescription(const aocommon::Image& image, size_t x,
                                      size_t y);

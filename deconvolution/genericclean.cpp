@@ -36,7 +36,7 @@ float GenericClean::ExecuteMajorIteration(
   size_t componentX = 0;
   size_t componentY = 0;
   std::optional<float> maxValue =
-      findPeak(integrated, scratchA, componentX, componentY);
+      findPeak(integrated, scratchA.Data(), componentX, componentY);
   if (!maxValue) {
     _logReceiver->Info << "No peak found.\n";
     reachedMajorThreshold = false;
@@ -133,7 +133,7 @@ float GenericClean::ExecuteMajorIteration(
       }
 
       dirtySet.GetSquareIntegrated(integrated, scratchA);
-      maxValue = findPeak(integrated, scratchA, componentX, componentY);
+      maxValue = findPeak(integrated, scratchA.Data(), componentX, componentY);
 
       peakIndex = componentX + componentY * width;
 
@@ -181,17 +181,15 @@ std::string GenericClean::peakDescription(const aocommon::Image& image,
 }
 
 std::optional<float> GenericClean::findPeak(const aocommon::Image& image,
-                                            aocommon::Image& scratch, size_t& x,
+                                            float* scratch_buffer, size_t& x,
                                             size_t& y) {
   const float* actual_image = image.Data();
   if (!_rmsFactorImage.Empty()) {
-    // Don't copy-assign, since scratch.Size() >= image.Size()
-    // and scratch shouldn't be resized.
-    std::copy_n(image.Data(), image.Size(), scratch.Data());
+    std::copy_n(image.Data(), image.Size(), scratch_buffer);
     for (size_t i = 0; i != image.Size(); ++i) {
-      scratch[i] *= _rmsFactorImage[i];
+      scratch_buffer[i] *= _rmsFactorImage[i];
     }
-    actual_image = scratch.Data();
+    actual_image = scratch_buffer;
   }
 
   if (_cleanMask == nullptr)
