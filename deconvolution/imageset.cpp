@@ -19,13 +19,13 @@ namespace {
 void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
                     float factor) {
   const size_t image_size = lhs.Size();
+  assert(rhs.Size() >= image_size);
   for (size_t i = 0; i != image_size; ++i) lhs[i] = rhs[i] * factor;
 }
 
 void squareRootMultiply(aocommon::Image& image, float factor) {
-  const size_t image_size = image.Size();
-  for (size_t i = 0; i != image_size; ++i) {
-    image[i] = std::sqrt(image[i]) * factor;
+  for (float& val : image) {
+    val = std::sqrt(val) * factor;
   }
 }
 }  // namespace
