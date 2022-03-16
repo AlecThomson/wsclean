@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <vector>
+#include <cassert>
 
 #include "threadeddeconvolutiontools.h"
 
@@ -47,7 +48,10 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   }
   void SetMultiscaleScaleBias(float bias) { _multiscaleScaleBias = bias; }
   void SetMultiscaleGain(float gain) { _multiscaleGain = gain; }
-  void SetConvolutionPadding(float padding) { _convolutionPadding = padding; }
+  void SetConvolutionPadding(float padding) {
+    assert(padding >= 1.0);
+    _convolutionPadding = padding;
+  }
   void SetShape(MultiScaleTransforms::Shape shape) { _scaleShape = shape; }
   size_t ScaleCount() const { return _scaleInfos.size(); }
   void ClearComponentList() { _componentList.reset(); }

@@ -31,7 +31,7 @@ class GenericClean : public DeconvolutionAlgorithm {
  private:
   size_t _convolutionWidth;
   size_t _convolutionHeight;
-  float _convolutionPadding;
+  const float _convolutionPadding;
   bool _useSubMinorOptimization;
 
   // Scratch buffer should at least accomodate space for image.Size() floats
