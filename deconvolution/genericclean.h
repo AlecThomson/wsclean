@@ -39,9 +39,6 @@ class GenericClean : public DeconvolutionAlgorithm {
   std::optional<float> findPeak(const aocommon::Image& image,
                                 float* scratch_buffer, size_t& x, size_t& y);
 
-  static std::string peakDescription(const aocommon::Image& image, size_t x,
-                                     size_t y);
-
   class FFTWManager& _fftwManager;
 };
 

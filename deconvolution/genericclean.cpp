@@ -11,6 +11,16 @@
 
 using aocommon::units::FluxDensity;
 
+namespace {
+std::string peakDescription(const aocommon::Image& image, size_t x, size_t y) {
+  std::ostringstream str;
+  const size_t index = x + y * image.Width();
+  const float peak = image[index];
+  str << FluxDensity::ToNiceString(peak) << " at " << x << "," << y;
+  return str.str();
+}
+}  // namespace
+
 GenericClean::GenericClean(class FFTWManager& fftwManager,
                            bool useSubMinorOptimization)
     : _convolutionPadding(1.1),
@@ -169,15 +179,6 @@ float GenericClean::ExecuteMajorIteration(
     reachedMajorThreshold = false;
     return 0.0;
   }
-}
-
-std::string GenericClean::peakDescription(const aocommon::Image& image,
-                                          size_t x, size_t y) {
-  std::ostringstream str;
-  const size_t index = x + y * image.Width();
-  const float peak = image[index];
-  str << FluxDensity::ToNiceString(peak) << " at " << x << "," << y;
-  return str.str();
 }
 
 std::optional<float> GenericClean::findPeak(const aocommon::Image& image,

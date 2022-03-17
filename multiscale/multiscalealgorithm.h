@@ -1,9 +1,9 @@
 #ifndef MULTISCALE_ALGORITHM_H
 #define MULTISCALE_ALGORITHM_H
 
+#include <cassert>
 #include <cstring>
 #include <vector>
-#include <cassert>
 
 #include "threadeddeconvolutiontools.h"
 
