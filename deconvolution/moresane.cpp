@@ -5,9 +5,12 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
 
-#include "../math/fftconvolver.h"
+// #include "../math/fftconvolver.h"
+#include <schaapcommon/fft/fftconvolver.h>
 
 #include "../system/application.h"
+
+using schaapcommon::fft::FftConvolver;
 
 void MoreSane::ExecuteMajorIteration(float* residualData, float* modelData,
                                      const aocommon::Image& psfImage) {
@@ -16,9 +19,9 @@ void MoreSane::ExecuteMajorIteration(float* residualData, float* modelData,
   if (_iterationNumber != 0) {
     aocommon::Logger::Info << "Convolving model with psf...\n";
     aocommon::Image preparedPsf(width, height);
-    FFTConvolver::PrepareKernel(preparedPsf.Data(), psfImage.Data(), width,
+    FftConvolver::PrepareKernel(preparedPsf.Data(), psfImage.Data(), width,
                                 height, _threadCount);
-    FFTConvolver::ConvolveSameSize(_fftwManager, modelData, preparedPsf.Data(),
+    FftConvolver::ConvolveSameSize(_fftwManager, modelData, preparedPsf.Data(),
                                    width, height, _threadCount);
     aocommon::Logger::Info << "Adding model back to residual...\n";
     for (size_t i = 0; i != width * height; ++i)

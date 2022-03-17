@@ -7,14 +7,16 @@
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
+#include <schaapcommon/fft/fftwmanager.h>
+
 #include <vector>
 
 class MultiScaleTransforms {
  public:
   enum Shape { TaperedQuadraticShape, GaussianShape };
 
-  MultiScaleTransforms(class FFTWManager& fftwManager, size_t width,
-                       size_t height, Shape shape)
+  MultiScaleTransforms(schaapcommon::fft::FftwManager& fftwManager,
+                       size_t width, size_t height, Shape shape)
       : _fftwManager(fftwManager),
         _width(width),
         _height(height),
@@ -106,7 +108,7 @@ class MultiScaleTransforms {
   void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
  private:
-  class FFTWManager& _fftwManager;
+  schaapcommon::fft::FftwManager& _fftwManager;
   size_t _width, _height;
   enum Shape _shape;
   size_t _threadCount;

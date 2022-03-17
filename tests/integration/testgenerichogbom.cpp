@@ -1,4 +1,3 @@
-#include "fftwmanager.h"
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "wsclean/imagingtable.h"
@@ -8,6 +7,8 @@
 
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
+
+#include <schaapcommon/fft/fftwmanager>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
@@ -85,7 +86,7 @@ int main(int argc, char* argv[]) {
 
   modelSet = 0.0;
 
-  FFTWManager fftw;
+  schaapcommon::fft::FftwManager fftw;
   GenericClean clean(fftw, useClark);
 
   aocommon::UVector<const double*> psfVec(psfs.size());

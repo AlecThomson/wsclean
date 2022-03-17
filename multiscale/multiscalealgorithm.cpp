@@ -18,9 +18,9 @@ using aocommon::Image;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
-MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager,
-                                         double beamSize, double pixelScaleX,
-                                         double pixelScaleY)
+MultiScaleAlgorithm::MultiScaleAlgorithm(
+    schaapcommon::fft::FftwManager& fftwManager, double beamSize,
+    double pixelScaleX, double pixelScaleY)
     : _fftwManager(fftwManager),
       _convolutionPadding(1.1),
       _beamSizeInPixels(beamSize / std::max(pixelScaleX, pixelScaleY)),
