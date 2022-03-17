@@ -5,7 +5,6 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
 
-// #include "../math/fftconvolver.h"
 #include <schaapcommon/fft/fftconvolver.h>
 
 #include "../system/application.h"

@@ -6,8 +6,6 @@
 #include "../deconvolution/peakfinder.h"
 #include "../deconvolution/subminorloop.h"
 
-#include "../system/fftwmanager.h"
-
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>

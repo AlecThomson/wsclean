@@ -2,9 +2,6 @@
 
 #include "imageanalysis.h"
 
-// #include "../system/fftwmanager.h"
-
-#include "../math/fftconvolver.h"
 #include "../math/gaussianfitter.h"
 
 #include "../deconvolution/imageset.h"

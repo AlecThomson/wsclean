@@ -1,6 +1,5 @@
 #include "multiscaletransforms.h"
 
-// #include "../math/fftconvolver.h"
 #include <schaapcommon/fft/fftconvolver.h>
 
 using aocommon::Image;

@@ -1,4 +1,3 @@
-#include "fftwmanager.h"
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "stopwatch.h"

@@ -3,10 +3,6 @@
 
 #include "../model/model.h"
 
-// #include "../math/fftconvolver.h"
-
-// #include "../system/fftwmanager.h"
-
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
 

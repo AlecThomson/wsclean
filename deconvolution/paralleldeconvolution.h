@@ -1,8 +1,6 @@
 #ifndef PARALLEL_DECONVOLUTION_H
 #define PARALLEL_DECONVOLUTION_H
 
-// #include "../system/fftwmanager.h"
-
 #include "../structures/primarybeamimageset.h"
 
 #include "deconvolutionsettings.h"

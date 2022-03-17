@@ -3,7 +3,6 @@
 #include "../deconvolution/spectralfitter.h"
 #include "../deconvolution/componentlist.h"
 
-// #include "../math/fftconvolver.h"
 #include <schaapcommon/fft/fftconvolver.h>
 
 using aocommon::Image;
