@@ -292,7 +292,6 @@ add_library(
   iuwt/iuwtdecomposition.cpp
   iuwt/iuwtdeconvolutionalgorithm.cpp
   iuwt/iuwtmask.cpp
-  math/fftresampler.cpp
   math/gaussianfitter.cpp
   math/imageoperations.cpp
   math/modelrenderer.cpp

@@ -10,8 +10,6 @@
 #include <aocommon/units/fluxdensity.h>
 
 using aocommon::units::FluxDensity;
-using schaapcommon::fft::FftwManager;
-
 namespace {
 std::string peakDescription(const aocommon::Image& image, size_t x, size_t y) {
   std::ostringstream str;
@@ -22,7 +20,7 @@ std::string peakDescription(const aocommon::Image& image, size_t x, size_t y) {
 }
 }  // namespace
 
-GenericClean::GenericClean(FftwManager& fftwManager,
+GenericClean::GenericClean(schaapcommon::fft::Manager& fftwManager,
                            bool useSubMinorOptimization)
     : _convolutionPadding(1.1),
       _useSubMinorOptimization(useSubMinorOptimization),

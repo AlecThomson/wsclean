@@ -6,7 +6,7 @@
 #include "deconvolutionalgorithm.h"
 #include "imageset.h"
 
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/manager.h>
 
 class MoreSane : public DeconvolutionAlgorithm {
  public:
@@ -14,7 +14,7 @@ class MoreSane : public DeconvolutionAlgorithm {
            const std::string& moresaneArguments,
            const std::vector<double>& moresaneSigmaLevels,
            const std::string& prefixName,
-           schaapcommon::fft::FftwManager& fftwManager)
+           schaapcommon::fft::Manager& fftwManager)
       : _moresaneLocation(moreSaneLocation),
         _moresaneArguments(moresaneArguments),
         _moresaneSigmaLevels(moresaneSigmaLevels),
@@ -38,7 +38,7 @@ class MoreSane : public DeconvolutionAlgorithm {
   const std::vector<double> _moresaneSigmaLevels;
   const std::string _prefixName;
 
-  schaapcommon::fft::FftwManager& _fftwManager;
+  schaapcommon::fft::Manager& _fftwManager;
 };
 
 #endif

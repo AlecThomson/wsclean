@@ -17,7 +17,7 @@ using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
 MultiScaleAlgorithm::MultiScaleAlgorithm(
-    schaapcommon::fft::FftwManager& fftwManager, double beamSize,
+    schaapcommon::fft::Manager& fftwManager, double beamSize,
     double pixelScaleX, double pixelScaleY)
     : _fftwManager(fftwManager),
       _convolutionPadding(1.1),

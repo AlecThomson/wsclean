@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 
   modelSet = 0.0;
 
-  schaapcommon::fft::FftwManager fftw;
+  schaapcommon::fft::Manager fftw;
   GenericClean clean(fftw, useClark);
 
   aocommon::UVector<const double*> psfVec(psfs.size());

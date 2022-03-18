@@ -10,7 +10,7 @@
 #include <aocommon/uvector.h>
 #include <aocommon/cloned_ptr.h>
 
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/manager.h>
 
 #include "../deconvolution/componentlist.h"
 #include "../deconvolution/imageset.h"
@@ -22,8 +22,8 @@
 
 class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
  public:
-  MultiScaleAlgorithm(schaapcommon::fft::FftwManager& fftwManager,
-                      double beamSize, double pixelScaleX, double pixelScaleY);
+  MultiScaleAlgorithm(schaapcommon::fft::Manager& fftwManager, double beamSize,
+                      double pixelScaleX, double pixelScaleY);
   ~MultiScaleAlgorithm();
 
   std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
@@ -70,7 +70,7 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   void SetMaxScales(size_t maxScales) { _maxScales = maxScales; }
 
  private:
-  schaapcommon::fft::FftwManager& _fftwManager;
+  schaapcommon::fft::Manager& _fftwManager;
   float _convolutionPadding;
   double _beamSizeInPixels;
   float _multiscaleScaleBias;

@@ -15,7 +15,7 @@
 
 class IUWTDeconvolution : public DeconvolutionAlgorithm {
  public:
-  IUWTDeconvolution(schaapcommon::fft::FftwManager& fftwManager)
+  IUWTDeconvolution(schaapcommon::fft::Manager& fftwManager)
       : _fftwManager(fftwManager), _useSNRTest(false) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
@@ -39,7 +39,7 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   void SetUseSNRTest(bool useSNRTest) { _useSNRTest = useSNRTest; }
 
  private:
-  schaapcommon::fft::FftwManager& _fftwManager;
+  schaapcommon::fft::Manager& _fftwManager;
   bool _useSNRTest;
 };
 

@@ -7,7 +7,7 @@
 
 #include <aocommon/uvector.h>
 
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/manager.h>
 
 #include <optional>
 
@@ -19,7 +19,7 @@
  */
 class GenericClean : public DeconvolutionAlgorithm {
  public:
-  explicit GenericClean(schaapcommon::fft::FftwManager& fftwManager,
+  explicit GenericClean(schaapcommon::fft::Manager& fftwManager,
                         bool useSubMinorOptimization);
 
   float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
@@ -41,7 +41,7 @@ class GenericClean : public DeconvolutionAlgorithm {
   std::optional<float> findPeak(const aocommon::Image& image,
                                 float* scratch_buffer, size_t& x, size_t& y);
 
-  schaapcommon::fft::FftwManager& _fftwManager;
+  schaapcommon::fft::Manager& _fftwManager;
 };
 
 #endif

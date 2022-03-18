@@ -6,8 +6,8 @@
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
 
-#include <schaapcommon/fft/fftconvolver.h>
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/convolver.h>
+#include <schaapcommon/fft/manager.h>
 
 #include <cmath>
 
@@ -248,8 +248,8 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
-    schaapcommon::fft::FftwManager fftw;
-    schaapcommon::fft::FftConvolver::Convolve(
+    schaapcommon::fft::Manager fftw;
+    schaapcommon::fft::Convolver::Convolve(
         fftw, convolvedModel.data(), imageWidth, imageHeight, kernel.data(),
         boundingBoxSize, threadCount);
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {

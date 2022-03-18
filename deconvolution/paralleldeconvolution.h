@@ -9,7 +9,7 @@
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/manager.h>
 
 #include <memory>
 #include <mutex>
@@ -64,7 +64,7 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  schaapcommon::fft::FftwManager& GetFFTWManager() { return _fftwManager; }
+  schaapcommon::fft::Manager& GetFFTWManager() { return _fftwManager; }
 
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
@@ -88,7 +88,7 @@ class ParallelDeconvolution {
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex& mutex);
 
-  schaapcommon::fft::FftwManager _fftwManager;
+  schaapcommon::fft::Manager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   SubImageLogSet _logs;
   size_t _horImages;

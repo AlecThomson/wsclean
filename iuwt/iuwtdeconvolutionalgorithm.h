@@ -5,7 +5,7 @@
 #include <aocommon/uvector.h>
 #include <aocommon/fits/fitswriter.h>
 
-#include <schaapcommon/fft/fftwmanager.h>
+#include <schaapcommon/fft/manager.h>
 
 #include "iuwtdecomposition.h"
 #include "imageanalysis.h"
@@ -20,7 +20,7 @@ using Image = ImageBase<float>;
 
 class IUWTDeconvolutionAlgorithm {
  public:
-  IUWTDeconvolutionAlgorithm(schaapcommon::fft::FftwManager& fftwManager,
+  IUWTDeconvolutionAlgorithm(schaapcommon::fft::Manager& fftwManager,
                              size_t width, size_t height, float gain,
                              float mGain, float cleanBorder,
                              bool allowNegativeComponents, const bool* mask,
@@ -181,7 +181,7 @@ class IUWTDeconvolutionAlgorithm {
     return data[_width / 2 + (_height / 2) * _width];
   }
 
-  schaapcommon::fft::FftwManager& _fftwManager;
+  schaapcommon::fft::Manager& _fftwManager;
   size_t _width, _height;
   size_t _curBoxXStart, _curBoxXEnd;
   size_t _curBoxYStart, _curBoxYEnd;
