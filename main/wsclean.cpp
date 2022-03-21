@@ -1764,7 +1764,7 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   schaapcommon::fft::Resampler fft(
       _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-      _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1, true);
+      _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
   fft.SingleFT(image.Data(), realUV.Data(), imagUV.Data());
   // Factors of 2 involved: because of SingleFT()
   // (also one from the fact that normF excludes a factor of two?)

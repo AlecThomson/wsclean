@@ -3,7 +3,7 @@
 #include "../deconvolution/spectralfitter.h"
 #include "../deconvolution/componentlist.h"
 
-#include <schaapcommon/fft/convolver.h>
+#include <schaapcommon/fft/convolution.h>
 
 using aocommon::Image;
 
@@ -183,7 +183,7 @@ void SubMinorLoop::CorrectResidualDirty(schaapcommon::fft::Manager& fftw,
   // Get padded kernel in scratchB
   Image::Untrim(scratchA, _paddedWidth, _paddedHeight, singleConvolvedPsf,
                 _width, _height);
-  schaapcommon::fft::Convolver::PrepareKernel(scratchB, scratchA, _paddedWidth,
+  schaapcommon::fft::PrepareConvolutionKernel(scratchB, scratchA, _paddedWidth,
                                               _paddedHeight, _threadCount);
 
   // Get padded model image in scratchA
@@ -192,8 +192,8 @@ void SubMinorLoop::CorrectResidualDirty(schaapcommon::fft::Manager& fftw,
                 _height);
 
   // Convolve and store in scratchA
-  schaapcommon::fft::Convolver::ConvolveSameSize(
-      fftw, scratchA, scratchB, _paddedWidth, _paddedHeight, _threadCount);
+  schaapcommon::fft::Convolve(fftw, scratchA, scratchB, _paddedWidth,
+                              _paddedHeight, _threadCount);
 
   // Trim the result into scratchC
   Image::Trim(scratchC, _width, _height, scratchA, _paddedWidth, _paddedHeight);

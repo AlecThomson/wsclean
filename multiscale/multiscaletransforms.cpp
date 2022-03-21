@@ -1,6 +1,6 @@
 #include "multiscaletransforms.h"
 
-#include <schaapcommon/fft/convolver.h>
+#include <schaapcommon/fft/convolution.h>
 
 using aocommon::Image;
 
@@ -11,12 +11,11 @@ void MultiScaleTransforms::Transform(std::vector<Image>& images, Image& scratch,
 
   scratch = 0.0;
 
-  schaapcommon::fft::Convolver::PrepareSmallKernel(
+  schaapcommon::fft::PrepareSmallConvolutionKernel(
       scratch.Data(), _width, _height, shape.Data(), kernelSize, _threadCount);
   for (Image& image : images)
-    schaapcommon::fft::Convolver::ConvolveSameSize(_fftwManager, image.Data(),
-                                                   scratch.Data(), _width,
-                                                   _height, _threadCount);
+    schaapcommon::fft::Convolve(_fftwManager, image.Data(), scratch.Data(),
+                                _width, _height, _threadCount);
 }
 
 void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
@@ -25,11 +24,11 @@ void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
 
   std::fill_n(kernel, _width * _height, 0.0);
 
-  schaapcommon::fft::Convolver::PrepareSmallKernel(
+  schaapcommon::fft::PrepareSmallConvolutionKernel(
       kernel, _width, _height, shape.Data(), kernelSize, _threadCount);
 }
 
 void MultiScaleTransforms::FinishTransform(float* image, const float* kernel) {
-  schaapcommon::fft::Convolver::ConvolveSameSize(_fftwManager, image, kernel,
-                                                 _width, _height, _threadCount);
+  schaapcommon::fft::Convolve(_fftwManager, image, kernel, _width, _height,
+                              _threadCount);
 }

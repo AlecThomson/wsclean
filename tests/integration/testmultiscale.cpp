@@ -99,13 +99,13 @@ int main(int argc, char* argv[]) {
           for(size_t i=0; i!=freqCount; ++i)
           {
                   aocommon::UVector<double> psfKernel(psfs[0].size());
-                  schaapcommon::fft::Convolver::PrepareKernel(psfKernel.data(),
+                  schaapcommon::fft::PrepareConvolutionKernel(psfKernel.data(),
   psfs[i].data(), width, height);
 
                   // Calculate: residual = dirty - model (x) psf
                   aocommon::UVector<double> tmp(modelSet[i],
   modelSet[i]+width*height);
-  schaapcommon::fft::Convolver::ConvolveSameSize(tmp.data(),
+  schaapcommon::fft::Convolve(tmp.data(),
   psfKernel.data(), width, height);
 
                   // residual = residual - scratch
