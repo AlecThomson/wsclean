@@ -2,6 +2,7 @@
 #define SUB_MINOR_LOOP_H
 
 #include <cstring>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -9,8 +10,6 @@
 
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
-
-#include <schaapcommon/fft/manager.h>
 
 /**
  * In multi-scale, a subminor optimized loop looks like this:
@@ -173,9 +172,8 @@ class SubMinorLoop {
    * (_untrimmedWidth x _untrimmedHeight). scratchC only needs to store the
    * trimmed size (_width x _height).
    */
-  void CorrectResidualDirty(schaapcommon::fft::Manager& fftw, float* scratchA,
-                            float* scratchB, float* scratchC, size_t imageIndex,
-                            float* residual,
+  void CorrectResidualDirty(std::mutex& fftw, float* scratchA, float* scratchB,
+                            float* scratchC, size_t imageIndex, float* residual,
                             const float* singleConvolvedPsf) const;
 
   void GetFullIndividualModel(size_t imageIndex,

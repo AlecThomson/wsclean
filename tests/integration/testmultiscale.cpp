@@ -7,7 +7,7 @@
 
 #include <aocommon/fits/fitsreader.h>
 
-#include <schaapcommon/fft/manager.h>
+#include <mutex>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
@@ -90,8 +90,7 @@ int main(int argc, char* argv[]) {
     modelSet = 0.0;
   }
 
-  schaapcommon::fft::Manager fftwManager;
-  MultiScaleAlgorithm multiscale(fftwManager, beamSize, pixelScaleX,
+  MultiScaleAlgorithm multiscale(convolutionMutex, beamSize, pixelScaleX,
                                  pixelScaleY);
 
   /*if(hasInitialModel)

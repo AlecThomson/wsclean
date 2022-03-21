@@ -15,14 +15,14 @@
 
 class IUWTDeconvolution : public DeconvolutionAlgorithm {
  public:
-  IUWTDeconvolution(schaapcommon::fft::Manager& fftwManager)
-      : _fftwManager(fftwManager), _useSNRTest(false) {}
+  IUWTDeconvolution(std::mutex& convolutionMutex)
+      : _convolutionMutex(convolutionMutex), _useSNRTest(false) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
                               bool& reachedMajorThreshold) final override {
     IUWTDeconvolutionAlgorithm algorithm(
-        _fftwManager, dataImage.Width(), dataImage.Height(), _gain, _mGain,
+        _convolutionMutex, dataImage.Width(), dataImage.Height(), _gain, _mGain,
         _cleanBorderRatio, _allowNegativeComponents, _cleanMask, _threshold,
         _useSNRTest);
     float val = algorithm.PerformMajorIteration(
@@ -39,7 +39,7 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   void SetUseSNRTest(bool useSNRTest) { _useSNRTest = useSNRTest; }
 
  private:
-  schaapcommon::fft::Manager& _fftwManager;
+  std::mutex& _convolutionMutex;
   bool _useSNRTest;
 };
 

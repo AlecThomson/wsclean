@@ -6,20 +6,19 @@
 #include "deconvolutionalgorithm.h"
 #include "imageset.h"
 
-#include <schaapcommon/fft/manager.h>
+#include <mutex>
 
 class MoreSane : public DeconvolutionAlgorithm {
  public:
   MoreSane(const std::string& moreSaneLocation,
            const std::string& moresaneArguments,
            const std::vector<double>& moresaneSigmaLevels,
-           const std::string& prefixName,
-           schaapcommon::fft::Manager& fftwManager)
+           const std::string& prefixName, std::mutex& convolutionMutex)
       : _moresaneLocation(moreSaneLocation),
         _moresaneArguments(moresaneArguments),
         _moresaneSigmaLevels(moresaneSigmaLevels),
         _prefixName(prefixName),
-        _fftwManager(fftwManager) {}
+        _convolutionMutex(convolutionMutex) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
@@ -38,7 +37,7 @@ class MoreSane : public DeconvolutionAlgorithm {
   const std::vector<double> _moresaneSigmaLevels;
   const std::string _prefixName;
 
-  schaapcommon::fft::Manager& _fftwManager;
+  std::mutex& _convolutionMutex;
 };
 
 #endif

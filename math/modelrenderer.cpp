@@ -7,9 +7,9 @@
 #include <aocommon/uvector.h>
 
 #include <schaapcommon/fft/convolution.h>
-#include <schaapcommon/fft/manager.h>
 
 #include <cmath>
+#include <mutex>
 
 #include <boost/algorithm/clamp.hpp>
 
@@ -248,10 +248,10 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
-    schaapcommon::fft::Manager fftw;
-    schaapcommon::fft::ResizeAndConvolve(fftw, convolvedModel.data(),
-                                         imageWidth, imageHeight, kernel.data(),
-                                         boundingBoxSize, threadCount);
+    std::mutex convolutionMutex;
+    schaapcommon::fft::ResizeAndConvolve(
+        convolutionMutex, convolvedModel.data(), imageWidth, imageHeight,
+        kernel.data(), boundingBoxSize, threadCount);
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += convolvedModel[j];
     }

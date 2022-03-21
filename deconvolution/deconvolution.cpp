@@ -202,15 +202,15 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     algorithm.reset(
         new MoreSane(_settings.moreSaneLocation, _settings.moreSaneArgs,
                      _settings.moreSaneSigmaLevels, _settings.prefixName,
-                     _parallelDeconvolution.GetFFTWManager()));
+                     _parallelDeconvolution.GetConvolutionMutex()));
   } else if (_settings.useIUWTDeconvolution) {
     IUWTDeconvolution* method =
-        new IUWTDeconvolution(_parallelDeconvolution.GetFFTWManager());
+        new IUWTDeconvolution(_parallelDeconvolution.GetConvolutionMutex());
     method->SetUseSNRTest(_settings.iuwtSNRTest);
     algorithm.reset(method);
   } else if (_settings.useMultiscale) {
     MultiScaleAlgorithm* msAlgorithm =
-        new MultiScaleAlgorithm(_parallelDeconvolution.GetFFTWManager(),
+        new MultiScaleAlgorithm(_parallelDeconvolution.GetConvolutionMutex(),
                                 beamSize, _pixelScaleX, _pixelScaleY);
     msAlgorithm->SetManualScaleList(_settings.multiscaleScaleList);
     msAlgorithm->SetMultiscaleScaleBias(
@@ -223,8 +223,9 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     msAlgorithm->SetUseFastSubMinorLoop(_settings.multiscaleFastSubMinorLoop);
     algorithm.reset(msAlgorithm);
   } else {
-    algorithm.reset(new GenericClean(_parallelDeconvolution.GetFFTWManager(),
-                                     _settings.useSubMinorOptimization));
+    algorithm.reset(
+        new GenericClean(_parallelDeconvolution.GetConvolutionMutex(),
+                         _settings.useSubMinorOptimization));
   }
 
   algorithm->SetMaxNIter(_settings.deconvolutionIterationCount);

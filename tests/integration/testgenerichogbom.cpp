@@ -8,7 +8,7 @@
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 
-#include <schaapcommon/fft/fftwmanager>
+#include <mutex>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
@@ -86,8 +86,8 @@ int main(int argc, char* argv[]) {
 
   modelSet = 0.0;
 
-  schaapcommon::fft::Manager fftw;
-  GenericClean clean(fftw, useClark);
+  std::mutex convolutionMutex;
+  GenericClean clean(convolutionMutex, useClark);
 
   aocommon::UVector<const double*> psfVec(psfs.size());
   for (size_t i = 0; i != psfs.size(); ++i) psfVec[i] = psfs[i].data();

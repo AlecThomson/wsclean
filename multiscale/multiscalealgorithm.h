@@ -3,14 +3,13 @@
 
 #include <cassert>
 #include <cstring>
+#include <mutex>
 #include <vector>
 
 #include "threadeddeconvolutiontools.h"
 
 #include <aocommon/uvector.h>
 #include <aocommon/cloned_ptr.h>
-
-#include <schaapcommon/fft/manager.h>
 
 #include "../deconvolution/componentlist.h"
 #include "../deconvolution/imageset.h"
@@ -22,7 +21,7 @@
 
 class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
  public:
-  MultiScaleAlgorithm(schaapcommon::fft::Manager& fftwManager, double beamSize,
+  MultiScaleAlgorithm(std::mutex& convolutionMutex, double beamSize,
                       double pixelScaleX, double pixelScaleY);
   ~MultiScaleAlgorithm();
 
@@ -70,7 +69,7 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   void SetMaxScales(size_t maxScales) { _maxScales = maxScales; }
 
  private:
-  schaapcommon::fft::Manager& _fftwManager;
+  std::mutex& _convolutionMutex;
   float _convolutionPadding;
   double _beamSizeInPixels;
   float _multiscaleScaleBias;

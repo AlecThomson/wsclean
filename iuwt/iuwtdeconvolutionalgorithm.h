@@ -5,11 +5,10 @@
 #include <aocommon/uvector.h>
 #include <aocommon/fits/fitswriter.h>
 
-#include <schaapcommon/fft/manager.h>
-
 #include "iuwtdecomposition.h"
 #include "imageanalysis.h"
 
+#include <mutex>
 #include <vector>
 
 namespace aocommon {
@@ -20,11 +19,10 @@ using Image = ImageBase<float>;
 
 class IUWTDeconvolutionAlgorithm {
  public:
-  IUWTDeconvolutionAlgorithm(schaapcommon::fft::Manager& fftwManager,
-                             size_t width, size_t height, float gain,
-                             float mGain, float cleanBorder,
-                             bool allowNegativeComponents, const bool* mask,
-                             float absoluteThreshold,
+  IUWTDeconvolutionAlgorithm(std::mutex& convolutionMutex, size_t width,
+                             size_t height, float gain, float mGain,
+                             float cleanBorder, bool allowNegativeComponents,
+                             const bool* mask, float absoluteThreshold,
                              float thresholdSigmaLevel = 4.0,
                              float tolerance = 0.75, bool useSNRTest = true);
 
@@ -181,7 +179,7 @@ class IUWTDeconvolutionAlgorithm {
     return data[_width / 2 + (_height / 2) * _width];
   }
 
-  schaapcommon::fft::Manager& _fftwManager;
+  std::mutex& _convolutionMutex;
   size_t _width, _height;
   size_t _curBoxXStart, _curBoxXEnd;
   size_t _curBoxYStart, _curBoxYEnd;
