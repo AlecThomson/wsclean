@@ -189,7 +189,6 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
     loop.Run(0, Height(), [&](size_t yStart, size_t yEnd) {
       aocommon::UVector<float> spectralPixel(NDeconvolutionChannels());
       std::vector<float> termsPixel;
-      termsPixel.reserve(nTerms);
       for (size_t y = yStart; y != yEnd; ++y) {
         size_t px = y * Width();
         for (size_t x = 0; x != Width(); ++x) {
@@ -220,7 +219,6 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
       double freq = e.CentralFrequency();
       loop.Run(0, Width() * Height(), [&](size_t pxStart, size_t pxEnd) {
         std::vector<float> termsPixel;
-        termsPixel.reserve(nTerms);
         for (size_t px = pxStart; px != pxEnd; ++px) {
           const float* termsPtr = &termsImage[px * nTerms];
           termsPixel.assign(termsPtr, termsPtr + nTerms);
