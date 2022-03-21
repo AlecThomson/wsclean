@@ -31,8 +31,8 @@ class SpectralFitter {
    *
    * @param [out] terms will hold the fitted terms. The meaning of these terms
    * depends on the fitted curve type, and are relative to the reference
-   * frequency. Using an output argument instead of a return value avoids memory
-   * allocations in this performance-critical function.
+   * frequency. Using a pre-allocated vector instead of a return value avoids
+   * memory allocations in this performance-critical function.
    * @param values array of size @ref NFrequencies() with the values to be
    * fitted. values[i] should correspond Frequency(i) and Weight(i).
    * @param x a pixel index giving the horizontal position

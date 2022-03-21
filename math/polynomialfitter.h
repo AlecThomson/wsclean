@@ -16,8 +16,8 @@ class PolynomialFitter {
 
   /**
    * @param [out] terms The resulting terms.
-   * Using an output argument instead of a return value avoids memory
-   * allocations in this performance-critical function.
+   * Using a pre-allocated vector instead of a return value avoids
+   * memory allocations in this performance-critical function.
    */
   void Fit(std::vector<num_t>& terms, size_t nTerms);
 
