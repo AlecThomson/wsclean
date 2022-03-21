@@ -16,7 +16,6 @@ inline void WriteHeaderForSpectralTerms(std::ostream& stream,
          << reference_frequency << "', MajorAxis, MinorAxis, Orientation\n";
 }
 
-namespace {
 inline void AddSiTerms(std::ostream& stream,
                        const std::vector<float>& si_terms) {
   stream << si_terms.front() << ",[";
@@ -28,7 +27,6 @@ inline void AddSiTerms(std::ostream& stream,
   }
   stream << ']';
 }
-}  // namespace
 
 inline void WritePolynomialPointComponent(
     std::ostream& stream, const std::string& name, long double ra,
