@@ -248,10 +248,10 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
-    std::mutex convolutionMutex;
-    schaapcommon::fft::ResizeAndConvolve(
-        convolutionMutex, convolvedModel.data(), imageWidth, imageHeight,
-        kernel.data(), boundingBoxSize, threadCount);
+    schaapcommon::fft::MakeFftwfPlannerThreadSafe();
+    schaapcommon::fft::ResizeAndConvolve(convolvedModel.data(), imageWidth,
+                                         imageHeight, kernel.data(),
+                                         boundingBoxSize, threadCount);
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += convolvedModel[j];
     }

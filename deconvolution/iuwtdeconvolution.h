@@ -15,16 +15,14 @@
 
 class IUWTDeconvolution : public DeconvolutionAlgorithm {
  public:
-  IUWTDeconvolution(std::mutex& convolutionMutex)
-      : _convolutionMutex(convolutionMutex), _useSNRTest(false) {}
+  IUWTDeconvolution() : _useSNRTest(false) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
                               bool& reachedMajorThreshold) final override {
     IUWTDeconvolutionAlgorithm algorithm(
-        _convolutionMutex, dataImage.Width(), dataImage.Height(), _gain, _mGain,
-        _cleanBorderRatio, _allowNegativeComponents, _cleanMask, _threshold,
-        _useSNRTest);
+        dataImage.Width(), dataImage.Height(), _gain, _mGain, _cleanBorderRatio,
+        _allowNegativeComponents, _cleanMask, _threshold, _useSNRTest);
     float val = algorithm.PerformMajorIteration(
         _iterationNumber, MaxNIter(), modelImage, dataImage, psfImages,
         reachedMajorThreshold);
@@ -39,7 +37,6 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   void SetUseSNRTest(bool useSNRTest) { _useSNRTest = useSNRTest; }
 
  private:
-  std::mutex& _convolutionMutex;
   bool _useSNRTest;
 };
 

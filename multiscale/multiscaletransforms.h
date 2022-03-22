@@ -7,20 +7,14 @@
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
-#include <mutex>
 #include <vector>
 
 class MultiScaleTransforms {
  public:
   enum Shape { TaperedQuadraticShape, GaussianShape };
 
-  MultiScaleTransforms(std::mutex& convolutionMutex, size_t width,
-                       size_t height, Shape shape)
-      : _convolutionMutex(convolutionMutex),
-        _width(width),
-        _height(height),
-        _shape(shape),
-        _threadCount(1) {}
+  MultiScaleTransforms(size_t width, size_t height, Shape shape)
+      : _width(width), _height(height), _shape(shape), _threadCount(1) {}
 
   void PrepareTransform(float* kernel, float scale);
   void FinishTransform(float* image, const float* kernel);
@@ -107,7 +101,6 @@ class MultiScaleTransforms {
   void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
  private:
-  std::mutex& _convolutionMutex;
   size_t _width, _height;
   enum Shape _shape;
   size_t _threadCount;

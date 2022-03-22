@@ -20,11 +20,9 @@ std::string peakDescription(const aocommon::Image& image, size_t x, size_t y) {
 }
 }  // namespace
 
-GenericClean::GenericClean(std::mutex& convolutionMutex,
-                           bool useSubMinorOptimization)
+GenericClean::GenericClean(bool useSubMinorOptimization)
     : _convolutionPadding(1.1),
-      _useSubMinorOptimization(useSubMinorOptimization),
-      _convolutionMutex(convolutionMutex) {}
+      _useSubMinorOptimization(useSubMinorOptimization) {}
 
 float GenericClean::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
@@ -98,9 +96,9 @@ float GenericClean::ExecuteMajorIteration(
     for (size_t imageIndex = 0; imageIndex != dirtySet.size(); ++imageIndex) {
       // TODO this can be multi-threaded if each thread has its own temporaries
       const aocommon::Image& psf = psfs[dirtySet.PSFIndex(imageIndex)];
-      subMinorLoop.CorrectResidualDirty(
-          _convolutionMutex, scratchA.Data(), scratchB.Data(),
-          integrated.Data(), imageIndex, dirtySet.Data(imageIndex), psf.Data());
+      subMinorLoop.CorrectResidualDirty(scratchA.Data(), scratchB.Data(),
+                                        integrated.Data(), imageIndex,
+                                        dirtySet.Data(imageIndex), psf.Data());
 
       subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.Data());
       float* model = modelSet.Data(imageIndex);

@@ -175,8 +175,7 @@ void SubMinorLoop::GetFullIndividualModel(size_t imageIndex,
   }
 }
 
-void SubMinorLoop::CorrectResidualDirty(std::mutex& convolution_mutex,
-                                        float* scratchA, float* scratchB,
+void SubMinorLoop::CorrectResidualDirty(float* scratchA, float* scratchB,
                                         float* scratchC, size_t imageIndex,
                                         float* residual,
                                         const float* singleConvolvedPsf) const {
@@ -192,8 +191,8 @@ void SubMinorLoop::CorrectResidualDirty(std::mutex& convolution_mutex,
                 _height);
 
   // Convolve and store in scratchA
-  schaapcommon::fft::Convolve(convolution_mutex, scratchA, scratchB,
-                              _paddedWidth, _paddedHeight, _threadCount);
+  schaapcommon::fft::Convolve(scratchA, scratchB, _paddedWidth, _paddedHeight,
+                              _threadCount);
 
   // Trim the result into scratchC
   Image::Trim(scratchC, _width, _height, scratchA, _paddedWidth, _paddedHeight);

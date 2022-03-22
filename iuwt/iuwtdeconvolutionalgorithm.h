@@ -19,10 +19,10 @@ using Image = ImageBase<float>;
 
 class IUWTDeconvolutionAlgorithm {
  public:
-  IUWTDeconvolutionAlgorithm(std::mutex& convolutionMutex, size_t width,
-                             size_t height, float gain, float mGain,
-                             float cleanBorder, bool allowNegativeComponents,
-                             const bool* mask, float absoluteThreshold,
+  IUWTDeconvolutionAlgorithm(size_t width, size_t height, float gain,
+                             float mGain, float cleanBorder,
+                             bool allowNegativeComponents, const bool* mask,
+                             float absoluteThreshold,
                              float thresholdSigmaLevel = 4.0,
                              float tolerance = 0.75, bool useSNRTest = true);
 
@@ -179,7 +179,6 @@ class IUWTDeconvolutionAlgorithm {
     return data[_width / 2 + (_height / 2) * _width];
   }
 
-  std::mutex& _convolutionMutex;
   size_t _width, _height;
   size_t _curBoxXStart, _curBoxXEnd;
   size_t _curBoxYStart, _curBoxYEnd;

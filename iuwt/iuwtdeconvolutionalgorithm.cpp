@@ -19,12 +19,10 @@
 using aocommon::Image;
 
 IUWTDeconvolutionAlgorithm::IUWTDeconvolutionAlgorithm(
-    std::mutex& convolutionMutex, size_t width, size_t height, float gain,
-    float mGain, float cleanBorder, bool allowNegativeComponents,
-    const bool* mask, float absoluteThreshold, float thresholdSigmaLevel,
-    float tolerance, bool useSNRTest)
-    : _convolutionMutex(convolutionMutex),
-      _width(width),
+    size_t width, size_t height, float gain, float mGain, float cleanBorder,
+    bool allowNegativeComponents, const bool* mask, float absoluteThreshold,
+    float thresholdSigmaLevel, float tolerance, bool useSNRTest)
+    : _width(width),
       _height(height),
       _gain(gain),
       _mGain(mGain),
@@ -369,8 +367,7 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
   for (size_t minorIter = 0; minorIter != 20; ++minorIter) {
     // scratch = gradient (x) psf
     scratch = gradient;
-    schaapcommon::fft::Convolve(_convolutionMutex, scratch.Data(),
-                                psfKernel.Data(), width, height,
+    schaapcommon::fft::Convolve(scratch.Data(), psfKernel.Data(), width, height,
                                 _staticFor->NThreads());
 
     // calc: IUWT gradient (x) psf
@@ -414,8 +411,7 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
 
     // scratch = mask IUWT PSF (x) model
     scratch = structureModel;
-    schaapcommon::fft::Convolve(_convolutionMutex, scratch.Data(),
-                                psfKernel.Data(), width, height,
+    schaapcommon::fft::Convolve(scratch.Data(), psfKernel.Data(), width, height,
                                 _staticFor->NThreads());
     iuwt.Decompose(*_staticFor, scratch.Data(), scratch.Data(), false);
     iuwt.ApplyMask(mask);
@@ -641,8 +637,7 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 
     float rmsBefore = rms(dirty);
     scratch = structureModel;
-    schaapcommon::fft::Convolve(_convolutionMutex, scratch.Data(),
-                                psfKernel.Data(), width, height,
+    schaapcommon::fft::Convolve(scratch.Data(), psfKernel.Data(), width, height,
                                 _staticFor->NThreads());
     maskedDirty = dirty;  // we use maskedDirty as temporary
     factorAdd(maskedDirty.Data(), scratch.Data(), -_gain, width, height);
@@ -817,8 +812,8 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
     size_t yOffset) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   // Calculate IUWT^-1 mask IUWT model (x) PSF
-  schaapcommon::fft::Convolve(_convolutionMutex, model.Data(), psfKernel.Data(),
-                              width, height, _staticFor->NThreads());
+  schaapcommon::fft::Convolve(model.Data(), psfKernel.Data(), width, height,
+                              _staticFor->NThreads());
   iuwt.Decompose(*_staticFor, model.Data(), model.Data(), false);
   iuwt.ApplyMask(mask);
   iuwt.Recompose(model, false);
@@ -873,9 +868,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     Image convolvedPSF(psf);
     Image scratch(_width, _height);
 
-    schaapcommon::fft::Convolve(_convolutionMutex, convolvedPSF.Data(),
-                                psfKernel.Data(), _width, _height,
-                                static_for.NThreads());
+    schaapcommon::fft::Convolve(convolvedPSF.Data(), psfKernel.Data(), _width,
+                                _height, static_for.NThreads());
     measureRMSPerScale(psf.Data(), convolvedPSF.Data(), scratch.Data(),
                        maxScale, _psfResponse);
   }
@@ -913,9 +907,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
         schaapcommon::fft::PrepareConvolutionKernel(
             psfKernel.Data(), psfs[psfIndex].Data(), _width, _height,
             static_for.NThreads());
-        schaapcommon::fft::Convolve(_convolutionMutex, scratch.Data(),
-                                    psfKernel.Data(), _width, _height,
-                                    static_for.NThreads());
+        schaapcommon::fft::Convolve(scratch.Data(), psfKernel.Data(), _width,
+                                    _height, static_for.NThreads());
         Subtract(dirtySet.Data(i), scratch);
       }
       dirtySet.GetLinearIntegrated(dirty);

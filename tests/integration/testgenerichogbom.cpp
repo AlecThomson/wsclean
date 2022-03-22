@@ -86,8 +86,7 @@ int main(int argc, char* argv[]) {
 
   modelSet = 0.0;
 
-  std::mutex convolutionMutex;
-  GenericClean clean(convolutionMutex, useClark);
+  GenericClean clean(useClark);
 
   aocommon::UVector<const double*> psfVec(psfs.size());
   for (size_t i = 0; i != psfs.size(); ++i) psfVec[i] = psfs[i].data();

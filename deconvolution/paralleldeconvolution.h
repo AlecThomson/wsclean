@@ -62,8 +62,6 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  std::mutex& GetConvolutionMutex() { return _convolutionMutex; }
-
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
                           const std::vector<aocommon::Image>& psfImages,
@@ -86,7 +84,6 @@ class ParallelDeconvolution {
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex& mutex);
 
-  std::mutex _convolutionMutex;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   SubImageLogSet _logs;
   size_t _horImages;

@@ -90,8 +90,7 @@ int main(int argc, char* argv[]) {
     modelSet = 0.0;
   }
 
-  MultiScaleAlgorithm multiscale(convolutionMutex, beamSize, pixelScaleX,
-                                 pixelScaleY);
+  MultiScaleAlgorithm multiscale(beamSize, pixelScaleX, pixelScaleY);
 
   /*if(hasInitialModel)
   {

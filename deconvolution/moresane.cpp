@@ -18,8 +18,7 @@ void MoreSane::ExecuteMajorIteration(float* residualData, float* modelData,
     aocommon::Image preparedPsf(width, height);
     schaapcommon::fft::PrepareConvolutionKernel(
         preparedPsf.Data(), psfImage.Data(), width, height, _threadCount);
-    schaapcommon::fft::Convolve(_convolutionMutex, modelData,
-                                preparedPsf.Data(), width, height,
+    schaapcommon::fft::Convolve(modelData, preparedPsf.Data(), width, height,
                                 _threadCount);
     aocommon::Logger::Info << "Adding model back to residual...\n";
     for (size_t i = 0; i != width * height; ++i)
