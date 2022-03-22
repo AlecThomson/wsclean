@@ -9,7 +9,6 @@
 #include <schaapcommon/fft/convolution.h>
 
 #include <cmath>
-#include <mutex>
 
 #include <boost/algorithm/clamp.hpp>
 
@@ -248,7 +247,6 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
-    schaapcommon::fft::MakeFftwfPlannerThreadSafe();
     schaapcommon::fft::ResizeAndConvolve(convolvedModel.data(), imageWidth,
                                          imageHeight, kernel.data(),
                                          boundingBoxSize, threadCount);

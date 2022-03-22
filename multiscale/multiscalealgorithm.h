@@ -3,7 +3,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <mutex>
 #include <vector>
 
 #include "threadeddeconvolutiontools.h"

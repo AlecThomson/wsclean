@@ -8,7 +8,6 @@
 #include "iuwtdecomposition.h"
 #include "imageanalysis.h"
 
-#include <mutex>
 #include <vector>
 
 namespace aocommon {

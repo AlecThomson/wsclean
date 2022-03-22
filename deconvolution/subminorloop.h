@@ -2,7 +2,6 @@
 #define SUB_MINOR_LOOP_H
 
 #include <cstring>
-#include <mutex>
 #include <optional>
 #include <vector>
 

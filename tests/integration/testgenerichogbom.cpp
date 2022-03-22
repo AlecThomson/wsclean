@@ -8,8 +8,6 @@
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 
-#include <mutex>
-
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
     std::cout << "Syntax: testgenerichogbom [-no-clark] <freqcount> <niter> "
