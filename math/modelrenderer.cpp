@@ -1,8 +1,6 @@
 
 #include "modelrenderer.h"
 
-#include "../model/model.h"
-
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
 
@@ -15,11 +13,16 @@
 using aocommon::ImageCoordinates;
 using boost::algorithm::clamp;
 
-template <typename T>
-T ModelRenderer::gaus(T x, T sigma) {
-  long double xi = x / sigma;
-  return exp(T(-0.5) * xi * xi);  // / (sigma * sqrt(T(2.0) * M_PIl));
+namespace {
+long double Gaussian(long double x, long double sigma) {
+  const long double xi = x / sigma;
+  // TODO: ask Andre: why is the second part not evaluated? Current formulation
+  // doesn't entirely match definition of a Gaussian.
+  return std::exp(
+      static_cast<long double>(-0.5) * xi *
+      xi);  // / (sigma * sqrt(static_cast<long double>(2.0) * M_PIl));
 }
+}  // namespace
 
 /** Restore a circular beam*/
 void ModelRenderer::Restore(double* imageData, size_t imageWidth,
@@ -28,19 +31,19 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
                             long double endFrequency,
                             aocommon::PolarizationEnum polarization) {
   // Using the FWHM formula for a Gaussian:
-  long double sigma = beamSize / (2.0L * sqrtl(2.0L * logl(2.0L)));
+  const long double sigma = beamSize / (2.0L * sqrtl(2.0L * logl(2.0L)));
 
-  int boundingBoxSize =
-      ceil(sigma * 20.0 / std::min(_pixelScaleL, _pixelScaleM));
-  for (const ModelSource& src : model) {
-    for (const ModelComponent& comp : src) {
-      const long double posRA = comp.PosRA();
-      const long double posDec = comp.PosDec();
+  const int boundingBoxSize =
+      std::ceil(sigma * 20.0 / std::min(_pixelScaleL, _pixelScaleM));
+  for (const ModelSource& source : model) {
+    for (const ModelComponent& component : source) {
+      const long double posRA = component.PosRA();
+      const long double posDec = component.PosDec();
       long double sourceL;
       long double sourceM;
       ImageCoordinates::RaDecToLM(posRA, posDec, _phaseCentreRA,
                                   _phaseCentreDec, sourceL, sourceM);
-      const SpectralEnergyDistribution& sed = comp.SED();
+      const SpectralEnergyDistribution& sed = component.SED();
       const long double intFlux =
           sed.IntegratedFlux(startFrequency, endFrequency, polarization);
 
@@ -64,9 +67,9 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
               x, y, _pixelScaleL, _pixelScaleM, imageWidth, imageHeight, l, m);
           l += _phaseCentreDL;
           m += _phaseCentreDM;
-          long double dist = sqrt((l - sourceL) * (l - sourceL) +
-                                  (m - sourceM) * (m - sourceM));
-          long double g = gaus(dist, sigma);
+          const long double dist = std::sqrt((l - sourceL) * (l - sourceL) +
+                                             (m - sourceM) * (m - sourceM));
+          const long double g = Gaussian(dist, sigma);
           (*imageDataPtr) += double(g * intFlux);
           ++imageDataPtr;
         }
@@ -133,7 +136,7 @@ void ModelRenderer::RenderGaussianComponent(
       const long double mTransf =
           (l - sourceL) * transf[2] + (m - sourceM) * transf[3];
       const long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
-      long double v = gaus(dist, 1.0L) * flux;
+      long double v = Gaussian(dist, 1.0L) * flux;
       fluxSum += double(v);
       values.emplace_back(v);
     }
@@ -200,28 +203,28 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     }
   } else {
     // Using the FWHM formula for a Gaussian:
-    long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
-    long double sigmaMin = beamMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
+    const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
+    const long double sigmaMin = beamMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
 
     // Make rotation matrix
     long double transf[4];
     // Position angle is angle from North:
-    long double angle = beamPA + 0.5 * M_PI;
-    transf[2] = sin(angle);
-    transf[0] = cos(angle);
+    const long double angle = beamPA + 0.5 * M_PI;
+    transf[2] = std::sin(angle);
+    transf[0] = std::cos(angle);
     transf[1] = -transf[2];
     transf[3] = transf[0];
-    double sigmaMax = std::max(std::fabs(sigmaMaj * transf[0]),
-                               std::fabs(sigmaMaj * transf[1]));
-    // Multiple with scaling matrix to make variance 1.
-    transf[0] = transf[0] / sigmaMaj;
-    transf[1] = transf[1] / sigmaMaj;
-    transf[2] = transf[2] / sigmaMin;
-    transf[3] = transf[3] / sigmaMin;
+    const double sigmaMax = std::max(std::fabs(sigmaMaj * transf[0]),
+                                     std::fabs(sigmaMaj * transf[1]));
+    // Multiply with scaling matrix to make variance 1.
+    transf[0] /= sigmaMaj;
+    transf[1] /= sigmaMaj;
+    transf[2] /= sigmaMin;
+    transf[3] /= sigmaMin;
 
-    size_t minDimension = std::min(imageWidth, imageHeight);
+    const size_t minDimension = std::min(imageWidth, imageHeight);
     size_t boundingBoxSize = std::min<size_t>(
-        ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)),
+        std::ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)),
         minDimension);
     if (boundingBoxSize % 2 != 0) {
       ++boundingBoxSize;
@@ -232,14 +235,16 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     auto iter = kernel.begin();
     for (size_t y = 0; y != boundingBoxSize; ++y) {
       for (size_t x = 0; x != boundingBoxSize; ++x) {
-        long double l, m;
+        long double l;
+        long double m;
         ImageCoordinates::XYToLM<long double>(x, y, pixelScaleL, pixelScaleM,
                                               boundingBoxSize, boundingBoxSize,
                                               l, m);
-        long double lTransf = l * transf[0] + m * transf[1],
-                    mTransf = l * transf[2] + m * transf[3];
-        long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
-        *iter = gaus(dist, (long double)1.0);
+        const long double lTransf = l * transf[0] + m * transf[1];
+        const long double mTransf = l * transf[2] + m * transf[3];
+        const long double dist =
+            std::sqrt(lTransf * lTransf + mTransf * mTransf);
+        *iter = Gaussian(dist, (long double)1.0);
         ++iter;
       }
     }
@@ -264,16 +269,16 @@ void ModelRenderer::RenderModel(float* imageData, size_t imageWidth,
                                 long double startFrequency,
                                 long double endFrequency,
                                 aocommon::PolarizationEnum polarization) {
-  for (Model::const_iterator src = model.begin(); src != model.end(); ++src) {
-    for (ModelSource::const_iterator comp = src->begin(); comp != src->end();
-         ++comp) {
-      const long double posRA = comp->PosRA(), posDec = comp->PosDec(),
-                        intFlux = comp->SED().IntegratedFlux(
-                            startFrequency, endFrequency, polarization);
+  for (const ModelSource& source : model) {
+    for (const ModelComponent& component : source) {
+      const long double posRA = component.PosRA(), posDec = component.PosDec();
+      const long double intFlux = component.SED().IntegratedFlux(
+          startFrequency, endFrequency, polarization);
 
-      if (comp->Type() == ModelComponent::GaussianSource) {
-        long double gausMaj = comp->MajorAxis(), gausMin = comp->MinorAxis(),
-                    gausPA = comp->PositionAngle();
+      if (component.Type() == ModelComponent::GaussianSource) {
+        const long double gausMaj = component.MajorAxis(),
+                          gausMin = component.MinorAxis();
+        const long double gausPA = component.PositionAngle();
         RenderGaussianComponent(
             imageData, imageWidth, imageHeight, _phaseCentreRA, _phaseCentreDec,
             _pixelScaleL, _pixelScaleM, _phaseCentreDL, _phaseCentreDM, posRA,

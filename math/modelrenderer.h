@@ -5,12 +5,13 @@
 
 #include <aocommon/polarization.h>
 
+#include "../model/model.h"
+
 class ModelRenderer {
  public:
   ModelRenderer(long double phaseCentreRA, long double phaseCentreDec,
                 long double pixelScaleL, long double pixelScaleM,
-                long double phaseCentreDL = 0.0,
-                long double phaseCentreDM = 0.0)
+                long double phaseCentreDL, long double phaseCentreDM)
       : _phaseCentreRA(phaseCentreRA),
         _phaseCentreDec(phaseCentreDec),
         _pixelScaleL(pixelScaleL),
@@ -25,7 +26,7 @@ class ModelRenderer {
    * Restore with circular beam
    */
   void Restore(double* imageData, size_t imageWidth, size_t imageHeight,
-               const class Model& model, long double beamSize,
+               const Model& model, long double beamSize,
                long double startFrequency, long double endFrequency,
                aocommon::PolarizationEnum polarization);
 
@@ -33,10 +34,10 @@ class ModelRenderer {
    * Restore a model with an elliptical beam
    */
   void Restore(float* imageData, size_t imageWidth, size_t imageHeight,
-               const class Model& model, long double beamMaj,
-               long double beamMin, long double beamPA,
-               long double startFrequency, long double endFrequency,
-               aocommon::PolarizationEnum polarization, size_t threadCount = 1);
+               const Model& model, long double beamMaj, long double beamMin,
+               long double beamPA, long double startFrequency,
+               long double endFrequency,
+               aocommon::PolarizationEnum polarization, size_t threadCount);
 
   /**
    * Restore elliptical beam using a FFT deconvolution
@@ -55,13 +56,13 @@ class ModelRenderer {
                       size_t imageWidth, size_t imageHeight,
                       long double beamMaj, long double beamMin,
                       long double beamPA, long double pixelScaleL,
-                      long double pixelScaleM, size_t threadCount = 1);
+                      long double pixelScaleM, size_t threadCount);
 
   /**
    * Render without beam convolution, such that each point-source is one pixel.
    */
   void RenderModel(float* imageData, size_t imageWidth, size_t imageHeight,
-                   const class Model& model, long double startFrequency,
+                   const Model& model, long double startFrequency,
                    long double endFrequency,
                    aocommon::PolarizationEnum polarization);
 
@@ -78,12 +79,12 @@ class ModelRenderer {
                             size_t imageHeight, long double posRA,
                             long double posDec, long double flux);
 
-  long double _phaseCentreRA;
-  long double _phaseCentreDec;
-  long double _pixelScaleL, _pixelScaleM;
-  long double _phaseCentreDL, _phaseCentreDM;
-  template <typename T>
-  static T gaus(T x, T sigma);
+  const long double _phaseCentreRA;
+  const long double _phaseCentreDec;
+  const long double _pixelScaleL;
+  const long double _pixelScaleM;
+  const long double _phaseCentreDL;
+  const long double _phaseCentreDM;
 };
 
 #endif

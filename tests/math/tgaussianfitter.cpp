@@ -18,8 +18,10 @@ BOOST_AUTO_TEST_CASE(fit) {
     long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0),
                 beamMaj = 20 * pixelScale, beamMin = 5 * pixelScale,
                 beamPA = beamPAindex * M_PI / 10.0;
+    const size_t threadCount = 1;
     ModelRenderer::Restore(restored.Data(), model.Data(), width, height,
-                           beamMaj, beamMin, beamPA, pixelScale, pixelScale);
+                           beamMaj, beamMin, beamPA, pixelScale, pixelScale,
+                           threadCount);
 
     GaussianFitter fitter;
     double fitMaj, fitMin, fitPA;
@@ -34,7 +36,9 @@ BOOST_AUTO_TEST_CASE(fit) {
 }
 
 BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
-  const size_t width = 64, height = 64;
+  const size_t threadCount = 1;
+  const size_t width = 64;
+  const size_t height = 64;
   aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
@@ -48,9 +52,13 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
   long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
   long double beamMaj = 4 * pixelScale, beamMin = 4 * pixelScale, beamPA = 0.0;
   long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
+  const long double phaseCentreDL = 0.0;
+  const long double phaseCentreDM = 0.0;
+  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                         phaseCentreDM);
   renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
+                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
+                   threadCount);
 
   GaussianFitter fitter;
   double fitMajor, fitMinor, fitPA;
@@ -62,7 +70,9 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
 }
 
 BOOST_AUTO_TEST_CASE(fit_circular) {
-  const size_t width = 64, height = 64;
+  const size_t width = 64;
+  const size_t height = 64;
+  const size_t threadCount = 1;
   aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
@@ -73,12 +83,17 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  long double beamMaj = 4 * pixelScale, beamMin = 4 * pixelScale, beamPA = 0.0;
-  long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
+  const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  const long double beamMaj = 4 * pixelScale, beamMin = 4 * pixelScale,
+                    beamPA = 0.0;
+  const long double estimatedBeamPx = 1.0;  // this is on purpose way off
+  const long double phaseCentreDL = 0.0;
+  const long double phaseCentreDM = 0.0;
+  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                         phaseCentreDM);
   renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
+                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
+                   threadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx;
@@ -88,7 +103,9 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
 }
 
 BOOST_AUTO_TEST_CASE(fit_small_beam) {
-  const size_t width = 64, height = 64;
+  const size_t width = 64;
+  const size_t height = 64;
+  const size_t threadCount = 1;
   aocommon::Image restored(width, height, 0.0);
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
@@ -99,13 +116,17 @@ BOOST_AUTO_TEST_CASE(fit_small_beam) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  long double beamMaj = 4 * pixelScale, beamMin = 0.5 * pixelScale,
-              beamPA = 0.0;
-  long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
+  const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  const long double beamMaj = 4 * pixelScale, beamMin = 0.5 * pixelScale;
+  const long double beamPA = 0.0;
+  const long double estimatedBeamPx = 1.0;  // this is on purpose way off
+  const long double phaseCentreDL = 0.0;
+  const long double phaseCentreDM = 0.0;
+  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                         phaseCentreDM);
   renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
+                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
+                   threadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx, fitMinor = estimatedBeamPx, fitPA = 0.0;
