@@ -58,11 +58,11 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
   long double estimatedBeamPx = 1.0;  // this is on purpose way off
   const long double phaseCentreDL = 0.0;
   const long double phaseCentreDM = 0.0;
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                         phaseCentreDM);
-  renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
-                   threadCount);
+  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                    phaseCentreDM);
+  renderer.RestoreWithEllipticalBeam(
+      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+      aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
   double fitMajor, fitMinor, fitPA;
@@ -88,16 +88,17 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
   Model model;
   model.AddSource(source);
   const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  const long double beamMaj = 4 * pixelScale, beamMin = 4 * pixelScale,
-                    beamPA = 0.0;
+  const long double beamMaj = 4 * pixelScale;
+  const long double beamMin = 4 * pixelScale;
+  const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
   const long double phaseCentreDL = 0.0;
   const long double phaseCentreDM = 0.0;
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                         phaseCentreDM);
-  renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
-                   threadCount);
+  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                    phaseCentreDM);
+  renderer.RestoreWithEllipticalBeam(
+      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+      aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx;
@@ -126,11 +127,11 @@ BOOST_AUTO_TEST_CASE(fit_small_beam) {
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
   const long double phaseCentreDL = 0.0;
   const long double phaseCentreDM = 0.0;
-  ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                         phaseCentreDM);
-  renderer.Restore(restored.Data(), width, height, model, beamMaj, beamMin,
-                   beamPA, 100e6, 200e6, aocommon::Polarization::StokesI,
-                   threadCount);
+  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+                    phaseCentreDM);
+  renderer.RestoreWithEllipticalBeam(
+      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+      aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx, fitMinor = estimatedBeamPx, fitPA = 0.0;

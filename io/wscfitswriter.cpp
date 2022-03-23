@@ -245,14 +245,15 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   double frequency = imgReader.Frequency();
   double bandwidth = imgReader.Bandwidth();
 
-  ModelRenderer renderer(imgReader.PhaseCentreRA(), imgReader.PhaseCentreDec(),
-                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
-                         imgReader.PhaseCentreDL(), imgReader.PhaseCentreDM());
+  Renderer renderer(model, imgReader.PhaseCentreRA(),
+                    imgReader.PhaseCentreDec(), imgReader.PixelSizeX(),
+                    imgReader.PixelSizeY(), imgReader.PhaseCentreDL(),
+                    imgReader.PhaseCentreDM());
 
-  renderer.Restore(image.data(), imgReader.ImageWidth(),
-                   imgReader.ImageHeight(), model, beamMaj, beamMin, beamPA,
-                   frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
-                   aocommon::Polarization::StokesI, settings.threadCount);
+  renderer.RestoreWithEllipticalBeam(
+      image.data(), imgReader.ImageWidth(), imgReader.ImageHeight(), beamMaj,
+      beamMin, beamPA, frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
+      aocommon::Polarization::StokesI, settings.threadCount);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);

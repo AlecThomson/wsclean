@@ -23,6 +23,31 @@ long double Gaussian(long double x, long double sigma) {
   // / (sigma * sqrt(static_cast<long double>(2.0) * M_PIl));
 }
 
+void RenderPointComponent(float* imageData, size_t imageWidth,
+                          size_t imageHeight, long double phaseCentreRA,
+                          long double phaseCentreDec, long double pixelScaleL,
+                          long double pixelScaleM, long double phaseCentreDL,
+                          long double phaseCentreDM, long double posRA,
+                          long double posDec, long double flux) {
+  long double sourceL;
+  long double sourceM;
+  ImageCoordinates::RaDecToLM(posRA, posDec, phaseCentreRA, phaseCentreDec,
+                              sourceL, sourceM);
+  sourceL -= phaseCentreDL;
+  sourceM -= phaseCentreDM;
+
+  int sourceX, sourceY;
+  ImageCoordinates::LMToXY<long double>(sourceL, sourceM, pixelScaleL,
+                                        pixelScaleM, imageWidth, imageHeight,
+                                        sourceX, sourceY);
+
+  if (sourceX >= 0 && sourceX < (int)imageWidth && sourceY >= 0 &&
+      sourceY < (int)imageHeight) {
+    float* imageDataPtr = imageData + sourceY * imageWidth + sourceX;
+    (*imageDataPtr) += double(flux);
+  }
+}
+
 void RenderGaussianComponent(float* imageData, size_t imageWidth,
                              size_t imageHeight, long double phaseCentreRA,
                              long double phaseCentreDec,
@@ -101,12 +126,10 @@ void RenderGaussianComponent(float* imageData, size_t imageWidth,
 }
 }  // namespace
 
-/** Restore a circular beam*/
-void ModelRenderer::Restore(double* imageData, size_t imageWidth,
-                            size_t imageHeight, const Model& model,
-                            long double beamSize, long double startFrequency,
-                            long double endFrequency,
-                            aocommon::PolarizationEnum polarization) const {
+void Renderer::RestoreWithCircularBeam(
+    double* imageData, size_t imageWidth, size_t imageHeight,
+    const Model& model, long double beamSize, long double startFrequency,
+    long double endFrequency, aocommon::PolarizationEnum polarization) const {
   // Using the FWHM formula for a Gaussian:
   const long double sigma = beamSize / (2.0L * sqrtl(2.0L * logl(2.0L)));
 
@@ -155,55 +178,24 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
   }
 }
 
-void ModelRenderer::renderPointComponent(float* imageData, size_t imageWidth,
-                                         size_t imageHeight, long double posRA,
-                                         long double posDec,
-                                         long double flux) const {
-  long double sourceL, sourceM;
-  ImageCoordinates::RaDecToLM(posRA, posDec, _phaseCentreRA, _phaseCentreDec,
-                              sourceL, sourceM);
-  sourceL -= _phaseCentreDL;
-  sourceM -= _phaseCentreDM;
-
-  int sourceX, sourceY;
-  ImageCoordinates::LMToXY<long double>(sourceL, sourceM, _pixelScaleL,
-                                        _pixelScaleM, imageWidth, imageHeight,
-                                        sourceX, sourceY);
-
-  if (sourceX >= 0 && sourceX < (int)imageWidth && sourceY >= 0 &&
-      sourceY < (int)imageHeight) {
-    float* imageDataPtr = imageData + sourceY * imageWidth + sourceX;
-    (*imageDataPtr) += double(flux);
-  }
-}
-
-/** Restore a model with an elliptical beam */
-void ModelRenderer::Restore(float* imageData, size_t imageWidth,
-                            size_t imageHeight, const Model& model,
-                            long double beamMaj, long double beamMin,
-                            long double beamPA, long double startFrequency,
-                            long double endFrequency,
-                            aocommon::PolarizationEnum polarization,
-                            size_t threadCount) const {
+void Renderer::RestoreWithEllipticalBeam(
+    float* imageData, size_t imageWidth, size_t imageHeight,
+    long double beamMaj, long double beamMin, long double beamPA,
+    long double startFrequency, long double endFrequency,
+    aocommon::PolarizationEnum polarization, size_t threadCount) const {
   aocommon::UVector<float> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
-  RenderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
+  RenderModel(renderedWithoutBeam.data(), imageWidth, imageHeight,
               startFrequency, endFrequency, polarization);
-  // Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
-  //         beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
   schaapcommon::fft::RestoreImage(
       imageData, renderedWithoutBeam.data(), imageWidth, imageHeight, beamMaj,
       beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
 }
 
-/**
- * Render without beam convolution, such that each point-source is one pixel.
- */
-void ModelRenderer::RenderModel(float* imageData, size_t imageWidth,
-                                size_t imageHeight, const Model& model,
-                                long double startFrequency,
-                                long double endFrequency,
-                                aocommon::PolarizationEnum polarization) const {
-  for (const ModelSource& source : model) {
+void Renderer::RenderModel(float* imageData, size_t imageWidth,
+                           size_t imageHeight, long double startFrequency,
+                           long double endFrequency,
+                           aocommon::PolarizationEnum polarization) const {
+  for (const ModelSource& source : model_) {
     for (const ModelComponent& component : source) {
       const long double posRA = component.PosRA(), posDec = component.PosDec();
       const long double intFlux = component.SED().IntegratedFlux(
@@ -218,7 +210,9 @@ void ModelRenderer::RenderModel(float* imageData, size_t imageWidth,
             _pixelScaleL, _pixelScaleM, _phaseCentreDL, _phaseCentreDM, posRA,
             posDec, gausMaj, gausMin, gausPA, intFlux);
       } else
-        renderPointComponent(imageData, imageWidth, imageHeight, posRA, posDec,
+        RenderPointComponent(imageData, imageWidth, imageHeight, _phaseCentreRA,
+                             _phaseCentreDec, posRA, posDec, _pixelScaleL,
+                             _pixelScaleM, _phaseCentreDL, _phaseCentreDM,
                              intFlux);
     }
   }
