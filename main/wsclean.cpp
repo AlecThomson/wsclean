@@ -24,7 +24,7 @@
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 
-#include "../math/modelrenderer.h"
+#include "../math/renderer.h"
 #include "../math/nlplfitter.h"
 
 #include "../model/model.h"

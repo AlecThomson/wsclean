@@ -1,6 +1,6 @@
 #include "rmsimage.h"
 
-#include "modelrenderer.h"
+#include "renderer.h"
 
 #include <aocommon/image.h>
 #include <aocommon/staticfor.h>

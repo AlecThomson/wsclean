@@ -1,5 +1,5 @@
 
-#include "modelrenderer.h"
+#include "renderer.h"
 
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
@@ -211,8 +211,8 @@ void Renderer::RenderModel(float* imageData, size_t imageWidth,
             posDec, gausMaj, gausMin, gausPA, intFlux);
       } else
         RenderPointComponent(imageData, imageWidth, imageHeight, _phaseCentreRA,
-                             _phaseCentreDec, posRA, posDec, _pixelScaleL,
-                             _pixelScaleM, _phaseCentreDL, _phaseCentreDM,
+                             _phaseCentreDec, _pixelScaleL, _pixelScaleM,
+                             _phaseCentreDL, _phaseCentreDM, posRA, posDec,
                              intFlux);
     }
   }

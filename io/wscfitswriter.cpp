@@ -8,7 +8,7 @@
 
 #include <schaapcommon/fft/restoreimage.h>
 
-#include "../math/modelrenderer.h"
+#include "../math/renderer.h"
 
 #include "../model/bbsmodel.h"
 

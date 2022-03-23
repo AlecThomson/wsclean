@@ -1,5 +1,5 @@
-#ifndef MODELRENDERER_H
-#define MODELRENDERER_H
+#ifndef RENDERER_H_
+#define RENDERER_H_
 
 #include <cstring>
 

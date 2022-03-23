@@ -5,7 +5,7 @@
 #include "../main/settings.h"
 
 #include "../math/gaussianfitter.h"
-#include "../math/modelrenderer.h"
+#include "../math/renderer.h"
 
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
