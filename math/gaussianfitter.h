@@ -34,9 +34,6 @@ class GaussianFitter {
   double PosConstrained() const { return _posConstrained; };
 
  private:
-  const float* _image;
-  size_t _width, _height, _scaleFactor;
-
   void fit2DGaussianCentredInBox(const float* image, size_t width,
                                  size_t height, double beamEst, double& beamMaj,
                                  double& beamMin, double& beamPA,
@@ -100,6 +97,8 @@ class GaussianFitter {
                                            double& beamMin, double& beamPA,
                                            double& floorLevel);
 
+  const float* _image;
+  size_t _width, _height, _scaleFactor;
   double _xInit, _yInit, _posConstrained;
 };
 
