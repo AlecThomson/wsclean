@@ -1,7 +1,6 @@
 #ifndef GAUSSIAN_FITTER_H
 #define GAUSSIAN_FITTER_H
 
-#include <cmath>
 #include <cstring>
 #include <iostream>
 
@@ -63,28 +62,8 @@ class GaussianFitter {
   static int fitting_func_centered(const gsl_vector* xvec, void* data,
                                    gsl_vector* f);
 
-  /**
-   * Calculates the difference between a gaussian with the specified parameters
-   * at position x,y and the given value.
-   */
-  static double err_centered(double val, double x, double y, double sx,
-                             double sy, double beta) {
-    return exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-               y * y / (2.0 * sy * sy)) -
-           val;
-  }
-
   static int fitting_func_circular_centered(const gsl_vector* xvec, void* data,
                                             gsl_vector* f);
-
-  /**
-   * Calculates the difference between a gaussian with the specified parameters
-   * at position x,y and the given value.
-   */
-  static double err_circular_centered(double val, double x, double y,
-                                      double s) {
-    return exp((-x * x - y * y) / (2.0 * s * s)) - val;
-  }
 
   /**
    * Derivative function belong with fit2DGaussianCentred().
@@ -110,14 +89,6 @@ class GaussianFitter {
     fitting_func_circular_centered(x, data, f);
     fitting_deriv_circular_centered(x, data, J);
     return GSL_SUCCESS;
-  }
-
-  static double err_full(double val, double v, double x, double y, double sx,
-                         double sy, double beta) {
-    return exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-               y * y / (2.0 * sy * sy)) *
-               v -
-           val;
   }
 
   void fit2DGaussianWithAmplitudeInBox(const float* image, size_t width,

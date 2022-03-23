@@ -1,5 +1,7 @@
 #include "gaussianfitter.h"
 
+#include <cmath>
+
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>
 
@@ -33,6 +35,34 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
     ellipsePA = 0.0;
   }
 }
+
+/**
+ * Calculates the difference between a gaussian with the specified parameters
+ * at position x,y and the given value.
+ */
+double err_centered(double val, double x, double y, double sx, double sy,
+                    double beta) {
+  return std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
+                  y * y / (2.0 * sy * sy)) -
+         val;
+}
+
+/**
+ * Calculates the difference between a gaussian with the specified parameters
+ * at position x,y and the given value.
+ */
+double err_circular_centered(double val, double x, double y, double s) {
+  return std::exp((-x * x - y * y) / (2.0 * s * s)) - val;
+}
+
+double err_full(double val, double v, double x, double y, double sx, double sy,
+                double beta) {
+  return std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
+                  y * y / (2.0 * sy * sy)) *
+             v -
+         val;
+}
+
 }  // namespace
 
 void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
