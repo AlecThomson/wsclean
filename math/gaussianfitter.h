@@ -28,10 +28,6 @@ class GaussianFitter {
                              double& fwhmMaj, double& fwhmMin,
                              double& positionAngle);
 
-  void SetPosConstrained(double positionOffsetConstrained) {
-    _posConstrained = positionOffsetConstrained;
-  }
-
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
                             double& beamPA, double boxScaleFactor = 10.0,
