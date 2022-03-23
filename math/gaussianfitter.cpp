@@ -12,9 +12,11 @@
 using aocommon::Matrix2x2;
 
 namespace {
+
+const long double kSigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
+
 void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
                      double& ellipseMin, double& ellipsePA) {
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   const double betaFact = 1.0 - beta * beta;
   double cov[4];
   cov[0] = sx * sx / betaFact;
@@ -25,8 +27,8 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
   double e1, e2, vec1[2], vec2[2];
   Matrix2x2::EigenValuesAndVectors(cov, e1, e2, vec1, vec2);
   if (std::isfinite(e1)) {
-    ellipseMaj = sqrt(std::fabs(e1)) * sigmaToBeam;
-    ellipseMin = sqrt(std::fabs(e2)) * sigmaToBeam;
+    ellipseMaj = sqrt(std::fabs(e1)) * kSigmaToBeam;
+    ellipseMin = sqrt(std::fabs(e2)) * kSigmaToBeam;
     if (ellipseMaj < ellipseMin) {
       std::swap(ellipseMaj, ellipseMin);
       vec1[0] = vec2[0];
@@ -34,8 +36,8 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
     }
     ellipsePA = -atan2(vec1[0], vec1[1]);
   } else {
-    ellipseMaj = sqrt(std::fabs(sx)) * sigmaToBeam;
-    ellipseMin = sqrt(std::fabs(sx)) * sigmaToBeam;
+    ellipseMaj = sqrt(std::fabs(sx)) * kSigmaToBeam;
+    ellipseMin = sqrt(std::fabs(sx)) * kSigmaToBeam;
     ellipsePA = 0.0;
   }
 }
@@ -532,10 +534,9 @@ void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
   fdf.params = this;
 
   // Using the FWHM formula for a Gaussian:
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
-  double initialValsArray[3] = {beamEst / (scale_factor_ * double(sigmaToBeam)),
-                                beamEst / (scale_factor_ * double(sigmaToBeam)),
-                                0.0};
+  double initialValsArray[3] = {
+      beamEst / (scale_factor_ * double(kSigmaToBeam)),
+      beamEst / (scale_factor_ * double(kSigmaToBeam)), 0.0};
   gsl_vector_view initialVals = gsl_vector_view_array(initialValsArray, 3);
   gsl_multifit_fdfsolver_set(solver, &fdf, &initialVals.vector);
 
@@ -583,7 +584,6 @@ void GaussianFitter::Fit2DCircularGaussianCentred(const float* image,
   fdf.params = this;
 
   // Using the FWHM formula for a Gaussian:
-  const long double kSigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   double initialValsArray[1] = {beamSize /
                                 (scale_factor_ * double(kSigmaToBeam))};
   gsl_vector_view initialVals = gsl_vector_view_array(initialValsArray, 1);
@@ -667,15 +667,15 @@ void GaussianFitter::Fit2DGaussianWithAmplitude(double& val, double& posX,
   fdf.params = this;
 
   // Using the FWHM formula for a Gaussian:
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   x_init_ = -(posX - width_ / 2) / scale_factor_;
   y_init_ = -(posY - height_ / 2) / scale_factor_;
-  double initialValsArray[6] = {val,
-                                x_init_,
-                                y_init_,
-                                beamMaj / (scale_factor_ * double(sigmaToBeam)),
-                                beamMaj / (scale_factor_ * double(sigmaToBeam)),
-                                0.0};
+  double initialValsArray[6] = {
+      val,
+      x_init_,
+      y_init_,
+      beamMaj / (scale_factor_ * double(kSigmaToBeam)),
+      beamMaj / (scale_factor_ * double(kSigmaToBeam)),
+      0.0};
   gsl_vector_view initialVals = gsl_vector_view_array(initialValsArray, 6);
   gsl_multifit_fdfsolver_set(solver, &fdf, &initialVals.vector);
 
@@ -720,16 +720,16 @@ void GaussianFitter::Fit2DGaussianWithAmplitudeWithFloor(
   fdf.params = this;
 
   // Using the FWHM formula for a Gaussian:
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   x_init_ = -(posX - width_ / 2) / scale_factor_;
   y_init_ = -(posY - height_ / 2) / scale_factor_;
-  double initialValsArray[7] = {val,
-                                x_init_,
-                                y_init_,
-                                beamMaj / (scale_factor_ * double(sigmaToBeam)),
-                                beamMaj / (scale_factor_ * double(sigmaToBeam)),
-                                0.0,
-                                0.0};
+  double initialValsArray[7] = {
+      val,
+      x_init_,
+      y_init_,
+      beamMaj / (scale_factor_ * double(kSigmaToBeam)),
+      beamMaj / (scale_factor_ * double(kSigmaToBeam)),
+      0.0,
+      0.0};
   gsl_vector_view initialVals = gsl_vector_view_array(initialValsArray, 7);
   gsl_multifit_fdfsolver_set(solver, &fdf, &initialVals.vector);
 
