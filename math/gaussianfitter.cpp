@@ -63,6 +63,137 @@ double err_full(double val, double v, double x, double y, double sx, double sy,
          val;
 }
 
+/**
+ * Fitting function for fit2DGaussianCentred(). Calculates the sum of the
+ * squared errors(/residuals).
+ */
+int fitting_func_centered(const gsl_vector* xvec, void* data, gsl_vector* f) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double sx = gsl_vector_get(xvec, 0);
+  const double sy = gsl_vector_get(xvec, 1);
+  const double beta = gsl_vector_get(xvec, 2);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (size_t yi = 0; yi != height; ++yi) {
+    double y = (yi - yMid) * scale;
+    for (size_t xi = 0; xi != width; ++xi) {
+      double x = (xi - xMid) * scale;
+      double e = err_centered(fitter.Image()[dataIndex], x, y, sx, sy, beta);
+      gsl_vector_set(f, dataIndex, e);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_func_circular_centered(const gsl_vector* xvec, void* data,
+                                   gsl_vector* f) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double s = gsl_vector_get(xvec, 0);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (size_t yi = 0; yi != height; ++yi) {
+    double y = (yi - yMid) * scale;
+    for (size_t xi = 0; xi != width; ++xi) {
+      double x = (xi - xMid) * scale;
+      double e = err_circular_centered(fitter.Image()[dataIndex], x, y, s);
+      gsl_vector_set(f, dataIndex, e);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+/**
+ * Derivative function belong with fit2DGaussianCentred().
+ */
+int fitting_deriv_centered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double sx = gsl_vector_get(xvec, 0);
+  const double sy = gsl_vector_get(xvec, 1);
+  const double beta = gsl_vector_get(xvec, 2);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (size_t yi = 0; yi != height; ++yi) {
+    double y = (yi - yMid) * scale;
+    for (size_t xi = 0; xi != width; ++xi) {
+      double x = (xi - xMid) * scale;
+      double expTerm =
+          std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
+                   y * y / (2.0 * sy * sy));
+      double dsx =
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+      double dsy =
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
+      double dbeta = x * y / (sx * sy) * expTerm;
+      gsl_matrix_set(J, dataIndex, 0, dsx);
+      gsl_matrix_set(J, dataIndex, 1, dsy);
+      gsl_matrix_set(J, dataIndex, 2, dbeta);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_deriv_circular_centered(const gsl_vector* xvec, void* data,
+                                    gsl_matrix* J) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double s = gsl_vector_get(xvec, 0);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2, yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (size_t yi = 0; yi != height; ++yi) {
+    double y = (yi - yMid) * scale;
+    for (size_t xi = 0; xi != width; ++xi) {
+      double x = (xi - xMid) * scale;
+      double expTerm = std::exp((-x * x - y * y) / (2.0 * s * s));
+      // derivative of exp((-x*x - y*y)/(2.0*s*s)) to s
+      // = (-x*x - y*y)/2.0*-2/(s*s*s)
+      // = (-x*x - y*y)/(-s*s*s)
+      // = (x*x + y*y)/(s*s*s)
+      double ds = ((x * x + y * y) / (s * s * s)) * expTerm;
+      gsl_matrix_set(J, dataIndex, 0, ds);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+/**
+ * Squared error and derivative function together.
+ */
+int fitting_both_centered(const gsl_vector* x, void* data, gsl_vector* f,
+                          gsl_matrix* J) {
+  fitting_func_centered(x, data, f);
+  fitting_deriv_centered(x, data, J);
+  return GSL_SUCCESS;
+}
+
+int fitting_both_circular_centered(const gsl_vector* x, void* data,
+                                   gsl_vector* f, gsl_matrix* J) {
+  fitting_func_circular_centered(x, data, f);
+  fitting_deriv_circular_centered(x, data, J);
+  return GSL_SUCCESS;
+}
+
 }  // namespace
 
 void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
@@ -299,114 +430,6 @@ void GaussianFitter::fit2DCircularGaussianCentred(const float* image,
   gsl_multifit_fdfsolver_free(solver);
 
   beamSize = s * kSigmaToBeam * _scaleFactor;
-}
-
-/**
- * Fitting function for fit2DGaussianCentred(). Calculates the sum of the
- * squared errors(/residuals).
- */
-int GaussianFitter::fitting_func_centered(const gsl_vector* xvec, void* data,
-                                          gsl_vector* f) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  double sx = gsl_vector_get(xvec, 0);
-  double sy = gsl_vector_get(xvec, 1);
-  double beta = gsl_vector_get(xvec, 2);
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-  double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
-    for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double e = err_centered(fitter._image[dataIndex], x, y, sx, sy, beta);
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
-}
-
-int GaussianFitter::fitting_func_circular_centered(const gsl_vector* xvec,
-                                                   void* data, gsl_vector* f) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  double s = gsl_vector_get(xvec, 0);
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-  double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
-    for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double e = err_circular_centered(fitter._image[dataIndex], x, y, s);
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
-}
-
-/**
- * Derivative function belong with fit2DGaussianCentred().
- */
-int GaussianFitter::fitting_deriv_centered(const gsl_vector* xvec, void* data,
-                                           gsl_matrix* J) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  const double sx = gsl_vector_get(xvec, 0);
-  const double sy = gsl_vector_get(xvec, 1);
-  const double beta = gsl_vector_get(xvec, 2);
-  const size_t width = fitter._width, height = fitter._height;
-  const int xMid = width / 2, yMid = height / 2;
-  const double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
-    for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double expTerm = exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                           y * y / (2.0 * sy * sy));
-      double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
-      double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, dsx);
-      gsl_matrix_set(J, dataIndex, 1, dsy);
-      gsl_matrix_set(J, dataIndex, 2, dbeta);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
-}
-
-int GaussianFitter::fitting_deriv_circular_centered(const gsl_vector* xvec,
-                                                    void* data, gsl_matrix* J) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  const double s = gsl_vector_get(xvec, 0);
-  const size_t width = fitter._width, height = fitter._height;
-  const int xMid = width / 2, yMid = height / 2;
-  const double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
-    for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double expTerm = exp((-x * x - y * y) / (2.0 * s * s));
-      // derivative of exp((-x*x - y*y)/(2.0*s*s)) to s
-      // = (-x*x - y*y)/2.0*-2/(s*s*s)
-      // = (-x*x - y*y)/(-s*s*s)
-      // = (x*x + y*y)/(s*s*s)
-      double ds = ((x * x + y * y) / (s * s * s)) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, ds);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
 }
 
 void GaussianFitter::fit2DGaussianWithAmplitudeInBox(

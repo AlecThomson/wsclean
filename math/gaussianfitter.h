@@ -25,6 +25,11 @@ class GaussianFitter {
                          double& beamMaj, double& beamMin, double& beamPA,
                          double* floorLevel = nullptr);
 
+  const float* Image() const { return _image; }
+  size_t Width() const { return _width; }
+  size_t Height() const { return _height; }
+  size_t ScaleFactor() const { return _scaleFactor; }
+
  private:
   const float* _image;
   size_t _width, _height, _scaleFactor;
@@ -54,42 +59,6 @@ class GaussianFitter {
 
   void fit2DCircularGaussianCentred(const float* image, size_t width,
                                     size_t height, double& beamSize);
-
-  /**
-   * Fitting function for fit2DGaussianCentred(). Calculates the sum of the
-   * squared errors(/residuals).
-   */
-  static int fitting_func_centered(const gsl_vector* xvec, void* data,
-                                   gsl_vector* f);
-
-  static int fitting_func_circular_centered(const gsl_vector* xvec, void* data,
-                                            gsl_vector* f);
-
-  /**
-   * Derivative function belong with fit2DGaussianCentred().
-   */
-  static int fitting_deriv_centered(const gsl_vector* xvec, void* data,
-                                    gsl_matrix* J);
-
-  static int fitting_deriv_circular_centered(const gsl_vector* xvec, void* data,
-                                             gsl_matrix* J);
-
-  /**
-   * Squared error and derivative function together.
-   */
-  static int fitting_both_centered(const gsl_vector* x, void* data,
-                                   gsl_vector* f, gsl_matrix* J) {
-    fitting_func_centered(x, data, f);
-    fitting_deriv_centered(x, data, J);
-    return GSL_SUCCESS;
-  }
-
-  static int fitting_both_circular_centered(const gsl_vector* x, void* data,
-                                            gsl_vector* f, gsl_matrix* J) {
-    fitting_func_circular_centered(x, data, f);
-    fitting_deriv_circular_centered(x, data, J);
-    return GSL_SUCCESS;
-  }
 
   void fit2DGaussianWithAmplitudeInBox(const float* image, size_t width,
                                        size_t height, double& val, double& posX,
