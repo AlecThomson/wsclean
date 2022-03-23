@@ -95,6 +95,12 @@ class ImageWeightCache {
       std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
       const MSSelection& selection = msList[i]->Selection();
       const size_t dataDescId = msList[i]->DataDescId();
+      aocommon::Logger::Info << "i=" << i << " / " << msList.size() << '\n';
+      aocommon::Logger::Info << "bands=" << bands[i].BandCount() << '\n';
+      aocommon::Logger::Info << "dataDescId=" << dataDescId << '\n';
+      aocommon::Logger::Info << "channels=" << bands[i][dataDescId].ChannelCount() << '\n';
+      aocommon::Logger::Info << "start=" << selection.ChannelRangeStart() << '\n';
+      aocommon::Logger::Info << "end=" << selection.ChannelRangeEnd() << '\n';
       const aocommon::BandData selectedBand =
           selection.HasChannelRange()
               ? aocommon::BandData(bands[i][dataDescId],
