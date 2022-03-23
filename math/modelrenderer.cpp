@@ -5,6 +5,7 @@
 #include <aocommon/uvector.h>
 
 #include <schaapcommon/fft/convolution.h>
+#include <schaapcommon/fft/restoreimage.h>
 
 #include <cmath>
 
@@ -187,80 +188,11 @@ void ModelRenderer::Restore(float* imageData, size_t imageWidth,
   aocommon::UVector<float> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
   RenderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
               startFrequency, endFrequency, polarization);
-  Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
-          beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
-}
-
-/**
- * Restore a diffuse image (e.g. produced with multi-scale clean)
- */
-void ModelRenderer::Restore(float* imageData, const float* modelData,
-                            size_t imageWidth, size_t imageHeight,
-                            long double beamMaj, long double beamMin,
-                            long double beamPA, long double pixelScaleL,
-                            long double pixelScaleM, size_t threadCount) {
-  if (beamMaj == 0.0 && beamMin == 0.0) {
-    for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
-      imageData[j] += modelData[j];
-    }
-  } else {
-    // Using the FWHM formula for a Gaussian:
-    const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
-    const long double sigmaMin = beamMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
-
-    // Make rotation matrix
-    long double transf[4];
-    // Position angle is angle from North:
-    const long double angle = beamPA + 0.5 * M_PI;
-    transf[2] = std::sin(angle);
-    transf[0] = std::cos(angle);
-    transf[1] = -transf[2];
-    transf[3] = transf[0];
-    const double sigmaMax = std::max(std::fabs(sigmaMaj * transf[0]),
-                                     std::fabs(sigmaMaj * transf[1]));
-    // Multiply with scaling matrix to make variance 1.
-    transf[0] /= sigmaMaj;
-    transf[1] /= sigmaMaj;
-    transf[2] /= sigmaMin;
-    transf[3] /= sigmaMin;
-
-    const size_t minDimension = std::min(imageWidth, imageHeight);
-    size_t boundingBoxSize = std::min<size_t>(
-        std::ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)),
-        minDimension);
-    if (boundingBoxSize % 2 != 0) {
-      ++boundingBoxSize;
-    }
-    if (boundingBoxSize > std::min(imageWidth, imageHeight))
-      boundingBoxSize = std::min(imageWidth, imageHeight);
-    aocommon::UVector<float> kernel(boundingBoxSize * boundingBoxSize);
-    auto iter = kernel.begin();
-    for (size_t y = 0; y != boundingBoxSize; ++y) {
-      for (size_t x = 0; x != boundingBoxSize; ++x) {
-        long double l;
-        long double m;
-        ImageCoordinates::XYToLM<long double>(x, y, pixelScaleL, pixelScaleM,
-                                              boundingBoxSize, boundingBoxSize,
-                                              l, m);
-        const long double lTransf = l * transf[0] + m * transf[1];
-        const long double mTransf = l * transf[2] + m * transf[3];
-        const long double dist =
-            std::sqrt(lTransf * lTransf + mTransf * mTransf);
-        *iter = Gaussian(dist, (long double)1.0);
-        ++iter;
-      }
-    }
-
-    aocommon::UVector<float> convolvedModel(
-        modelData, modelData + imageWidth * imageHeight);
-
-    schaapcommon::fft::ResizeAndConvolve(convolvedModel.data(), imageWidth,
-                                         imageHeight, kernel.data(),
-                                         boundingBoxSize, threadCount);
-    for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
-      imageData[j] += convolvedModel[j];
-    }
-  }
+  // Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
+  //         beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
+  schaapcommon::fft::RestoreImage(
+      imageData, renderedWithoutBeam.data(), imageWidth, imageHeight, beamMaj,
+      beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
 }
 
 /**

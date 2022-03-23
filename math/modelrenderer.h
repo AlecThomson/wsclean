@@ -50,15 +50,6 @@ class ModelRenderer {
   //           beamPA, _pixelScaleL, _pixelScaleM, threadCount);
   // }
 
-  /**
-   * Restore elliptical beam using a FFT deconvolution (static version).
-   */
-  static void Restore(float* imageData, const float* modelData,
-                      size_t imageWidth, size_t imageHeight,
-                      long double beamMaj, long double beamMin,
-                      long double beamPA, long double pixelScaleL,
-                      long double pixelScaleM, size_t threadCount);
-
  private:
   /**
    * Render without beam convolution, such that each point-source is one pixel.

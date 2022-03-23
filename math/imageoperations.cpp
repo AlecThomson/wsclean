@@ -12,6 +12,8 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/units/angle.h>
 
+#include <schaapcommon/fft/restoreimage.h>
+
 using aocommon::Logger;
 using aocommon::units::Angle;
 
@@ -207,7 +209,7 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
       v = 0.0;
     }
   }
-  ModelRenderer::Restore(
+  schaapcommon::fft::RestoreImage(
       image.data(), modelImage.data(), settings.trimmedImageWidth,
       settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
       settings.pixelScaleX, settings.pixelScaleY, settings.threadCount);

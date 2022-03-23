@@ -4,6 +4,10 @@
 
 #include "imagefilename.h"
 
+#include <aocommon/fits/fitsreader.h>
+
+#include <schaapcommon/fft/restoreimage.h>
+
 #include "../math/modelrenderer.h"
 
 #include "../model/bbsmodel.h"
@@ -210,10 +214,10 @@ void WSCFitsWriter::Restore(const Settings& settings) {
     beamPA = imgReader.BeamPositionAngle();
   }
 
-  ModelRenderer::Restore(image.data(), model.data(), imgReader.ImageWidth(),
-                         imgReader.ImageHeight(), beamMaj, beamMin, beamPA,
-                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
-                         settings.threadCount);
+  schaapcommon::fft::RestoreImage(
+      image.data(), model.data(), imgReader.ImageWidth(),
+      imgReader.ImageHeight(), beamMaj, beamMin, beamPA, imgReader.PixelSizeX(),
+      imgReader.PixelSizeY(), settings.threadCount);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);

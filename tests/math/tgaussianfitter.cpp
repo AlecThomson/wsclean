@@ -8,20 +8,24 @@
 
 #include <aocommon/image.h>
 
+#include <schaapcommon/fft/restoreimage.h>
+
 BOOST_AUTO_TEST_SUITE(gaussian_fitter)
 
 BOOST_AUTO_TEST_CASE(fit) {
   for (size_t beamPAindex = 0; beamPAindex != 10; ++beamPAindex) {
     const size_t width = 512, height = 512;
-    aocommon::Image model(width, height, 0.0), restored(width, height, 0.0);
+    aocommon::Image model(width, height, 0.0);
+    aocommon::Image restored(width, height, 0.0);
     model[((height / 2) * width) + (width / 2)] = 1.0;
-    long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0),
-                beamMaj = 20 * pixelScale, beamMin = 5 * pixelScale,
-                beamPA = beamPAindex * M_PI / 10.0;
+    const long double pixelScale = 1.0L /*amin*/ * (M_PI / 180.0 / 60.0);
+    const long double beamMaj = 20.0L * pixelScale;
+    const long double beamMin = 5.0L * pixelScale;
+    const long double beamPA = beamPAindex * M_PI / 10.0;
     const size_t threadCount = 1;
-    ModelRenderer::Restore(restored.Data(), model.Data(), width, height,
-                           beamMaj, beamMin, beamPA, pixelScale, pixelScale,
-                           threadCount);
+    schaapcommon::fft::RestoreImage(restored.Data(), model.Data(), width,
+                                    height, beamMaj, beamMin, beamPA,
+                                    pixelScale, pixelScale, threadCount);
 
     GaussianFitter fitter;
     double fitMaj, fitMin, fitPA;
