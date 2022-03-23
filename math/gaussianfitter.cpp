@@ -194,8 +194,8 @@ int FittingBothCircularCentered(const gsl_vector* x, void* data, gsl_vector* f,
   return GSL_SUCCESS;
 }
 
-int fitting_func_with_amplitude(const gsl_vector* xvec, void* data,
-                                gsl_vector* f) {
+int FittingFuncWithAmplitude(const gsl_vector* xvec, void* data,
+                             gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double v = gsl_vector_get(xvec, 0);
   const double xc = gsl_vector_get(xvec, 1);
@@ -222,8 +222,8 @@ int fitting_func_with_amplitude(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int fitting_deriv_with_amplitude(const gsl_vector* xvec, void* data,
-                                 gsl_matrix* J) {
+int FittingDerivWithAmplitude(const gsl_vector* xvec, void* data,
+                              gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double scale = 1.0 / fitter.ScaleFactor();
   const double v = gsl_vector_get(xvec, 0);
@@ -273,14 +273,14 @@ int fitting_deriv_with_amplitude(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int fitting_both_with_amplitude(const gsl_vector* x, void* data, gsl_vector* f,
-                                gsl_matrix* J) {
-  fitting_func_with_amplitude(x, data, f);
-  fitting_deriv_with_amplitude(x, data, J);
+int FittingBothWithAmplitude(const gsl_vector* x, void* data, gsl_vector* f,
+                             gsl_matrix* J) {
+  FittingFuncWithAmplitude(x, data, f);
+  FittingDerivWithAmplitude(x, data, J);
   return GSL_SUCCESS;
 }
-int fitting_func_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
-                                          gsl_vector* f) {
+int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
+                                     gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double scale = 1.0 / fitter.ScaleFactor();
   const double v = gsl_vector_get(xvec, 0);
@@ -313,8 +313,8 @@ int fitting_func_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int fitting_deriv_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
-                                           gsl_matrix* J) {
+int FittingDerivWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
+                                      gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double v = gsl_vector_get(xvec, 0);
   const double xc = gsl_vector_get(xvec, 1);
@@ -358,10 +358,10 @@ int fitting_deriv_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int fitting_both_with_amplitude_and_floor(const gsl_vector* x, void* data,
-                                          gsl_vector* f, gsl_matrix* J) {
-  fitting_func_with_amplitude_and_floor(x, data, f);
-  fitting_deriv_with_amplitude_and_floor(x, data, J);
+int FittingBothWithAmplitudeAndFloor(const gsl_vector* x, void* data,
+                                     gsl_vector* f, gsl_matrix* J) {
+  FittingFuncWithAmplitudeAndFloor(x, data, f);
+  FittingDerivWithAmplitudeAndFloor(x, data, J);
   return GSL_SUCCESS;
 }
 
@@ -655,9 +655,9 @@ void GaussianFitter::fit2DGaussianWithAmplitude(double& val, double& posX,
       gsl_multifit_fdfsolver_alloc(T, _width * _height, 6);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &fitting_func_with_amplitude;
-  fdf.df = &fitting_deriv_with_amplitude;
-  fdf.fdf = &fitting_both_with_amplitude;
+  fdf.f = &FittingFuncWithAmplitude;
+  fdf.df = &FittingDerivWithAmplitude;
+  fdf.fdf = &FittingBothWithAmplitude;
   fdf.n = _width * _height;
   fdf.p = 6;
   fdf.params = this;
@@ -708,9 +708,9 @@ void GaussianFitter::fit2DGaussianWithAmplitudeWithFloor(
       gsl_multifit_fdfsolver_alloc(T, _width * _height, 7);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &fitting_func_with_amplitude_and_floor;
-  fdf.df = &fitting_deriv_with_amplitude_and_floor;
-  fdf.fdf = &fitting_both_with_amplitude_and_floor;
+  fdf.f = &FittingFuncWithAmplitudeAndFloor;
+  fdf.df = &FittingDerivWithAmplitudeAndFloor;
+  fdf.fdf = &FittingBothWithAmplitudeAndFloor;
   fdf.n = _width * _height;
   fdf.p = 7;
   fdf.params = this;
