@@ -5,6 +5,9 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>
 
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_multifit_nlin.h>
+
 using aocommon::Matrix2x2;
 
 namespace {

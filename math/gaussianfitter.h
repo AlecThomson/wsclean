@@ -4,9 +4,6 @@
 #include <cstring>
 #include <iostream>
 
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_multifit_nlin.h>
-
 class GaussianFitter {
  public:
   GaussianFitter() : pos_constrained_(0.0) {}
