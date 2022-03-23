@@ -56,12 +56,13 @@ class GaussianFitter {
    * function. The beam estimate is used as initial value for the minor and
    * major shape.
    */
-  void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
-                            double beamEst, double& beamMaj, double& beamMin,
-                            double& beamPA, bool verbose);
+  void SingleFit2DGaussianCentred(const float* image, size_t width,
+                                  size_t height, double beamEst,
+                                  double& beamMaj, double& beamMin,
+                                  double& beamPA, bool verbose);
 
-  void Fit2DCircularGaussianCentred(const float* image, size_t width,
-                                    size_t height, double& beamSize);
+  void SingleFit2DCircularGaussianCentred(const float* image, size_t width,
+                                          size_t height, double& beamSize);
 
   void Fit2DGaussianWithAmplitudeInBox(const float* image, size_t width,
                                        size_t height, double& val, double& posX,
@@ -81,8 +82,8 @@ class GaussianFitter {
                                   double* floorLevel);
 
   /**
-   * Like Fit2DGaussianCentred(), but includes Gaussian centre X and Y position
-   * and amplitude in the fitted parameters.
+   * Like SingleFit2DGaussianCentred(), but includes Gaussian centre X and Y
+   * position and amplitude in the fitted parameters.
    *
    * This function can typically be used for source fitting.
    */

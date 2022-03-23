@@ -70,7 +70,7 @@ double ErrFull(double val, double v, double x, double y, double sx, double sy,
 }
 
 /**
- * Fitting function for Fit2DGaussianCentred(). Calculates the sum of the
+ * Fitting function for SingleFit2DGaussianCentred(). Calculates the sum of the
  * squared errors(/residuals).
  */
 int FittingFuncCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
@@ -121,7 +121,7 @@ int FittingFuncCircularCentered(const gsl_vector* xvec, void* data,
 }
 
 /**
- * Derivative function belong with Fit2DGaussianCentred().
+ * Derivative function belong with SingleFit2DGaussianCentred().
  */
 int FittingDerivCentered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
@@ -408,8 +408,8 @@ void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
     } while (!boxWasLargeEnough && nIter < 5);
   } else {
     if (verbose) std::cout << "Image is as large as the fitting box.\n";
-    Fit2DGaussianCentred(image, width, height, beamEst, beamMaj, beamMin,
-                         beamPA, verbose);
+    SingleFit2DGaussianCentred(image, width, height, beamEst, beamMaj, beamMin,
+                               beamPA, verbose);
   }
 }
 
@@ -442,7 +442,7 @@ void GaussianFitter::Fit2DCircularGaussianCentred(const float* image,
       ++nIter;
     } while (!boxWasLargeEnough && nIter < 5);
   } else {
-    Fit2DCircularGaussianCentred(image, width, height, beamSize);
+    SingleFit2DCircularGaussianCentred(image, width, height, beamSize);
   }
 }
 
@@ -494,8 +494,8 @@ void GaussianFitter::Fit2DGaussianCentredInBox(const float* image, size_t width,
                 &smallImage[(y - startY) * boxWidth]);
   }
 
-  Fit2DGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamEst, beamMaj,
-                       beamMin, beamPA, verbose);
+  SingleFit2DGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamEst,
+                             beamMaj, beamMin, beamPA, verbose);
 }
 
 void GaussianFitter::Fit2DCircularGaussianCentredInBox(
@@ -509,13 +509,15 @@ void GaussianFitter::Fit2DCircularGaussianCentredInBox(
                 &smallImage[(y - startY) * boxWidth]);
   }
 
-  Fit2DCircularGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamSize);
+  SingleFit2DCircularGaussianCentred(&smallImage[0], boxWidth, boxHeight,
+                                     beamSize);
 }
 
-void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
-                                          size_t height, double beamEst,
-                                          double& beamMaj, double& beamMin,
-                                          double& beamPA, bool verbose) {
+void GaussianFitter::SingleFit2DGaussianCentred(const float* image,
+                                                size_t width, size_t height,
+                                                double beamEst, double& beamMaj,
+                                                double& beamMin, double& beamPA,
+                                                bool verbose) {
   width_ = width;
   height_ = height;
   image_ = image;
@@ -563,9 +565,10 @@ void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
   beamMin *= scale_factor_;
 }
 
-void GaussianFitter::Fit2DCircularGaussianCentred(const float* image,
-                                                  size_t width, size_t height,
-                                                  double& beamSize) {
+void GaussianFitter::SingleFit2DCircularGaussianCentred(const float* image,
+                                                        size_t width,
+                                                        size_t height,
+                                                        double& beamSize) {
   width_ = width;
   height_ = height;
   image_ = image;
