@@ -9,7 +9,7 @@
 
 class GaussianFitter {
  public:
-  GaussianFitter() : _posConstrained(0.0) {}
+  GaussianFitter() : pos_constrained_(0.0) {}
 
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
@@ -25,22 +25,22 @@ class GaussianFitter {
                          double& beamMaj, double& beamMin, double& beamPA,
                          double* floorLevel = nullptr);
 
-  const float* Image() const { return _image; }
-  size_t Width() const { return _width; }
-  size_t Height() const { return _height; }
-  size_t ScaleFactor() const { return _scaleFactor; }
-  double XInit() const { return _xInit; };
-  double YInit() const { return _yInit; };
-  double PosConstrained() const { return _posConstrained; };
+  const float* Image() const { return image_; }
+  size_t Width() const { return width_; }
+  size_t Height() const { return height_; }
+  size_t ScaleFactor() const { return scale_factor_; }
+  double XInit() const { return x_init_; };
+  double YInit() const { return y_init_; };
+  double PosConstrained() const { return pos_constrained_; };
 
  private:
-  void fit2DGaussianCentredInBox(const float* image, size_t width,
+  void Fit2DGaussianCentredInBox(const float* image, size_t width,
                                  size_t height, double beamEst, double& beamMaj,
                                  double& beamMin, double& beamPA,
                                  size_t boxWidth, size_t boxHeight,
                                  bool verbose);
 
-  void fit2DCircularGaussianCentredInBox(const float* image, size_t width,
+  void Fit2DCircularGaussianCentredInBox(const float* image, size_t width,
                                          size_t height, double& beamSize,
                                          size_t boxWidth, size_t boxHeight);
 
@@ -53,14 +53,14 @@ class GaussianFitter {
    * function. The beam estimate is used as initial value for the minor and
    * major shape.
    */
-  void fit2DGaussianCentred(const float* image, size_t width, size_t height,
+  void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
                             double& beamPA, bool verbose);
 
-  void fit2DCircularGaussianCentred(const float* image, size_t width,
+  void Fit2DCircularGaussianCentred(const float* image, size_t width,
                                     size_t height, double& beamSize);
 
-  void fit2DGaussianWithAmplitudeInBox(const float* image, size_t width,
+  void Fit2DGaussianWithAmplitudeInBox(const float* image, size_t width,
                                        size_t height, double& val, double& posX,
                                        double& posY, double& beamMaj,
                                        double& beamMin, double& beamPA,
@@ -71,35 +71,39 @@ class GaussianFitter {
    * Fits the position, size and amplitude of a Gaussian. If floorLevel is not
    * a nullptr, the floor (background level, or zero level) is fitted too.
    */
-  void fit2DGaussianWithAmplitude(const float* image, size_t width,
+  void Fit2DGaussianWithAmplitude(const float* image, size_t width,
                                   size_t height, double& val, double& posX,
                                   double& posY, double& beamMaj,
                                   double& beamMin, double& beamPA,
                                   double* floorLevel);
 
   /**
-   * Like fit2DGaussianCentred(), but includes Gaussian centre X and Y position
+   * Like Fit2DGaussianCentred(), but includes Gaussian centre X and Y position
    * and amplitude in the fitted parameters.
    *
    * This function can typically be used for source fitting.
    */
-  void fit2DGaussianWithAmplitude(double& val, double& posX, double& posY,
+  void Fit2DGaussianWithAmplitude(double& val, double& posX, double& posY,
                                   double& beamMaj, double& beamMin,
                                   double& beamPA);
 
   /**
-   * Like fit2DGaussianWithAmplitude(), but includes floorLevel as fitted
+   * Like Fit2DGaussianWithAmplitude(), but includes floorLevel as fitted
    * parameter. Floor is the background/zero level on which the Gaussian
    * resides.
    */
-  void fit2DGaussianWithAmplitudeWithFloor(double& val, double& posX,
+  void Fit2DGaussianWithAmplitudeWithFloor(double& val, double& posX,
                                            double& posY, double& beamMaj,
                                            double& beamMin, double& beamPA,
                                            double& floorLevel);
 
-  const float* _image;
-  size_t _width, _height, _scaleFactor;
-  double _xInit, _yInit, _posConstrained;
+  const float* image_;
+  size_t width_;
+  size_t height_;
+  size_t scale_factor_;
+  double x_init_;
+  double y_init_;
+  double pos_constrained_;
 };
 
 #endif
