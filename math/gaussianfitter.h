@@ -6,7 +6,14 @@
 
 class GaussianFitter {
  public:
-  GaussianFitter() : pos_constrained_(0.0) {}
+  GaussianFitter()
+      : image_(nullptr),
+        width_(0),
+        height_(0),
+        scale_factor_(0),
+        x_init_(0.0),
+        y_init_(0.0),
+        pos_constrained_(0.0) {}
 
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
