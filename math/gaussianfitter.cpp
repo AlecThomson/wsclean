@@ -5,8 +5,6 @@ using aocommon::Matrix2x2;
 namespace {
 void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
                      double& ellipseMin, double& ellipsePA) {
-  // std::cout << "conv sx=" << sx << ", sy=" << sy << ", beta=" << beta <<
-  // '\n';
   const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   const double betaFact = 1.0 - beta * beta;
   double cov[4];
@@ -31,11 +29,6 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
     ellipseMin = sqrt(std::fabs(sx)) * sigmaToBeam;
     ellipsePA = 0.0;
   }
-}
-
-void ToFWHM(double s, double& beamSize) {
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
-  beamSize = s * sigmaToBeam;
 }
 }  // namespace
 
@@ -251,9 +244,9 @@ void GaussianFitter::fit2DCircularGaussianCentred(const float* image,
   fdf.params = this;
 
   // Using the FWHM formula for a Gaussian:
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
+  const long double kSigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   double initialValsArray[1] = {beamSize /
-                                (_scaleFactor * double(sigmaToBeam))};
+                                (_scaleFactor * double(kSigmaToBeam))};
   gsl_vector_view initialVals = gsl_vector_view_array(initialValsArray, 1);
   gsl_multifit_fdfsolver_set(solver, &fdf, &initialVals.vector);
 
@@ -269,11 +262,10 @@ void GaussianFitter::fit2DCircularGaussianCentred(const float* image,
 
   } while (status == GSL_CONTINUE && iter < 500);
 
-  double s = gsl_vector_get(solver->x, 0);
+  const double s = gsl_vector_get(solver->x, 0);
   gsl_multifit_fdfsolver_free(solver);
 
-  ToFWHM(s, beamSize);
-  beamSize *= _scaleFactor;
+  beamSize = s * kSigmaToBeam * _scaleFactor;
 }
 
 /**
