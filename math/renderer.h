@@ -9,17 +9,17 @@
 
 class Renderer {
  public:
-  Renderer(const Model& model, long double phaseCentreRA,
-           long double phaseCentreDec, long double pixelScaleL,
-           long double pixelScaleM, long double phaseCentreDL,
-           long double phaseCentreDM)
+  Renderer(const Model& model, long double phase_centre_ra,
+           long double phase_centre_dec, long double pixel_scale_l,
+           long double pixel_scale_m, long double phase_centre_dl,
+           long double phase_centre_dm)
       : model_(model),
-        _phaseCentreRA(phaseCentreRA),
-        _phaseCentreDec(phaseCentreDec),
-        _pixelScaleL(pixelScaleL),
-        _pixelScaleM(pixelScaleM),
-        _phaseCentreDL(phaseCentreDL),
-        _phaseCentreDM(phaseCentreDM) {}
+        phase_centre_ra_(phase_centre_ra),
+        phase_centre_dec_(phase_centre_dec),
+        pixel_scale_l_(pixel_scale_l),
+        pixel_scale_m_(pixel_scale_m),
+        phase_centre_dl_(phase_centre_dl),
+        phase_centre_dm_(phase_centre_dm) {}
 
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
@@ -28,39 +28,40 @@ class Renderer {
    * Restore model component using a circular beam, goverened by
    * \c beamSize .
    */
-  void RestoreWithCircularBeam(double* imageData, size_t imageWidth,
-                               size_t imageHeight, const Model& model,
-                               long double beamSize, long double startFrequency,
-                               long double endFrequency,
+  void RestoreWithCircularBeam(double* image_data, size_t image_width,
+                               size_t image_height, const Model& model,
+                               long double beamSize,
+                               long double start_frequency,
+                               long double end_frequency,
                                aocommon::PolarizationEnum polarization) const;
 
   /**
    * Restore a model with an elliptical beam
    */
-  void RestoreWithEllipticalBeam(float* imageData, size_t imageWidth,
-                                 size_t imageHeight, long double beamMaj,
+  void RestoreWithEllipticalBeam(float* image_data, size_t image_width,
+                                 size_t image_height, long double beamMaj,
                                  long double beamMin, long double beamPA,
-                                 long double startFrequency,
-                                 long double endFrequency,
+                                 long double start_frequency,
+                                 long double end_frequency,
                                  aocommon::PolarizationEnum polarization,
-                                 size_t threadCount) const;
+                                 size_t thread_count) const;
 
  private:
   /**
    * Render without beam convolution, such that each point-source is one
    pixel.
    */
-  void RenderModel(float* imageData, size_t imageWidth, size_t imageHeight,
-                   long double startFrequency, long double endFrequency,
+  void RenderModel(float* image_data, size_t image_width, size_t image_height,
+                   long double start_frequency, long double end_frequency,
                    aocommon::PolarizationEnum polarization) const;
 
   const Model& model_;
-  const long double _phaseCentreRA;
-  const long double _phaseCentreDec;
-  const long double _pixelScaleL;
-  const long double _pixelScaleM;
-  const long double _phaseCentreDL;
-  const long double _phaseCentreDM;
+  const long double phase_centre_ra_;
+  const long double phase_centre_dec_;
+  const long double pixel_scale_l_;
+  const long double pixel_scale_m_;
+  const long double phase_centre_dl_;
+  const long double phase_centre_dm_;
 };
 
 #endif
