@@ -8,9 +8,6 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multifit_nlin.h>
 
-#include <aocommon/matrix2x2.h>
-#include <aocommon/uvector.h>
-
 class GaussianFitter {
  public:
   GaussianFitter() : _posConstrained(0.0) {}

@@ -1,5 +1,8 @@
 #include "gaussianfitter.h"
 
+#include <aocommon/matrix2x2.h>
+#include <aocommon/uvector.h>
+
 using aocommon::Matrix2x2;
 
 namespace {
