@@ -2,9 +2,9 @@
 
 using aocommon::Matrix2x2;
 
-void GaussianFitter::ToAnglesAndFWHM(double sx, double sy, double beta,
-                                     double& ellipseMaj, double& ellipseMin,
-                                     double& ellipsePA) {
+namespace {
+void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
+                     double& ellipseMin, double& ellipsePA) {
   // std::cout << "conv sx=" << sx << ", sy=" << sy << ", beta=" << beta <<
   // '\n';
   const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
@@ -33,10 +33,11 @@ void GaussianFitter::ToAnglesAndFWHM(double sx, double sy, double beta,
   }
 }
 
-void GaussianFitter::ToFWHM(double s, double& beamSize) {
+void ToFWHM(double s, double& beamSize) {
   const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
   beamSize = s * sigmaToBeam;
 }
+}  // namespace
 
 void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
                                           size_t height, double beamEst,

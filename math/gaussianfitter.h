@@ -15,12 +15,6 @@ class GaussianFitter {
  public:
   GaussianFitter() : _posConstrained(0.0) {}
 
-  static void ToAnglesAndFWHM(double sx, double sy, double beta,
-                              double& ellipseMaj, double& ellipseMin,
-                              double& ellipsePA);
-
-  static void ToFWHM(double s, double& beamSize);
-
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
                             double& beamPA, double boxScaleFactor = 10.0,
