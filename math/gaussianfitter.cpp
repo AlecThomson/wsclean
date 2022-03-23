@@ -38,56 +38,6 @@ void GaussianFitter::ToFWHM(double s, double& beamSize) {
   beamSize = s * sigmaToBeam;
 }
 
-void GaussianFitter::ToCovariance(double fwhmMaj, double fwhmMin,
-                                  double positionAngle, double& sxsx,
-                                  double& sxsy, double& sysy) {
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
-  fwhmMaj /= sigmaToBeam;
-  fwhmMin /= sigmaToBeam;
-  const double saSq = fwhmMaj * fwhmMaj, sbSq = fwhmMin * fwhmMin,
-               cosAngle = std::cos(positionAngle),
-               sinAngle = std::sin(positionAngle),
-               cosAngleSq = cosAngle * cosAngle,
-               sinAngleSq = sinAngle * sinAngle;
-  // The covariance matrix is Rotation x Scaling x Rotation^T:
-  // sxsx sxsy    cos a -sin a  maj^2 0    cos a  sin a
-  // sxsy sysy = (sin a  cos a)  0 min^2 (-sin a  cos a)
-  //
-  //             maj^2 cos a  -min^2 sin a     cos a  sin a)
-  //          =( maj^2 sin a   min^2 cos a ) (-sin a  cos a)
-  sxsx = saSq * cosAngleSq + sbSq * sinAngleSq;
-  sxsy = saSq * sinAngle * cosAngle - sbSq * cosAngle * sinAngle;
-  sysy = saSq * sinAngleSq + sbSq * cosAngleSq;
-}
-
-void GaussianFitter::FromCovariance(double sxsx, double sxsy, double sysy,
-                                    double& fwhmMaj, double& fwhmMin,
-                                    double& positionAngle) {
-  const long double sigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
-  double cov[4];
-  cov[0] = sxsx;
-  cov[1] = sxsy;
-  cov[2] = sxsy;
-  cov[3] = sysy;
-
-  double e1, e2, vec1[2], vec2[2];
-  Matrix2x2::EigenValuesAndVectors(cov, e1, e2, vec1, vec2);
-  if (std::isfinite(e1)) {
-    fwhmMaj = sqrt(std::fabs(e1)) * sigmaToBeam;
-    fwhmMin = sqrt(std::fabs(e2)) * sigmaToBeam;
-    if (fwhmMaj < fwhmMin) {
-      std::swap(fwhmMaj, fwhmMin);
-      vec1[0] = vec2[0];
-      vec1[1] = vec2[1];
-    }
-    positionAngle = atan2(vec1[1], vec1[0]);
-  } else {
-    fwhmMaj = sqrt(std::fabs(sxsx)) * sigmaToBeam;
-    fwhmMin = sqrt(std::fabs(sxsx)) * sigmaToBeam;
-    positionAngle = 0.0;
-  }
-}
-
 void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
                                           size_t height, double beamEst,
                                           double& beamMaj, double& beamMin,

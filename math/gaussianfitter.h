@@ -21,13 +21,6 @@ class GaussianFitter {
 
   static void ToFWHM(double s, double& beamSize);
 
-  static void ToCovariance(double fwhmMaj, double fwhmMin, double positionAngle,
-                           double& sxsx, double& sxsy, double& sysy);
-
-  static void FromCovariance(double sxsx, double sxsy, double sysy,
-                             double& fwhmMaj, double& fwhmMin,
-                             double& positionAngle);
-
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
                             double& beamPA, double boxScaleFactor = 10.0,
