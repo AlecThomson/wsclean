@@ -1,6 +1,7 @@
 #include "gaussianfitter.h"
 
 #include <cmath>
+#include <iostream>
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>

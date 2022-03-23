@@ -2,7 +2,6 @@
 #define GAUSSIAN_FITTER_H
 
 #include <cstring>
-#include <iostream>
 
 class GaussianFitter {
  public:
