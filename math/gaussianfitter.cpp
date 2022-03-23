@@ -194,6 +194,177 @@ int FittingBothCircularCentered(const gsl_vector* x, void* data, gsl_vector* f,
   return GSL_SUCCESS;
 }
 
+int fitting_func_with_amplitude(const gsl_vector* xvec, void* data,
+                                gsl_vector* f) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double v = gsl_vector_get(xvec, 0);
+  const double xc = gsl_vector_get(xvec, 1);
+  const double yc = gsl_vector_get(xvec, 2);
+  const double sx = gsl_vector_get(xvec, 3);
+  const double sy = gsl_vector_get(xvec, 4);
+  const double beta = gsl_vector_get(xvec, 5);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (int yi = 0; yi != int(height); ++yi) {
+    double yS = yc + (yi - yMid) * scale;
+    for (int xi = 0; xi != int(width); ++xi) {
+      double xS = xc + (xi - xMid) * scale;
+      double e = ErrFull(fitter.Image()[dataIndex], v, xS, yS, sx, sy, beta);
+      gsl_vector_set(f, dataIndex, e);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_deriv_with_amplitude(const gsl_vector* xvec, void* data,
+                                 gsl_matrix* J) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double scale = 1.0 / fitter.ScaleFactor();
+  const double v = gsl_vector_get(xvec, 0);
+  const double xc = gsl_vector_get(xvec, 1);
+  const double yc = gsl_vector_get(xvec, 2);
+  const double sx = gsl_vector_get(xvec, 3);
+  const double sy = gsl_vector_get(xvec, 4);
+  const double beta = gsl_vector_get(xvec, 5);
+  if (fitter.PosConstrained() != 0.0 &&
+      (std::fabs(xc - fitter.XInit()) > fitter.PosConstrained() * scale ||
+       std::fabs(yc - fitter.YInit()) > fitter.PosConstrained() * scale)) {
+    std::cout << "GSL_EDOM\n";
+    return GSL_EDOM;
+  }
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+
+  size_t dataIndex = 0;
+  for (int yi = 0; yi != int(height); ++yi) {
+    double y = yc + (yi - yMid) * scale;
+    for (int xi = 0; xi != int(width); ++xi) {
+      // TODO I need to go over the signs -- ds, dy, dsx, dsy in particular
+      double x = xc + (xi - xMid) * scale;
+      double expTerm =
+          std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
+                   y * y / (2.0 * sy * sy));
+      double dv = expTerm;
+      expTerm *= v;
+      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
+      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
+      double dsx =
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+      double dsy =
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
+      double dbeta = x * y / (sx * sy) * expTerm;
+      gsl_matrix_set(J, dataIndex, 0, dv);
+      gsl_matrix_set(J, dataIndex, 1, dx);
+      gsl_matrix_set(J, dataIndex, 2, dy);
+      gsl_matrix_set(J, dataIndex, 3, dsx);
+      gsl_matrix_set(J, dataIndex, 4, dsy);
+      gsl_matrix_set(J, dataIndex, 5, dbeta);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_both_with_amplitude(const gsl_vector* x, void* data, gsl_vector* f,
+                                gsl_matrix* J) {
+  fitting_func_with_amplitude(x, data, f);
+  fitting_deriv_with_amplitude(x, data, J);
+  return GSL_SUCCESS;
+}
+int fitting_func_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
+                                          gsl_vector* f) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double scale = 1.0 / fitter.ScaleFactor();
+  const double v = gsl_vector_get(xvec, 0);
+  const double xc = gsl_vector_get(xvec, 1);
+  const double yc = gsl_vector_get(xvec, 2);
+  const double sx = gsl_vector_get(xvec, 3);
+  const double sy = gsl_vector_get(xvec, 4);
+  const double beta = gsl_vector_get(xvec, 5);
+  const double fl = gsl_vector_get(xvec, 6);
+  if (fitter.PosConstrained() != 0.0 &&
+      (std::fabs(xc - fitter.XInit()) > fitter.PosConstrained() * scale ||
+       std::fabs(yc - fitter.YInit()) > fitter.PosConstrained() * scale))
+    return GSL_EDOM;
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+
+  size_t dataIndex = 0;
+  for (int yi = 0; yi != int(height); ++yi) {
+    double yS = yc + (yi - yMid) * scale;
+    for (int xi = 0; xi != int(width); ++xi) {
+      double xS = xc + (xi - xMid) * scale;
+      double e =
+          ErrFull(fitter.Image()[dataIndex], v, xS, yS, sx, sy, beta) + fl;
+      gsl_vector_set(f, dataIndex, e);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_deriv_with_amplitude_and_floor(const gsl_vector* xvec, void* data,
+                                           gsl_matrix* J) {
+  const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
+  const double v = gsl_vector_get(xvec, 0);
+  const double xc = gsl_vector_get(xvec, 1);
+  const double yc = gsl_vector_get(xvec, 2);
+  const double sx = gsl_vector_get(xvec, 3);
+  const double sy = gsl_vector_get(xvec, 4);
+  const double beta = gsl_vector_get(xvec, 5);
+  const size_t width = fitter.Width();
+  const size_t height = fitter.Height();
+  const int xMid = width / 2;
+  const int yMid = height / 2;
+  const double scale = 1.0 / fitter.ScaleFactor();
+
+  size_t dataIndex = 0;
+  for (int yi = 0; yi != int(height); ++yi) {
+    double y = yc + (yi - yMid) * scale;
+    for (int xi = 0; xi != int(width); ++xi) {
+      double x = xc + (xi - xMid) * scale;
+      double expTerm = exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
+                           y * y / (2.0 * sy * sy));
+      double dv = expTerm;
+      expTerm *= v;
+      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
+      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
+      double dsx =
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+      double dsy =
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
+      double dbeta = x * y / (sx * sy) * expTerm;
+      double dfl = 1.0;
+      gsl_matrix_set(J, dataIndex, 0, dv);
+      gsl_matrix_set(J, dataIndex, 1, dx);
+      gsl_matrix_set(J, dataIndex, 2, dy);
+      gsl_matrix_set(J, dataIndex, 3, dsx);
+      gsl_matrix_set(J, dataIndex, 4, dsy);
+      gsl_matrix_set(J, dataIndex, 5, dbeta);
+      gsl_matrix_set(J, dataIndex, 6, dfl);
+      ++dataIndex;
+    }
+  }
+  return GSL_SUCCESS;
+}
+
+int fitting_both_with_amplitude_and_floor(const gsl_vector* x, void* data,
+                                          gsl_vector* f, gsl_matrix* J) {
+  fitting_func_with_amplitude_and_floor(x, data, f);
+  fitting_deriv_with_amplitude_and_floor(x, data, J);
+  return GSL_SUCCESS;
+}
+
 }  // namespace
 
 void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
@@ -582,145 +753,4 @@ void GaussianFitter::fit2DGaussianWithAmplitudeWithFloor(
   ToAnglesAndFWHM(sx, sy, beta, beamMaj, beamMin, beamPA);
   beamMaj *= _scaleFactor;
   beamMin *= _scaleFactor;
-}
-
-int GaussianFitter::fitting_func_with_amplitude(const gsl_vector* xvec,
-                                                void* data, gsl_vector* f) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  double v = gsl_vector_get(xvec, 0), xc = gsl_vector_get(xvec, 1),
-         yc = gsl_vector_get(xvec, 2), sx = gsl_vector_get(xvec, 3),
-         sy = gsl_vector_get(xvec, 4), beta = gsl_vector_get(xvec, 5);
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-  double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (int yi = 0; yi != int(height); ++yi) {
-    double yS = yc + (yi - yMid) * scale;
-    for (int xi = 0; xi != int(width); ++xi) {
-      double xS = xc + (xi - xMid) * scale;
-      double e = ErrFull(fitter._image[dataIndex], v, xS, yS, sx, sy, beta);
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
-}
-
-int GaussianFitter::fitting_deriv_with_amplitude(const gsl_vector* xvec,
-                                                 void* data, gsl_matrix* J) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  const double scale = 1.0 / fitter._scaleFactor;
-  double v = gsl_vector_get(xvec, 0), xc = gsl_vector_get(xvec, 1),
-         yc = gsl_vector_get(xvec, 2), sx = gsl_vector_get(xvec, 3),
-         sy = gsl_vector_get(xvec, 4), beta = gsl_vector_get(xvec, 5);
-  if (fitter._posConstrained != 0.0 &&
-      (std::fabs(xc - fitter._xInit) > fitter._posConstrained * scale ||
-       std::fabs(yc - fitter._yInit) > fitter._posConstrained * scale)) {
-    std::cout << "GSL_EDOM\n";
-    return GSL_EDOM;
-  }
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-
-  size_t dataIndex = 0;
-  for (int yi = 0; yi != int(height); ++yi) {
-    double y = yc + (yi - yMid) * scale;
-    for (int xi = 0; xi != int(width); ++xi) {
-      // TODO I need to go over the signs -- ds, dy, dsx, dsy in particular
-      double x = xc + (xi - xMid) * scale;
-      double expTerm = exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                           y * y / (2.0 * sy * sy));
-      double dv = expTerm;
-      expTerm *= v;
-      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
-      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
-      double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
-      double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, dv);
-      gsl_matrix_set(J, dataIndex, 1, dx);
-      gsl_matrix_set(J, dataIndex, 2, dy);
-      gsl_matrix_set(J, dataIndex, 3, dsx);
-      gsl_matrix_set(J, dataIndex, 4, dsy);
-      gsl_matrix_set(J, dataIndex, 5, dbeta);
-      ++dataIndex;
-    }
-  }
-  // std::cout << "diff: v=" << v << ", x=" << xc << ", y=" << yc << ", sx=" <<
-  // sx << ", sy=" << sy << ", beta=" << beta << '\n';
-  return GSL_SUCCESS;
-}
-
-int GaussianFitter::fitting_func_with_amplitude_and_floor(
-    const gsl_vector* xvec, void* data, gsl_vector* f) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  const double scale = 1.0 / fitter._scaleFactor;
-  double v = gsl_vector_get(xvec, 0), xc = gsl_vector_get(xvec, 1),
-         yc = gsl_vector_get(xvec, 2), sx = gsl_vector_get(xvec, 3),
-         sy = gsl_vector_get(xvec, 4), beta = gsl_vector_get(xvec, 5),
-         fl = gsl_vector_get(xvec, 6);
-  if (fitter._posConstrained != 0.0 &&
-      (std::fabs(xc - fitter._xInit) > fitter._posConstrained * scale ||
-       std::fabs(yc - fitter._yInit) > fitter._posConstrained * scale))
-    return GSL_EDOM;
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-
-  size_t dataIndex = 0;
-  for (int yi = 0; yi != int(height); ++yi) {
-    double yS = yc + (yi - yMid) * scale;
-    for (int xi = 0; xi != int(width); ++xi) {
-      double xS = xc + (xi - xMid) * scale;
-      double e =
-          ErrFull(fitter._image[dataIndex], v, xS, yS, sx, sy, beta) + fl;
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
-    }
-  }
-  return GSL_SUCCESS;
-}
-
-int GaussianFitter::fitting_deriv_with_amplitude_and_floor(
-    const gsl_vector* xvec, void* data, gsl_matrix* J) {
-  GaussianFitter& fitter = *static_cast<GaussianFitter*>(data);
-  double v = gsl_vector_get(xvec, 0), xc = gsl_vector_get(xvec, 1),
-         yc = gsl_vector_get(xvec, 2), sx = gsl_vector_get(xvec, 3),
-         sy = gsl_vector_get(xvec, 4), beta = gsl_vector_get(xvec, 5);
-  const size_t width = fitter._width, height = fitter._height;
-  int xMid = width / 2, yMid = height / 2;
-  double scale = 1.0 / fitter._scaleFactor;
-
-  size_t dataIndex = 0;
-  for (int yi = 0; yi != int(height); ++yi) {
-    double y = yc + (yi - yMid) * scale;
-    for (int xi = 0; xi != int(width); ++xi) {
-      double x = xc + (xi - xMid) * scale;
-      double expTerm = exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                           y * y / (2.0 * sy * sy));
-      double dv = expTerm;
-      expTerm *= v;
-      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
-      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
-      double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
-      double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
-      double dfl = 1.0;
-      gsl_matrix_set(J, dataIndex, 0, dv);
-      gsl_matrix_set(J, dataIndex, 1, dx);
-      gsl_matrix_set(J, dataIndex, 2, dy);
-      gsl_matrix_set(J, dataIndex, 3, dsx);
-      gsl_matrix_set(J, dataIndex, 4, dsy);
-      gsl_matrix_set(J, dataIndex, 5, dbeta);
-      gsl_matrix_set(J, dataIndex, 6, dfl);
-      ++dataIndex;
-    }
-  }
-  // std::cout << "diff: v=" << v << ", x=" << xc << ", y=" << yc << ", sx=" <<
-  // sx << ", sy=" << sy << ", beta=" << beta << '\n';
-  return GSL_SUCCESS;
 }

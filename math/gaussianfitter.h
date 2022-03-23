@@ -29,6 +29,9 @@ class GaussianFitter {
   size_t Width() const { return _width; }
   size_t Height() const { return _height; }
   size_t ScaleFactor() const { return _scaleFactor; }
+  double XInit() const { return _xInit; };
+  double YInit() const { return _yInit; };
+  double PosConstrained() const { return _posConstrained; };
 
  private:
   const float* _image;
@@ -96,33 +99,6 @@ class GaussianFitter {
                                            double& posY, double& beamMaj,
                                            double& beamMin, double& beamPA,
                                            double& floorLevel);
-
-  static int fitting_func_with_amplitude(const gsl_vector* xvec, void* data,
-                                         gsl_vector* f);
-
-  static int fitting_deriv_with_amplitude(const gsl_vector* xvec, void* data,
-                                          gsl_matrix* J);
-
-  static int fitting_both_with_amplitude(const gsl_vector* x, void* data,
-                                         gsl_vector* f, gsl_matrix* J) {
-    fitting_func_with_amplitude(x, data, f);
-    fitting_deriv_with_amplitude(x, data, J);
-    return GSL_SUCCESS;
-  }
-
-  static int fitting_func_with_amplitude_and_floor(const gsl_vector* xvec,
-                                                   void* data, gsl_vector* f);
-
-  static int fitting_deriv_with_amplitude_and_floor(const gsl_vector* xvec,
-                                                    void* data, gsl_matrix* J);
-
-  static int fitting_both_with_amplitude_and_floor(const gsl_vector* x,
-                                                   void* data, gsl_vector* f,
-                                                   gsl_matrix* J) {
-    fitting_func_with_amplitude_and_floor(x, data, f);
-    fitting_deriv_with_amplitude_and_floor(x, data, J);
-    return GSL_SUCCESS;
-  }
 
   double _xInit, _yInit, _posConstrained;
 };
