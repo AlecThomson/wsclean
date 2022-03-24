@@ -13,7 +13,7 @@ using aocommon::Matrix2x2;
 
 namespace {
 
-const long double kSigmaToBeam = 2.0L * sqrtl(2.0L * logl(2.0L));
+const long double kSigmaToBeam = 2.0L * std::sqrt(2.0L * std::log(2.0L));
 
 void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
                      double& ellipseMin, double& ellipsePA) {
@@ -27,17 +27,17 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
   double e1, e2, vec1[2], vec2[2];
   Matrix2x2::EigenValuesAndVectors(cov, e1, e2, vec1, vec2);
   if (std::isfinite(e1)) {
-    ellipseMaj = sqrt(std::fabs(e1)) * kSigmaToBeam;
-    ellipseMin = sqrt(std::fabs(e2)) * kSigmaToBeam;
+    ellipseMaj = std::sqrt(std::fabs(e1)) * kSigmaToBeam;
+    ellipseMin = std::sqrt(std::fabs(e2)) * kSigmaToBeam;
     if (ellipseMaj < ellipseMin) {
       std::swap(ellipseMaj, ellipseMin);
       vec1[0] = vec2[0];
       vec1[1] = vec2[1];
     }
-    ellipsePA = -atan2(vec1[0], vec1[1]);
+    ellipsePA = -std::atan2(vec1[0], vec1[1]);
   } else {
-    ellipseMaj = sqrt(std::fabs(sx)) * kSigmaToBeam;
-    ellipseMin = sqrt(std::fabs(sx)) * kSigmaToBeam;
+    ellipseMaj = std::sqrt(std::fabs(sx)) * kSigmaToBeam;
+    ellipseMin = std::sqrt(std::fabs(sx)) * kSigmaToBeam;
     ellipsePA = 0.0;
   }
 }
@@ -285,6 +285,7 @@ int FittingBothWithAmplitude(const gsl_vector* x, void* data, gsl_vector* f,
   FittingDerivWithAmplitude(x, data, J);
   return GSL_SUCCESS;
 }
+
 int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
                                      gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
@@ -454,10 +455,10 @@ void GaussianFitter::Fit2DGaussianFull(const float* image, size_t width,
   size_t prefSize = std::max<size_t>(10, std::ceil(beamMaj * 10.0));
   if (prefSize % 2 != 0) ++prefSize;
   if (prefSize < width || prefSize < height) {
-    size_t xStart = std::max<int>(0, int(round(posX)) - int(prefSize) / 2);
-    size_t xEnd = std::min(width, size_t(round(posX)) + prefSize / 2);
-    size_t yStart = std::max<int>(0, int(round(posY)) - int(prefSize) / 2);
-    size_t yEnd = std::min(height, size_t(round(posY)) + prefSize / 2);
+    size_t xStart = std::max<int>(0, int(std::round(posX)) - int(prefSize) / 2);
+    size_t xEnd = std::min(width, size_t(std::round(posX)) + prefSize / 2);
+    size_t yStart = std::max<int>(0, int(std::round(posY)) - int(prefSize) / 2);
+    size_t yEnd = std::min(height, size_t(std::round(posY)) + prefSize / 2);
     size_t nIter = 0;
     bool boxWasLargeEnough;
     do {
