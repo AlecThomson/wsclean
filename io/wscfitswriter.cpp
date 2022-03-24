@@ -252,21 +252,7 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
       frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
       aocommon::Polarization::StokesI, settings.threadCount);
 
-<<<<<<< HEAD
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
-=======
-  // Renderer renderer(model, imgReader.PhaseCentreRA(),
-  //                   imgReader.PhaseCentreDec(), imgReader.PixelSizeX(),
-  //                   imgReader.PixelSizeY(), imgReader.PhaseCentreDL(),
-  //                   imgReader.PhaseCentreDM());
-
-  // renderer.RestoreWithEllipticalBeam(
-  //     image.data(), imgReader.ImageWidth(), imgReader.ImageHeight(), beamMaj,
-  //     beamMin, beamPA, frequency - bandwidth * 0.5, frequency + bandwidth *
-  //     0.5, aocommon::Polarization::StokesI, settings.threadCount);
-
-  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
->>>>>>> 571f3e4 (Towards removing Renderer class)
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
   writer.Write(settings.restoreOutput, image.Data());
 }

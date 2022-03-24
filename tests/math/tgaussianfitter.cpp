@@ -10,6 +10,28 @@
 
 #include <schaapcommon/fft/restoreimage.h>
 
+namespace {
+constexpr size_t kThreadCount = 1;
+constexpr size_t kWidth = 64;
+constexpr size_t kHeight = 64;
+constexpr long double kPixelSize = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+
+struct RendererFixture {
+  RendererFixture() : restored(kWidth, kHeight, 0.0) {
+    imageSettings.phase_centre_ra = 0.0;
+    imageSettings.phase_centre_dec = 0.0;
+    imageSettings.pixel_scale_l = kPixelSize;
+    imageSettings.pixel_scale_m = kPixelSize;
+    imageSettings.phase_centre_dl = 0.0;
+    imageSettings.phase_centre_dm = 0.0;
+  }
+
+  aocommon::Image restored;
+  renderer::ImageCoordinateSettings imageSettings;
+};
+
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(gaussian_fitter)
 
 BOOST_AUTO_TEST_CASE(fit) {
@@ -39,11 +61,7 @@ BOOST_AUTO_TEST_CASE(fit) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
-  const size_t threadCount = 1;
-  const size_t width = 64;
-  const size_t height = 64;
-  aocommon::Image restored(width, height, 0.0);
+BOOST_FIXTURE_TEST_CASE(fit_with_bad_initial_value, RendererFixture) {
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);
@@ -53,46 +71,29 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  // long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  // const long double phaseCentreDL = 0.0;
-  // const long double phaseCentreDM = 0.0;
 
-  renderer::ImageCoordinateSettings imageSettings;
-  imageSettings.phase_centre_ra = 0.0;
-  imageSettings.phase_centre_dec = 0.0;
-  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
-  imageSettings.phase_centre_dl = 0.0;
-  imageSettings.phase_centre_dm = 0.0;
-
-  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
-  const long double beamMin = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamMaj = 4.0L * kPixelSize;
+  const long double beamMin = 4.0L * kPixelSize;
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
-  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-  //                   phaseCentreDM);
-  // renderer.RestoreWithEllipticalBeam(
-  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
-  //     aocommon::Polarization::StokesI, threadCount);
   renderer::RestoreWithEllipticalBeam(
       restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
-      aocommon::Polarization::StokesI, threadCount);
+      aocommon::Polarization::StokesI, kThreadCount);
 
   GaussianFitter fitter;
-  double fitMajor, fitMinor, fitPA;
-  fitter.Fit2DGaussianCentred(restored.Data(), width, height, estimatedBeamPx,
-                              fitMajor, fitMinor, fitPA, 10.0, false);
+  double fitMajor;
+  double fitMinor;
+  double fitPA;
+  fitter.Fit2DGaussianCentred(restored.Data(), restored.Width(),
+                              restored.Height(), estimatedBeamPx, fitMajor,
+                              fitMinor, fitPA, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(fitMajor, 4.0, 1e-4);
   BOOST_CHECK_CLOSE_FRACTION(fitMinor, 4.0, 1e-4);
 }
 
-BOOST_AUTO_TEST_CASE(fit_circular) {
-  const size_t width = 64;
-  const size_t height = 64;
-  const size_t threadCount = 1;
-  aocommon::Image restored(width, height, 0.0);
+BOOST_FIXTURE_TEST_CASE(fit_circular, RendererFixture) {
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);
@@ -103,48 +104,24 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
   Model model;
   model.AddSource(source);
 
-  renderer::ImageCoordinateSettings imageSettings;
-  imageSettings.phase_centre_ra = 0.0;
-  imageSettings.phase_centre_dec = 0.0;
-  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
-  imageSettings.phase_centre_dl = 0.0;
-  imageSettings.phase_centre_dm = 0.0;
-
-  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
-  const long double beamMin = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamMaj = 4.0L * kPixelSize;
+  const long double beamMin = 4.0L * kPixelSize;
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
-  // const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  // const long double beamMaj = 4 * pixelScale;
-  // const long double beamMin = 4 * pixelScale;
-  // const long double beamPA = 0.0;
-  // const long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  // const long double phaseCentreDL = 0.0;
-  // const long double phaseCentreDM = 0.0;
-  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-  //                   phaseCentreDM);
-  // renderer.RestoreWithEllipticalBeam(
-  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
-  //     aocommon::Polarization::StokesI, threadCount);
-
   renderer::RestoreWithEllipticalBeam(
       restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
-      aocommon::Polarization::StokesI, threadCount);
+      aocommon::Polarization::StokesI, kThreadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx;
-  fitter.Fit2DCircularGaussianCentred(restored.Data(), width, height, fitMajor);
+  fitter.Fit2DCircularGaussianCentred(restored.Data(), restored.Width(),
+                                      restored.Height(), fitMajor);
 
   BOOST_CHECK_CLOSE_FRACTION(fitMajor, 4.0, 1e-4);
 }
 
-BOOST_AUTO_TEST_CASE(fit_small_beam) {
-  const size_t width = 64;
-  const size_t height = 64;
-  const size_t threadCount = 1;
-  aocommon::Image restored(width, height, 0.0);
+BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
   PowerLawSED sed(150.0e6, 1.0);
   ModelComponent component;
   component.SetPosDec(0.0);
@@ -154,40 +131,23 @@ BOOST_AUTO_TEST_CASE(fit_small_beam) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  // const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  // const long double beamMaj = 4 * pixelScale, beamMin = 0.5 * pixelScale;
-  // const long double beamPA = 0.0;
-  // const long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  // const long double phaseCentreDL = 0.0;
-  // const long double phaseCentreDM = 0.0;
 
-  renderer::ImageCoordinateSettings imageSettings;
-  imageSettings.phase_centre_ra = 0.0;
-  imageSettings.phase_centre_dec = 0.0;
-  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
-  imageSettings.phase_centre_dl = 0.0;
-  imageSettings.phase_centre_dm = 0.0;
-
-  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
-  const long double beamMin = 0.5L * imageSettings.pixel_scale_l;
+  const long double beamMaj = 4.0L * kPixelSize;
+  const long double beamMin = 0.5L * kPixelSize;
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
   renderer::RestoreWithEllipticalBeam(
       restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
-      aocommon::Polarization::StokesI, threadCount);
-
-  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-  //                   phaseCentreDM);
-  // renderer.RestoreWithEllipticalBeam(
-  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
-  //     aocommon::Polarization::StokesI, threadCount);
+      aocommon::Polarization::StokesI, kThreadCount);
 
   GaussianFitter fitter;
-  double fitMajor = estimatedBeamPx, fitMinor = estimatedBeamPx, fitPA = 0.0;
-  fitter.Fit2DGaussianCentred(restored.Data(), width, height, estimatedBeamPx,
-                              fitMajor, fitMinor, fitPA, 10.0, false);
+  double fitMajor = estimatedBeamPx;
+  double fitMinor = estimatedBeamPx;
+  double fitPA = 0.0;
+  fitter.Fit2DGaussianCentred(restored.Data(), restored.Width(),
+                              restored.Height(), estimatedBeamPx, fitMajor,
+                              fitMinor, fitPA, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(fitMinor, 0.5, 1e-4);
 }
