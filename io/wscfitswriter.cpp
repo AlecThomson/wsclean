@@ -4,13 +4,14 @@
 
 #include "imagefilename.h"
 
-#include <aocommon/fits/fitsreader.h>
-
 #include "../math/modelrenderer.h"
 
 #include "../model/bbsmodel.h"
 
 #include "../gridding/msgridderbase.h"
+
+using aocommon::FitsReader;
+using aocommon::FitsWriter;
 
 WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                              const Settings& settings,
@@ -256,7 +257,7 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   writer.Write(settings.restoreOutput, image.data());
 }
 
-ObservationInfo WSCFitsWriter::ReadObservationInfo(FitsReader& reader) {
+ObservationInfo WSCFitsWriter::ReadObservationInfo(const FitsReader& reader) {
   ObservationInfo obsInfo;
   obsInfo.phaseCentreRA = reader.PhaseCentreRA();
   obsInfo.phaseCentreDec = reader.PhaseCentreDec();
