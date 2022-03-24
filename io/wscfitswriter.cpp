@@ -226,10 +226,11 @@ void WSCFitsWriter::Restore(const Settings& settings) {
 
 void WSCFitsWriter::RestoreList(const Settings& settings) {
   const Model model = BBSModel::Read(settings.restoreModel);
-  aocommon::FitsReader imgReader(settings.restoreInput);
-  aocommon::UVector<float> image(imgReader.ImageWidth() *
-                                 imgReader.ImageHeight());
-  imgReader.Read(image.data());
+  FitsReader imgReader(settings.restoreInput);
+  // aocommon::UVector<float> image(imgReader.ImageWidth() *
+  //                                imgReader.ImageHeight());
+  aocommon::Image image(imgReader.ImageWidth(), imgReader.ImageHeight());
+  imgReader.Read(image.Data());
 
   double beamMaj, beamMin, beamPA;
   if (settings.manualBeamMajorSize != 0.0) {
@@ -245,19 +246,29 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   double frequency = imgReader.Frequency();
   double bandwidth = imgReader.Bandwidth();
 
-  Renderer renderer(model, imgReader.PhaseCentreRA(),
-                    imgReader.PhaseCentreDec(), imgReader.PixelSizeX(),
-                    imgReader.PixelSizeY(), imgReader.PhaseCentreDL(),
-                    imgReader.PhaseCentreDM());
-
-  renderer.RestoreWithEllipticalBeam(
-      image.data(), imgReader.ImageWidth(), imgReader.ImageHeight(), beamMaj,
-      beamMin, beamPA, frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
+  renderer::ImageCoordinateSettings imageSettings(imgReader);
+  renderer::RestoreWithEllipticalBeam(
+      image, imageSettings, model, beamMaj, beamMin, beamPA,
+      frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
       aocommon::Polarization::StokesI, settings.threadCount);
 
+<<<<<<< HEAD
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+=======
+  // Renderer renderer(model, imgReader.PhaseCentreRA(),
+  //                   imgReader.PhaseCentreDec(), imgReader.PixelSizeX(),
+  //                   imgReader.PixelSizeY(), imgReader.PhaseCentreDL(),
+  //                   imgReader.PhaseCentreDM());
+
+  // renderer.RestoreWithEllipticalBeam(
+  //     image.data(), imgReader.ImageWidth(), imgReader.ImageHeight(), beamMaj,
+  //     beamMin, beamPA, frequency - bandwidth * 0.5, frequency + bandwidth *
+  //     0.5, aocommon::Polarization::StokesI, settings.threadCount);
+
+  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+>>>>>>> 571f3e4 (Towards removing Renderer class)
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
-  writer.Write(settings.restoreOutput, image.data());
+  writer.Write(settings.restoreOutput, image.Data());
 }
 
 ObservationInfo WSCFitsWriter::ReadObservationInfo(

@@ -53,15 +53,30 @@ BOOST_AUTO_TEST_CASE(fit_with_bad_initial_value) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  long double beamMaj = 4 * pixelScale, beamMin = 4 * pixelScale, beamPA = 0.0;
-  long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  const long double phaseCentreDL = 0.0;
-  const long double phaseCentreDM = 0.0;
-  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                    phaseCentreDM);
-  renderer.RestoreWithEllipticalBeam(
-      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+  // long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  // const long double phaseCentreDL = 0.0;
+  // const long double phaseCentreDM = 0.0;
+
+  renderer::ImageCoordinateSettings imageSettings;
+  imageSettings.phase_centre_ra = 0.0;
+  imageSettings.phase_centre_dec = 0.0;
+  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
+  imageSettings.phase_centre_dl = 0.0;
+  imageSettings.phase_centre_dm = 0.0;
+
+  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamMin = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamPA = 0.0;
+  const long double estimatedBeamPx = 1.0;  // this is on purpose way off
+
+  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+  //                   phaseCentreDM);
+  // renderer.RestoreWithEllipticalBeam(
+  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+  //     aocommon::Polarization::StokesI, threadCount);
+  renderer::RestoreWithEllipticalBeam(
+      restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
       aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
@@ -87,17 +102,35 @@ BOOST_AUTO_TEST_CASE(fit_circular) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  const long double beamMaj = 4 * pixelScale;
-  const long double beamMin = 4 * pixelScale;
+
+  renderer::ImageCoordinateSettings imageSettings;
+  imageSettings.phase_centre_ra = 0.0;
+  imageSettings.phase_centre_dec = 0.0;
+  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
+  imageSettings.phase_centre_dl = 0.0;
+  imageSettings.phase_centre_dm = 0.0;
+
+  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamMin = 4.0L * imageSettings.pixel_scale_l;
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  const long double phaseCentreDL = 0.0;
-  const long double phaseCentreDM = 0.0;
-  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                    phaseCentreDM);
-  renderer.RestoreWithEllipticalBeam(
-      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+
+  // const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  // const long double beamMaj = 4 * pixelScale;
+  // const long double beamMin = 4 * pixelScale;
+  // const long double beamPA = 0.0;
+  // const long double estimatedBeamPx = 1.0;  // this is on purpose way off
+  // const long double phaseCentreDL = 0.0;
+  // const long double phaseCentreDM = 0.0;
+  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+  //                   phaseCentreDM);
+  // renderer.RestoreWithEllipticalBeam(
+  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+  //     aocommon::Polarization::StokesI, threadCount);
+
+  renderer::RestoreWithEllipticalBeam(
+      restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
       aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
@@ -121,17 +154,35 @@ BOOST_AUTO_TEST_CASE(fit_small_beam) {
   source.AddComponent(component);
   Model model;
   model.AddSource(source);
-  const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
-  const long double beamMaj = 4 * pixelScale, beamMin = 0.5 * pixelScale;
+  // const long double pixelScale = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  // const long double beamMaj = 4 * pixelScale, beamMin = 0.5 * pixelScale;
+  // const long double beamPA = 0.0;
+  // const long double estimatedBeamPx = 1.0;  // this is on purpose way off
+  // const long double phaseCentreDL = 0.0;
+  // const long double phaseCentreDM = 0.0;
+
+  renderer::ImageCoordinateSettings imageSettings;
+  imageSettings.phase_centre_ra = 0.0;
+  imageSettings.phase_centre_dec = 0.0;
+  imageSettings.pixel_scale_l = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
+  imageSettings.pixel_scale_m = imageSettings.pixel_scale_l;
+  imageSettings.phase_centre_dl = 0.0;
+  imageSettings.phase_centre_dm = 0.0;
+
+  const long double beamMaj = 4.0L * imageSettings.pixel_scale_l;
+  const long double beamMin = 0.5L * imageSettings.pixel_scale_l;
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
-  const long double phaseCentreDL = 0.0;
-  const long double phaseCentreDM = 0.0;
-  Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
-                    phaseCentreDM);
-  renderer.RestoreWithEllipticalBeam(
-      restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+
+  renderer::RestoreWithEllipticalBeam(
+      restored, imageSettings, model, beamMaj, beamMin, beamPA, 100e6, 200e6,
       aocommon::Polarization::StokesI, threadCount);
+
+  // Renderer renderer(model, 0.0, 0.0, pixelScale, pixelScale, phaseCentreDL,
+  //                   phaseCentreDM);
+  // renderer.RestoreWithEllipticalBeam(
+  //     restored.Data(), width, height, beamMaj, beamMin, beamPA, 100e6, 200e6,
+  //     aocommon::Polarization::StokesI, threadCount);
 
   GaussianFitter fitter;
   double fitMajor = estimatedBeamPx, fitMinor = estimatedBeamPx, fitPA = 0.0;
