@@ -15,7 +15,7 @@ namespace {
 
 const long double kSigmaToBeam = 2.0L * std::sqrt(2.0L * std::log(2.0L));
 
-void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
+void ToAnglesAndFwhm(double sx, double sy, double beta, double& ellipseMaj,
                      double& ellipseMin, double& ellipsePA) {
   const double betaFact = 1.0 - beta * beta;
   double cov[4];
@@ -69,7 +69,7 @@ double GaussCircularCentered(double x, double y, double s) {
  * Fitting function for SingleFit2DGaussianCentred(). Calculates the sum of the
  * squared errors(/residuals).
  */
-int FittingFuncCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
+int FittingCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double sx = gsl_vector_get(xvec, 0);
   const double sy = gsl_vector_get(xvec, 1);
@@ -93,8 +93,7 @@ int FittingFuncCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
   return GSL_SUCCESS;
 }
 
-int FittingFuncCircularCentered(const gsl_vector* xvec, void* data,
-                                gsl_vector* f) {
+int FittingCircularCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double s = gsl_vector_get(xvec, 0);
   const size_t width = fitter.Width();
@@ -119,7 +118,8 @@ int FittingFuncCircularCentered(const gsl_vector* xvec, void* data,
 /**
  * Derivative function belong with SingleFit2DGaussianCentred().
  */
-int FittingDerivCentered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
+int FittingDerivativeCentered(const gsl_vector* xvec, void* data,
+                              gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double sx = gsl_vector_get(xvec, 0);
   const double sy = gsl_vector_get(xvec, 1);
@@ -150,8 +150,8 @@ int FittingDerivCentered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
   return GSL_SUCCESS;
 }
 
-int FittingDerivCircularCentered(const gsl_vector* xvec, void* data,
-                                 gsl_matrix* J) {
+int FittingDerivativeCircularCentered(const gsl_vector* xvec, void* data,
+                                      gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double s = gsl_vector_get(xvec, 0);
   const size_t width = fitter.Width();
@@ -182,20 +182,19 @@ int FittingDerivCircularCentered(const gsl_vector* xvec, void* data,
  */
 int FittingBothCentered(const gsl_vector* x, void* data, gsl_vector* f,
                         gsl_matrix* J) {
-  FittingFuncCentered(x, data, f);
-  FittingDerivCentered(x, data, J);
+  FittingCentered(x, data, f);
+  FittingDerivativeCentered(x, data, J);
   return GSL_SUCCESS;
 }
 
 int FittingBothCircularCentered(const gsl_vector* x, void* data, gsl_vector* f,
                                 gsl_matrix* J) {
-  FittingFuncCircularCentered(x, data, f);
-  FittingDerivCircularCentered(x, data, J);
+  FittingCircularCentered(x, data, f);
+  FittingDerivativeCircularCentered(x, data, J);
   return GSL_SUCCESS;
 }
 
-int FittingFuncWithAmplitude(const gsl_vector* xvec, void* data,
-                             gsl_vector* f) {
+int FittingWithAmplitude(const gsl_vector* xvec, void* data, gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double v = gsl_vector_get(xvec, 0);
   const double xc = gsl_vector_get(xvec, 1);
@@ -223,8 +222,8 @@ int FittingFuncWithAmplitude(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int FittingDerivWithAmplitude(const gsl_vector* xvec, void* data,
-                              gsl_matrix* J) {
+int FittingDerivativeWithAmplitude(const gsl_vector* xvec, void* data,
+                                   gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double scale = 1.0 / fitter.ScaleFactor();
   const double v = gsl_vector_get(xvec, 0);
@@ -274,13 +273,13 @@ int FittingDerivWithAmplitude(const gsl_vector* xvec, void* data,
 
 int FittingBothWithAmplitude(const gsl_vector* x, void* data, gsl_vector* f,
                              gsl_matrix* J) {
-  FittingFuncWithAmplitude(x, data, f);
-  FittingDerivWithAmplitude(x, data, J);
+  FittingWithAmplitude(x, data, f);
+  FittingDerivativeWithAmplitude(x, data, J);
   return GSL_SUCCESS;
 }
 
-int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
-                                     gsl_vector* f) {
+int FittingWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
+                                 gsl_vector* f) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double scale = 1.0 / fitter.ScaleFactor();
   const double v = gsl_vector_get(xvec, 0);
@@ -313,8 +312,8 @@ int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
   return GSL_SUCCESS;
 }
 
-int FittingDerivWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
-                                      gsl_matrix* J) {
+int FittingDerivativeWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
+                                           gsl_matrix* J) {
   const GaussianFitter& fitter = *static_cast<const GaussianFitter*>(data);
   const double v = gsl_vector_get(xvec, 0);
   const double xc = gsl_vector_get(xvec, 1);
@@ -359,8 +358,8 @@ int FittingDerivWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
 
 int FittingBothWithAmplitudeAndFloor(const gsl_vector* x, void* data,
                                      gsl_vector* f, gsl_matrix* J) {
-  FittingFuncWithAmplitudeAndFloor(x, data, f);
-  FittingDerivWithAmplitudeAndFloor(x, data, J);
+  FittingWithAmplitudeAndFloor(x, data, f);
+  FittingDerivativeWithAmplitudeAndFloor(x, data, J);
   return GSL_SUCCESS;
 }
 
@@ -521,8 +520,8 @@ void GaussianFitter::SingleFit2DGaussianCentred(const float* image,
       gsl_multifit_fdfsolver_alloc(T, width_ * height_, 3);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &FittingFuncCentered;
-  fdf.df = &FittingDerivCentered;
+  fdf.f = &FittingCentered;
+  fdf.df = &FittingDerivativeCentered;
   fdf.fdf = &FittingBothCentered;
   fdf.n = width_ * height_;
   fdf.p = 3;
@@ -553,7 +552,7 @@ void GaussianFitter::SingleFit2DGaussianCentred(const float* image,
 
   gsl_multifit_fdfsolver_free(solver);
 
-  ToAnglesAndFWHM(sx, sy, beta, beamMaj, beamMin, beamPA);
+  ToAnglesAndFwhm(sx, sy, beta, beamMaj, beamMin, beamPA);
   beamMaj *= scale_factor_;
   beamMin *= scale_factor_;
 }
@@ -572,8 +571,8 @@ void GaussianFitter::SingleFit2DCircularGaussianCentred(const float* image,
       gsl_multifit_fdfsolver_alloc(T, width_ * height_, 1);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &FittingFuncCircularCentered;
-  fdf.df = &FittingDerivCircularCentered;
+  fdf.f = &FittingCircularCentered;
+  fdf.df = &FittingDerivativeCircularCentered;
   fdf.fdf = &FittingBothCircularCentered;
   fdf.n = width_ * height_;
   fdf.p = 1;
@@ -655,8 +654,8 @@ void GaussianFitter::Fit2DGaussianWithAmplitude(double& val, double& posX,
       gsl_multifit_fdfsolver_alloc(T, width_ * height_, 6);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &FittingFuncWithAmplitude;
-  fdf.df = &FittingDerivWithAmplitude;
+  fdf.f = &FittingWithAmplitude;
+  fdf.df = &FittingDerivativeWithAmplitude;
   fdf.fdf = &FittingBothWithAmplitude;
   fdf.n = width_ * height_;
   fdf.p = 6;
@@ -695,7 +694,7 @@ void GaussianFitter::Fit2DGaussianWithAmplitude(double& val, double& posX,
 
   gsl_multifit_fdfsolver_free(solver);
 
-  ToAnglesAndFWHM(sx, sy, beta, beamMaj, beamMin, beamPA);
+  ToAnglesAndFwhm(sx, sy, beta, beamMaj, beamMin, beamPA);
   beamMaj *= scale_factor_;
   beamMin *= scale_factor_;
 }
@@ -708,8 +707,8 @@ void GaussianFitter::Fit2DGaussianWithAmplitudeWithFloor(
       gsl_multifit_fdfsolver_alloc(T, width_ * height_, 7);
 
   gsl_multifit_function_fdf fdf;
-  fdf.f = &FittingFuncWithAmplitudeAndFloor;
-  fdf.df = &FittingDerivWithAmplitudeAndFloor;
+  fdf.f = &FittingWithAmplitudeAndFloor;
+  fdf.df = &FittingDerivativeWithAmplitudeAndFloor;
   fdf.fdf = &FittingBothWithAmplitudeAndFloor;
   fdf.n = width_ * height_;
   fdf.p = 7;
@@ -751,7 +750,7 @@ void GaussianFitter::Fit2DGaussianWithAmplitudeWithFloor(
 
   gsl_multifit_fdfsolver_free(solver);
 
-  ToAnglesAndFWHM(sx, sy, beta, beamMaj, beamMin, beamPA);
+  ToAnglesAndFwhm(sx, sy, beta, beamMaj, beamMin, beamPA);
   beamMaj *= scale_factor_;
   beamMin *= scale_factor_;
 }
