@@ -43,30 +43,23 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
 }
 
 /**
- * Calculates the difference between a gaussian with the specified parameters
- * at position x,y and the given value.
+ * Calculates a gaussian with the specified parameters at position x,y.
  */
-double ErrCentered(double val, double x, double y, double sx, double sy,
-                   double beta) {
+double GaussCentered(double x, double y, double sx, double sy, double beta) {
   return std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                  y * y / (2.0 * sy * sy)) -
-         val;
+                  y * y / (2.0 * sy * sy));
 }
 
 /**
- * Calculates the difference between a gaussian with the specified parameters
- * at position x,y and the given value.
+ * Calculates a gaussian with the specified parameters at position x,y.
  */
-double ErrCircularCentered(double val, double x, double y, double s) {
-  return std::exp((-x * x - y * y) / (2.0 * s * s)) - val;
+double GaussCircularCentered(double x, double y, double s) {
+  return std::exp((-x * x - y * y) / (2.0 * s * s));
 }
 
 double ErrFull(double val, double v, double x, double y, double sx, double sy,
                double beta) {
-  return std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                  y * y / (2.0 * sy * sy)) *
-             v -
-         val;
+  return GaussCentered(x, y, sx, sy, beta) * v - val;
 }
 
 /**
@@ -89,7 +82,7 @@ int FittingFuncCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
-      double e = ErrCentered(fitter.Image()[dataIndex], x, y, sx, sy, beta);
+      double e = GaussCentered(x, y, sx, sy, beta) - fitter.Image()[dataIndex];
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
@@ -112,7 +105,7 @@ int FittingFuncCircularCentered(const gsl_vector* xvec, void* data,
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
-      double e = ErrCircularCentered(fitter.Image()[dataIndex], x, y, s);
+      double e = GaussCircularCentered(x, y, s) - fitter.Image()[dataIndex];
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
@@ -139,9 +132,7 @@ int FittingDerivCentered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
-      double expTerm =
-          std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                   y * y / (2.0 * sy * sy));
+      double expTerm = GaussCentered(x, y, sx, sy, beta);
       double dsx =
           (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
       double dsy =
@@ -170,7 +161,7 @@ int FittingDerivCircularCentered(const gsl_vector* xvec, void* data,
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
-      double expTerm = std::exp((-x * x - y * y) / (2.0 * s * s));
+      double expTerm = GaussCircularCentered(x, y, s);
       // derivative of exp((-x*x - y*y)/(2.0*s*s)) to s
       // = (-x*x - y*y)/2.0*-2/(s*s*s)
       // = (-x*x - y*y)/(-s*s*s)
@@ -255,9 +246,7 @@ int FittingDerivWithAmplitude(const gsl_vector* xvec, void* data,
     for (int xi = 0; xi != int(width); ++xi) {
       // TODO I need to go over the signs -- ds, dy, dsx, dsy in particular
       double x = xc + (xi - xMid) * scale;
-      double expTerm =
-          std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                   y * y / (2.0 * sy * sy));
+      double expTerm = GaussCentered(x, y, sx, sy, beta);
       double dv = expTerm;
       expTerm *= v;
       double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
@@ -340,8 +329,7 @@ int FittingDerivWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
     double y = yc + (yi - yMid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       double x = xc + (xi - xMid) * scale;
-      double expTerm = exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
-                           y * y / (2.0 * sy * sy));
+      double expTerm = GaussCentered(x, y, sx, sy, beta);
       double dv = expTerm;
       expTerm *= v;
       double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
