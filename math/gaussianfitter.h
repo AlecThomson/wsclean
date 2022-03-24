@@ -5,15 +5,6 @@
 
 class GaussianFitter {
  public:
-  GaussianFitter()
-      : image_(nullptr),
-        width_(0),
-        height_(0),
-        scale_factor_(0),
-        x_init_(0.0),
-        y_init_(0.0),
-        pos_constrained_(0.0) {}
-
   void Fit2DGaussianCentred(const float* image, size_t width, size_t height,
                             double beamEst, double& beamMaj, double& beamMin,
                             double& beamPA, double boxScaleFactor = 10.0,
@@ -101,13 +92,13 @@ class GaussianFitter {
                                            double& beamMin, double& beamPA,
                                            double& floorLevel);
 
-  const float* image_;
-  size_t width_;
-  size_t height_;
-  size_t scale_factor_;
-  double x_init_;
-  double y_init_;
-  double pos_constrained_;
+  const float* image_ = nullptr;
+  size_t width_ = 0;
+  size_t height_ = 0;
+  size_t scale_factor_ = 0;
+  double x_init_ = 0.0;
+  double y_init_ = 0.0;
+  double pos_constrained_ = 0.0;
 };
 
 #endif
