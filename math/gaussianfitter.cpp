@@ -76,18 +76,18 @@ int FittingFuncCentered(const gsl_vector* xvec, void* data, gsl_vector* f) {
   const double beta = gsl_vector_get(xvec, 2);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
+    double y = (yi - y_mid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double e = GaussCentered(x, y, sx, sy, beta) - fitter.Image()[dataIndex];
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
+      double x = (xi - x_mid) * scale;
+      double e = GaussCentered(x, y, sx, sy, beta) - fitter.Image()[data_index];
+      gsl_vector_set(f, data_index, e);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -99,18 +99,18 @@ int FittingFuncCircularCentered(const gsl_vector* xvec, void* data,
   const double s = gsl_vector_get(xvec, 0);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
+    double y = (yi - y_mid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double e = GaussCircularCentered(x, y, s) - fitter.Image()[dataIndex];
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
+      double x = (xi - x_mid) * scale;
+      double e = GaussCircularCentered(x, y, s) - fitter.Image()[data_index];
+      gsl_vector_set(f, data_index, e);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -126,25 +126,25 @@ int FittingDerivCentered(const gsl_vector* xvec, void* data, gsl_matrix* J) {
   const double beta = gsl_vector_get(xvec, 2);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
+    double y = (yi - y_mid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double expTerm = GaussCentered(x, y, sx, sy, beta);
+      double x = (xi - x_mid) * scale;
+      double exp_term = GaussCentered(x, y, sx, sy, beta);
       double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * exp_term;
       double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, dsx);
-      gsl_matrix_set(J, dataIndex, 1, dsy);
-      gsl_matrix_set(J, dataIndex, 2, dbeta);
-      ++dataIndex;
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * exp_term;
+      double dbeta = x * y / (sx * sy) * exp_term;
+      gsl_matrix_set(J, data_index, 0, dsx);
+      gsl_matrix_set(J, data_index, 1, dsy);
+      gsl_matrix_set(J, data_index, 2, dbeta);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -156,22 +156,22 @@ int FittingDerivCircularCentered(const gsl_vector* xvec, void* data,
   const double s = gsl_vector_get(xvec, 0);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2, yMid = height / 2;
+  const int x_mid = width / 2, y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (size_t yi = 0; yi != height; ++yi) {
-    double y = (yi - yMid) * scale;
+    double y = (yi - y_mid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
-      double x = (xi - xMid) * scale;
-      double expTerm = GaussCircularCentered(x, y, s);
+      double x = (xi - x_mid) * scale;
+      double exp_term = GaussCircularCentered(x, y, s);
       // derivative of exp((-x*x - y*y)/(2.0*s*s)) to s
       // = (-x*x - y*y)/2.0*-2/(s*s*s)
       // = (-x*x - y*y)/(-s*s*s)
       // = (x*x + y*y)/(s*s*s)
-      double ds = ((x * x + y * y) / (s * s * s)) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, ds);
-      ++dataIndex;
+      double ds = ((x * x + y * y) / (s * s * s)) * exp_term;
+      gsl_matrix_set(J, data_index, 0, ds);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -205,19 +205,19 @@ int FittingFuncWithAmplitude(const gsl_vector* xvec, void* data,
   const double beta = gsl_vector_get(xvec, 5);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (int yi = 0; yi != int(height); ++yi) {
-    double yS = yc + (yi - yMid) * scale;
+    double yS = yc + (yi - y_mid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
-      double xS = xc + (xi - xMid) * scale;
+      double xS = xc + (xi - x_mid) * scale;
       double e =
-          GaussCentered(xS, yS, sx, sy, beta) * v - fitter.Image()[dataIndex];
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
+          GaussCentered(xS, yS, sx, sy, beta) * v - fitter.Image()[data_index];
+      gsl_vector_set(f, data_index, e);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -241,32 +241,32 @@ int FittingDerivWithAmplitude(const gsl_vector* xvec, void* data,
   }
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (int yi = 0; yi != int(height); ++yi) {
-    double y = yc + (yi - yMid) * scale;
+    double y = yc + (yi - y_mid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       // TODO I need to go over the signs -- ds, dy, dsx, dsy in particular
-      double x = xc + (xi - xMid) * scale;
-      double expTerm = GaussCentered(x, y, sx, sy, beta);
-      double dv = expTerm;
-      expTerm *= v;
-      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
-      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
+      double x = xc + (xi - x_mid) * scale;
+      double exp_term = GaussCentered(x, y, sx, sy, beta);
+      double dv = exp_term;
+      exp_term *= v;
+      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * exp_term;
+      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * exp_term;
       double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * exp_term;
       double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
-      gsl_matrix_set(J, dataIndex, 0, dv);
-      gsl_matrix_set(J, dataIndex, 1, dx);
-      gsl_matrix_set(J, dataIndex, 2, dy);
-      gsl_matrix_set(J, dataIndex, 3, dsx);
-      gsl_matrix_set(J, dataIndex, 4, dsy);
-      gsl_matrix_set(J, dataIndex, 5, dbeta);
-      ++dataIndex;
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * exp_term;
+      double dbeta = x * y / (sx * sy) * exp_term;
+      gsl_matrix_set(J, data_index, 0, dv);
+      gsl_matrix_set(J, data_index, 1, dx);
+      gsl_matrix_set(J, data_index, 2, dy);
+      gsl_matrix_set(J, data_index, 3, dsx);
+      gsl_matrix_set(J, data_index, 4, dsy);
+      gsl_matrix_set(J, data_index, 5, dbeta);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -296,18 +296,18 @@ int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
     return GSL_EDOM;
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (int yi = 0; yi != int(height); ++yi) {
-    double yS = yc + (yi - yMid) * scale;
+    double yS = yc + (yi - y_mid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
-      double xS = xc + (xi - xMid) * scale;
+      double xS = xc + (xi - x_mid) * scale;
       double e = GaussCentered(xS, yS, sx, sy, beta) * v -
-                 fitter.Image()[dataIndex] + fl;
-      gsl_vector_set(f, dataIndex, e);
-      ++dataIndex;
+                 fitter.Image()[data_index] + fl;
+      gsl_vector_set(f, data_index, e);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
@@ -324,34 +324,34 @@ int FittingDerivWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
   const double beta = gsl_vector_get(xvec, 5);
   const size_t width = fitter.Width();
   const size_t height = fitter.Height();
-  const int xMid = width / 2;
-  const int yMid = height / 2;
+  const int x_mid = width / 2;
+  const int y_mid = height / 2;
   const double scale = 1.0 / fitter.ScaleFactor();
 
-  size_t dataIndex = 0;
+  size_t data_index = 0;
   for (int yi = 0; yi != int(height); ++yi) {
-    double y = yc + (yi - yMid) * scale;
+    double y = yc + (yi - y_mid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
-      double x = xc + (xi - xMid) * scale;
-      double expTerm = GaussCentered(x, y, sx, sy, beta);
-      double dv = expTerm;
-      expTerm *= v;
-      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * expTerm;
-      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * expTerm;
+      double x = xc + (xi - x_mid) * scale;
+      double exp_term = GaussCentered(x, y, sx, sy, beta);
+      double dv = exp_term;
+      exp_term *= v;
+      double dx = (-beta * y / (sx * sy) - x / (sx * sx)) * exp_term;
+      double dy = (-beta * x / (sy * sx) - y / (sy * sy)) * exp_term;
       double dsx =
-          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * expTerm;
+          (beta * x * y / (sx * sx * sy) + x * x / (sx * sx * sx)) * exp_term;
       double dsy =
-          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * expTerm;
-      double dbeta = x * y / (sx * sy) * expTerm;
+          (beta * x * y / (sy * sy * sx) + y * y / (sy * sy * sy)) * exp_term;
+      double dbeta = x * y / (sx * sy) * exp_term;
       double dfl = 1.0;
-      gsl_matrix_set(J, dataIndex, 0, dv);
-      gsl_matrix_set(J, dataIndex, 1, dx);
-      gsl_matrix_set(J, dataIndex, 2, dy);
-      gsl_matrix_set(J, dataIndex, 3, dsx);
-      gsl_matrix_set(J, dataIndex, 4, dsy);
-      gsl_matrix_set(J, dataIndex, 5, dbeta);
-      gsl_matrix_set(J, dataIndex, 6, dfl);
-      ++dataIndex;
+      gsl_matrix_set(J, data_index, 0, dv);
+      gsl_matrix_set(J, data_index, 1, dx);
+      gsl_matrix_set(J, data_index, 2, dy);
+      gsl_matrix_set(J, data_index, 3, dsx);
+      gsl_matrix_set(J, data_index, 4, dsy);
+      gsl_matrix_set(J, data_index, 5, dbeta);
+      gsl_matrix_set(J, data_index, 6, dfl);
+      ++data_index;
     }
   }
   return GSL_SUCCESS;
