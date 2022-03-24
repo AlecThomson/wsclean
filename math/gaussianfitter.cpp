@@ -43,7 +43,12 @@ void ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj,
 }
 
 /**
- * Calculates a gaussian with the specified parameters at position x,y.
+ * Calculates a two dimensional gaussian with the specified parameters.
+ * @param x X coordinate.
+ * @param y Y coordinate.
+ * @param sx Sigma value for the x direction.
+ * @param sy Sigma value for the y direction.
+ * @param beta Beta value.
  */
 double GaussCentered(double x, double y, double sx, double sy, double beta) {
   return std::exp(-x * x / (2.0 * sx * sx) + beta * x * y / (sx * sy) -
@@ -51,15 +56,13 @@ double GaussCentered(double x, double y, double sx, double sy, double beta) {
 }
 
 /**
- * Calculates a gaussian with the specified parameters at position x,y.
+ * Calculates a circular two dimensional gaussian with the specified parameters.
+ * @param x X coordinate.
+ * @param y Y coordinate.
+ * @param s Sigma value for both x and y directions.
  */
 double GaussCircularCentered(double x, double y, double s) {
   return std::exp((-x * x - y * y) / (2.0 * s * s));
-}
-
-double ErrFull(double val, double v, double x, double y, double sx, double sy,
-               double beta) {
-  return GaussCentered(x, y, sx, sy, beta) * v - val;
 }
 
 /**
@@ -211,7 +214,8 @@ int FittingFuncWithAmplitude(const gsl_vector* xvec, void* data,
     double yS = yc + (yi - yMid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       double xS = xc + (xi - xMid) * scale;
-      double e = ErrFull(fitter.Image()[dataIndex], v, xS, yS, sx, sy, beta);
+      double e =
+          GaussCentered(xS, yS, sx, sy, beta) * v - fitter.Image()[dataIndex];
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
@@ -300,8 +304,8 @@ int FittingFuncWithAmplitudeAndFloor(const gsl_vector* xvec, void* data,
     double yS = yc + (yi - yMid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       double xS = xc + (xi - xMid) * scale;
-      double e =
-          ErrFull(fitter.Image()[dataIndex], v, xS, yS, sx, sy, beta) + fl;
+      double e = GaussCentered(xS, yS, sx, sy, beta) * v -
+                 fitter.Image()[dataIndex] + fl;
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
