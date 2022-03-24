@@ -752,8 +752,9 @@ void GaussianFitter::Fit2DGaussianWithAmplitudeWithFloor(
   val = gsl_vector_get(solver->x, 0);
   posX = -1.0 * gsl_vector_get(solver->x, 1) * scale_factor_ + width_ / 2;
   posY = -1.0 * gsl_vector_get(solver->x, 2) * scale_factor_ + height_ / 2;
-  double sx = gsl_vector_get(solver->x, 3), sy = gsl_vector_get(solver->x, 4),
-         beta = gsl_vector_get(solver->x, 5);
+  double sx = gsl_vector_get(solver->x, 3);
+  double sy = gsl_vector_get(solver->x, 4);
+  double beta = gsl_vector_get(solver->x, 5);
   floorLevel = gsl_vector_get(solver->x, 6);
 
   gsl_multifit_fdfsolver_free(solver);
