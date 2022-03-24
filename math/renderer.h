@@ -52,7 +52,18 @@ void RestoreWithCircularBeam(aocommon::Image& image,
                              aocommon::PolarizationEnum polarization);
 
 /**
- * Restore a model image with an elliptical beam
+ * @brief Restore a model image with an elliptical beam.
+ *
+ * @param image Image to which restored sources are written.
+ * @param image_settings Image coordinate settings.
+ * @param model Modeled source components.
+ * @param beam_major_axis Major axis of elliptical beam to be applied [rad].
+ * @param beam_minor_axis Minor axis of elliptical beam to be applied [rad].
+ * @param beam_position_angle Position angle of beam [rad].
+ * @param start_frequency Start frequency [Hz].
+ * @param end_frequency End frequency [Hz].
+ * @param polarization Polarization enum.
+ * @param thread_count Numbers of threads to use.
  */
 void RestoreWithEllipticalBeam(
     aocommon::Image& image, const ImageCoordinateSettings& image_settings,
