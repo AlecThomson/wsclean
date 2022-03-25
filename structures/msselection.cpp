@@ -35,8 +35,9 @@ void MSSelection::Unserialize(aocommon::SerialIStream& stream) {
       .UInt32(_evenOddSelection);
 }
 
-bool MSSelection::SelectMSChannels(const aocommon::MultiBandData& msBands, size_t dataDescId, const ImagingTableEntry& entry)
-{
+bool MSSelection::SelectMSChannels(const aocommon::MultiBandData& msBands,
+                                   size_t dataDescId,
+                                   const ImagingTableEntry& entry) {
   const aocommon::BandData& band = msBands[dataDescId];
   double firstCh = band.ChannelFrequency(0);
   double lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
@@ -45,7 +46,8 @@ bool MSSelection::SelectMSChannels(const aocommon::MultiBandData& msBands, size_
   if (firstCh > lastCh) {
     std::swap(firstCh, lastCh);
     isReversed = true;
-    aocommon::Logger::Debug << "Warning: MS has reversed channel frequencies.\n";
+    aocommon::Logger::Debug
+        << "Warning: MS has reversed channel frequencies.\n";
   }
   if (band.ChannelCount() != 0 && entry.lowestFrequency <= lastCh &&
       entry.highestFrequency >= firstCh) {

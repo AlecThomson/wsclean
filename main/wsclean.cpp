@@ -543,7 +543,7 @@ std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
     return _imageWeightCache->GetMFWeights();
   } else {
     std::shared_ptr<ImageWeights> weights = _imageWeightCache->Get(
-        msList, _msBands, entry.outputChannelIndex, entry.outputIntervalIndex);
+        msList, entry.outputChannelIndex, entry.outputIntervalIndex);
     if (_settings.isWeightImageSaved) {
       std::string prefix = ImageFilename::GetPSFPrefix(
           _settings, entry.outputChannelIndex, entry.outputIntervalIndex);
@@ -566,8 +566,8 @@ void WSClean::initializeMFSImageWeights() {
         for (size_t dataDescId = 0;
              dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
           MSSelection partSelection(_globalSelection);
-          const bool hasSelection =
-              partSelection.SelectMSChannels(_msBands[msIndex], dataDescId, entry);
+          const bool hasSelection = partSelection.SelectMSChannels(
+              _msBands[msIndex], dataDescId, entry);
           if (hasSelection) {
             const PolarizationEnum pol =
                 _settings.useIDG ? getIdgPolarization() : entry.polarization;

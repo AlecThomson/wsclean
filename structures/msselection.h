@@ -124,13 +124,15 @@ class MSSelection {
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
-  
+
   /**
-   * Change this selection object so that its datadescid and channel range correspond with
-   * the given entry. If the specified bands are not necessary for this entry, the msselection
-   * is not changed and the function returns falses.
+   * Change this selection object so that its datadescid and channel range
+   * correspond with the given entry. If the specified bands are not necessary
+   * for this entry, the msselection is not changed and the function returns
+   * falses.
    */
-  bool SelectMSChannels(const aocommon::MultiBandData& msBands, size_t dataDescId, const ImagingTableEntry& entry);
+  bool SelectMSChannels(const aocommon::MultiBandData& msBands,
+                        size_t dataDescId, const ImagingTableEntry& entry);
 
  private:
   std::vector<size_t> _fieldIds;
