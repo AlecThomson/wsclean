@@ -129,7 +129,7 @@ class MSSelection {
    * Change this selection object so that its datadescid and channel range
    * correspond with the given entry. If the specified bands are not necessary
    * for this entry, the msselection is not changed and the function returns
-   * falses.
+   * false.
    */
   bool SelectMSChannels(const aocommon::MultiBandData& msBands,
                         size_t dataDescId, const ImagingTableEntry& entry);
