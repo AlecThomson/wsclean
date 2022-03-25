@@ -10,9 +10,6 @@
 
 #include "../gridding/msgridderbase.h"
 
-using aocommon::FitsReader;
-using aocommon::FitsWriter;
-
 WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                              const Settings& settings,
                              const std::optional<Deconvolution>& deconvolution,
@@ -32,7 +29,7 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
     setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
   }
-  if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
+  if (isModel) _writer.SetUnit(aocommon::FitsWriter::JanskyPerPixel);
 }
 
 WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
@@ -55,10 +52,10 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
     setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
   }
-  if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
+  if (isModel) _writer.SetUnit(aocommon::FitsWriter::JanskyPerPixel);
 }
 
-WSCFitsWriter::WSCFitsWriter(FitsReader& templateReader)
+WSCFitsWriter::WSCFitsWriter(aocommon::FitsReader& templateReader)
     : _writer(templateReader) {
   copyWSCleanKeywords(templateReader);
 }
@@ -140,7 +137,7 @@ void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry,
   _writer.SetPolarization(polarization);
 }
 
-void WSCFitsWriter::copyWSCleanKeywords(FitsReader& reader) {
+void WSCFitsWriter::copyWSCleanKeywords(aocommon::FitsReader& reader) {
   const size_t N_STRKEYWORDS = 4, N_DBLKEYWORDS = 20;
   const char* strKeywords[N_STRKEYWORDS] = {"WSCVERSI", "WSCVDATE", "WSCDATAC",
                                             "WSCWEIGH"};
@@ -168,9 +165,9 @@ template void WSCFitsWriter::WriteImage(const std::string& suffix,
 template <typename NumT>
 void WSCFitsWriter::WriteUV(const std::string& suffix, const NumT* image) {
   std::string name = _filenamePrefix + '-' + suffix;
-  FitsWriter::Unit unit = _writer.GetUnit();
+  aocommon::FitsWriter::Unit unit = _writer.GetUnit();
   _writer.SetIsUV(true);
-  _writer.SetUnit(FitsWriter::Jansky);
+  _writer.SetUnit(aocommon::FitsWriter::Jansky);
   _writer.Write(name, image);
   _writer.SetIsUV(false);
   _writer.SetUnit(unit);
@@ -190,7 +187,8 @@ template void WSCFitsWriter::WritePSF(const std::string& fullname,
                                       const float* image);
 
 void WSCFitsWriter::Restore(const Settings& settings) {
-  FitsReader imgReader(settings.restoreInput), modReader(settings.restoreModel);
+  aocommon::FitsReader imgReader(settings.restoreInput),
+      modReader(settings.restoreModel);
   if (imgReader.ImageWidth() != modReader.ImageWidth() ||
       imgReader.ImageHeight() != modReader.ImageHeight())
     throw std::runtime_error(
@@ -217,14 +215,14 @@ void WSCFitsWriter::Restore(const Settings& settings) {
                          imgReader.PixelSizeX(), imgReader.PixelSizeY(),
                          settings.threadCount);
 
-  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+  aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
   writer.Write(settings.restoreOutput, image.data());
 }
 
 void WSCFitsWriter::RestoreList(const Settings& settings) {
   const Model model = BBSModel::Read(settings.restoreModel);
-  FitsReader imgReader(settings.restoreInput);
+  aocommon::FitsReader imgReader(settings.restoreInput);
   aocommon::UVector<float> image(imgReader.ImageWidth() *
                                  imgReader.ImageHeight());
   imgReader.Read(image.data());
@@ -252,12 +250,13 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
                    frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
                    aocommon::Polarization::StokesI, settings.threadCount);
 
-  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+  aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
   writer.Write(settings.restoreOutput, image.data());
 }
 
-ObservationInfo WSCFitsWriter::ReadObservationInfo(const FitsReader& reader) {
+ObservationInfo WSCFitsWriter::ReadObservationInfo(
+    const aocommon::FitsReader& reader) {
   ObservationInfo obsInfo;
   obsInfo.phaseCentreRA = reader.PhaseCentreRA();
   obsInfo.phaseCentreDec = reader.PhaseCentreDec();
