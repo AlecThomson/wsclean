@@ -262,8 +262,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   const std::vector<aocommon::PolarizationEnum> msPolarizations =
       GetMSPolarizations(rowProvider->Ms().polarization());
   const size_t nAntennas = rowProvider->Ms().antenna().nrow();
-  const aocommon::MultiBandData bands =
-      aocommon::MultiBandData(rowProvider->Ms());
+  const aocommon::MultiBandData bands(rowProvider->Ms());
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "

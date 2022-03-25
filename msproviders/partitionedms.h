@@ -82,6 +82,7 @@ class PartitionedMS final : public MSProvider {
                           const string& dataColumnName, bool includeModel,
                           bool initialModelRequired,
                           const class Settings& settings);
+
   const aocommon::BandData& Band() override {
     return _handle._data->_bands[_dataDescId];
   }
