@@ -566,7 +566,7 @@ void WSClean::initializeMFSImageWeights() {
         for (size_t dataDescId = 0;
              dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
           MSSelection partSelection(_globalSelection);
-          const bool hasSelection = partSelection.SelectMSChannels(
+          const bool hasSelection = partSelection.SelectMsChannels(
               _msBands[msIndex], dataDescId, entry);
           if (hasSelection) {
             const PolarizationEnum pol =
@@ -641,7 +641,7 @@ void WSClean::performReordering(bool isPredictMode) {
         const ImagingTableEntry& entry = facetGroup.Front();
         for (size_t d = 0; d != _msBands[msIndex].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selection.SelectMSChannels(_msBands[msIndex], d, entry)) {
+          if (selection.SelectMsChannels(_msBands[msIndex], d, entry)) {
             if (entry.polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
@@ -1404,7 +1404,7 @@ void WSClean::initializeMSList(
     for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();
          ++dataDescId) {
       MSSelection selection(_globalSelection);
-      if (selection.SelectMSChannels(_msBands[msIndex], dataDescId, entry)) {
+      if (selection.SelectMsChannels(_msBands[msIndex], dataDescId, entry)) {
         std::unique_ptr<MSDataDescription> dataDescription;
         if (_settings.doReorder)
           dataDescription = MSDataDescription::ForPartitioned(

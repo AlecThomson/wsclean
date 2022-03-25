@@ -131,7 +131,7 @@ class MSSelection {
    * for this entry, the msselection is not changed and the function returns
    * false.
    */
-  bool SelectMSChannels(const aocommon::MultiBandData& msBands,
+  bool SelectMsChannels(const aocommon::MultiBandData& msBands,
                         size_t dataDescId, const ImagingTableEntry& entry);
 
  private:

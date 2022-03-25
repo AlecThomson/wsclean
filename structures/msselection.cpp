@@ -35,7 +35,7 @@ void MSSelection::Unserialize(aocommon::SerialIStream& stream) {
       .UInt32(_evenOddSelection);
 }
 
-bool MSSelection::SelectMSChannels(const aocommon::MultiBandData& msBands,
+bool MSSelection::SelectMsChannels(const aocommon::MultiBandData& msBands,
                                    size_t dataDescId,
                                    const ImagingTableEntry& entry) {
   const aocommon::BandData& band = msBands[dataDescId];
