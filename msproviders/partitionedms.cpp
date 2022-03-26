@@ -35,7 +35,9 @@ using aocommon::Logger;
 
 namespace {
 struct PartitionFiles {
-  std::unique_ptr<std::ofstream> data, weight, model;
+  std::unique_ptr<std::ofstream> data;
+  std::unique_ptr<std::ofstream> weight;
+  std::unique_ptr<std::ofstream> model;
 };
 }  // namespace
 
