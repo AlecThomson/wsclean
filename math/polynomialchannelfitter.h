@@ -6,19 +6,19 @@
 class PolynomialChannelFitter {
  public:
   void Clear() {
-    _channels.clear();
-    _dataPoints.clear();
+    channels_.clear();
+    data_points_.clear();
   }
 
-  void AddChannel(double startFrequency, double endFrequency) {
-    _channels.emplace_back(startFrequency, endFrequency);
+  void AddChannel(double start_frequency, double end_frequency) {
+    channels_.emplace_back(start_frequency, end_frequency);
   }
 
   void AddDataPoint(size_t channel, double y) {
-    _dataPoints.emplace_back(channel, y);
+    data_points_.emplace_back(channel, y);
   }
 
-  void Fit(std::vector<double>& terms, size_t nTerms);
+  void Fit(std::vector<double>& terms, size_t n_terms);
 
   static double Evaluate(double x, const std::vector<double>& terms);
 
@@ -26,8 +26,8 @@ class PolynomialChannelFitter {
   /**
    * Start and end frequencies of the channels
    */
-  std::vector<std::pair<double, double>> _channels;
-  std::vector<std::pair<size_t, double>> _dataPoints;
+  std::vector<std::pair<double, double>> channels_;
+  std::vector<std::pair<size_t, double>> data_points_;
 };
 
 #endif
