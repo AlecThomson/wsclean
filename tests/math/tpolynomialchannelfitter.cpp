@@ -10,7 +10,7 @@ BOOST_AUTO_TEST_CASE(fit_line) {
   fitter.AddChannel(1.0, 2.0);
   fitter.AddChannel(2.0, 3.0);
 
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, 0.0);
   fitter.AddDataPoint(0, 1.0);
   fitter.AddDataPoint(1, 1.0);
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(fit_squared_function) {
   fitter.AddChannel(3.0, 4.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 7.0 / 3.0);  // int_{x=1}^2 x^2 / 1 = 1/3 (2^3 - 1^3) = 7/3
   fitter.AddDataPoint(
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(fit_irregular_channels) {
   fitter.AddChannel(3.0, 6.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 8.0 / 6.0);  // int_{x=0}^2 x^2 / 2 = 1/3 (2^3 - 0^3) = 8/6
   fitter.AddDataPoint(
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(fit_squared_missing_bandwidth) {
   fitter.AddChannel(20.0, 22.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 8.0 / 6.0);  // int_{x=0}^2 x^2 / 2 = 1/2 (2^3 - 0^3) = 8/6
   fitter.AddDataPoint(
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(fit_2nd_order) {
   fitter.AddChannel(6.0, 7.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, integrate(0.0, 1.0, a, b, c, d));
   fitter.AddDataPoint(1, integrate(3.0, 4.0, a, b, c, d));
   fitter.AddDataPoint(2, integrate(6.0, 7.0, a, b, c, d));
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(fit_higher_order) {
   fitter.AddChannel(1.8, 1.9);
   fitter.AddChannel(2.0, 2.1);
 
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, integrate(1.0, 1.1, a, b, c, d));
   fitter.AddDataPoint(1, integrate(1.3, 1.4, a, b, c, d));
   fitter.AddDataPoint(2, integrate(1.4, 1.5, a, b, c, d));

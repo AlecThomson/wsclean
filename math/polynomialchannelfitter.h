@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_CHANNEL_FITTER_H
 #define POLYNOMIAL_CHANNEL_FITTER_H
 
-#include <aocommon/uvector.h>
+#include <vector>
 
 class PolynomialChannelFitter {
  public:
@@ -11,31 +11,23 @@ class PolynomialChannelFitter {
   }
 
   void AddChannel(double startFrequency, double endFrequency) {
-    _channels.push_back(std::make_pair(startFrequency, endFrequency));
+    _channels.emplace_back(startFrequency, endFrequency);
   }
 
   void AddDataPoint(size_t channel, double y) {
-    _dataPoints.push_back(std::make_pair(channel, y));
+    _dataPoints.emplace_back(channel, y);
   }
 
-  void Fit(aocommon::UVector<double>& terms, size_t nTerms);
+  void Fit(std::vector<double>& terms, size_t nTerms);
 
-  static double Evaluate(double x, const aocommon::UVector<double>& terms) {
-    double val = terms[0];
-    double f = 1.0;
-    for (size_t i = 1; i != terms.size(); ++i) {
-      f *= x;
-      val += f * terms[i];
-    }
-    return val;
-  }
+  static double Evaluate(double x, const std::vector<double>& terms);
 
  private:
   /**
    * Start and end frequencies of the channels
    */
-  aocommon::UVector<std::pair<double, double>> _channels;
-  aocommon::UVector<std::pair<size_t, double>> _dataPoints;
+  std::vector<std::pair<double, double>> _channels;
+  std::vector<std::pair<size_t, double>> _dataPoints;
 };
 
 #endif

@@ -1,9 +1,11 @@
 #include "polynomialchannelfitter.h"
 
+#include <cassert>
+#include <stdexcept>
+
 #include "gsl/gsl_multifit.h"
 
-void PolynomialChannelFitter::Fit(aocommon::UVector<double>& terms,
-                                  size_t nTerms) {
+void PolynomialChannelFitter::Fit(std::vector<double>& terms, size_t nTerms) {
   const size_t nPoints = _dataPoints.size();
 
   gsl_multifit_linear_workspace* work =
@@ -47,4 +49,16 @@ void PolynomialChannelFitter::Fit(aocommon::UVector<double>& terms,
   gsl_matrix_free(cov);
 
   gsl_multifit_linear_free(work);
+}
+
+double PolynomialChannelFitter::Evaluate(double x,
+                                         const std::vector<double>& terms) {
+  assert(!terms.empty());
+  double val = terms.front();
+  double f = 1.0;
+  for (size_t i = 1; i != terms.size(); ++i) {
+    f *= x;
+    val += f * terms[i];
+  }
+  return val;
 }
