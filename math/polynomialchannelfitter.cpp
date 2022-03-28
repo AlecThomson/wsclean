@@ -35,11 +35,12 @@ void PolynomialChannelFitter::Fit(std::vector<double>& terms, size_t n_terms) {
     gsl_vector_set(y, i, data_points_[i].second);
   }
 
-  int res = gsl_multifit_linear(x, y, c, cov, &chisq, work);
-  if (res != 0) throw std::runtime_error("Linear fit failed");
-  terms.resize(n_terms);
-  for (size_t j = 0; j != n_terms; ++j) {
-    terms[j] = gsl_vector_get(c, j);
+  const int result = gsl_multifit_linear(x, y, c, cov, &chisq, work);
+  if (result == 0) {
+    terms.resize(n_terms);
+    for (size_t j = 0; j != n_terms; ++j) {
+      terms[j] = gsl_vector_get(c, j);
+    }
   }
 
   gsl_matrix_free(x);
@@ -49,6 +50,8 @@ void PolynomialChannelFitter::Fit(std::vector<double>& terms, size_t n_terms) {
   gsl_matrix_free(cov);
 
   gsl_multifit_linear_free(work);
+
+  if (result != 0) throw std::runtime_error("Linear fit failed");
 }
 
 double PolynomialChannelFitter::Evaluate(double x,
