@@ -28,7 +28,7 @@ void PolynomialChannelFitter::Fit(std::vector<double>& terms, size_t n_terms) {
       nu_begin_term *= nu_begin;
       nu_end_term *= nu_end;
       // ( mu_i^t - nu_i^t ) / (t [ mu_i - nu_i ] ) with t=j+1
-      double value =
+      const double value =
           (nu_end_term - nu_begin_term) / (double(j + 1) * (nu_end - nu_begin));
       gsl_matrix_set(x, i, j, value);
     }
