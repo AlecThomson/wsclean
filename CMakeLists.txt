@@ -276,7 +276,6 @@ add_library(
   deconvolution/peakfinder.cpp
   deconvolution/pythondeconvolution.cpp
   deconvolution/simpleclean.cpp
-  deconvolution/spectralfitter.cpp
   deconvolution/subminorloop.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
@@ -347,7 +346,6 @@ set_source_files_properties(
   deconvolution/genericclean.cpp
   deconvolution/imageset.cpp
   deconvolution/simpleclean.cpp
-  deconvolution/spectralfitter.cpp
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp
