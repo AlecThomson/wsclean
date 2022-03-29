@@ -25,34 +25,23 @@ struct ImageCoordinateSettings {
    * @param fits_reader aocommon::FitsReader object.
    */
   ImageCoordinateSettings(const aocommon::FitsReader& fits_reader)
-      : phase_centre_ra(fits_reader.PhaseCentreRA()),
-        phase_centre_dec(fits_reader.PhaseCentreDec()),
+      : ra(fits_reader.PhaseCentreRA()),
+        dec(fits_reader.PhaseCentreDec()),
         pixel_scale_l(fits_reader.PixelSizeX()),
         pixel_scale_m(fits_reader.PixelSizeY()),
-        phase_centre_dl(fits_reader.PhaseCentreDL()),
-        phase_centre_dm(fits_reader.PhaseCentreDM()) {}
+        l_shift(fits_reader.PhaseCentreDL()),
+        m_shift(fits_reader.PhaseCentreDM()) {}
 
-  long double phase_centre_ra;
-  long double phase_centre_dec;
+  long double ra;
+  long double dec;
   long double pixel_scale_l;
   long double pixel_scale_m;
-  long double phase_centre_dl;
-  long double phase_centre_dm;
+  long double l_shift;
+  long double m_shift;
 };
 
 /**
- * Restore model component using a circular beam, goverened by
- * \c beam_size .
- */
-void RestoreWithCircularBeam(aocommon::Image& image,
-                             const ImageCoordinateSettings& image_settings,
-                             const Model& model, long double beam_size,
-                             long double start_frequency,
-                             long double end_frequency,
-                             aocommon::PolarizationEnum polarization);
-
-/**
- * @brief Restore a model image with an elliptical beam.
+ * @brief Restore a model image by convolving it with an elliptical Gaussian.
  *
  * @param image Image to which restored sources are written.
  * @param image_settings Image coordinate settings.

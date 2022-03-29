@@ -18,12 +18,12 @@ constexpr long double kPixelSize = 1 /*amin*/ * (M_PI / 180.0 / 60.0);
 
 struct RendererFixture {
   RendererFixture() : restored(kWidth, kHeight, 0.0) {
-    imageSettings.phase_centre_ra = 0.0;
-    imageSettings.phase_centre_dec = 0.0;
+    imageSettings.ra = 0.0;
+    imageSettings.dec = 0.0;
     imageSettings.pixel_scale_l = kPixelSize;
     imageSettings.pixel_scale_m = kPixelSize;
-    imageSettings.phase_centre_dl = 0.0;
-    imageSettings.phase_centre_dm = 0.0;
+    imageSettings.l_shift = 0.0;
+    imageSettings.m_shift = 0.0;
   }
 
   aocommon::Image restored;

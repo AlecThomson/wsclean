@@ -17,26 +17,24 @@ using boost::algorithm::clamp;
 namespace renderer {
 namespace {
 long double Gaussian(long double x, long double sigma) {
+  // Evaluate unnormalized Gaussian (unit valued peak, but integral over <-inf,
+  // inf> doesn't evaluate to unity)
   const long double xi = x / sigma;
-  // TODO: ask Andre: why is the second part not evaluated? Current formulation
-  // doesn't entirely match definition of a Gaussian.
   return std::exp(static_cast<long double>(-0.5) * xi * xi);
-  // / (sigma * sqrt(static_cast<long double>(2.0) * M_PIl));
 }
 
 void RenderPointComponent(float* image_data, size_t image_width,
-                          size_t image_height, long double phase_centre_ra,
-                          long double phase_centre_dec,
+                          size_t image_height, long double ra, long double dec,
                           long double pixel_scale_l, long double pixel_scale_m,
-                          long double phase_centre_dl,
-                          long double phase_centre_dm, long double position_ra,
-                          long double position_dec, long double flux) {
+                          long double l_shift, long double m_shift,
+                          long double position_ra, long double position_dec,
+                          long double flux) {
   long double source_l;
   long double source_m;
-  ImageCoordinates::RaDecToLM(position_ra, position_dec, phase_centre_ra,
-                              phase_centre_dec, source_l, source_m);
-  source_l -= phase_centre_dl;
-  source_m -= phase_centre_dm;
+  ImageCoordinates::RaDecToLM(position_ra, position_dec, ra, dec, source_l,
+                              source_m);
+  source_l -= l_shift;
+  source_m -= m_shift;
 
   int source_x;
   int source_y;
@@ -52,13 +50,12 @@ void RenderPointComponent(float* image_data, size_t image_width,
 }
 
 void RenderGaussianComponent(
-    float* image_data, size_t image_width, size_t image_height,
-    long double phase_centre_ra, long double phase_centre_dec,
-    long double pixel_scale_l, long double pixel_scale_m,
-    long double phase_centre_dl, long double phase_centre_dm,
-    long double position_ra, long double position_dec,
-    long double gaus_major_axis, long double gaus_minor_axis,
-    long double gaus_position_angle, long double flux) {
+    float* image_data, size_t image_width, size_t image_height, long double ra,
+    long double dec, long double pixel_scale_l, long double pixel_scale_m,
+    long double l_shift, long double m_shift, long double position_ra,
+    long double position_dec, long double gaus_major_axis,
+    long double gaus_minor_axis, long double gaus_position_angle,
+    long double flux) {
   // Using the FWHM formula for a Gaussian:
   const long double fwhm_constant = (2.0L * std::sqrt(2.0L * std::log(2.0L)));
   const long double sigma_major_axis = gaus_major_axis / fwhm_constant;
@@ -88,15 +85,15 @@ void RenderGaussianComponent(
   const int bounding_box_size = std::ceil(sigma_max * 20.0 / min_pixel_scale);
   long double source_l;
   long double source_m;
-  ImageCoordinates::RaDecToLM(position_ra, position_dec, phase_centre_ra,
-                              phase_centre_dec, source_l, source_m);
+  ImageCoordinates::RaDecToLM(position_ra, position_dec, ra, dec, source_l,
+                              source_m);
 
   // Calculate the bounding box
   int source_x;
   int source_y;
   ImageCoordinates::LMToXY<long double>(
-      source_l - phase_centre_dl, source_m - phase_centre_dm, pixel_scale_l,
-      pixel_scale_m, image_width, image_height, source_x, source_y);
+      source_l - l_shift, source_m - m_shift, pixel_scale_l, pixel_scale_m,
+      image_width, image_height, source_x, source_y);
   const int x_left = clamp(source_x - bounding_box_size, 0, int(image_width));
   const int x_right =
       clamp(source_x + bounding_box_size, x_left, int(image_width));
@@ -111,8 +108,8 @@ void RenderGaussianComponent(
       long double l, m;
       ImageCoordinates::XYToLM<long double>(x, y, pixel_scale_l, pixel_scale_m,
                                             image_width, image_height, l, m);
-      l += phase_centre_dl;
-      m += phase_centre_dm;
+      l += l_shift;
+      m += m_shift;
       const long double l_transf =
           (l - source_l) * transf[0] + (m - source_m) * transf[1];
       const long double m_transf =
@@ -153,88 +150,22 @@ void RenderModel(aocommon::Image& image,
                           gaus_minor_axis = component.MinorAxis();
         const long double gaus_position_angle = component.PositionAngle();
         RenderGaussianComponent(
-            image.Data(), image.Width(), image.Height(),
-            image_settings.phase_centre_ra, image_settings.phase_centre_dec,
-            image_settings.pixel_scale_l, image_settings.pixel_scale_m,
-            image_settings.phase_centre_dl, image_settings.phase_centre_dm,
-            position_ra, position_dec, gaus_major_axis, gaus_minor_axis,
-            gaus_position_angle, integrated_flux);
+            image.Data(), image.Width(), image.Height(), image_settings.ra,
+            image_settings.dec, image_settings.pixel_scale_l,
+            image_settings.pixel_scale_m, image_settings.l_shift,
+            image_settings.m_shift, position_ra, position_dec, gaus_major_axis,
+            gaus_minor_axis, gaus_position_angle, integrated_flux);
       } else
         RenderPointComponent(
-            image.Data(), image.Width(), image.Height(),
-            image_settings.phase_centre_ra, image_settings.phase_centre_dec,
-            image_settings.pixel_scale_l, image_settings.pixel_scale_m,
-            image_settings.phase_centre_dl, image_settings.phase_centre_dm,
-            position_ra, position_dec, integrated_flux);
+            image.Data(), image.Width(), image.Height(), image_settings.ra,
+            image_settings.dec, image_settings.pixel_scale_l,
+            image_settings.pixel_scale_m, image_settings.l_shift,
+            image_settings.m_shift, position_ra, position_dec, integrated_flux);
     }
   }
 }
 
 }  // namespace
-
-void RestoreWithCircularBeam(aocommon::Image& image,
-                             const ImageCoordinateSettings& image_settings,
-                             const Model& model, long double beam_size,
-                             long double start_frequency,
-                             long double end_frequency,
-                             aocommon::PolarizationEnum polarization) {
-  // Using the FWHM formula for a Gaussian:
-  const long double sigma =
-      beam_size / (2.0L * std::sqrt(2.0L * std::log(2.0L)));
-
-  const int bounding_box_size = std::ceil(
-      sigma * 20.0 /
-      std::min(image_settings.pixel_scale_l, image_settings.pixel_scale_m));
-  for (const ModelSource& source : model) {
-    for (const ModelComponent& component : source) {
-      const long double position_ra = component.PosRA();
-      const long double position_dec = component.PosDec();
-      long double source_l;
-      long double source_m;
-      ImageCoordinates::RaDecToLM(
-          position_ra, position_dec, image_settings.phase_centre_ra,
-          image_settings.phase_centre_dec, source_l, source_m);
-      const SpectralEnergyDistribution& sed = component.SED();
-      const long double integrated_flux =
-          sed.IntegratedFlux(start_frequency, end_frequency, polarization);
-
-      int source_x;
-      int source_y;
-      ImageCoordinates::LMToXY<long double>(
-          source_l - image_settings.phase_centre_dl,
-          source_m - image_settings.phase_centre_dm,
-          image_settings.pixel_scale_l, image_settings.pixel_scale_m,
-          image.Width(), image.Height(), source_x, source_y);
-
-      const int x_left =
-          clamp(source_x - bounding_box_size, 0, int(image.Width()));
-      const int x_right =
-          clamp(source_x + bounding_box_size, x_left, int(image.Width()));
-      const int y_top =
-          clamp(source_y - bounding_box_size, 0, int(image.Height()));
-      const int y_bottom =
-          clamp(source_y + bounding_box_size, y_top, int(image.Height()));
-
-      for (int y = y_top; y != y_bottom; ++y) {
-        float* image_data_ptr = image.Data() + y * image.Width() + x_left;
-        for (int x = x_left; x != x_right; ++x) {
-          long double l;
-          long double m;
-          ImageCoordinates::XYToLM<long double>(
-              x, y, image_settings.pixel_scale_l, image_settings.pixel_scale_m,
-              image.Width(), image.Height(), l, m);
-          l += image_settings.phase_centre_dl;
-          m += image_settings.phase_centre_dm;
-          const long double dist = std::sqrt((l - source_l) * (l - source_l) +
-                                             (m - source_m) * (m - source_m));
-          const long double g = Gaussian(dist, sigma);
-          (*image_data_ptr) += static_cast<float>(g * integrated_flux);
-          ++image_data_ptr;
-        }
-      }
-    }
-  }
-}
 
 void RestoreWithEllipticalBeam(
     aocommon::Image& image, const ImageCoordinateSettings& image_settings,
