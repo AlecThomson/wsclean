@@ -226,7 +226,7 @@ void WSCFitsWriter::Restore(const Settings& settings) {
 
 void WSCFitsWriter::RestoreList(const Settings& settings) {
   const Model model = BBSModel::Read(settings.restoreModel);
-  FitsReader imgReader(settings.restoreInput);
+  aocommon::FitsReader imgReader(settings.restoreInput);
   aocommon::Image image(imgReader.ImageWidth(), imgReader.ImageHeight());
   imgReader.Read(image.Data());
 
