@@ -147,7 +147,7 @@ class Settings {
   bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
   std::string moreSaneLocation, moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
-  enum schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
+  schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
   /**

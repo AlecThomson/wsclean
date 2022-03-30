@@ -80,7 +80,7 @@ struct DeconvolutionSettings {
   std::string moreSaneLocation;
   std::string moreSaneArgs;
   std::vector<double> moreSaneSigmaLevels;
-  enum schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
+  schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
   /**
