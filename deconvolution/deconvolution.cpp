@@ -89,7 +89,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
         if (value != 0.0) value = stddev / value;
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
-    } else if (_settings.localRMS) {
+    } else if (_settings.localRMSMethod != LocalRmsMethod::kNone) {
       Logger::Debug << "Constructing local RMS image...\n";
       Image rmsImage;
       // TODO this should use full beam parameters
@@ -104,6 +104,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
               _settings.threadCount);
+          break;
+        default:
+          assert(false);
           break;
       }
       // Normalize the RMS image relative to the threshold so that Jy remains
