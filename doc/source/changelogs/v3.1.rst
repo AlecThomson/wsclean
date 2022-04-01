@@ -46,7 +46,7 @@ Other significant code changes
 ------------------------------
 
 * WSClean now requires a compiler that supports C++17.
-* Support for gcc-11 was added.
+* Add support for gcc versions 11 and 12.
 * Lots of refactoring.
 * Preparations to split off deconvolution code as a separate reusable module.
 * Several documentation improvements / updates.
