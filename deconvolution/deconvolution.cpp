@@ -210,9 +210,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
           _settings.python.deconvolutionFilename);
       break;
     case DeconvolutionSettings::Algorithm::kMoreSane:
-      algorithm = std::make_unique<MoreSane>(
-          _settings.moreSane.location, _settings.moreSane.args,
-          _settings.moreSane.sigmaLevels, _settings.prefixName);
+      algorithm =
+          std::make_unique<MoreSane>(_settings.moreSane, _settings.prefixName);
       break;
     case DeconvolutionSettings::Algorithm::kIuwt: {
       auto method = std::make_unique<IUWTDeconvolution>();

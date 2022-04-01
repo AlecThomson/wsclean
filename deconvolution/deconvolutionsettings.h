@@ -81,9 +81,9 @@ struct DeconvolutionSettings {
     std::string deconvolutionFilename;
   } python;
 
-  struct {
+  struct MoreSane {
     std::string location;
-    std::string args;
+    std::string arguments;
     std::vector<double> sigmaLevels;
   } moreSane;
 

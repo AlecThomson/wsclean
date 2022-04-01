@@ -421,7 +421,7 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   } else if (useMoreSaneDeconvolution) {
     deconvolutionSettings.algorithm = Algorithm::kMoreSane;
     deconvolutionSettings.moreSane.location = moreSaneLocation;
-    deconvolutionSettings.moreSane.args = moreSaneArgs;
+    deconvolutionSettings.moreSane.arguments = moreSaneArgs;
     deconvolutionSettings.moreSane.sigmaLevels.assign(
         moreSaneSigmaLevels.begin(), moreSaneSigmaLevels.end());
   } else if (useIUWTDeconvolution) {
