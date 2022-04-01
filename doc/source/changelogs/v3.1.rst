@@ -15,7 +15,7 @@ Major & visible changes
 
 * Support time-direction :ref:`baseline-dependently averaged data from DP3 <BDA_DP3>`.
 * Reduce disk-access during :ref:`IDG <image_domain_gridding>` Stokes I imaging by not storing XY/YX to disk, and enable the faster IDG Stokes I mode when possible.
-* Use the ``...-pb.fits`` file when predicting with beam correction.
+* Automatically use the primary beam corrected image (``...-pb.fits``) file when predicting with beam correction.
 * Cache average beam to disk in IDG mode to reduce memory usage.
 * Add support for the GMRT beam (scientific validation still in progress).
 * Add a beam-normalisation-mode option to control EveryBeam's normalisation mode.
@@ -26,7 +26,7 @@ Bug fixes
 ---------
 
 * Report error when user asks for incorrect channel selection.
-* Certain selection parameters no longer worked in reorder mode (e.g. even/odd timestep selection).
+* Fix certain selection parameters that no longer worked in reorder mode (e.g. even/odd timestep selection).
 * Correctly normalize reported flux levels for squared channels.
 * Fix a crash with the ``-reuse-dirty`` option in certain modes.
 * Fix segmentation fault when using ``-reuse-psf`` with IDG.
