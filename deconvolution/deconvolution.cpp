@@ -133,7 +133,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   const std::vector<aocommon::Image> psfImages =
       residualSet.LoadAndAveragePSFs();
 
-  if (_settings.useMultiscale) {
+  if (_settings.algorithm == DeconvolutionSettings::Algorithm::kMultiScale) {
     if (_settings.autoMask) {
       if (_autoMaskIsFinished)
         _parallelDeconvolution.SetAutoMaskMode(false, true);
@@ -204,33 +204,43 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
 
   std::unique_ptr<DeconvolutionAlgorithm> algorithm;
 
-  if (!_settings.pythonDeconvolutionFilename.empty()) {
-    algorithm = std::make_unique<PythonDeconvolution>(
-        _settings.pythonDeconvolutionFilename);
-  } else if (_settings.useMoreSaneDeconvolution) {
-    algorithm = std::make_unique<MoreSane>(
-        _settings.moreSaneLocation, _settings.moreSaneArgs,
-        _settings.moreSaneSigmaLevels, _settings.prefixName);
-  } else if (_settings.useIUWTDeconvolution) {
-    auto method = std::make_unique<IUWTDeconvolution>();
-    method->SetUseSNRTest(_settings.iuwtSNRTest);
-    algorithm = std::move(method);
-  } else if (_settings.useMultiscale) {
-    auto ms_algorithm = std::make_unique<MultiScaleAlgorithm>(
-        beamSize, _pixelScaleX, _pixelScaleY);
-    ms_algorithm->SetManualScaleList(_settings.multiscaleScaleList);
-    ms_algorithm->SetMultiscaleScaleBias(
-        _settings.multiscaleDeconvolutionScaleBias);
-    ms_algorithm->SetMaxScales(_settings.multiscaleMaxScales);
-    ms_algorithm->SetMultiscaleGain(_settings.multiscaleGain);
-    ms_algorithm->SetShape(_settings.multiscaleShapeFunction);
-    ms_algorithm->SetTrackComponents(_settings.saveSourceList);
-    ms_algorithm->SetConvolutionPadding(_settings.multiscaleConvolutionPadding);
-    ms_algorithm->SetUseFastSubMinorLoop(_settings.multiscaleFastSubMinorLoop);
-    algorithm = std::move(ms_algorithm);
-  } else {
-    algorithm =
-        std::make_unique<GenericClean>(_settings.useSubMinorOptimization);
+  switch (_settings.algorithm) {
+    case DeconvolutionSettings::Algorithm::kPython:
+      algorithm = std::make_unique<PythonDeconvolution>(
+          _settings.pythonDeconvolutionFilename);
+      break;
+    case DeconvolutionSettings::Algorithm::kMoreSane:
+      algorithm = std::make_unique<MoreSane>(
+          _settings.moreSaneLocation, _settings.moreSaneArgs,
+          _settings.moreSaneSigmaLevels, _settings.prefixName);
+      break;
+    case DeconvolutionSettings::Algorithm::kIuwt: {
+      auto method = std::make_unique<IUWTDeconvolution>();
+      method->SetUseSNRTest(_settings.iuwtSNRTest);
+      algorithm = std::move(method);
+      break;
+    }
+    case DeconvolutionSettings::Algorithm::kMultiScale: {
+      auto ms_algorithm = std::make_unique<MultiScaleAlgorithm>(
+          beamSize, _pixelScaleX, _pixelScaleY);
+      ms_algorithm->SetManualScaleList(_settings.multiscaleScaleList);
+      ms_algorithm->SetMultiscaleScaleBias(
+          _settings.multiscaleDeconvolutionScaleBias);
+      ms_algorithm->SetMaxScales(_settings.multiscaleMaxScales);
+      ms_algorithm->SetMultiscaleGain(_settings.multiscaleGain);
+      ms_algorithm->SetShape(_settings.multiscaleShapeFunction);
+      ms_algorithm->SetTrackComponents(_settings.saveSourceList);
+      ms_algorithm->SetConvolutionPadding(
+          _settings.multiscaleConvolutionPadding);
+      ms_algorithm->SetUseFastSubMinorLoop(
+          _settings.multiscaleFastSubMinorLoop);
+      algorithm = std::move(ms_algorithm);
+      break;
+    }
+    case DeconvolutionSettings::Algorithm::kGeneric:
+      algorithm =
+          std::make_unique<GenericClean>(_settings.useSubMinorOptimization);
+      break;
   }
 
   algorithm->SetMaxNIter(_settings.deconvolutionIterationCount);

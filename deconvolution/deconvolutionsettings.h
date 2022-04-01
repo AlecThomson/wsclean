@@ -17,6 +17,8 @@
 enum class LocalRmsMethod { kNone, kRmsWindow, kRmsAndMinimumWindow };
 
 struct DeconvolutionSettings {
+  enum class Algorithm { kPython, kMoreSane, kIuwt, kMultiScale, kGeneric };
+
   DeconvolutionSettings();
 
   /**
@@ -55,30 +57,14 @@ struct DeconvolutionSettings {
   size_t majorIterationCount;
   bool allowNegativeComponents;
   bool stopOnNegativeComponents;
-  bool useMultiscale;
-  bool useSubMinorOptimization;
   bool squaredJoins;
   double spectralCorrectionFrequency;
   std::vector<float> spectralCorrection;
-  bool multiscaleFastSubMinorLoop;
-  double multiscaleGain;
-  double multiscaleDeconvolutionScaleBias;
-  size_t multiscaleMaxScales;
-  double multiscaleConvolutionPadding;
-  std::vector<double> multiscaleScaleList;
-  MultiScaleTransforms::Shape multiscaleShapeFunction;
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask;
   std::string casaDeconvolutionMask;
   bool horizonMask;
   double horizonMaskDistance;
-  std::string pythonDeconvolutionFilename;
-  bool useMoreSaneDeconvolution;
-  bool useIUWTDeconvolution;
-  bool iuwtSNRTest;
-  std::string moreSaneLocation;
-  std::string moreSaneArgs;
-  std::vector<double> moreSaneSigmaLevels;
   schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
@@ -89,6 +75,26 @@ struct DeconvolutionSettings {
    * If it is 0, all channels should be used.
    */
   size_t deconvolutionChannelCount;
+
+  Algorithm algorithm;
+
+  std::string pythonDeconvolutionFilename;
+
+  std::string moreSaneLocation;
+  std::string moreSaneArgs;
+  std::vector<double> moreSaneSigmaLevels;
+
+  bool iuwtSNRTest;
+
+  bool multiscaleFastSubMinorLoop;
+  double multiscaleGain;
+  double multiscaleDeconvolutionScaleBias;
+  size_t multiscaleMaxScales;
+  double multiscaleConvolutionPadding;
+  std::vector<double> multiscaleScaleList;
+  MultiScaleTransforms::Shape multiscaleShapeFunction;
+
+  bool useSubMinorOptimization;
   /** @} */
 };
 
@@ -118,11 +124,25 @@ inline DeconvolutionSettings::DeconvolutionSettings()
       majorIterationCount(20),
       allowNegativeComponents(true),
       stopOnNegativeComponents(false),
-      useMultiscale(false),
-      useSubMinorOptimization(true),
       squaredJoins(false),
       spectralCorrectionFrequency(0.0),
       spectralCorrection(),
+      deconvolutionBorderRatio(0.0),
+      fitsDeconvolutionMask(),
+      casaDeconvolutionMask(),
+      horizonMask(false),
+      horizonMaskDistance(0.0),
+      spectralFittingMode(
+          schaapcommon::fitters::SpectralFittingMode::NoFitting),
+      spectralFittingTerms(0),
+      forcedSpectrumFilename(),
+      deconvolutionChannelCount(0),
+      algorithm(Algorithm::kGeneric),
+      pythonDeconvolutionFilename(),
+      moreSaneLocation(),
+      moreSaneArgs(),
+      moreSaneSigmaLevels(),
+      iuwtSNRTest(false),
       multiscaleFastSubMinorLoop(true),
       multiscaleGain(0.2),
       multiscaleDeconvolutionScaleBias(0.6),
@@ -130,21 +150,6 @@ inline DeconvolutionSettings::DeconvolutionSettings()
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
       multiscaleShapeFunction(MultiScaleTransforms::TaperedQuadraticShape),
-      deconvolutionBorderRatio(0.0),
-      fitsDeconvolutionMask(),
-      casaDeconvolutionMask(),
-      horizonMask(false),
-      horizonMaskDistance(0.0),
-      pythonDeconvolutionFilename(),
-      useMoreSaneDeconvolution(false),
-      useIUWTDeconvolution(false),
-      iuwtSNRTest(false),
-      moreSaneLocation(),
-      moreSaneArgs(),
-      spectralFittingMode(
-          schaapcommon::fitters::SpectralFittingMode::NoFitting),
-      spectralFittingTerms(0),
-      forcedSpectrumFilename(),
-      deconvolutionChannelCount(0) {}
+      useSubMinorOptimization(true) {}
 
 #endif
