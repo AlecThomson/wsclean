@@ -77,24 +77,34 @@ struct DeconvolutionSettings {
 
   Algorithm algorithm = Algorithm::kGeneric;
 
-  std::string pythonDeconvolutionFilename;
+  struct {
+    std::string deconvolutionFilename;
+  } python;
 
-  std::string moreSaneLocation;
-  std::string moreSaneArgs;
-  std::vector<double> moreSaneSigmaLevels;
+  struct {
+    std::string location;
+    std::string args;
+    std::vector<double> sigmaLevels;
+  } moreSane;
 
-  bool iuwtSNRTest = false;
+  struct {
+    bool SNRTest = false;
+  } iuwt;
 
-  bool multiscaleFastSubMinorLoop = true;
-  double multiscaleGain = 0.2;
-  double multiscaleDeconvolutionScaleBias = 0.6;
-  size_t multiscaleMaxScales = 0;
-  double multiscaleConvolutionPadding = 1.1;
-  std::vector<double> multiscaleScaleList;
-  MultiScaleTransforms::Shape multiscaleShapeFunction =
-      MultiScaleTransforms::TaperedQuadraticShape;
+  struct {
+    bool fastSubMinorLoop = true;
+    double gain = 0.2;
+    double deconvolutionScaleBias = 0.6;
+    size_t maxScales = 0;
+    double convolutionPadding = 1.1;
+    std::vector<double> scaleList;
+    MultiScaleTransforms::Shape shapeFunction =
+        MultiScaleTransforms::TaperedQuadraticShape;
+  } multiscale;
 
-  bool useSubMinorOptimization = true;
+  struct {
+    bool useSubMinorOptimization = true;
+  } generic;
   /** @} */
 };
 

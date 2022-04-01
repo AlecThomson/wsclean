@@ -416,34 +416,35 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
 
   if (!pythonDeconvolutionFilename.empty()) {
     deconvolutionSettings.algorithm = Algorithm::kPython;
-    deconvolutionSettings.pythonDeconvolutionFilename =
+    deconvolutionSettings.python.deconvolutionFilename =
         pythonDeconvolutionFilename;
   } else if (useMoreSaneDeconvolution) {
     deconvolutionSettings.algorithm = Algorithm::kMoreSane;
-    deconvolutionSettings.moreSaneLocation = moreSaneLocation;
-    deconvolutionSettings.moreSaneArgs = moreSaneArgs;
-    deconvolutionSettings.moreSaneSigmaLevels.assign(
+    deconvolutionSettings.moreSane.location = moreSaneLocation;
+    deconvolutionSettings.moreSane.args = moreSaneArgs;
+    deconvolutionSettings.moreSane.sigmaLevels.assign(
         moreSaneSigmaLevels.begin(), moreSaneSigmaLevels.end());
   } else if (useIUWTDeconvolution) {
     deconvolutionSettings.algorithm = Algorithm::kIuwt;
 
-    deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
+    deconvolutionSettings.iuwt.SNRTest = iuwtSNRTest;
   } else if (useMultiscale) {
     deconvolutionSettings.algorithm = Algorithm::kMultiScale;
-    deconvolutionSettings.multiscaleFastSubMinorLoop =
+    deconvolutionSettings.multiscale.fastSubMinorLoop =
         multiscaleFastSubMinorLoop;
-    deconvolutionSettings.multiscaleGain = multiscaleGain;
-    deconvolutionSettings.multiscaleDeconvolutionScaleBias =
+    deconvolutionSettings.multiscale.gain = multiscaleGain;
+    deconvolutionSettings.multiscale.deconvolutionScaleBias =
         multiscaleDeconvolutionScaleBias;
-    deconvolutionSettings.multiscaleMaxScales = multiscaleMaxScales;
-    deconvolutionSettings.multiscaleConvolutionPadding =
+    deconvolutionSettings.multiscale.maxScales = multiscaleMaxScales;
+    deconvolutionSettings.multiscale.convolutionPadding =
         multiscaleConvolutionPadding;
-    deconvolutionSettings.multiscaleScaleList.assign(
+    deconvolutionSettings.multiscale.scaleList.assign(
         multiscaleScaleList.begin(), multiscaleScaleList.end());
-    deconvolutionSettings.multiscaleShapeFunction = multiscaleShapeFunction;
+    deconvolutionSettings.multiscale.shapeFunction = multiscaleShapeFunction;
   } else {
     deconvolutionSettings.algorithm = Algorithm::kGeneric;
-    deconvolutionSettings.useSubMinorOptimization = useSubMinorOptimization;
+    deconvolutionSettings.generic.useSubMinorOptimization =
+        useSubMinorOptimization;
   }
 
   return deconvolutionSettings;
