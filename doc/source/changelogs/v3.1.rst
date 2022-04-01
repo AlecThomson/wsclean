@@ -39,6 +39,7 @@ Bug fixes
 * Fix unset threadcount value in imageweights class.
 * Fix IUWT. Because of code clean-ups in Nov 2020, the IUWT deconvolution option was no longer producing correct results.
 * Fix channel selection issue for non-uniform multi-SPW sets (#79).
+* Fix channel selection issue for multi-SPW set with no-mf-weighting (#105).
 * Fix rare crash caused by uninitialized array.
 * Fix compilation on hurd-i386.
 
