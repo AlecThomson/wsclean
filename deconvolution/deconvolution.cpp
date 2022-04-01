@@ -222,18 +222,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     }
     case DeconvolutionSettings::Algorithm::kMultiScale: {
       auto ms_algorithm = std::make_unique<MultiScaleAlgorithm>(
-          beamSize, _pixelScaleX, _pixelScaleY);
-      ms_algorithm->SetManualScaleList(_settings.multiscale.scaleList);
-      ms_algorithm->SetMultiscaleScaleBias(
-          _settings.multiscale.deconvolutionScaleBias);
-      ms_algorithm->SetMaxScales(_settings.multiscale.maxScales);
-      ms_algorithm->SetMultiscaleGain(_settings.multiscale.gain);
-      ms_algorithm->SetShape(_settings.multiscale.shapeFunction);
+          beamSize, _pixelScaleX, _pixelScaleY, _settings.multiscale);
       ms_algorithm->SetTrackComponents(_settings.saveSourceList);
-      ms_algorithm->SetConvolutionPadding(
-          _settings.multiscale.convolutionPadding);
-      ms_algorithm->SetUseFastSubMinorLoop(
-          _settings.multiscale.fastSubMinorLoop);
       algorithm = std::move(ms_algorithm);
       break;
     }

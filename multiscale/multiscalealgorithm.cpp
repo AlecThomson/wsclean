@@ -16,18 +16,21 @@ using aocommon::Image;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
-MultiScaleAlgorithm::MultiScaleAlgorithm(double beamSize, double pixelScaleX,
-                                         double pixelScaleY)
-    : _convolutionPadding(1.1),
+MultiScaleAlgorithm::MultiScaleAlgorithm(
+    double beamSize, double pixelScaleX, double pixelScaleY,
+    const DeconvolutionSettings::MultiScale& multiScaleSettings)
+    : _convolutionPadding(multiScaleSettings.convolutionPadding),
       _beamSizeInPixels(beamSize / std::max(pixelScaleX, pixelScaleY)),
-      _multiscaleScaleBias(0.6),
-      _multiscaleGain(0.2),
-      _scaleShape(MultiScaleTransforms::TaperedQuadraticShape),
-      _maxScales(0),
+      _multiscaleScaleBias(multiScaleSettings.deconvolutionScaleBias),
+      _multiscaleGain(multiScaleSettings.gain),
+      _scaleShape(multiScaleSettings.shapeFunction),
+      _maxScales(multiScaleSettings.maxScales),
+      _manualScaleList(multiScaleSettings.scaleList),
       _trackPerScaleMasks(false),
       _usePerScaleMasks(false),
-      _fastSubMinorLoop(true),
+      _fastSubMinorLoop(multiScaleSettings.fastSubMinorLoop),
       _trackComponents(false) {
+  assert(_convolutionPadding >= 1.0);
   if (_beamSizeInPixels <= 0.0) _beamSizeInPixels = 1;
 }
 

@@ -91,7 +91,7 @@ struct DeconvolutionSettings {
     bool SNRTest = false;
   } iuwt;
 
-  struct {
+  struct MultiScale {
     bool fastSubMinorLoop = true;
     double gain = 0.2;
     double deconvolutionScaleBias = 0.6;
