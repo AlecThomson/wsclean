@@ -94,6 +94,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
+        case LocalRmsMethod::kNone:
+          assert(false);
+          break;
         case LocalRmsMethod::kRmsWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
@@ -104,9 +107,6 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY,
               _settings.threadCount);
-          break;
-        default:
-          assert(false);
           break;
       }
       // Normalize the RMS image relative to the threshold so that Jy remains
