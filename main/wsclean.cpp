@@ -21,6 +21,8 @@
 
 #include "../deconvolution/imageset.h"
 
+#include <radler/imageset.h>
+
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 

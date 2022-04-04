@@ -48,7 +48,7 @@ else()
   endif()
 endif()
 
-set(ExternalSubmoduleDirectories aocommon pybind11 schaapcommon)
+set(ExternalSubmoduleDirectories aocommon pybind11 radler schaapcommon)
 foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
     message(
@@ -228,6 +228,14 @@ include(CheckCXXSourceCompiles)
 # GSL is required for WSClean, so always available
 add_definitions(-DHAVE_GSL)
 
+# Radler
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/radler")
+set(CMAKE_PREFIX_PATH
+    "${CMAKE_PREFIX_PATH};${CMAKE_BINARY_DIR}/external/radler"
+    CACHE PATH "Add radler" FORCE)
+find_package(RADLER NO_MODULE REQUIRED)
+include_directories(SYSTEM ${RADLER_INCLUDE_DIR})
+
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
 
@@ -350,6 +358,10 @@ set_source_files_properties(
   wgridder/wgriddinggridder_simple.cpp
   PROPERTIES COMPILE_FLAGS -ffast-math)
 
+# Link wsclean-object against install-radler to ensure all
+# wsclean targets will have Radler available.
+add_dependencies(wsclean-object install-radler)
+
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
@@ -372,6 +384,7 @@ set(ALL_LIBRARIES
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
     ${EVERYBEAM_LIB}
+    radler
     schaapcommon)
 
 # Perform the BLAS check from aocommon
