@@ -6,9 +6,12 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
+
 #include <schaapcommon/facets/facet.h>
 
-#include "../deconvolution/deconvolution.h"
+#include <radler/deconvolution.h>
+
+// #include "../deconvolution/deconvolution.h"
 
 #include "../scheduling/griddingresult.h"
 
@@ -262,7 +265,7 @@ class WSClean {
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
   // Deconvolution object only needed in RunClean runs.
-  std::optional<Deconvolution> _deconvolution;
+  std::optional<radler::Deconvolution> _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;

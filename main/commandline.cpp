@@ -867,9 +867,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       ++argi;
       std::string method = argv[argi];
       if (method == "rms")
-        settings.localRMSMethod = LocalRmsMethod::kRmsWindow;
+        settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       else if (method == "rms-with-min")
-        settings.localRMSMethod = LocalRmsMethod::kRmsAndMinimumWindow;
+        settings.localRMSMethod = radler::LocalRmsMethod::kRmsAndMinimumWindow;
       else
         throw std::runtime_error("Unknown RMS background method specified");
       if (param == "rms-background-method")
@@ -1128,9 +1128,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string shape = argv[argi];
       if (shape == "tapered-quadratic")
         settings.multiscaleShapeFunction =
-            MultiScaleTransforms::TaperedQuadraticShape;
+            radler::algorithms::multiscale::Shape::TaperedQuadraticShape;
       else if (shape == "gaussian")
-        settings.multiscaleShapeFunction = MultiScaleTransforms::GaussianShape;
+        settings.multiscaleShapeFunction =
+            radler::algorithms::multiscale::Shape::GaussianShape;
       else
         throw std::runtime_error("Unknown multiscale shape function given");
     } else if (param == "multiscale-convolution-padding") {
@@ -1149,7 +1150,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           parse_size_t(argv[argi], "weighting-rank-filter-size");
     } else if (param == "save-source-list") {
       settings.saveSourceList = true;
-      settings.multiscaleShapeFunction = MultiScaleTransforms::GaussianShape;
+      settings.multiscaleShapeFunction =
+          radler::algorithms::multiscale::Shape::GaussianShape;
     } else if (param == "clean-border" || param == "cleanborder") {
       ++argi;
       settings.deconvolutionBorderRatio =

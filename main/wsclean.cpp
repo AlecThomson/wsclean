@@ -1521,7 +1521,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  std::unique_ptr<PrimaryBeam>& primaryBeam,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
-  std::unique_ptr<DeconvolutionTable> deconvolution_table =
+  std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
       groupTable.GetFacet(0).CreateDeconvolutionTable(
           _settings.deconvolutionChannelCount, _psfImages, _modelImages,
           _residualImages);
@@ -1649,7 +1649,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   }
 
   if (_settings.saveSourceList) {
-    std::unique_ptr<DeconvolutionTable> deconvolution_table =
+    std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
         groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
                                             _psfImages, _modelImages,
                                             _residualImages);

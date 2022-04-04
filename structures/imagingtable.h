@@ -2,7 +2,9 @@
 #define WSCLEAN_IMAGING_TABLE_H
 
 #include "imagingtableentry.h"
-#include "../deconvolution/deconvolutiontable.h"
+// #include "../deconvolution/deconvolutiontable.h"
+
+#include <radler/deconvolutiontable.h>
 
 #include <functional>
 #include <memory>
@@ -141,7 +143,7 @@ class ImagingTable {
    */
   void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
 
-  std::unique_ptr<DeconvolutionTable> CreateDeconvolutionTable(
+  std::unique_ptr<radler::DeconvolutionTable> CreateDeconvolutionTable(
       int n_deconvolution_channels, CachedImageSet& psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images) const;
 
