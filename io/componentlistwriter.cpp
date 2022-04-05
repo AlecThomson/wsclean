@@ -2,8 +2,6 @@
 
 #include "../main/settings.h"
 
-#include "../multiscale/multiscalealgorithm.h"
-
 #include "../structures/primarybeam.h"
 
 #include <aocommon/image.h>

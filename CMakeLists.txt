@@ -272,19 +272,11 @@ add_library(
   main/stopwatch.cpp
   main/wsclean.cpp
   main/settings.cpp
-  deconvolution/casamaskreader.cpp
-  deconvolution/componentlist.cpp
-  deconvolution/deconvolution.cpp
-  deconvolution/deconvolutionalgorithm.cpp
-  deconvolution/deconvolutiontable.cpp
-  deconvolution/genericclean.cpp
-  deconvolution/imageset.cpp
-  deconvolution/moresane.cpp
-  deconvolution/paralleldeconvolution.cpp
-  deconvolution/peakfinder.cpp
-  deconvolution/pythondeconvolution.cpp
-  deconvolution/simpleclean.cpp
-  deconvolution/subminorloop.cpp
+  # deconvolution/deconvolutionalgorithm.cpp
+  # deconvolution/deconvolutiontable.cpp
+  # deconvolution/genericclean.cpp
+  # deconvolution/imageset.cpp
+  # deconvolution/paralleldeconvolution.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
   gridding/wsmsgridder.cpp
@@ -295,14 +287,9 @@ add_library(
   io/facetreader.cpp
   io/parsetreader.cpp
   io/wscfitswriter.cpp
-  iuwt/imageanalysis.cpp
-  iuwt/iuwtdecomposition.cpp
-  iuwt/iuwtdeconvolutionalgorithm.cpp
-  iuwt/iuwtmask.cpp
   math/imageoperations.cpp
   math/renderer.cpp
   math/polynomialchannelfitter.cpp
-  math/rmsimage.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
   msproviders/mscolumns.cpp
@@ -321,9 +308,9 @@ add_library(
   msproviders/msreaders/partitionedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
   msproviders/msweightcolumn.cpp
-  multiscale/multiscalealgorithm.cpp
-  multiscale/multiscaletransforms.cpp
-  multiscale/threadeddeconvolutiontools.cpp
+  # multiscale/multiscalealgorithm.cpp
+  # multiscale/multiscaletransforms.cpp
+  # multiscale/threadeddeconvolutiontools.cpp
   scheduling/griddingtaskmanager.cpp
   scheduling/griddingresult.cpp
   scheduling/griddingtask.cpp
@@ -347,15 +334,7 @@ add_library(
 # allowed. Note that visibilities can be NaN hence this can not be turned
 # on for all files.
 set_source_files_properties(
-  deconvolution/subminorloop.cpp
-  deconvolution/genericclean.cpp
-  deconvolution/imageset.cpp
-  deconvolution/simpleclean.cpp
-  multiscale/multiscalealgorithm.cpp
-  multiscale/multiscaletransforms.cpp
-  multiscale/threadeddeconvolutiontools.cpp
-  wsclean/wstackinggridder.cpp
-  wgridder/wgriddinggridder_simple.cpp
+  wsclean/wstackinggridder.cpp wgridder/wgriddinggridder_simple.cpp
   PROPERTIES COMPILE_FLAGS -ffast-math)
 
 # Link wsclean-object against install-radler to ensure all
@@ -421,11 +400,12 @@ add_executable(
                                        gridding/wstackinggridder.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
-add_executable(
-  mscaleexample EXCLUDE_FROM_ALL
-  multiscale/mscaleexample.cpp multiscale/multiscalealgorithm.cpp
-  multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
-target_link_libraries(mscaleexample ${ALL_LIBRARIES})
+# TODO: migrate mscaleexample to radler?
+# add_executable(
+#   mscaleexample EXCLUDE_FROM_ALL
+#   multiscale/mscaleexample.cpp multiscale/multiscalealgorithm.cpp
+#   multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
+# target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)

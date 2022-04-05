@@ -11,8 +11,6 @@
 
 #include <radler/deconvolution.h>
 
-// #include "../deconvolution/deconvolution.h"
-
 #include "../scheduling/griddingresult.h"
 
 #include "../io/cachedimageset.h"
