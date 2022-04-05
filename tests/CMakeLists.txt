@@ -11,7 +11,6 @@ add_executable(
   # TODO: migrate this test to radler in AST-883
   deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
-  math/tdijkstrasplitter.cpp
   math/tpolynomialchannelfitter.cpp
   math/trenderer.cpp
   msproviders/tnoisemsrowprovider.cpp
