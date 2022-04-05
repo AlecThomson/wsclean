@@ -1,7 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../structures/primarybeamimageset.h"
-// #include "../deconvolution/componentlist.h"
 
 #include <aocommon/image.h>
 

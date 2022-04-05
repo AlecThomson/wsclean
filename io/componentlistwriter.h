@@ -1,9 +1,6 @@
 #ifndef WSCLEAN_IO_COMPONENT_LIST_WRITER_H_
 #define WSCLEAN_IO_COMPONENT_LIST_WRITER_H_
 
-// #include "../deconvolution/deconvolution.h"
-// #include "../deconvolution/deconvolutiontable.h"
-
 #include <radler/deconvolution.h>
 #include <radler/deconvolutiontable.h>
 #include <radler/deconvolutiontableentry.h>

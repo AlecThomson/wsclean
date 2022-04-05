@@ -8,8 +8,6 @@
 
 #include "../structures/msselection.h"
 
-#include "../deconvolution/deconvolutionalgorithm.h"
-
 #include <aocommon/system.h>
 
 #include <schaapcommon/fitters/spectralfitter.h>

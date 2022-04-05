@@ -1,15 +1,8 @@
 #ifndef WSC_FITS_WRITER_H
 #define WSC_FITS_WRITER_H
 
-#include "imagefilename.h"
-
-#include "../structures/observationinfo.h"
-#include "../structures/outputchannelinfo.h"
-#include "../structures/imagingtable.h"
-
-// #include "../deconvolution/deconvolution.h"
-
-#include "../main/settings.h"
+#include <optional>
+#include <string>
 
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
@@ -17,8 +10,11 @@
 
 #include <radler/deconvolution.h>
 
-#include <optional>
-#include <string>
+#include "imagefilename.h"
+#include "../main/settings.h"
+#include "../structures/observationinfo.h"
+#include "../structures/outputchannelinfo.h"
+#include "../structures/imagingtable.h"
 
 class WSCFitsWriter {
  public:

@@ -272,11 +272,6 @@ add_library(
   main/stopwatch.cpp
   main/wsclean.cpp
   main/settings.cpp
-  # deconvolution/deconvolutionalgorithm.cpp
-  # deconvolution/deconvolutiontable.cpp
-  # deconvolution/genericclean.cpp
-  # deconvolution/imageset.cpp
-  # deconvolution/paralleldeconvolution.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
   gridding/wsmsgridder.cpp
@@ -308,9 +303,6 @@ add_library(
   msproviders/msreaders/partitionedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
   msproviders/msweightcolumn.cpp
-  # multiscale/multiscalealgorithm.cpp
-  # multiscale/multiscaletransforms.cpp
-  # multiscale/threadeddeconvolutiontools.cpp
   scheduling/griddingtaskmanager.cpp
   scheduling/griddingresult.cpp
   scheduling/griddingtask.cpp

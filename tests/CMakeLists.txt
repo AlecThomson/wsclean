@@ -2,16 +2,12 @@ add_executable(
   unittest
   test.cpp
   testbaselinedependentaveraging.cpp
-  # testclean.cpp
-  # testcomponentlist.cpp
   testcommandline.cpp
   testfitsdateobstime.cpp
   testcachedimageset.cpp
   testparsetreader.cpp
-  # testpeakfinder.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
-  # deconvolution/testdeconvolutiontable.cpp
   # TODO: keep this test alive till AST-883
   # deconvolution/testimageset.cpp
   idg/taveragebeam.cpp

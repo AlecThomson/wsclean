@@ -2,13 +2,12 @@
 #define WSCLEAN_IMAGING_TABLE_H
 
 #include "imagingtableentry.h"
-// #include "../deconvolution/deconvolutiontable.h"
-
-#include <radler/deconvolutiontable.h>
 
 #include <functional>
 #include <memory>
 #include <vector>
+
+#include <radler/deconvolutiontable.h>
 
 /**
  * The ImagingTable contains ImagingTableEntry's and supports creating subtables

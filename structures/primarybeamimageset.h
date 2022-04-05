@@ -1,8 +1,6 @@
 #ifndef PRIMARY_BEAM_IMAGE_SET
 #define PRIMARY_BEAM_IMAGE_SET
 
-// #include "../deconvolution/componentlist.h"
-
 #include <array>
 
 #include <boost/filesystem/operations.hpp>
@@ -11,7 +9,6 @@
 #include <aocommon/image.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/polarization.h>
-
 #include <aocommon/fits/fitsreader.h>
 
 #include <radler/componentlist.h>
