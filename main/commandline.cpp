@@ -846,19 +846,19 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.autoMask = true;
       settings.autoMaskSigma = parse_double(argv[argi], 0.0, "auto-mask");
     } else if (param == "local-rms" || param == "rms-background") {
-      settings.localRMSMethod = LocalRmsMethod::kRmsWindow;
+      settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       if (param == "rms-background") deprecated(isSlave, param, "local-rms");
     } else if (param == "local-rms-window" ||
                param == "rms-background-window") {
       ++argi;
-      settings.localRMSMethod = LocalRmsMethod::kRmsWindow;
+      settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSWindow =
           parse_double(argv[argi], 0.0, "local-rms-window", false);
       if (param == "rms-background-window")
         deprecated(isSlave, param, "local-rms-window");
     } else if (param == "local-rms-image" || param == "rms-background-image") {
       ++argi;
-      settings.localRMSMethod = LocalRmsMethod::kRmsWindow;
+      settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSImage = argv[argi];
       if (param == "rms-background-image")
         deprecated(isSlave, param, "local-rms-image");

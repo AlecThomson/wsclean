@@ -323,7 +323,7 @@ inline Settings::Settings()
       autoDeconvolutionThresholdSigma(0.0),
       autoMaskSigma(0.0),
       localRMSWindow(25.0),
-      localRMSMethod(LocalRmsMethod::kNone),
+      localRMSMethod(radler::LocalRmsMethod::kNone),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
