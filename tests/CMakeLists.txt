@@ -8,8 +8,8 @@ add_executable(
   testparsetreader.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
-  # TODO: keep this test alive till AST-883
-  # deconvolution/testimageset.cpp
+  # TODO: migrate this test to radler in AST-883
+  deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp
   math/tpolynomialchannelfitter.cpp

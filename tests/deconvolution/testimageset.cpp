@@ -1,4 +1,6 @@
-#include "../../deconvolution/imageset.h"
+// TODO: migrate this test to radler in AST-883
+
+#include <radler/imageset.h>
 #include "../../io/cachedimageaccessor.h"
 #include "../../io/cachedimageset.h"
 
@@ -15,6 +17,7 @@
 using aocommon::FitsWriter;
 using aocommon::Image;
 using aocommon::PolarizationEnum;
+using radler::ImageSet;
 
 namespace {
 
@@ -38,13 +41,13 @@ struct ImageSetFixtureBase {
   ImageSetFixtureBase() {}
 
   void initTable(size_t n_original_channels, size_t n_deconvolution_channels) {
-    table = std::make_unique<DeconvolutionTable>(n_original_channels,
-                                                 n_deconvolution_channels);
+    table = std::make_unique<radler::DeconvolutionTable>(
+        n_original_channels, n_deconvolution_channels);
   }
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,
                      size_t frequencyMHz, double imageWeight = 1.0) {
-    auto e = std::make_unique<DeconvolutionTableEntry>();
+    auto e = std::make_unique<radler::DeconvolutionTableEntry>();
     e->original_channel_index = outChannel;
     e->polarization = pol;
     e->band_start_frequency = frequencyMHz;
@@ -69,7 +72,7 @@ struct ImageSetFixtureBase {
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
-  std::unique_ptr<DeconvolutionTable> table;
+  std::unique_ptr<radler::DeconvolutionTable> table;
   CachedImageSet cSet;
 };
 
