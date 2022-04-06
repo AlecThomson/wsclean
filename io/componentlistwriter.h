@@ -41,11 +41,6 @@ class ComponentListWriter {
 
   PrimaryBeamImageSet LoadAveragePrimaryBeam(size_t image_index) const;
 
-  // void WriteSourceList(const ComponentList& list,
-  //                      const DeconvolutionAlgorithm& deconvolution_algorithm,
-  //                      const std::string& filename, long double
-  //                      phase_centre_ra, long double phase_centre_dec) const;
-
   const Settings& settings_;
   std::unique_ptr<radler::DeconvolutionTable> deconvolution_table_;
 };

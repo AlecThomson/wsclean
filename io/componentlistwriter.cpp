@@ -16,10 +16,6 @@ void ComponentListWriter::SaveSourceList(
     long double phase_centre_dec) const {
   const std::string filename = settings_.prefixName + "-sources.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
-  // const DeconvolutionAlgorithm& deconvolution_algorithm =
-  //     deconvolution.MaxScaleCountAlgorithm();
-  // WriteSourceList(list, deconvolution_algorithm, filename, phase_centre_ra,
-  //                 phase_centre_dec);
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
                     settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);
 }
@@ -47,10 +43,6 @@ void ComponentListWriter::SavePbCorrectedSourceList(
     }
   }
 
-  // const DeconvolutionAlgorithm& deconvolution_algorithm =
-  //     deconvolution.MaxScaleCountAlgorithm();
-  // WriteSourceList(list, deconvolution_algorithm, filename, phase_centre_ra,
-  //                 phase_centre_dec);
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
                     settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);
 }
@@ -107,20 +99,3 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
   beam_images *= 1.0 / count;
   return beam_images;
 }
-
-// void ComponentListWriter::WriteSourceList(
-//     const ComponentList& list,
-//     const DeconvolutionAlgorithm& deconvolution_algorithm,
-//     const std::string& filename, long double phase_centre_ra,
-//     long double phase_centre_dec) const {
-//   if (const auto* multiscale_algorithm =
-//           dynamic_cast<const MultiScaleAlgorithm*>(&deconvolution_algorithm))
-//           {
-//     list.Write(filename, *multiscale_algorithm, settings_.pixelScaleX,
-//                settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);
-//   } else {
-//     list.WriteSingleScale(filename, deconvolution_algorithm,
-//                           settings_.pixelScaleX, settings_.pixelScaleY,
-//                           phase_centre_ra, phase_centre_dec);
-//   }
-// }
