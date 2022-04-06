@@ -1,6 +1,5 @@
 import pytest
 import sys
-from astropy.io import fits
 import numpy as np
 from utils import check_and_remove_files, check_output, validate_call
 
@@ -17,13 +16,25 @@ config_filename = "screen_config.cfg"
 def create_dummy_fits_screen():
     """Create a dummy fits screen file compatible with tcf.MWA_MOCK_MS"""
 
+    try:
+        from astropy.io import fits
+    except:
+        pytest.skip("Could not import astropy, so aterms checks are skipped.")
     # For "diagonal" screen type, the fits file has shape [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
     x_imsize = 32
     y_imsize = 32
     n_antennas = 128
     n_times = 1
     n_frequencies = 20
-    shape_out = [n_times, n_frequencies, n_antennas, 4, y_imsize, x_imsize]
+    n_polarizations = 4
+    shape_out = [
+        n_times,
+        n_frequencies,
+        n_antennas,
+        n_polarizations,
+        y_imsize,
+        x_imsize,
+    ]
     hdu = fits.PrimaryHDU(np.ones(shape_out, dtype=np.float32))
 
     hdulist = fits.HDUList([hdu])
