@@ -392,13 +392,6 @@ add_executable(
                                        gridding/wstackinggridder.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
-# TODO: migrate mscaleexample to radler?
-# add_executable(
-#   mscaleexample EXCLUDE_FROM_ALL
-#   multiscale/mscaleexample.cpp multiscale/multiscalealgorithm.cpp
-#   multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
-# target_link_libraries(mscaleexample ${ALL_LIBRARIES})
-
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
 install(TARGETS chgcentre DESTINATION bin)
