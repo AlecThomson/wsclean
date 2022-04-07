@@ -127,7 +127,8 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=Tru
     # be different
     xy = []
     for RAvert, Decvert in zip(x_pix, y_pix):
-        xy.append((RAvert, Decvert))
+        if not (np.isnan(RAvert)) and (not (np.isnan(Decvert))):
+            xy.append((RAvert, Decvert))
 
     # Generate array of outer points used to constrain the facets
     means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
