@@ -74,13 +74,13 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
 def convert_to_deg(array_ra, array_dec):
 
     try:
-        # Skymodel.txt format
-        new_ra = Angle(array_ra, unit="hourangle")
-        new_dec = Angle(np.char.replace(array_dec, ".", ":", 2), unit="degree")
-    except:
         # Degree format
         new_ra = Angle(array_ra, unit="degree")
         new_dec = Angle(array_dec, unit="degree")
+    except ValueError:
+        # Skymodel.txt format
+        new_ra = Angle(array_ra, unit="hourangle")
+        new_dec = Angle(np.char.replace(array_dec, ".", ":", 2), unit="degree")
 
     return [new_ra.deg, new_dec.deg]
 
