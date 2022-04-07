@@ -71,28 +71,18 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
     return w
 
 
-def convert_to_deg(coordinates_ra_string, coordinates_dec_string):
+def convert_to_deg(array_ra, array_dec):
 
-    coordinates_unit = u.deg
-    for i in range(len(coordinates_ra_string)):
-        if ":" in coordinates_ra_string[i]:  # 00:03:43.132 is converted to 00h03m43.132
-            coordinates_unit = u.hourangle
-            coordinates_ra_string[i] = (
-                coordinates_ra_string[i].replace(":", "h", 1).replace(":", "m", 1)
-            )
+    try:
+        # Skymodel.txt format
+        new_ra = Angle(array_ra, unit="hourangle")
+        new_dec = Angle(np.char.replace(array_dec, ".", ":", 2), unit="degree")
+    except:
+        # Degree format
+        new_ra = Angle(array_ra, unit="degree")
+        new_dec = Angle(array_dec, unit="degree")
 
-    for i in range(len(coordinates_dec_string)):
-        if (
-            coordinates_dec_string[i].count(".") == 3
-        ):  # 53.39.53.135 is converted to 53d39m53.135
-            coordinates_unit = u.hourangle
-            coordinates_dec_string[i] = (
-                coordinates_dec_string[i].replace(".", "d", 1).replace(".", "m", 1)
-            )
-
-    c = SkyCoord(coordinates_ra_string, coordinates_dec_string, unit=coordinates_unit)
-
-    return [c.ra.deg, c.dec.deg]
+    return [new_ra.deg, new_dec.deg]
 
 
 def generate_centroids_from_source_catalog(catalog_file, npoints, w):
@@ -168,8 +158,7 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=Tru
     # be different
     xy = []
     for RAvert, Decvert in zip(x_pix, y_pix):
-        if not (np.isnan(RAvert)) and (not (np.isnan(Decvert))):
-            xy.append((RAvert, Decvert))
+        xy.append((RAvert, Decvert))
 
     # Generate array of outer points used to constrain the facets
     means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
