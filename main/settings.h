@@ -12,8 +12,8 @@
 
 #include <schaapcommon/fitters/spectralfitter.h>
 
-#include <radler/deconvolutionsettings.h>
-#include <radler/algorithms/multiscale/multiscaletransforms.h>
+#include <radler/deconvolution_settings.h>
+#include <radler/algorithms/multiscale/multiscale_transforms.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
 

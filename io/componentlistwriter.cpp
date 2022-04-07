@@ -7,13 +7,13 @@
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 
-#include <radler/componentlist.h>
+#include <radler/component_list.h>
 
 using aocommon::Logger;
 
-void ComponentListWriter::SaveSourceList(
-    const radler::Deconvolution& deconvolution, long double phase_centre_ra,
-    long double phase_centre_dec) const {
+void ComponentListWriter::SaveSourceList(const radler::Radler& deconvolution,
+                                         long double phase_centre_ra,
+                                         long double phase_centre_dec) const {
   const std::string filename = settings_.prefixName + "-sources.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
@@ -21,7 +21,7 @@ void ComponentListWriter::SaveSourceList(
 }
 
 void ComponentListWriter::SavePbCorrectedSourceList(
-    const radler::Deconvolution& deconvolution, long double phase_centre_ra,
+    const radler::Radler& deconvolution, long double phase_centre_ra,
     long double phase_centre_dec) const {
   const std::string filename = settings_.prefixName + "-sources-pb.txt";
   radler::ComponentList list = deconvolution.GetComponentList();

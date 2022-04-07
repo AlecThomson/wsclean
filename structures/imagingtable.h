@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include <radler/deconvolutiontable.h>
+#include <radler/deconvolution_table.h>
 
 /**
  * The ImagingTable contains ImagingTableEntry's and supports creating subtables

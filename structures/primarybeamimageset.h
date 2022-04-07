@@ -11,7 +11,7 @@
 #include <aocommon/polarization.h>
 #include <aocommon/fits/fitsreader.h>
 
-#include <radler/componentlist.h>
+#include <radler/component_list.h>
 
 class PrimaryBeamImageSet {
  public:

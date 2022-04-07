@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <radler/deconvolutiontableentry.h>
+#include <radler/deconvolution_table_entry.h>
 
 #include "../io/cachedimageaccessor.h"
 

@@ -9,7 +9,7 @@
 
 #include <schaapcommon/facets/facet.h>
 
-#include <radler/deconvolution.h>
+#include <radler/radler.h>
 
 #include "../scheduling/griddingresult.h"
 
@@ -262,8 +262,8 @@ class WSClean {
   CachedImageSet _matrixBeamImages;
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
-  // Deconvolution object only needed in RunClean runs.
-  std::optional<radler::Deconvolution> _deconvolution;
+  // Radler object only needed in RunClean runs.
+  std::optional<radler::Radler> _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;

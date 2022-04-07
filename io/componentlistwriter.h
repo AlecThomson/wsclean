@@ -1,9 +1,9 @@
 #ifndef WSCLEAN_IO_COMPONENT_LIST_WRITER_H_
 #define WSCLEAN_IO_COMPONENT_LIST_WRITER_H_
 
-#include <radler/deconvolution.h>
-#include <radler/deconvolutiontable.h>
-#include <radler/deconvolutiontableentry.h>
+#include <radler/radler.h>
+#include <radler/deconvolution_table.h>
+#include <radler/deconvolution_table_entry.h>
 
 #include "../structures/primarybeamimageset.h"
 
@@ -23,14 +23,14 @@ class ComponentListWriter {
   /**
    * @brief Save source component list to disk.
    */
-  void SaveSourceList(const radler::Deconvolution& deconvolution,
+  void SaveSourceList(const radler::Radler& deconvolution,
                       long double phase_centre_ra,
                       long double phase_centre_dec) const;
 
   /**
    * @brief Save primary beam corrected source components to disk.
    */
-  void SavePbCorrectedSourceList(const radler::Deconvolution& deconvolution,
+  void SavePbCorrectedSourceList(const radler::Radler& deconvolution,
                                  long double phase_centre_ra,
                                  long double phase_centre_dec) const;
 

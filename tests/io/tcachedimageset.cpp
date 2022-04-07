@@ -1,6 +1,6 @@
 #include "../../io/cachedimageaccessor.h"
 #include "../../io/cachedimageset.h"
-#include <radler/imageset.h>
+#include <radler/image_set.h>
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>

@@ -4,7 +4,7 @@
 
 #include <aocommon/image.h>
 
-#include <radler/componentlist.h>
+#include <radler/component_list.h>
 
 namespace {
 const size_t kWidth = 4;

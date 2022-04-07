@@ -19,8 +19,7 @@
 #include "../structures/imageweights.h"
 #include "../structures/msselection.h"
 
-#include <radler/deconvolution.h>
-// #include <radler/imageset.h>
+#include <radler/radler.h>
 
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
@@ -247,8 +246,8 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
-  radler::Deconvolution::RemoveNaNsInPSF(
-      image.Data(), _settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  radler::Radler::RemoveNaNsInPSF(image.Data(), _settings.trimmedImageWidth,
+                                  _settings.trimmedImageHeight);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
   double initialFitSize =

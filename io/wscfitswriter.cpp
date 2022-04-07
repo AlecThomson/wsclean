@@ -14,12 +14,14 @@
 
 #include "../gridding/msgridderbase.h"
 
-WSCFitsWriter::WSCFitsWriter(
-    const ImagingTableEntry& entry, bool isImaginary, const Settings& settings,
-    const std::optional<radler::Deconvolution>& deconvolution,
-    const ObservationInfo& observationInfo, size_t majorIterationNr,
-    const std::string& commandLine, const OutputChannelInfo& channelInfo,
-    bool isModel, double startTime) {
+WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
+                             const Settings& settings,
+                             const std::optional<radler::Radler>& deconvolution,
+                             const ObservationInfo& observationInfo,
+                             size_t majorIterationNr,
+                             const std::string& commandLine,
+                             const OutputChannelInfo& channelInfo, bool isModel,
+                             double startTime) {
   _filenamePrefix = ImageFilename::GetPrefix(
       settings, entry.polarization, entry.outputChannelIndex,
       entry.outputIntervalIndex, isImaginary);
@@ -34,13 +36,15 @@ WSCFitsWriter::WSCFitsWriter(
   if (isModel) _writer.SetUnit(aocommon::FitsWriter::JanskyPerPixel);
 }
 
-WSCFitsWriter::WSCFitsWriter(
-    const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
-    bool isImaginary, const Settings& settings,
-    const std::optional<radler::Deconvolution>& deconvolution,
-    const ObservationInfo& observationInfo, size_t majorIterationNr,
-    const std::string& commandLine, const OutputChannelInfo& channelInfo,
-    bool isModel, double startTime) {
+WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
+                             aocommon::PolarizationEnum polarization,
+                             bool isImaginary, const Settings& settings,
+                             const std::optional<radler::Radler>& deconvolution,
+                             const ObservationInfo& observationInfo,
+                             size_t majorIterationNr,
+                             const std::string& commandLine,
+                             const OutputChannelInfo& channelInfo, bool isModel,
+                             double startTime) {
   _filenamePrefix =
       ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
                                entry.outputIntervalIndex, isImaginary);
