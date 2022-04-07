@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 # This script was written by Jakob Maljaars and
 # Reinout van Weeren.
@@ -6,7 +6,7 @@
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from astropy.wcs import WCS
 from astropy import units as u
-from astropy.coordinates import SkyCoord, Angle
+from astropy.coordinates import SkyCoord
 import numpy as np
 import argparse
 import sys
@@ -72,17 +72,23 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
 
 
 def convert_to_deg(coordinates_ra_string, coordinates_dec_string):
-    
+
     coordinates_unit = u.deg
     for i in range(len(coordinates_ra_string)):
-        if ":" in coordinates_ra_string[i]: # 00:03:43.132 is converted to 00h03m43.132
+        if ":" in coordinates_ra_string[i]:  # 00:03:43.132 is converted to 00h03m43.132
             coordinates_unit = u.hourangle
-            coordinates_ra_string[i] = coordinates_ra_string[i].replace(":", "h", 1).replace(":", "m", 1)
+            coordinates_ra_string[i] = (
+                coordinates_ra_string[i].replace(":", "h", 1).replace(":", "m", 1)
+            )
 
     for i in range(len(coordinates_dec_string)):
-        if coordinates_dec_string[i].count(".") == 3: # 53.39.53.135 is converted to 53d39m53.135          
+        if (
+            coordinates_dec_string[i].count(".") == 3
+        ):  # 53.39.53.135 is converted to 53d39m53.135
             coordinates_unit = u.hourangle
-            coordinates_dec_string[i] = coordinates_dec_string[i].replace(".", "d", 1).replace(".", "m", 1)
+            coordinates_dec_string[i] = (
+                coordinates_dec_string[i].replace(".", "d", 1).replace(".", "m", 1)
+            )
 
     c = SkyCoord(coordinates_ra_string, coordinates_dec_string, unit=coordinates_unit)
 
@@ -112,19 +118,21 @@ def generate_centroids_from_source_catalog(catalog_file, npoints, w):
     source_idx = np.argsort(catalog[:, 2])[: -npoints - 1 : -1]
     catalog = np.char.strip(catalog)
 
-    # Search the keywords "ra" and "dec" in the first line of the catalog 
-    # to get the right indexes. 
+    # Search the keywords "ra" and "dec" in the first line of the catalog
+    # to get the right indexes.
     # If not found use the indexes 0 and 1 as in the "gleam.osm" catalog
     try:
-        index_ra = list(np.char.lower(catalog[0,:])).index('ra')
-        index_dec = list(np.char.lower(catalog[0,:])).index('dec')
-    except:    
+        index_ra = list(np.char.lower(catalog[0, :])).index("ra")
+        index_dec = list(np.char.lower(catalog[0, :])).index("dec")
+    except:
         index_ra = 0
         index_dec = 1
 
     # Convert Ra/Dec unit to degrees
-    [ra_coords, dec_coords] = convert_to_deg(catalog[source_idx, index_ra], catalog[source_idx, index_dec])
-    
+    [ra_coords, dec_coords] = convert_to_deg(
+        catalog[source_idx, index_ra], catalog[source_idx, index_dec]
+    )
+
     x, y = w.wcs_world2pix(ra_coords, dec_coords, 1)
     return np.vstack((x.flatten(), y.flatten())).T
 
