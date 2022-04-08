@@ -227,12 +227,24 @@ include(CheckCXXSourceCompiles)
 add_definitions(-DHAVE_GSL)
 
 # Radler
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/radler")
-set(CMAKE_PREFIX_PATH
-    "${CMAKE_PREFIX_PATH};${CMAKE_BINARY_DIR}/external/radler"
-    CACHE PATH "Add radler" FORCE)
-find_package(RADLER NO_MODULE REQUIRED)
-include_directories(SYSTEM ${RADLER_INCLUDE_DIR})
+set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
+ExternalProject_Add(
+  radler-module
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
+  BINARY_DIR ${CMAKE_BINARY_DIR}/external/radler/build
+  CMAKE_ARGS
+    -DCOMPILE_AS_EXTERNAL_PROJECT=On
+    -DCMAKE_PREFIX_PATH=~/opt/casacore
+    -DCFITSIO_ROOT_DIR=${CFITSIO_ROOT_DIR}
+    -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include/
+    -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
+    -DPYBIND11_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/pybind11
+    -DBUILD_TESTING=OFF
+    -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX})
+
+set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
+set(RADLER_LIB ${RADLER_INSTALL_PREFIX}/lib/libradler.so)
+include_directories(${RADLER_INCLUDE_DIR})
 
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -327,9 +339,10 @@ set_source_files_properties(
   wsclean/wstackinggridder.cpp wgridder/wgriddinggridder_simple.cpp
   PROPERTIES COMPILE_FLAGS -ffast-math)
 
-# Link wsclean-object against install-radler to ensure all
-# wsclean targets will have Radler available.
-add_dependencies(wsclean-object install-radler)
+# Add radler-module dependency to wsclean-object to ensure all
+# wsclean targets can link against ${RADLER_LIB}
+# add_dependencies(wsclean-object install-radler)
+add_dependencies(wsclean-object radler-module)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
@@ -353,12 +366,14 @@ set(ALL_LIBRARIES
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
     ${EVERYBEAM_LIB}
-    radler
     schaapcommon)
 
 # Perform the BLAS check from aocommon
 include("${CMAKE_CURRENT_LIST_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
 check_blas(LIBRARIES ${ALL_LIBRARIES})
+# Radler lib cannot be checked on BLAS consistenty as it doesn't exist
+# at cmake time.
+list(APPEND ALL_LIBRARIES ${RADLER_LIB})
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
 target_link_libraries(wsclean-lib PRIVATE pybind11::embed ${ALL_LIBRARIES})
@@ -394,6 +409,9 @@ install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
 install(TARGETS chgcentre DESTINATION bin)
 install(FILES interface/wscleaninterface.h DESTINATION include)
+# Installing the radler library to ${CMAKE_INSTALL_FULL_LIBDIR}
+# ensures that users do not manually have to set the LD_LIBRARY_PATH
+install(FILES ${RADLER_LIB} DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
 
 if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)
