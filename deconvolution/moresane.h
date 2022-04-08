@@ -4,17 +4,16 @@
 #include <string>
 
 #include "deconvolutionalgorithm.h"
+#include "deconvolutionsettings.h"
 #include "imageset.h"
 
 class MoreSane : public DeconvolutionAlgorithm {
  public:
-  MoreSane(const std::string& moreSaneLocation,
-           const std::string& moresaneArguments,
-           const std::vector<double>& moresaneSigmaLevels,
+  MoreSane(const DeconvolutionSettings::MoreSane& moreSaneSettings,
            const std::string& prefixName)
-      : _moresaneLocation(moreSaneLocation),
-        _moresaneArguments(moresaneArguments),
-        _moresaneSigmaLevels(moresaneSigmaLevels),
+      : _moresaneLocation(moreSaneSettings.location),
+        _moresaneArguments(moreSaneSettings.arguments),
+        _moresaneSigmaLevels(moreSaneSettings.sigmaLevels),
         _prefixName(prefixName) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,

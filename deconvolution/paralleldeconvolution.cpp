@@ -38,7 +38,7 @@ ComponentList ParallelDeconvolution::GetComponentList(
     const DeconvolutionTable& table) const {
   // TODO make this work with subimages
   ComponentList list;
-  if (_settings.useMultiscale) {
+  if (_settings.algorithm == DeconvolutionSettings::Algorithm::kMultiScale) {
     // If no parallel deconvolution was used, the component list must be
     // retrieved from the deconvolution algorithm.
     if (_algorithms.size() == 1) {
@@ -61,7 +61,7 @@ ComponentList ParallelDeconvolution::GetComponentList(
 
 const DeconvolutionAlgorithm& ParallelDeconvolution::MaxScaleCountAlgorithm()
     const {
-  if (_settings.useMultiscale) {
+  if (_settings.algorithm == DeconvolutionSettings::Algorithm::kMultiScale) {
     MultiScaleAlgorithm* maxAlgorithm =
         static_cast<MultiScaleAlgorithm*>(_algorithms.front().get());
     for (size_t i = 1; i != _algorithms.size(); ++i) {
@@ -240,7 +240,8 @@ void ParallelDeconvolution::runSubImage(
     }
   }
 
-  if (_settings.saveSourceList && _settings.useMultiscale) {
+  if (_settings.saveSourceList &&
+      _settings.algorithm == DeconvolutionSettings::Algorithm::kMultiScale) {
     std::lock_guard<std::mutex> lock(mutex);
     MultiScaleAlgorithm& algorithm =
         static_cast<MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
