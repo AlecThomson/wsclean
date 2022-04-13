@@ -45,6 +45,14 @@ using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
+void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
+  for (std::complex<float>& v : values) {
+    if (!std::isfinite(v.real()) || !std::isfinite(v.imag())) {
+      v = 0.0;
+    }
+  }
+}
+
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
@@ -492,14 +500,6 @@ void MSGridderBase::SetH5Parms() {
       throw std::runtime_error(
           "Specify the solution table name(s) with "
           "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
-    }
-  }
-}
-
-void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
-  for (std::complex<float>& v : values) {
-    if (!std::isfinite(v.real()) || !std::isfinite(v.imag())) {
-      v = 0.0;
     }
   }
 }
