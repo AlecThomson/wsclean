@@ -52,7 +52,9 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution.has_value() && deconvolution->IsInitialized()) {
+  // TODO: if deconvolution has a value, it is always initialized
+  // if (deconvolution.has_value() && deconvolution->IsInitialized()) {
+  if (deconvolution.has_value()) {
     setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
   }
