@@ -1527,13 +1527,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       _settings.GetDeconvolutionSettings(), std::move(deconvolution_table),
       minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
-  // TODO: remove
-  // _deconvolution.emplace(radler::Radler{_settings.GetDeconvolutionSettings(), 20.0f});
-  // _deconvolution.emplace(_settings.GetDeconvolutionSettings());
-  // _deconvolution->InitializeDeconvolutionAlgorithm(
-  //     std::move(deconvolution_table), minTheoreticalBeamSize(groupTable),
-  //     _settings.threadCount);
-
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop
     _majorIterationNr = 1;
