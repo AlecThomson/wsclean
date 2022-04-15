@@ -375,11 +375,9 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.pixel_scale.y = pixelScaleY;
   radler_settings.threadCount = threadCount;
   radler_settings.prefixName = prefixName;
-
   radler_settings.linkedPolarizations = linkedPolarizations;
   radler_settings.parallel.max_size = parallelDeconvolutionMaxSize;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
-
   radler_settings.threshold = deconvolutionThreshold;
   radler_settings.minor_loop_gain = deconvolutionGain;
   radler_settings.major_loop_gain = deconvolutionMGain;
@@ -404,7 +402,9 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.casaDeconvolutionMask = casaDeconvolutionMask;
   radler_settings.horizonMask = horizonMask;
   radler_settings.horizonMaskDistance = horizonMaskDistance;
-
+  radler_settings.spectral_fitting.mode = spectralFittingMode;
+  radler_settings.spectral_fitting.terms = spectralFittingTerms;
+  radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
   radler_settings.deconvolutionChannelCount = deconvolutionChannelCount;
   radler_settings.algorithm_type = algorithmType;
 
@@ -438,10 +438,6 @@ radler::Settings Settings::GetRadlerSettings() const {
           useSubMinorOptimization;
       break;
   }
-
-  radler_settings.spectral_fitting.mode = spectralFittingMode;
-  radler_settings.spectral_fitting.terms = spectralFittingTerms;
-  radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
 
   return radler_settings;
 }
