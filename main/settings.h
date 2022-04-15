@@ -12,8 +12,8 @@
 
 #include <schaapcommon/fitters/spectralfitter.h>
 
-#include <radler/deconvolution_settings.h>
-#include <radler/algorithms/multiscale/multiscale_transforms.h>
+#include <radler/settings.h>
+// #include <radler/algorithms/multiscale/multiscale_transforms.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
 
@@ -134,7 +134,7 @@ class Settings {
   size_t multiscaleMaxScales;
   double multiscaleConvolutionPadding;
   aocommon::UVector<double> multiscaleScaleList;
-  radler::algorithms::multiscale::Shape multiscaleShapeFunction;
+  radler::MultiscaleShape multiscaleShapeFunction;
 
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask, casaDeconvolutionMask;
@@ -155,6 +155,11 @@ class Settings {
    * It is 0 when all channels should be used.
    */
   size_t deconvolutionChannelCount;
+
+  /**
+   * Type of deconvolution algorithm.
+   */
+  radler::AlgorithmType algorithmType;
   /**
    * @}
    */
@@ -164,7 +169,7 @@ class Settings {
    * Currently, it duplicates the existing settings into a DeconvolutionSettings
    * object.
    */
-  radler::DeconvolutionSettings GetDeconvolutionSettings() const;
+  radler::Settings GetDeconvolutionSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -339,7 +344,7 @@ inline Settings::Settings()
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
       multiscaleShapeFunction(
-          radler::algorithms::multiscale::Shape::TaperedQuadraticShape),
+          radler::MultiscaleShape::TaperedQuadraticShape),
       deconvolutionBorderRatio(0.0),
       fitsDeconvolutionMask(),
       casaDeconvolutionMask(),
@@ -355,6 +360,7 @@ inline Settings::Settings()
           schaapcommon::fitters::SpectralFittingMode::NoFitting),
       spectralFittingTerms(0),
       forcedSpectrumFilename(),
-      deconvolutionChannelCount(0) {}
+      deconvolutionChannelCount(0),
+      algorithmType(radler::AlgorithmType::kGenericClean) {}
 
 #endif
