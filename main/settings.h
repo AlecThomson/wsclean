@@ -126,7 +126,7 @@ class Settings {
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
-  bool useMultiscale, useSubMinorOptimization, squaredJoins;
+  bool useSubMinorOptimization, squaredJoins;
   double spectralCorrectionFrequency;
   std::vector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
@@ -142,7 +142,7 @@ class Settings {
   double horizonMaskDistance;
   std::string localRMSImage;
   std::string pythonDeconvolutionFilename;
-  bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
+  bool iuwtSNRTest;
   std::string moreSaneLocation, moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
   schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
@@ -169,7 +169,7 @@ class Settings {
    * Currently, it duplicates the existing settings into a DeconvolutionSettings
    * object.
    */
-  radler::Settings GetDeconvolutionSettings() const;
+  radler::Settings GetRadlerSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -332,7 +332,6 @@ inline Settings::Settings()
       majorIterationCount(20),
       allowNegativeComponents(true),
       stopOnNegativeComponents(false),
-      useMultiscale(false),
       useSubMinorOptimization(true),
       squaredJoins(false),
       spectralCorrectionFrequency(0.0),
@@ -343,16 +342,13 @@ inline Settings::Settings()
       multiscaleMaxScales(0),
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
-      multiscaleShapeFunction(
-          radler::MultiscaleShape::TaperedQuadraticShape),
+      multiscaleShapeFunction(radler::MultiscaleShape::TaperedQuadraticShape),
       deconvolutionBorderRatio(0.0),
       fitsDeconvolutionMask(),
       casaDeconvolutionMask(),
       horizonMask(false),
       horizonMaskDistance(0.0),
       pythonDeconvolutionFilename(),
-      useMoreSaneDeconvolution(false),
-      useIUWTDeconvolution(false),
       iuwtSNRTest(false),
       moreSaneLocation(),
       moreSaneArgs(),

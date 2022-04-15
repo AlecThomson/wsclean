@@ -365,113 +365,85 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
   }
 }
 
-radler::Settings Settings::GetDeconvolutionSettings() const {
-  radler::Settings deconvolutionSettings;
+radler::Settings Settings::GetRadlerSettings() const {
+  radler::Settings radler_settings;
 
-  deconvolutionSettings.trimmedImageWidth = trimmedImageWidth;
-  deconvolutionSettings.trimmedImageHeight = trimmedImageHeight;
-  deconvolutionSettings.channelsOut = channelsOut;
-  deconvolutionSettings.pixel_scale.x = pixelScaleX;
-  deconvolutionSettings.pixel_scale.y = pixelScaleY;
-  deconvolutionSettings.threadCount = threadCount;
-  deconvolutionSettings.prefixName = prefixName;
+  radler_settings.trimmedImageWidth = trimmedImageWidth;
+  radler_settings.trimmedImageHeight = trimmedImageHeight;
+  radler_settings.channelsOut = channelsOut;
+  radler_settings.pixel_scale.x = pixelScaleX;
+  radler_settings.pixel_scale.y = pixelScaleY;
+  radler_settings.threadCount = threadCount;
+  radler_settings.prefixName = prefixName;
 
-  deconvolutionSettings.linkedPolarizations = linkedPolarizations;
-  deconvolutionSettings.parallel.max_size = parallelDeconvolutionMaxSize;
-  deconvolutionSettings.parallel.max_threads = parallelDeconvolutionMaxThreads;
+  radler_settings.linkedPolarizations = linkedPolarizations;
+  radler_settings.parallel.max_size = parallelDeconvolutionMaxSize;
+  radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
 
-  deconvolutionSettings.threshold = deconvolutionThreshold;
-  deconvolutionSettings.minor_loop_gain = deconvolutionGain;
-  deconvolutionSettings.major_loop_gain = deconvolutionMGain;
-  deconvolutionSettings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
-  deconvolutionSettings.autoMask = autoMask;
-  deconvolutionSettings.autoDeconvolutionThresholdSigma =
+  radler_settings.threshold = deconvolutionThreshold;
+  radler_settings.minor_loop_gain = deconvolutionGain;
+  radler_settings.major_loop_gain = deconvolutionMGain;
+  radler_settings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
+  radler_settings.autoMask = autoMask;
+  radler_settings.autoDeconvolutionThresholdSigma =
       autoDeconvolutionThresholdSigma;
-  deconvolutionSettings.autoMaskSigma = autoMaskSigma;
-  deconvolutionSettings.local_rms.method = localRMSMethod;
-  deconvolutionSettings.local_rms.window = localRMSWindow;
-  deconvolutionSettings.local_rms.image = localRMSImage;
-  deconvolutionSettings.saveSourceList = saveSourceList;
-  deconvolutionSettings.deconvolutionIterationCount =
-      deconvolutionIterationCount;
-  deconvolutionSettings.majorIterationCount = majorIterationCount;
-  deconvolutionSettings.allowNegativeComponents = allowNegativeComponents;
-  deconvolutionSettings.stopOnNegativeComponents = stopOnNegativeComponents;
-  // deconvolutionSettings.useSubMinorOptimization = useSubMinorOptimization;
-  deconvolutionSettings.squaredJoins = squaredJoins;
-  deconvolutionSettings.spectralCorrectionFrequency =
-      spectralCorrectionFrequency;
-  deconvolutionSettings.spectralCorrection = spectralCorrection;
-  deconvolutionSettings.deconvolutionBorderRatio = deconvolutionBorderRatio;
-  deconvolutionSettings.fitsDeconvolutionMask = fitsDeconvolutionMask;
-  deconvolutionSettings.casaDeconvolutionMask = casaDeconvolutionMask;
-  deconvolutionSettings.horizonMask = horizonMask;
-  deconvolutionSettings.horizonMaskDistance = horizonMaskDistance;
+  radler_settings.autoMaskSigma = autoMaskSigma;
+  radler_settings.local_rms.method = localRMSMethod;
+  radler_settings.local_rms.window = localRMSWindow;
+  radler_settings.local_rms.image = localRMSImage;
+  radler_settings.saveSourceList = saveSourceList;
+  radler_settings.deconvolutionIterationCount = deconvolutionIterationCount;
+  radler_settings.majorIterationCount = majorIterationCount;
+  radler_settings.allowNegativeComponents = allowNegativeComponents;
+  radler_settings.stopOnNegativeComponents = stopOnNegativeComponents;
+  radler_settings.squaredJoins = squaredJoins;
+  radler_settings.spectralCorrectionFrequency = spectralCorrectionFrequency;
+  radler_settings.spectralCorrection = spectralCorrection;
+  radler_settings.deconvolutionBorderRatio = deconvolutionBorderRatio;
+  radler_settings.fitsDeconvolutionMask = fitsDeconvolutionMask;
+  radler_settings.casaDeconvolutionMask = casaDeconvolutionMask;
+  radler_settings.horizonMask = horizonMask;
+  radler_settings.horizonMaskDistance = horizonMaskDistance;
 
-  deconvolutionSettings.deconvolutionChannelCount = deconvolutionChannelCount;
-  deconvolutionSettings.algorithm_type = algorithmType;
+  radler_settings.deconvolutionChannelCount = deconvolutionChannelCount;
+  radler_settings.algorithm_type = algorithmType;
 
   switch (algorithmType) {
     case radler::AlgorithmType::kMultiscale:
-      deconvolutionSettings.multiscale.fast_sub_minor_loop =
+      radler_settings.multiscale.fast_sub_minor_loop =
           multiscaleFastSubMinorLoop;
-      deconvolutionSettings.multiscale.sub_minor_loop_gain = multiscaleGain;
-      deconvolutionSettings.multiscale.scale_bias =
-          multiscaleDeconvolutionScaleBias;
-      deconvolutionSettings.multiscale.max_scales = multiscaleMaxScales;
-      deconvolutionSettings.multiscale.convolution_padding =
+      radler_settings.multiscale.sub_minor_loop_gain = multiscaleGain;
+      radler_settings.multiscale.scale_bias = multiscaleDeconvolutionScaleBias;
+      radler_settings.multiscale.max_scales = multiscaleMaxScales;
+      radler_settings.multiscale.convolution_padding =
           multiscaleConvolutionPadding;
-      deconvolutionSettings.multiscale.scale_list.assign(
-          multiscaleScaleList.begin(), multiscaleScaleList.end());
-      deconvolutionSettings.multiscale.shape = multiscaleShapeFunction;
+      radler_settings.multiscale.scale_list.assign(multiscaleScaleList.begin(),
+                                                   multiscaleScaleList.end());
+      radler_settings.multiscale.shape = multiscaleShapeFunction;
       break;
     case radler::AlgorithmType::kIuwt:
-      deconvolutionSettings.iuwt.snr_test = iuwtSNRTest;
+      radler_settings.iuwt.snr_test = iuwtSNRTest;
       break;
     case radler::AlgorithmType::kMoreSane:
-      deconvolutionSettings.more_sane.location = moreSaneLocation;
-      deconvolutionSettings.more_sane.arguments = moreSaneArgs;
-      deconvolutionSettings.more_sane.sigma_levels.assign(
-          moreSaneSigmaLevels.begin(), moreSaneSigmaLevels.end());
+      radler_settings.more_sane.location = moreSaneLocation;
+      radler_settings.more_sane.arguments = moreSaneArgs;
+      radler_settings.more_sane.sigma_levels.assign(moreSaneSigmaLevels.begin(),
+                                                    moreSaneSigmaLevels.end());
       break;
     case radler::AlgorithmType::kPython:
-      deconvolutionSettings.python.filename = pythonDeconvolutionFilename;
+      radler_settings.python.filename = pythonDeconvolutionFilename;
       break;
     case radler::AlgorithmType::kGenericClean:
-      deconvolutionSettings.generic.use_sub_minor_optimization =
+      radler_settings.generic.use_sub_minor_optimization =
           useSubMinorOptimization;
       break;
   }
 
-  // deconvolutionSettings.multiscaleFastSubMinorLoop =
-  // multiscaleFastSubMinorLoop; deconvolutionSettings.multiscaleGain =
-  // multiscaleGain; deconvolutionSettings.multiscaleDeconvolutionScaleBias =
-  //     multiscaleDeconvolutionScaleBias;
-  // deconvolutionSettings.multiscaleMaxScales = multiscaleMaxScales;
-  // deconvolutionSettings.multiscaleConvolutionPadding =
-  //     multiscaleConvolutionPadding;
-  // deconvolutionSettings.multiscaleScaleList.assign(multiscaleScaleList.begin(),
-  //                                                  multiscaleScaleList.end());
-  // deconvolutionSettings.multiscaleShapeFunction = multiscaleShapeFunction;
+  radler_settings.spectral_fitting.mode = spectralFittingMode;
+  radler_settings.spectral_fitting.terms = spectralFittingTerms;
+  radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
 
-  // deconvolutionSettings.pythonDeconvolutionFilename =
-  //     pythonDeconvolutionFilename;
-
-  // deconvolutionSettings.useIUWTDeconvolution = useIUWTDeconvolution;
-  // deconvolutionSettings.iuwtSNRTest = iuwtSNRTest;
-
-  // deconvolutionSettings.useMoreSaneDeconvolution = useMoreSaneDeconvolution;
-  // deconvolutionSettings.moreSaneLocation = moreSaneLocation;
-  // deconvolutionSettings.moreSaneArgs = moreSaneArgs;
-  // deconvolutionSettings.moreSaneSigmaLevels.assign(moreSaneSigmaLevels.begin(),
-  //                                                  moreSaneSigmaLevels.end());
-
-  deconvolutionSettings.spectral_fitting.mode = spectralFittingMode;
-  deconvolutionSettings.spectral_fitting.terms = spectralFittingTerms;
-  deconvolutionSettings.spectral_fitting.forced_filename =
-      forcedSpectrumFilename;
-
-  return deconvolutionSettings;
+  return radler_settings;
 }
 
 bool Settings::determineReorder() const {

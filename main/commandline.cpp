@@ -958,7 +958,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.deconvolutionIterationCount =
           std::max(size_t{1}, settings.deconvolutionIterationCount);
     } else if (param == "iuwt") {
-      // settings.useIUWTDeconvolution = true;
       settings.algorithmType = radler::AlgorithmType::kIuwt;
       // Currently (WSClean 1.9, 2015-08-19) IUWT deconvolution
       // seems not to work when allowing negative components. The algorithm
@@ -970,7 +969,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.iuwtSNRTest = false;
     } else if (param == "moresane-ext") {
       ++argi;
-      // settings.useMoreSaneDeconvolution = true;
       settings.algorithmType = radler::AlgorithmType::kMoreSane;
       settings.moreSaneLocation = argv[argi];
     } else if (param == "moresane-arg") {
@@ -1110,7 +1108,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "no-fast-subminor") {
       settings.useSubMinorOptimization = false;
     } else if (param == "multiscale") {
-      // settings.useMultiscale = true;
       settings.algorithmType = radler::AlgorithmType::kMultiscale;
     } else if (param == "multiscale-gain") {
       ++argi;
@@ -1154,8 +1151,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           parse_size_t(argv[argi], "weighting-rank-filter-size");
     } else if (param == "save-source-list") {
       settings.saveSourceList = true;
-      settings.multiscaleShapeFunction =
-          radler::MultiscaleShape::GaussianShape;
+      settings.multiscaleShapeFunction = radler::MultiscaleShape::GaussianShape;
     } else if (param == "clean-border" || param == "cleanborder") {
       ++argi;
       settings.deconvolutionBorderRatio =
