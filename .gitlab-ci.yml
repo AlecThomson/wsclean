@@ -123,7 +123,6 @@ build-casacore-3.0.0:
     - ninja install
     - cd $CI_PROJECT_DIR && mkdir build && cd build
     - cmake -G Ninja ../ && ninja
-    # - cmake -DBUILD_TESTING=OFF ../ && make -j`nproc`
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: always
