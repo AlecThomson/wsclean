@@ -36,8 +36,8 @@
 #include <cmath>
 #include <vector>
 #include <array>
-#include <memory>
 #include <atomic>
+#include <memory>
 #if ((!defined(DUCC0_NO_SIMD)) && (defined(__AVX__)||defined(__SSE3__)))
 #include <x86intrin.h>
 #endif
