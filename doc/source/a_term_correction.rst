@@ -13,7 +13,8 @@ To use a-term correction or combine multiple corrections, a configuration file c
     # This is a test parset. Comments are made by starting a line with a hash symbol
     # The aterms option lists all the corrections that are made. For demonstration,
     # this parset makes all possible corrections:
-    aterms = [ tec, dldm, diagonal, beam, paf ]
+    # The fourierfit, klfit aterms are new since ?
+    aterms = [ tec, dldm, diagonal, fourierfit, klfit, beam, paf ]
     
     # A tec correction has parameters 'images' and 'window' :
     # See the WSClean help for a description of the image format used.
@@ -32,6 +33,12 @@ To use a-term correction or combine multiple corrections, a configuration file c
     # The diagonal correction has parameters 'images' and 'window'.
     diagonal.images = [ aterms1-diag.fits aterms2-diag.fits ]
     diagonal.window = raised_hann
+    
+    # The fourierfit (Fourier fitting) correction has only the parameter 'solutions'.
+    fourierfit.solutions = solutions.h5
+
+    # The klfit (Karhunen-Loève fitting) correction has only the parameter 'solutions'.
+    klfit.solutions = solutions.h5
     
     # The beam correction has parameter 'update_interval'. It may also have
     # telescope-specific options, e.g. the lofar beam supports 'differential', and
