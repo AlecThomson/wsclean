@@ -13,7 +13,7 @@ To use a-term correction or combine multiple corrections, a configuration file c
     # This is a test parset. Comments are made by starting a line with a hash symbol
     # The aterms option lists all the corrections that are made. For demonstration,
     # this parset makes all possible corrections:
-    # The fourierfit, klfit aterms are new since ?
+    # The fourierfit, klfit aterms are new since 3.2
     aterms = [ tec, dldm, diagonal, fourierfit, klfit, beam, paf ]
     
     # A tec correction has parameters 'images' and 'window' :
@@ -140,6 +140,18 @@ Diagonal gain correction can correct the visibilities with a diagonal Jones matr
 Like with TEC correction, the dimensions need to be given in this exact order. Compared to the TEC aterms file, there's one extra dimension: ``MATRIX``. For diagonal gains, this matrix dimension has 4 elements: real XX, imaginary XX, real YY and imaginary YY. The other dimensions have their same use. The frequency axis is used to find the nearest image-frequency for each visibility (this works since :doc:`version 2.8 <changelogs/v2.8>`).
 
 If you get images out with all NaNs, the gains might be all zero at some position. For TEC or dldm correction, this obviously is not a problem (zero phase=no correction), but for diagonal gains, a zero matrix leads to division by zero at some point. This can in particular happen because IDG pads the image -- so if one makes TEC aterm images that are exactly the size of the output image, they won't cover the border.
+
+Fourier fitting 
+------------------------
+
+The solutions of a calibration step are given via the "solutions" parameter in h5 format. From the solutions file, only the phases are used.
+The discrete set of solutions are fit to a screen using a Fourier based fitting technique. 
+
+Karhunen-Loève fitting
+------------------------
+
+The solutions of a calibration step are given via the "solutions" parameter in h5 format. From the solutions file, both amplitudes and phases are used.
+The discrete set of solutions are fit to a screen using a Karhunen-Loève based fitting technique. 
 
 Analyzing / saving the a-terms
 ------------------------------
