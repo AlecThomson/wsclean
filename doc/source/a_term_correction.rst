@@ -37,8 +37,10 @@ To use a-term correction or combine multiple corrections, a configuration file c
     # The fourierfit (Fourier fitting) correction has only the parameter 'solutions'.
     fourierfit.solutions = solutions.h5
 
-    # The klfit (Karhunen-Loève fitting) correction has only the parameter 'solutions'.
+    # The klfit (Karhunen-Loève fitting) correction has the parameters 'solutions' and 'order'.
+    # 'order' is the number of KL basis functions to be used for fitting.
     klfit.solutions = solutions.h5
+    klfit.order = 3
     
     # The beam correction has parameter 'update_interval'. It may also have
     # telescope-specific options, e.g. the lofar beam supports 'differential', and
@@ -150,7 +152,7 @@ The discrete set of solutions are fit to a screen using a Fourier based fitting 
 Karhunen-Loève fitting
 ------------------------
 
-The solutions of a calibration step are given via the "solutions" parameter in h5 format. From the solutions file, both amplitudes and phases are used.
+The solutions of a calibration step are given via the "solutions" parameter in h5 format. From the solutions file, only the phases are used.
 The discrete set of solutions are fit to a screen using a Karhunen-Loève based fitting technique. 
 
 Analyzing / saving the a-terms
