@@ -119,7 +119,7 @@ void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   Logger::Info << "Loading existing PSF from disk...\n";
   GriddingResult result = loadExistingImage(entry, true);
 
-  if (gridWithATerms()) {
+  if (griddingUsesATerms()) {
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
 
@@ -210,7 +210,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
 
-  if (writeBeamImage && gridWithATerms()) {
+  if (writeBeamImage && griddingUsesATerms()) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
@@ -764,8 +764,7 @@ void WSClean::RunClean() {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "image.fits",
                                           intervalIndex, *pol, false);
-            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFiles.empty() || gridWithATerms())
+            if (usesBeam())
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image-pb.fits",
                                             intervalIndex, *pol, false);
@@ -778,8 +777,7 @@ void WSClean::RunClean() {
                                           intervalIndex, *pol, false);
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, *pol, false, false);
-            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFiles.empty() || gridWithATerms()) {
+            if (usesBeam()) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "residual-pb.fits",
                                             intervalIndex, *pol, false);
@@ -799,8 +797,7 @@ void WSClean::RunClean() {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image.fits",
                                             intervalIndex, *pol, true);
-              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFiles.empty() || gridWithATerms())
+              if (usesBeam())
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "image-pb.fits",
                                               intervalIndex, *pol, true);
@@ -813,8 +810,7 @@ void WSClean::RunClean() {
                                             intervalIndex, *pol, true);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, *pol, true, false);
-              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFiles.empty() || gridWithATerms()) {
+              if (usesBeam()) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "residual-pb.fits",
                                               intervalIndex, *pol, true);
@@ -1058,7 +1054,7 @@ void WSClean::saveRestoredImagesForGroup(
     // This conditional ensures that the images are available before applying
     // the primarybeam
     if (curPol == *_settings.polarizations.rbegin()) {
-      if (gridWithATerms()) {
+      if (griddingUsesATerms()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
         if (_settings.savePsfPb)
@@ -1221,7 +1217,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
 
     const std::string suffix =
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty() ||
-         gridWithATerms())
+         griddingUsesATerms())
             ? "-model-pb.fits"
             : "-model.fits";
     aocommon::FitsReader reader(prefix + suffix);
@@ -1646,8 +1642,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     componentListWriter.SaveSourceList(*_deconvolution,
                                        _observationInfo.phaseCentreRA,
                                        _observationInfo.phaseCentreDec);
-    if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-        !_settings.facetSolutionFiles.empty() || gridWithATerms()) {
+    if (usesBeam()) {
       componentListWriter.SavePbCorrectedSourceList(
           *_deconvolution, _observationInfo.phaseCentreRA,
           _observationInfo.phaseCentreDec);
