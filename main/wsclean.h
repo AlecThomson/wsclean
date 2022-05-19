@@ -81,6 +81,14 @@ class WSClean {
 
   void performReordering(bool isPredictMode);
 
+  /**
+   * Returns true when gridding is done with a-terms. This can either
+   * be enabled by setting the gridWithBeam setting to true or by providing
+   * an aterm config file. */
+  bool gridWithATerms() const {
+    return _settings.gridWithBeam || !_settings.atermConfigFilename.empty();
+  }
+
   ObservationInfo getObservationInfo() const;
   /**
    * Add the phase shift of a facet to an ObservationInfo object.
