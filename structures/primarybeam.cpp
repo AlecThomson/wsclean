@@ -423,6 +423,7 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kAARTFAAC:
     case everybeam::TelescopeType::kMWATelescope:
     case everybeam::TelescopeType::kOSKARTelescope:
+    case everybeam::TelescopeType::kSkaMidTelescope:
       // Loop over the intervalCounts
       msProvider.ResetWritePosition();
       for (size_t intervalIndex = 0; intervalIndex != intervalCount;

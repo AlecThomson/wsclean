@@ -1,7 +1,9 @@
 #ifndef OUTPUT_CHANNEL_INFO_H
 #define OUTPUT_CHANNEL_INFO_H
 
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 struct OutputChannelInfo {
   OutputChannelInfo()
@@ -26,5 +28,19 @@ struct OutputChannelInfo {
   double beamSizeEstimate;
   double theoreticBeamSize, psfNormalizationFactor;
 };
+
+inline double SmallestTheoreticBeamSize(
+    const std::vector<OutputChannelInfo>& channels) {
+  double smallest_theoretic_beam_size = 0.0;
+  for (const OutputChannelInfo& channel : channels) {
+    const double value = channel.theoreticBeamSize;
+    if (std::isfinite(value) && value > 0.0 &&
+        (smallest_theoretic_beam_size == 0.0 ||
+         value < smallest_theoretic_beam_size)) {
+      smallest_theoretic_beam_size = value;
+    }
+  }
+  return smallest_theoretic_beam_size;
+}
 
 #endif

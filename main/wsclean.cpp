@@ -736,89 +736,99 @@ void WSClean::RunClean() {
     _griddingTaskManager.reset();
 
     if (_settings.channelsOut > 1) {
-      for (std::set<PolarizationEnum>::const_iterator pol =
-               _settings.polarizations.begin();
-           pol != _settings.polarizations.end(); ++pol) {
+      for (PolarizationEnum pol : _settings.polarizations) {
         bool psfWasMade = (_settings.deconvolutionIterationCount > 0 ||
                            _settings.makePSF || _settings.makePSFOnly) &&
-                          pol == _settings.polarizations.begin();
+                          pol == *_settings.polarizations.begin();
 
         if (psfWasMade) {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
-                                        "psf.fits", intervalIndex, *pol, false,
+                                        "psf.fits", intervalIndex, pol, false,
                                         true);
           if (_settings.savePsfPb)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "psf-pb.fits",
-                                          intervalIndex, *pol, false, true);
+                                          intervalIndex, pol, false, true);
+        }
+        if (griddingUsesATerms()) {
+          ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
+                                        "beam.fits", intervalIndex, pol, false,
+                                        false);
+        } else if (usesBeam()) {
+          for (size_t beam_index = 0; beam_index != 16; ++beam_index) {
+            ImageOperations::MakeMFSImage(
+                _settings, _infoPerChannel, _infoForMFS,
+                "beam-" + std::to_string(beam_index) + ".fits", intervalIndex,
+                pol, false, false);
+          }
         }
 
-        if (!(*pol == Polarization::YX &&
+        if (!(pol == Polarization::YX &&
               _settings.polarizations.count(Polarization::XY) != 0) &&
             !_settings.makePSFOnly) {
           if (_settings.isDirtySaved)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "dirty.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
           if (_settings.deconvolutionIterationCount == 0) {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "image.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
             if (usesBeam())
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
           } else {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "residual.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "model.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                            intervalIndex, *pol, false, false);
+                                            intervalIndex, pol, false, false);
             if (usesBeam()) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "residual-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "model-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                              intervalIndex, *pol, false, true);
+                                              intervalIndex, pol, false, true);
             }
           }
-          if (Polarization::IsComplex(*pol)) {
+          if (Polarization::IsComplex(pol)) {
             if (_settings.isDirtySaved)
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "dirty.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
             if (_settings.deconvolutionIterationCount == 0) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
               if (usesBeam())
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "image-pb.fits",
-                                              intervalIndex, *pol, true);
+                                              intervalIndex, pol, true);
             } else {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "residual.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "model.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                              intervalIndex, *pol, true, false);
+                                              intervalIndex, pol, true, false);
               if (usesBeam()) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "residual-pb.fits",
-                                              intervalIndex, *pol, true);
+                                              intervalIndex, pol, true);
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "model-pb.fits",
-                                              intervalIndex, *pol, true);
-                ImageOperations::RenderMFSImage(
-                    _settings, _infoForMFS, intervalIndex, *pol, true, true);
+                                              intervalIndex, pol, true);
+                ImageOperations::RenderMFSImage(_settings, _infoForMFS,
+                                                intervalIndex, pol, true, true);
               }
             }
           }
