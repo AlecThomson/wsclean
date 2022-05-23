@@ -29,18 +29,24 @@ struct OutputChannelInfo {
   double theoreticBeamSize, psfNormalizationFactor;
 };
 
+/**
+ * Calculate the smallest "theoretic" beam size in a vector of channels.
+ * Non-finite/NaN values are skipped. If no finite values are present,
+ * NaN is returned.
+ */
 inline double SmallestTheoreticBeamSize(
     const std::vector<OutputChannelInfo>& channels) {
-  double smallest_theoretic_beam_size = 0.0;
+  double smallest_theoretic_beam_size = std::numeric_limits<double>::max();
   for (const OutputChannelInfo& channel : channels) {
     const double value = channel.theoreticBeamSize;
-    if (std::isfinite(value) && value > 0.0 &&
-        (smallest_theoretic_beam_size == 0.0 ||
-         value < smallest_theoretic_beam_size)) {
-      smallest_theoretic_beam_size = value;
+    if (std::isfinite(value)) {
+      smallest_theoretic_beam_size =
+          std::min(smallest_theoretic_beam_size, value);
     }
   }
-  return smallest_theoretic_beam_size;
+  return (smallest_theoretic_beam_size == std::numeric_limits<double>::max())
+             ? std::numeric_limits<double>::quiet_NaN()
+             : smallest_theoretic_beam_size;
 }
 
 #endif

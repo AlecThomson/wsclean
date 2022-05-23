@@ -15,13 +15,13 @@ BOOST_AUTO_TEST_CASE(smallest_theoretic_beam_size) {
   nan.theoreticBeamSize = std::numeric_limits<double>::quiet_NaN();
 
   double result = SmallestTheoreticBeamSize({});
-  BOOST_CHECK_EQUAL(result, 0.0);
+  BOOST_CHECK(std::isnan(result));
 
   result = SmallestTheoreticBeamSize({one});
   BOOST_CHECK_EQUAL(result, 1.0);
 
   result = SmallestTheoreticBeamSize({nan});
-  BOOST_CHECK_EQUAL(result, 0.0);
+  BOOST_CHECK(std::isnan(result));
 
   result = SmallestTheoreticBeamSize({one, two});
   BOOST_CHECK_EQUAL(result, 1.0);

@@ -755,7 +755,11 @@ void WSClean::RunClean() {
                                         "beam.fits", intervalIndex, pol, false,
                                         false);
         } else if (usesBeam()) {
-          for (size_t beam_index = 0; beam_index != 16; ++beam_index) {
+          // The (complex valued but Hermitian) Mueller matrices are stored with
+          // 16 elements:
+          constexpr size_t n_matrix_elements = 16;
+          for (size_t beam_index = 0; beam_index != n_matrix_elements;
+               ++beam_index) {
             ImageOperations::MakeMFSImage(
                 _settings, _infoPerChannel, _infoForMFS,
                 "beam-" + std::to_string(beam_index) + ".fits", intervalIndex,
