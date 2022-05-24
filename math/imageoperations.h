@@ -30,6 +30,14 @@ class ImageOperations {
                              size_t intervalIndex,
                              aocommon::PolarizationEnum pol, bool isImaginary,
                              bool isPBCorrected);
+
+  static void RemoveNansInPsf(float* psf, size_t width, size_t height) {
+    float* end = psf + width * height;
+    while (psf != end) {
+      if (!std::isfinite(*psf)) *psf = 0.0;
+      ++psf;
+    }
+  }
 };
 
 #endif
