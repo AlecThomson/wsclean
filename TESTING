@@ -17,4 +17,5 @@ System checks perform basic run tests that produce a number of FITS files that c
 
 Individual unit tests can be run with "./unittest -t <testname>". The testname can be a test group, such as "commandline", or a single specific test, such as "commandline/pb_grid_size".
 
-Individual python ("system") tests can be performed by going to build/tests/python and running: python3 -m pytest source/long_system_checks.py
+Individual python ("system") tests can be performed by going to build/tests/python and running: python3 -m pytest source/long_system_checks.py -k <name>
+
