@@ -777,16 +777,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       Logger::SetVerbosity(Logger::kVerboseVerbosity);
     } else if (param == "log-time") {
       Logger::SetLogTime(true);
-    } else if (param == "temp-dir" || param == "tempdir") {
+    } else if (param == "temp-dir") {
       IncArgi(argi, argc);
       settings.temporaryDirectory = argv[argi];
-      if (param == "tempdir") Deprecated(isSlave, param, "temp-dir");
-    } else if (param == "save-weights" || param == "saveweights") {
+    } else if (param == "save-weights") {
       settings.isWeightImageSaved = true;
-      if (param == "saveweights") Deprecated(isSlave, param, "save-weights");
-    } else if (param == "save-uv" || param == "saveuv") {
+    } else if (param == "save-uv") {
       settings.isUVImageSaved = true;
-      if (param == "saveuv") Deprecated(isSlave, param, "save-uv");
     } else if (param == "reuse-psf") {
       IncArgi(argi, argc);
       settings.reusePsf = true;
@@ -859,25 +856,18 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.autoMask = true;
       settings.autoMaskSigma = ParseDouble(argv[argi], 0.0, "auto-mask");
-    } else if (param == "local-rms" || param == "rms-background") {
+    } else if (param == "local-rms") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
-      if (param == "rms-background") Deprecated(isSlave, param, "local-rms");
-    } else if (param == "local-rms-window" ||
-               param == "rms-background-window") {
+    } else if (param == "local-rms-window") {
       IncArgi(argi, argc);
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSWindow =
           ParseDouble(argv[argi], 0.0, "local-rms-window", false);
-      if (param == "rms-background-window")
-        Deprecated(isSlave, param, "local-rms-window");
-    } else if (param == "local-rms-image" || param == "rms-background-image") {
+    } else if (param == "local-rms-image") {
       IncArgi(argi, argc);
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSImage = argv[argi];
-      if (param == "rms-background-image")
-        Deprecated(isSlave, param, "local-rms-image");
-    } else if (param == "local-rms-method" ||
-               param == "rms-background-method") {
+    } else if (param == "local-rms-method") {
       IncArgi(argi, argc);
       std::string method = argv[argi];
       if (method == "rms")
@@ -886,12 +876,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         settings.localRMSMethod = radler::LocalRmsMethod::kRmsAndMinimumWindow;
       else
         throw std::runtime_error("Unknown RMS background method specified");
-      if (param == "rms-background-method")
-        Deprecated(isSlave, param, "local-rms-method");
-    } else if (param == "data-column" || param == "datacolumn") {
+    } else if (param == "data-column") {
       IncArgi(argi, argc);
       settings.dataColumnName = argv[argi];
-      if (param == "datacolumn") Deprecated(isSlave, param, "data-column");
     } else if (param == "pol") {
       IncArgi(argi, argc);
       settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);
@@ -959,12 +946,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
-    } else if (param == "no-negative" || param == "nonegative") {
+    } else if (param == "no-negative") {
       settings.allowNegativeComponents = false;
-      if (param == "nonegative") Deprecated(isSlave, param, "no-negative");
-    } else if (param == "stop-negative" || param == "stopnegative") {
+    } else if (param == "stop-negative") {
       settings.stopOnNegativeComponents = true;
-      if (param == "stopnegative") Deprecated(isSlave, param, "stop-negative");
     } else if (param == "python-deconvolution") {
       IncArgi(argi, argc);
       settings.algorithmType = radler::AlgorithmType::kPython;
@@ -998,7 +983,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "name") {
       IncArgi(argi, argc);
       settings.prefixName = argv[argi];
-    } else if (param == "grid-mode" || param == "gridmode") {
+    } else if (param == "grid-mode") {
       IncArgi(argi, argc);
       std::string gridModeStr = argv[argi];
       boost::to_lower(gridModeStr);
@@ -1021,41 +1006,33 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error(
             "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
             "(NearestNeighbour), bn, bh, gaus, kb-no-sinc or rect");
-      if (param == "gridmode") Deprecated(isSlave, param, "grid-mode");
-    } else if (param == "small-inversion" || param == "smallinversion") {
+    } else if (param == "small-inversion") {
       settings.smallInversion = true;
-      if (param == "smallinversion")
-        Deprecated(isSlave, param, "small-inversion");
-    } else if (param == "no-small-inversion" || param == "nosmallinversion") {
+    } else if (param == "no-small-inversion") {
       settings.smallInversion = false;
-      if (param == "nosmallinversion")
-        Deprecated(isSlave, param, "no-small-inversion");
     } else if (param == "interval") {
       settings.startTimestep = ParseSizeT(argv[argi + 1], "interval");
       settings.endTimestep = ParseSizeT(argv[argi + 2], "interval");
       argi += 2;
-    } else if (param == "intervals-out" || param == "intervalsout") {
+    } else if (param == "intervals-out") {
       IncArgi(argi, argc);
       settings.intervalsOut = atoi(argv[argi]);
-      if (param == "intervalsout") Deprecated(isSlave, param, "intervals-out");
     } else if (param == "even-timesteps") {
       settings.evenOddTimesteps = MSSelection::EvenTimesteps;
     } else if (param == "odd-timesteps") {
       settings.evenOddTimesteps = MSSelection::OddTimesteps;
-    } else if (param == "channel-range" || param == "channelrange") {
+    } else if (param == "channel-range") {
       settings.startChannel = ParseSizeT(argv[argi + 1], "channel-range");
       settings.endChannel = ParseSizeT(argv[argi + 2], "channel-range");
       argi += 2;
-      if (param == "channelrange") Deprecated(isSlave, param, "channel-range");
     } else if (param == "shift") {
       settings.hasShift = true;
       settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi + 1]);
       settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi + 2]);
       argi += 2;
-    } else if (param == "channelsout" || param == "channels-out") {
+    } else if (param == "channels-out") {
       IncArgi(argi, argc);
       settings.channelsOut = ParseSizeT(argv[argi], "channels-out");
-      if (param == "channelsout") Deprecated(isSlave, param, "channels-out");
     } else if (param == "gap-channel-division") {
       settings.divideChannelsByGaps = true;
     } else if (param == "channel-division-frequencies") {
@@ -1065,25 +1042,20 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "facet-regions") {
       IncArgi(argi, argc);
       settings.facetRegionFilename = argv[argi];
-    } else if (param == "join-polarizations" || param == "joinpolarizations") {
+    } else if (param == "join-polarizations") {
       settings.joinedPolarizationDeconvolution = true;
-      if (param == "joinpolarizations")
-        Deprecated(isSlave, param, "join-polarizations");
     } else if (param == "link-polarizations") {
       IncArgi(argi, argc);
       settings.joinedPolarizationDeconvolution = true;
       settings.linkedPolarizations =
           aocommon::Polarization::ParseList(argv[argi]);
-    } else if (param == "join-channels" || param == "joinchannels") {
+    } else if (param == "join-channels") {
       settings.joinedFrequencyDeconvolution = true;
-      if (param == "joinchannels") Deprecated(isSlave, param, "join-channels");
-    } else if (param == "mf-weighting" || param == "mfs-weighting" ||
-               param == "mfsweighting") {
+    } else if (param == "mf-weighting" || param == "mfs-weighting") {
       mfWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
       if (param != "mf-weighting") Deprecated(isSlave, param, "mf-weighting");
-    } else if (param == "no-mf-weighting" || param == "no-mfs-weighting" ||
-               param == "nomfsweighting") {
+    } else if (param == "no-mf-weighting" || param == "no-mfs-weighting") {
       noMFWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
       if (param != "no-mf-weighting")
@@ -1166,19 +1138,16 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.saveSourceList = true;
       settings.multiscaleShapeFunction =
           radler::MultiscaleShape::kGaussianShape;
-    } else if (param == "clean-border" || param == "cleanborder") {
+    } else if (param == "clean-border") {
       IncArgi(argi, argc);
       settings.deconvolutionBorderRatio =
           ParseDouble(argv[argi], 0.0, "clean-border") * 0.01;
-      if (param == "cleanborder") Deprecated(isSlave, param, "clean-border");
-    } else if (param == "fits-mask" || param == "fitsmask") {
+    } else if (param == "fits-mask") {
       IncArgi(argi, argc);
       settings.fitsDeconvolutionMask = argv[argi];
-      if (param == "fitsmask") Deprecated(isSlave, param, "fits-mask");
-    } else if (param == "casa-mask" || param == "casamask") {
+    } else if (param == "casa-mask") {
       IncArgi(argi, argc);
       settings.casaDeconvolutionMask = argv[argi];
-      if (param == "casamask") Deprecated(isSlave, param, "casa-mask");
     } else if (param == "horizon-mask") {
       IncArgi(argi, argc);
       settings.horizonMask = true;
@@ -1238,11 +1207,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             WeightMode::Briggs(ParseDouble(argv[argi], "weight briggs"));
       } else
         throw std::runtime_error("Unknown weighting mode specified");
-    } else if (param == "super-weight" || param == "superweight") {
+    } else if (param == "super-weight") {
       IncArgi(argi, argc);
       settings.weightMode.SetSuperWeight(
           ParseDouble(argv[argi], 0.0, "super-weight"));
-      if (param == "superweight") Deprecated(isSlave, param, "super-weight");
     } else if (param == "restore" || param == "restore-list") {
       if (param == "restore")
         settings.mode = Settings::RestoreMode;
@@ -1252,14 +1220,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.restoreModel = argv[argi + 2];
       settings.restoreOutput = argv[argi + 3];
       argi += 3;
-    } else if (param == "beam-size" || param == "beamsize") {
+    } else if (param == "beam-size") {
       IncArgi(argi, argc);
       double beam = Angle::Parse(argv[argi], "beam size", Angle::kArcseconds);
       settings.manualBeamMajorSize = beam;
       settings.manualBeamMinorSize = beam;
       settings.manualBeamPA = 0.0;
-      if (param == "beamsize") Deprecated(isSlave, param, "beam-size");
-    } else if (param == "beam-shape" || param == "beamshape") {
+    } else if (param == "beam-shape") {
       double beamMaj = Angle::Parse(argv[argi + 1], "beam shape, major axis",
                                     Angle::kArcseconds);
       double beamMin = Angle::Parse(argv[argi + 2], "beam shape, minor axis",
@@ -1270,33 +1237,24 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.manualBeamMajorSize = beamMaj;
       settings.manualBeamMinorSize = beamMin;
       settings.manualBeamPA = beamPA;
-      if (param == "beamshape") Deprecated(isSlave, param, "beam-shape");
-    } else if (param == "fit-beam" || param == "fitbeam") {
+    } else if (param == "fit-beam") {
       settings.fittedBeam = true;
-      if (param == "fitbeam") Deprecated(isSlave, param, "fit-beam");
-    } else if (param == "no-fit-beam" || param == "nofitbeam") {
+    } else if (param == "no-fit-beam") {
       settings.fittedBeam = false;
-      if (param == "nofitbeam") Deprecated(isSlave, param, "no-fit-beam");
     } else if (param == "beam-fitting-size") {
       IncArgi(argi, argc);
       settings.beamFittingBoxSize =
           ParseDouble(argv[argi], 0.0, "beam-fitting-size", false);
-    } else if (param == "theoretic-beam" || param == "theoreticbeam") {
+    } else if (param == "theoretic-beam") {
       settings.theoreticBeam = true;
       settings.fittedBeam = false;
-      if (param == "theoreticbeam")
-        Deprecated(isSlave, param, "theoretic-beam");
-    } else if (param == "circular-beam" || param == "circularbeam") {
+    } else if (param == "circular-beam") {
       settings.circularBeam = true;
-      if (param == "circularbeam") Deprecated(isSlave, param, "circular-beam");
-    } else if (param == "elliptical-beam" || param == "ellipticalbeam") {
+    } else if (param == "elliptical-beam") {
       settings.circularBeam = false;
-      if (param == "ellipticalbeam")
-        Deprecated(isSlave, param, "elliptical-beam");
-    } else if (param == "kernel-size" || param == "gkernelsize") {
+    } else if (param == "kernel-size") {
       IncArgi(argi, argc);
       settings.antialiasingKernelSize = ParseSizeT(argv[argi], "kernel-size");
-      if (param == "gkernelsize") Deprecated(isSlave, param, "kernel-size");
     } else if (param == "oversampling") {
       IncArgi(argi, argc);
       settings.overSamplingFactor = ParseSizeT(argv[argi], "oversampling");
@@ -1325,10 +1283,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "mem") {
       IncArgi(argi, argc);
       settings.memFraction = ParseDouble(argv[argi], 0.0, "mem", false) / 100.0;
-    } else if (param == "abs-mem" || param == "absmem") {
+    } else if (param == "abs-mem") {
       IncArgi(argi, argc);
       settings.absMemLimit = ParseDouble(argv[argi], 0.0, "abs-mem", false);
-      if (param == "absmem") Deprecated(isSlave, param, "abs-mem");
     } else if (param == "maxuvw-m") {
       IncArgi(argi, argc);
       settings.maxUVWInMeters = ParseDouble(argv[argi], 0.0, "maxuvw-m", false);
@@ -1406,7 +1363,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown weighting mode: " + modeStr);
     } else if (param == "direct-ft") {
-      deprecated(isSlave, param, "gridder");
+      Deprecated(isSlave, param, "gridder");
       settings.gridderType = GridderType::DirectFT;
       settings.imagePadding = 1.0;
       settings.smallInversion = false;
@@ -1424,7 +1381,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "Invalid direct ft precision specified. Allowed options: float, "
             "double and ldouble.");
     } else if (param == "gridder") {
-      ++argi;
+      IncArgi(argi, argc);
       const std::string gridder_str = argv[argi];
       if (gridder_str == "idg") {
 #if !defined(HAVE_IDG)
@@ -1444,7 +1401,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error("Invalid gridder requested: '" + gridder_str +
                                  "'");
     } else if (param == "use-idg") {
-      deprecated(isSlave, param, "gridder");
+      Deprecated(isSlave, param, "gridder");
 #if !defined(HAVE_IDG)
       throw std::runtime_error(
           "WSClean was not compiled with IDG: to use it, install IDG and "
@@ -1465,7 +1422,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown IDG mode: " + mode);
     } else if (param == "use-wgridder") {
-      deprecated(isSlave, param, "gridder");
+      Deprecated(isSlave, param, "gridder");
       settings.gridderType = GridderType::WGridder;
     } else if (param == "wgridder-accuracy") {
       IncArgi(argi, argc);
