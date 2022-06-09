@@ -25,7 +25,40 @@ using aocommon::Logger;
 using aocommon::units::Angle;
 using aocommon::units::FluxDensity;
 
-void CommandLine::printHelp() {
+namespace {
+void IncArgi(int& argi, int argc) {
+  ++argi;
+  if (argi >= argc)
+    throw std::runtime_error("Unexpected end of command line arguments");
+}
+
+void Deprecated(bool isSlave, const std::string& param,
+                const std::string& replacement) {
+  if (!isSlave)
+    Logger::Warn << "!!! WARNING: Parameter \'-" << param
+                 << "\' is deprecated and will be removed in a future version "
+                    "of WSClean.\n"
+                 << "!!!          Use parameter \'-" << replacement
+                 << "\' instead.\n";
+}
+
+void PrintHeader() {
+  Logger::Info << "\n"
+                  "WSClean version " WSCLEAN_VERSION_STR
+                  " (" WSCLEAN_VERSION_DATE
+                  ")\n"
+                  "This software package is released under the GPL version 3.\n"
+                  "Author: André Offringa (offringa@gmail.com).\n\n";
+#ifndef NDEBUG
+  Logger::Info
+      << "\n"
+         "WARNING: Symbol NDEBUG was not defined; this WSClean version was\n"
+         "compiled as a DEBUG version. This can seriously affect "
+         "performance!\n\n";
+#endif
+}
+
+void PrintHelp() {
   std::cout
       << "Syntax: wsclean [options] <input-ms> [<2nd-ms> [..]]\n"
          "Will create cleaned images of the input ms(es).\n"
@@ -649,26 +682,16 @@ void CommandLine::printHelp() {
          "https://wsclean.readthedocs.io/ .\n";
 }
 
-void CommandLine::printHeader() {
-  Logger::Info << "\n"
-                  "WSClean version " WSCLEAN_VERSION_STR
-                  " (" WSCLEAN_VERSION_DATE
-                  ")\n"
-                  "This software package is released under the GPL version 3.\n"
-                  "Author: André Offringa (offringa@gmail.com).\n\n";
-#ifndef NDEBUG
-  Logger::Info
-      << "\n"
-         "WARNING: Symbol NDEBUG was not defined; this WSClean version was\n"
-         "compiled as a DEBUG version. This can seriously affect "
-         "performance!\n\n";
-#endif
+std::vector<std::string> ParseStringList(const char* param) {
+  std::vector<std::string> list;
+  boost::split(list, param, [](char c) { return c == ','; });
+  return list;
 }
 
-size_t CommandLine::parse_size_t(const char* param, const char* name) {
+size_t ParseSizeT(const char* param, const char* name) {
   char* endptr;
   errno = 0;
-  long v = strtol(param, &endptr, 0);
+  const long v = strtol(param, &endptr, 0);
   if (*endptr != 0 || endptr == param || errno != 0) {
     std::ostringstream msg;
     msg << "Could not parse value '" << param << "' for parameter -" << name
@@ -683,15 +706,9 @@ size_t CommandLine::parse_size_t(const char* param, const char* name) {
   return v;
 }
 
-std::vector<std::string> CommandLine::parseStringList(const char* param) {
-  std::vector<std::string> list;
-  boost::split(list, param, [](char c) { return c == ','; });
-  return list;
-}
-
-double CommandLine::parse_double(const char* param, const char* name) {
+double ParseDouble(const char* param, const char* name) {
   char* endptr;
-  double v = std::strtod(param, &endptr);
+  const double v = std::strtod(param, &endptr);
   if (*endptr != 0 || endptr == param || !std::isfinite(v)) {
     std::ostringstream msg;
     msg << "Could not parse value '" << param << "' for parameter -" << name
@@ -701,9 +718,9 @@ double CommandLine::parse_double(const char* param, const char* name) {
   return v;
 }
 
-double CommandLine::parse_double(const char* param, double lowerLimit,
-                                 const char* name, bool inclusive) {
-  double v = parse_double(param, name);
+double ParseDouble(const char* param, double lowerLimit, const char* name,
+                   bool inclusive = true) {
+  const double v = ParseDouble(param, name);
   if (v < lowerLimit || (v <= lowerLimit && !inclusive)) {
     std::ostringstream msg;
     msg << "Parameter value for -" << name << " was " << v << " but ";
@@ -716,12 +733,14 @@ double CommandLine::parse_double(const char* param, double lowerLimit,
   return v;
 }
 
+}  // namespace
+
 bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
                                          const char* argv[], bool isSlave) {
   if (argc < 2) {
     if (!isSlave) {
-      printHeader();
-      printHelp();
+      PrintHeader();
+      PrintHelp();
     }
     return false;
   }
@@ -736,7 +755,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
     if (param == "version") {
       if (!isSlave) {
-        printHeader();
+        PrintHeader();
 #ifdef HAVE_EVERYBEAM
         Logger::Info << "EveryBeam is available.\n";
 #endif
@@ -748,8 +767,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       return false;
     } else if (param == "help") {
       if (!isSlave) {
-        printHeader();
-        printHelp();
+        PrintHeader();
+        PrintHelp();
       }
       return false;
     } else if (param == "quiet") {
@@ -761,13 +780,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "temp-dir" || param == "tempdir") {
       ++argi;
       settings.temporaryDirectory = argv[argi];
-      if (param == "tempdir") deprecated(isSlave, param, "temp-dir");
+      if (param == "tempdir") Deprecated(isSlave, param, "temp-dir");
     } else if (param == "save-weights" || param == "saveweights") {
       settings.isWeightImageSaved = true;
-      if (param == "saveweights") deprecated(isSlave, param, "save-weights");
+      if (param == "saveweights") Deprecated(isSlave, param, "save-weights");
     } else if (param == "save-uv" || param == "saveuv") {
       settings.isUVImageSaved = true;
-      if (param == "saveuv") deprecated(isSlave, param, "save-uv");
+      if (param == "saveuv") Deprecated(isSlave, param, "save-uv");
     } else if (param == "reuse-psf") {
       ++argi;
       settings.reusePsf = true;
@@ -780,8 +799,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.mode = Settings::PredictMode;
     } else if (param == "predict-channels") {
       ++argi;
-      settings.predictionChannels =
-          parse_size_t(argv[argi], "predict-channels");
+      settings.predictionChannels = ParseSizeT(argv[argi], "predict-channels");
     } else if (param == "continue") {
       settings.continuedRun = true;
       // Always make a PSF -- otherwise no beam size is available for
@@ -790,14 +808,14 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "subtract-model") {
       settings.subtractModel = true;
     } else if (param == "size") {
-      size_t width = parse_size_t(argv[argi + 1], "size"),
-             height = parse_size_t(argv[argi + 2], "size");
+      size_t width = ParseSizeT(argv[argi + 1], "size"),
+             height = ParseSizeT(argv[argi + 2], "size");
       settings.trimmedImageWidth = width;
       settings.trimmedImageHeight = height;
       argi += 2;
     } else if (param == "padding") {
       ++argi;
-      settings.imagePadding = parse_double(argv[argi], 1.0, "padding");
+      settings.imagePadding = ParseDouble(argv[argi], 1.0, "padding");
     } else if (param == "scale") {
       ++argi;
       settings.pixelScaleX =
@@ -805,29 +823,29 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.pixelScaleY = settings.pixelScaleX;
     } else if (param == "nwlayers") {
       ++argi;
-      settings.nWLayers = parse_size_t(argv[argi], "nwlayers");
+      settings.nWLayers = ParseSizeT(argv[argi], "nwlayers");
     } else if (param == "nwlayers-factor") {
       ++argi;
       settings.nWLayersFactor =
-          parse_double(argv[argi], 0.0, "nwlayers-factor", false);
+          ParseDouble(argv[argi], 0.0, "nwlayers-factor", false);
     } else if (param == "nwlayers-for-size") {
       settings.widthForNWCalculation =
-          parse_size_t(argv[argi + 1], "nwlayers-for-size");
+          ParseSizeT(argv[argi + 1], "nwlayers-for-size");
       settings.heightForNWCalculation =
-          parse_size_t(argv[argi + 2], "nwlayers-for-size");
+          ParseSizeT(argv[argi + 2], "nwlayers-for-size");
       argi += 2;
     } else if (param == "gain") {
       ++argi;
-      settings.deconvolutionGain = parse_double(argv[argi], 0.0, "gain", false);
+      settings.deconvolutionGain = ParseDouble(argv[argi], 0.0, "gain", false);
     } else if (param == "mgain") {
       ++argi;
-      settings.deconvolutionMGain = parse_double(argv[argi], 0.0, "mgain");
+      settings.deconvolutionMGain = ParseDouble(argv[argi], 0.0, "mgain");
     } else if (param == "niter") {
       ++argi;
-      settings.deconvolutionIterationCount = parse_size_t(argv[argi], "niter");
+      settings.deconvolutionIterationCount = ParseSizeT(argv[argi], "niter");
     } else if (param == "nmiter") {
       ++argi;
-      settings.majorIterationCount = parse_size_t(argv[argi], "nmiter");
+      settings.majorIterationCount = ParseSizeT(argv[argi], "nmiter");
     } else if (param == "threshold") {
       ++argi;
       settings.deconvolutionThreshold = FluxDensity::Parse(
@@ -836,28 +854,28 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       ++argi;
       settings.autoDeconvolutionThreshold = true;
       settings.autoDeconvolutionThresholdSigma =
-          parse_double(argv[argi], 0.0, "auto-threshold");
+          ParseDouble(argv[argi], 0.0, "auto-threshold");
     } else if (param == "auto-mask") {
       ++argi;
       settings.autoMask = true;
-      settings.autoMaskSigma = parse_double(argv[argi], 0.0, "auto-mask");
+      settings.autoMaskSigma = ParseDouble(argv[argi], 0.0, "auto-mask");
     } else if (param == "local-rms" || param == "rms-background") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
-      if (param == "rms-background") deprecated(isSlave, param, "local-rms");
+      if (param == "rms-background") Deprecated(isSlave, param, "local-rms");
     } else if (param == "local-rms-window" ||
                param == "rms-background-window") {
       ++argi;
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSWindow =
-          parse_double(argv[argi], 0.0, "local-rms-window", false);
+          ParseDouble(argv[argi], 0.0, "local-rms-window", false);
       if (param == "rms-background-window")
-        deprecated(isSlave, param, "local-rms-window");
+        Deprecated(isSlave, param, "local-rms-window");
     } else if (param == "local-rms-image" || param == "rms-background-image") {
       ++argi;
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       settings.localRMSImage = argv[argi];
       if (param == "rms-background-image")
-        deprecated(isSlave, param, "local-rms-image");
+        Deprecated(isSlave, param, "local-rms-image");
     } else if (param == "local-rms-method" ||
                param == "rms-background-method") {
       ++argi;
@@ -869,11 +887,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown RMS background method specified");
       if (param == "rms-background-method")
-        deprecated(isSlave, param, "local-rms-method");
+        Deprecated(isSlave, param, "local-rms-method");
     } else if (param == "data-column" || param == "datacolumn") {
       ++argi;
       settings.dataColumnName = argv[argi];
-      if (param == "datacolumn") deprecated(isSlave, param, "data-column");
+      if (param == "datacolumn") Deprecated(isSlave, param, "data-column");
     } else if (param == "pol") {
       ++argi;
       settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);
@@ -928,7 +946,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "primary-beam-limit") {
       ++argi;
       settings.primaryBeamLimit =
-          parse_double(argv[argi], 0.0, "primary-beam-limit");
+          ParseDouble(argv[argi], 0.0, "primary-beam-limit");
     } else if (param == "mwa-path") {
       ++argi;
       settings.mwaPath = argv[argi];
@@ -938,15 +956,15 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.savePsfPb = true;
     } else if (param == "pb-grid-size") {
       ++argi;
-      settings.primaryBeamGridSize = parse_size_t(argv[argi], "pb-grid-size");
+      settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
     } else if (param == "no-negative" || param == "nonegative") {
       settings.allowNegativeComponents = false;
-      if (param == "nonegative") deprecated(isSlave, param, "no-negative");
+      if (param == "nonegative") Deprecated(isSlave, param, "no-negative");
     } else if (param == "stop-negative" || param == "stopnegative") {
       settings.stopOnNegativeComponents = true;
-      if (param == "stopnegative") deprecated(isSlave, param, "stop-negative");
+      if (param == "stopnegative") Deprecated(isSlave, param, "stop-negative");
     } else if (param == "python-deconvolution") {
       ++argi;
       settings.algorithmType = radler::AlgorithmType::kPython;
@@ -1003,32 +1021,32 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error(
             "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
             "(NearestNeighbour), bn, bh, gaus, kb-no-sinc or rect");
-      if (param == "gridmode") deprecated(isSlave, param, "grid-mode");
+      if (param == "gridmode") Deprecated(isSlave, param, "grid-mode");
     } else if (param == "small-inversion" || param == "smallinversion") {
       settings.smallInversion = true;
       if (param == "smallinversion")
-        deprecated(isSlave, param, "small-inversion");
+        Deprecated(isSlave, param, "small-inversion");
     } else if (param == "no-small-inversion" || param == "nosmallinversion") {
       settings.smallInversion = false;
       if (param == "nosmallinversion")
-        deprecated(isSlave, param, "no-small-inversion");
+        Deprecated(isSlave, param, "no-small-inversion");
     } else if (param == "interval") {
-      settings.startTimestep = parse_size_t(argv[argi + 1], "interval");
-      settings.endTimestep = parse_size_t(argv[argi + 2], "interval");
+      settings.startTimestep = ParseSizeT(argv[argi + 1], "interval");
+      settings.endTimestep = ParseSizeT(argv[argi + 2], "interval");
       argi += 2;
     } else if (param == "intervals-out" || param == "intervalsout") {
       ++argi;
       settings.intervalsOut = atoi(argv[argi]);
-      if (param == "intervalsout") deprecated(isSlave, param, "intervals-out");
+      if (param == "intervalsout") Deprecated(isSlave, param, "intervals-out");
     } else if (param == "even-timesteps") {
       settings.evenOddTimesteps = MSSelection::EvenTimesteps;
     } else if (param == "odd-timesteps") {
       settings.evenOddTimesteps = MSSelection::OddTimesteps;
     } else if (param == "channel-range" || param == "channelrange") {
-      settings.startChannel = parse_size_t(argv[argi + 1], "channel-range");
-      settings.endChannel = parse_size_t(argv[argi + 2], "channel-range");
+      settings.startChannel = ParseSizeT(argv[argi + 1], "channel-range");
+      settings.endChannel = ParseSizeT(argv[argi + 2], "channel-range");
       argi += 2;
-      if (param == "channelrange") deprecated(isSlave, param, "channel-range");
+      if (param == "channelrange") Deprecated(isSlave, param, "channel-range");
     } else if (param == "shift") {
       settings.hasShift = true;
       settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi + 1]);
@@ -1036,8 +1054,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       argi += 2;
     } else if (param == "channelsout" || param == "channels-out") {
       ++argi;
-      settings.channelsOut = parse_size_t(argv[argi], "channels-out");
-      if (param == "channelsout") deprecated(isSlave, param, "channels-out");
+      settings.channelsOut = ParseSizeT(argv[argi], "channels-out");
+      if (param == "channelsout") Deprecated(isSlave, param, "channels-out");
     } else if (param == "gap-channel-division") {
       settings.divideChannelsByGaps = true;
     } else if (param == "channel-division-frequencies") {
@@ -1050,7 +1068,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "join-polarizations" || param == "joinpolarizations") {
       settings.joinedPolarizationDeconvolution = true;
       if (param == "joinpolarizations")
-        deprecated(isSlave, param, "join-polarizations");
+        Deprecated(isSlave, param, "join-polarizations");
     } else if (param == "link-polarizations") {
       ++argi;
       settings.joinedPolarizationDeconvolution = true;
@@ -1058,21 +1076,21 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           aocommon::Polarization::ParseList(argv[argi]);
     } else if (param == "join-channels" || param == "joinchannels") {
       settings.joinedFrequencyDeconvolution = true;
-      if (param == "joinchannels") deprecated(isSlave, param, "join-channels");
+      if (param == "joinchannels") Deprecated(isSlave, param, "join-channels");
     } else if (param == "mf-weighting" || param == "mfs-weighting" ||
                param == "mfsweighting") {
       mfWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
-      if (param != "mf-weighting") deprecated(isSlave, param, "mf-weighting");
+      if (param != "mf-weighting") Deprecated(isSlave, param, "mf-weighting");
     } else if (param == "no-mf-weighting" || param == "no-mfs-weighting" ||
                param == "nomfsweighting") {
       noMFWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
       if (param != "no-mf-weighting")
-        deprecated(isSlave, param, "no-mf-weighting");
+        Deprecated(isSlave, param, "no-mf-weighting");
     } else if (param == "spectral-correction") {
       settings.spectralCorrectionFrequency =
-          parse_double(argv[argi + 1], 0.0, "spectral-correction", false);
+          ParseDouble(argv[argi + 1], 0.0, "spectral-correction", false);
       aocommon::UVector<double> list =
           NumberList::ParseDoubleList(argv[argi + 2]);
       settings.spectralCorrection.assign(list.begin(), list.end());
@@ -1084,19 +1102,18 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.gaussianTaperBeamSize = taperBeamSize;
     } else if (param == "taper-edge") {
       ++argi;
-      settings.edgeTaperInLambda = parse_double(argv[argi], 0.0, "taper-edge");
+      settings.edgeTaperInLambda = ParseDouble(argv[argi], 0.0, "taper-edge");
     } else if (param == "taper-edge-tukey") {
       ++argi;
       settings.edgeTukeyTaperInLambda =
-          parse_double(argv[argi], 0.0, "taper-edge-tukey");
+          ParseDouble(argv[argi], 0.0, "taper-edge-tukey");
     } else if (param == "taper-tukey") {
       ++argi;
-      settings.tukeyTaperInLambda =
-          parse_double(argv[argi], 0.0, "taper-tukey");
+      settings.tukeyTaperInLambda = ParseDouble(argv[argi], 0.0, "taper-tukey");
     } else if (param == "taper-inner-tukey") {
       ++argi;
       settings.tukeyInnerTaperInLambda =
-          parse_double(argv[argi], 0.0, "taper-inner-tukey");
+          ParseDouble(argv[argi], 0.0, "taper-inner-tukey");
     } else if (param == "use-weights-as-taper") {
       settings.useWeightsAsTaper = true;
     } else if (param == "store-imaging-weights") {
@@ -1108,15 +1125,15 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "multiscale-gain") {
       ++argi;
       settings.multiscaleGain =
-          parse_double(argv[argi], 0.0, "multiscale-gain", false);
+          ParseDouble(argv[argi], 0.0, "multiscale-gain", false);
     } else if (param == "multiscale-scale-bias") {
       ++argi;
       settings.multiscaleDeconvolutionScaleBias =
-          parse_double(argv[argi], 0.0, "multiscale-scale-bias", false);
+          ParseDouble(argv[argi], 0.0, "multiscale-scale-bias", false);
     } else if (param == "multiscale-max-scales") {
       ++argi;
       settings.multiscaleMaxScales =
-          parse_size_t(argv[argi], "multiscale-max-scales");
+          ParseSizeT(argv[argi], "multiscale-max-scales");
     } else if (param == "multiscale-scales") {
       ++argi;
       settings.multiscaleScaleList = NumberList::ParseDoubleList(argv[argi]);
@@ -1134,17 +1151,17 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "multiscale-convolution-padding") {
       ++argi;
       settings.multiscaleConvolutionPadding =
-          parse_double(argv[argi], 1.0, "multiscale-convolution-padding");
+          ParseDouble(argv[argi], 1.0, "multiscale-convolution-padding");
     } else if (param == "no-multiscale-fast-subminor") {
       settings.multiscaleFastSubMinorLoop = false;
     } else if (param == "weighting-rank-filter") {
       ++argi;
       settings.rankFilterLevel =
-          parse_double(argv[argi], 0.0, "weighting-rank-filter");
+          ParseDouble(argv[argi], 0.0, "weighting-rank-filter");
     } else if (param == "weighting-rank-filter-size") {
       ++argi;
       settings.rankFilterSize =
-          parse_size_t(argv[argi], "weighting-rank-filter-size");
+          ParseSizeT(argv[argi], "weighting-rank-filter-size");
     } else if (param == "save-source-list") {
       settings.saveSourceList = true;
       settings.multiscaleShapeFunction =
@@ -1152,16 +1169,16 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "clean-border" || param == "cleanborder") {
       ++argi;
       settings.deconvolutionBorderRatio =
-          parse_double(argv[argi], 0.0, "clean-border") * 0.01;
-      if (param == "cleanborder") deprecated(isSlave, param, "clean-border");
+          ParseDouble(argv[argi], 0.0, "clean-border") * 0.01;
+      if (param == "cleanborder") Deprecated(isSlave, param, "clean-border");
     } else if (param == "fits-mask" || param == "fitsmask") {
       ++argi;
       settings.fitsDeconvolutionMask = argv[argi];
-      if (param == "fitsmask") deprecated(isSlave, param, "fits-mask");
+      if (param == "fitsmask") Deprecated(isSlave, param, "fits-mask");
     } else if (param == "casa-mask" || param == "casamask") {
       ++argi;
       settings.casaDeconvolutionMask = argv[argi];
-      if (param == "casamask") deprecated(isSlave, param, "casa-mask");
+      if (param == "casamask") Deprecated(isSlave, param, "casa-mask");
     } else if (param == "horizon-mask") {
       ++argi;
       settings.horizonMask = true;
@@ -1172,30 +1189,30 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.spectralFittingMode =
           schaapcommon::fitters::SpectralFittingMode::Polynomial;
       settings.spectralFittingTerms =
-          parse_size_t(argv[argi], "fit-spectral-pol");
+          ParseSizeT(argv[argi], "fit-spectral-pol");
     } else if (param == "fit-spectral-log-pol") {
       ++argi;
       settings.spectralFittingMode =
           schaapcommon::fitters::SpectralFittingMode::LogPolynomial;
       settings.spectralFittingTerms =
-          parse_size_t(argv[argi], "fit-spectral-log-pol");
+          ParseSizeT(argv[argi], "fit-spectral-log-pol");
     } else if (param == "force-spectrum") {
       ++argi;
       settings.forcedSpectrumFilename = argv[argi];
     } else if (param == "deconvolution-channels") {
       ++argi;
       settings.deconvolutionChannelCount =
-          parse_size_t(argv[argi], "deconvolution-channels");
+          ParseSizeT(argv[argi], "deconvolution-channels");
     } else if (param == "squared-channel-joining") {
       settings.squaredJoins = true;
     } else if (param == "parallel-deconvolution") {
       ++argi;
       settings.parallelDeconvolutionMaxSize =
-          parse_size_t(argv[argi], "parallel-deconvolution");
+          ParseSizeT(argv[argi], "parallel-deconvolution");
     } else if (param == "deconvolution-threads") {
       ++argi;
       settings.parallelDeconvolutionMaxThreads =
-          parse_size_t(argv[argi], "deconvolution-threads");
+          ParseSizeT(argv[argi], "deconvolution-threads");
     } else if (param == "field") {
       ++argi;
       if (argv[argi] == std::string("all"))
@@ -1218,14 +1235,14 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else if (weightArg == "briggs") {
         ++argi;
         settings.weightMode =
-            WeightMode::Briggs(parse_double(argv[argi], "weight briggs"));
+            WeightMode::Briggs(ParseDouble(argv[argi], "weight briggs"));
       } else
         throw std::runtime_error("Unknown weighting mode specified");
     } else if (param == "super-weight" || param == "superweight") {
       ++argi;
       settings.weightMode.SetSuperWeight(
-          parse_double(argv[argi], 0.0, "super-weight"));
-      if (param == "superweight") deprecated(isSlave, param, "super-weight");
+          ParseDouble(argv[argi], 0.0, "super-weight"));
+      if (param == "superweight") Deprecated(isSlave, param, "super-weight");
     } else if (param == "restore" || param == "restore-list") {
       if (param == "restore")
         settings.mode = Settings::RestoreMode;
@@ -1241,7 +1258,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.manualBeamMajorSize = beam;
       settings.manualBeamMinorSize = beam;
       settings.manualBeamPA = 0.0;
-      if (param == "beamsize") deprecated(isSlave, param, "beam-size");
+      if (param == "beamsize") Deprecated(isSlave, param, "beam-size");
     } else if (param == "beam-shape" || param == "beamshape") {
       double beamMaj = Angle::Parse(argv[argi + 1], "beam shape, major axis",
                                     Angle::kArcseconds);
@@ -1253,36 +1270,36 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.manualBeamMajorSize = beamMaj;
       settings.manualBeamMinorSize = beamMin;
       settings.manualBeamPA = beamPA;
-      if (param == "beamshape") deprecated(isSlave, param, "beam-shape");
+      if (param == "beamshape") Deprecated(isSlave, param, "beam-shape");
     } else if (param == "fit-beam" || param == "fitbeam") {
       settings.fittedBeam = true;
-      if (param == "fitbeam") deprecated(isSlave, param, "fit-beam");
+      if (param == "fitbeam") Deprecated(isSlave, param, "fit-beam");
     } else if (param == "no-fit-beam" || param == "nofitbeam") {
       settings.fittedBeam = false;
-      if (param == "nofitbeam") deprecated(isSlave, param, "no-fit-beam");
+      if (param == "nofitbeam") Deprecated(isSlave, param, "no-fit-beam");
     } else if (param == "beam-fitting-size") {
       ++argi;
       settings.beamFittingBoxSize =
-          parse_double(argv[argi], 0.0, "beam-fitting-size", false);
+          ParseDouble(argv[argi], 0.0, "beam-fitting-size", false);
     } else if (param == "theoretic-beam" || param == "theoreticbeam") {
       settings.theoreticBeam = true;
       settings.fittedBeam = false;
       if (param == "theoreticbeam")
-        deprecated(isSlave, param, "theoretic-beam");
+        Deprecated(isSlave, param, "theoretic-beam");
     } else if (param == "circular-beam" || param == "circularbeam") {
       settings.circularBeam = true;
-      if (param == "circularbeam") deprecated(isSlave, param, "circular-beam");
+      if (param == "circularbeam") Deprecated(isSlave, param, "circular-beam");
     } else if (param == "elliptical-beam" || param == "ellipticalbeam") {
       settings.circularBeam = false;
       if (param == "ellipticalbeam")
-        deprecated(isSlave, param, "elliptical-beam");
+        Deprecated(isSlave, param, "elliptical-beam");
     } else if (param == "kernel-size" || param == "gkernelsize") {
       ++argi;
-      settings.antialiasingKernelSize = parse_size_t(argv[argi], "kernel-size");
-      if (param == "gkernelsize") deprecated(isSlave, param, "kernel-size");
+      settings.antialiasingKernelSize = ParseSizeT(argv[argi], "kernel-size");
+      if (param == "gkernelsize") Deprecated(isSlave, param, "kernel-size");
     } else if (param == "oversampling") {
       ++argi;
-      settings.overSamplingFactor = parse_size_t(argv[argi], "oversampling");
+      settings.overSamplingFactor = ParseSizeT(argv[argi], "oversampling");
     } else if (param == "reorder") {
       settings.forceReorder = true;
       settings.forceNoReorder = false;
@@ -1295,51 +1312,49 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.modelUpdateRequired = false;
     } else if (param == "j") {
       ++argi;
-      settings.threadCount = parse_size_t(argv[argi], "j");
+      settings.threadCount = ParseSizeT(argv[argi], "j");
     } else if (param == "parallel-reordering") {
       ++argi;
       settings.parallelReordering =
-          parse_size_t(argv[argi], "parallel-reordering");
+          ParseSizeT(argv[argi], "parallel-reordering");
     } else if (param == "parallel-gridding") {
       ++argi;
-      settings.parallelGridding = parse_size_t(argv[argi], "parallel-gridding");
+      settings.parallelGridding = ParseSizeT(argv[argi], "parallel-gridding");
     } else if (param == "no-work-on-master") {
       settings.masterDoesWork = false;
     } else if (param == "mem") {
       ++argi;
-      settings.memFraction =
-          parse_double(argv[argi], 0.0, "mem", false) / 100.0;
+      settings.memFraction = ParseDouble(argv[argi], 0.0, "mem", false) / 100.0;
     } else if (param == "abs-mem" || param == "absmem") {
       ++argi;
-      settings.absMemLimit = parse_double(argv[argi], 0.0, "abs-mem", false);
-      if (param == "absmem") deprecated(isSlave, param, "abs-mem");
+      settings.absMemLimit = ParseDouble(argv[argi], 0.0, "abs-mem", false);
+      if (param == "absmem") Deprecated(isSlave, param, "abs-mem");
     } else if (param == "maxuvw-m") {
       ++argi;
-      settings.maxUVWInMeters =
-          parse_double(argv[argi], 0.0, "maxuvw-m", false);
+      settings.maxUVWInMeters = ParseDouble(argv[argi], 0.0, "maxuvw-m", false);
     } else if (param == "minuvw-m") {
       ++argi;
-      settings.minUVWInMeters = parse_double(argv[argi], 0.0, "minuvw-m");
+      settings.minUVWInMeters = ParseDouble(argv[argi], 0.0, "minuvw-m");
     } else if (param == "maxuv-l") {
       ++argi;
-      settings.maxUVInLambda = parse_double(argv[argi], 0.0, "maxuv-l", false);
+      settings.maxUVInLambda = ParseDouble(argv[argi], 0.0, "maxuv-l", false);
     } else if (param == "minuv-l") {
       ++argi;
-      settings.minUVInLambda = parse_double(argv[argi], 0.0, "minuv-l");
+      settings.minUVInLambda = ParseDouble(argv[argi], 0.0, "minuv-l");
     } else if (param == "maxw") {
       // This was to test the optimization suggested in Tasse et al., 2013,
       // Appendix C.
       ++argi;
-      settings.wLimit = parse_double(argv[argi], 0.0, "maxw");
+      settings.wLimit = ParseDouble(argv[argi], 0.0, "maxw");
     } else if (param == "baseline-averaging") {
       ++argi;
       settings.baselineDependentAveragingInWavelengths =
-          parse_double(argv[argi], 0.0, "baseline-averaging", false);
+          ParseDouble(argv[argi], 0.0, "baseline-averaging", false);
     } else if (param == "simulate-noise") {
       ++argi;
       settings.simulateNoise = true;
       settings.simulatedNoiseStdDev =
-          parse_double(argv[argi], 0.0, "simulate-noise");
+          ParseDouble(argv[argi], 0.0, "simulate-noise");
     } else if (param == "simulate-baseline-noise") {
       ++argi;
       settings.simulateNoise = true;
@@ -1351,17 +1366,17 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.gridWithBeam = true;
     } else if (param == "beam-aterm-update") {
       ++argi;
-      double val = parse_double(argv[argi], 0.0, "beam-aterm-update");
+      double val = ParseDouble(argv[argi], 0.0, "beam-aterm-update");
       settings.beamAtermUpdateTime = val;
       settings.primaryBeamUpdateTime = std::max<size_t>(val, 1.0);
     } else if (param == "aterm-kernel-size") {
       ++argi;
-      atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
+      atermKernelSize = ParseDouble(argv[argi], 0.0, "aterm-kernel-size");
     } else if (param == "apply-facet-solutions") {
       ++argi;
-      settings.facetSolutionFiles = parseStringList(argv[argi]);
+      settings.facetSolutionFiles = ParseStringList(argv[argi]);
       ++argi;
-      settings.facetSolutionTables = parseStringList(argv[argi]);
+      settings.facetSolutionTables = ParseStringList(argv[argi]);
       if (settings.facetSolutionTables.size() > 2) {
         throw std::runtime_error(
             "List of solution tables (soltabs) should contain at most two "
@@ -1372,7 +1387,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "facet-beam-update") {
       ++argi;
       settings.facetBeamUpdateTime =
-          parse_double(argv[argi], 0.0, "facet-beam-update");
+          ParseDouble(argv[argi], 0.0, "facet-beam-update");
     } else if (param == "save-aterms") {
       settings.saveATerms = true;
     } else if (param == "visibility-weighting-mode") {
@@ -1455,7 +1470,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "wgridder-accuracy") {
       ++argi;
       settings.wgridderAccuracy =
-          parse_double(argv[argi], 0.0, "wgridder-accuracy", false);
+          ParseDouble(argv[argi], 0.0, "wgridder-accuracy", false);
     } else if (param == "no-dirty") {
       settings.isDirtySaved = false;
     } else if (param == "save-first-residual") {
@@ -1475,7 +1490,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
 
   // We print the header only now, because the logger has now been set up
   // and possibly set to quiet.
-  if (!isSlave) printHeader();
+  if (!isSlave) PrintHeader();
 
   const size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
   settings.atermKernelSize = atermKernelSize.value_or(defaultAtermSize);
@@ -1520,14 +1535,4 @@ void CommandLine::Run(class WSClean& wsclean) {
       wsclean.RunClean();
       break;
   }
-}
-
-void CommandLine::deprecated(bool isSlave, const std::string& param,
-                             const std::string& replacement) {
-  if (!isSlave)
-    Logger::Warn << "!!! WARNING: Parameter \'-" << param
-                 << "\' is deprecated and will be removed in a future version "
-                    "of WSClean.\n"
-                 << "!!!          Use parameter \'-" << replacement
-                 << "\' instead.\n";
 }
