@@ -92,6 +92,7 @@ class Settings {
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
   bool makeDirectionDependentPsfs;
   double nPsfs;
+  size_t nRowsPsfsGrid, nColsPsfsGrid;
   DirectFTPrecision directFTPrecision;
   double wgridderAccuracy;
   std::string atermConfigFilename;

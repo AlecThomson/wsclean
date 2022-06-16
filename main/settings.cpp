@@ -329,6 +329,15 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
+  if (makeDirectionDependentPsfs) {
+    // Calculate the psfs grid width and height based on the desired number of
+    // psfs. 
+    double widthHeightRatio = double(trimmedImageWidth) / (trimmedImageHeight);
+    double nRowsPsfsGridDouble = sqrt(nPsfs / widthHeightRatio);
+    nRowsPsfsGrid = ceil(nRowsPsfsGridDouble);
+    nColsPsfsGrid = ceil(nRowsPsfsGridDouble * widthHeightRatio);
+  }
+
   if (parallelDeconvolutionMaxThreads == 0) {
     parallelDeconvolutionMaxThreads = threadCount;
   }
