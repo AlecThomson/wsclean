@@ -167,6 +167,14 @@ void PrintHelp() {
          "to: \n\n"
          "   max(width, height) / min(width, height) * pb-grid-size**2. \n\n"
          "   Default: 32.\n"
+         "-make-direction-dependent-psfs\n"
+         "   Make multiple direction dependent psfs.\n"
+         "-npsfs\n"
+         "   When make-direction-dependent-psfs is true, specify how many psfs "
+         "should be performed. \n   These will be equally distributed on a "
+         "grid. If the number selected does not fit on a grid, the nearest "
+         "higher  number will be automatically selected.\n"
+         "   Default: 16.\n"
          "-beam-model\n"
          "   Specify the beam model, only relevant for SKA and LOFAR. "
          "Available "
@@ -944,6 +952,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "pb-grid-size") {
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
+    } else if (param == "make-direction-dependent-psfs") {
+      settings.makeDirectionDependentPsfs = true;
+    } else if (param == "npsfs") {
+      IncArgi(argi, argc);
+      settings.nPsfs = ParseDouble(argv[argi], 16.0, "npsfs");
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
     } else if (param == "no-negative") {

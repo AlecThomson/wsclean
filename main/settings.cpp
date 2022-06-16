@@ -257,6 +257,11 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
+  if (makeDirectionDependentPsfs) {
+    Logger::Warn << "WARNING: Direction dependent psfs are not implemented "
+                    "yet. Single psf is used instead.\n";
+  }
+
   checkPolarizations();
 }
 
