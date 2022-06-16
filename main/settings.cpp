@@ -331,7 +331,7 @@ void Settings::Propagate(bool verbose) {
 
   if (makeDirectionDependentPsfs) {
     // Calculate the psfs grid width and height based on the desired number of
-    // psfs. 
+    // psfs.
     double widthHeightRatio = double(trimmedImageWidth) / (trimmedImageHeight);
     double nRowsPsfsGridDouble = sqrt(nPsfs / widthHeightRatio);
     nRowsPsfsGrid = ceil(nRowsPsfsGridDouble);
