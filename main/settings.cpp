@@ -330,8 +330,7 @@ void Settings::Propagate(bool verbose) {
   }
 
   if ((psfsGridHeight > 1) || (psfsGridWidth > 1)) {
-    // Calculate the psfs grid width and height based on the desired number of
-    // psfs.
+    // Raise warning if psfs are not square
     double widthHeightRatioImage =
         double(trimmedImageWidth) / (trimmedImageHeight);
     double widthHeightRatioGrid = double(psfsGridWidth) / (psfsGridHeight);
