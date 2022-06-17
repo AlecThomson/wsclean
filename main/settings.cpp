@@ -257,7 +257,7 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
-  if (makeDirectionDependentPsfs) {
+  if ((psfsGridHeight > 1) || (psfsGridWidth > 1)) {
     Logger::Warn << "WARNING: Direction dependent psfs are not implemented "
                     "yet. Single psf is used instead.\n";
   }
@@ -329,13 +329,20 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
-  if (makeDirectionDependentPsfs) {
+  if ((psfsGridHeight > 1) || (psfsGridWidth > 1)) {
     // Calculate the psfs grid width and height based on the desired number of
     // psfs.
-    double widthHeightRatio = double(trimmedImageWidth) / (trimmedImageHeight);
-    double nRowsPsfsGridDouble = sqrt(nPsfs / widthHeightRatio);
-    nRowsPsfsGrid = ceil(nRowsPsfsGridDouble);
-    nColsPsfsGrid = ceil(nRowsPsfsGridDouble * widthHeightRatio);
+    double widthHeightRatioImage =
+        double(trimmedImageWidth) / (trimmedImageHeight);
+    double widthHeightRatioGrid = double(psfsGridWidth) / (psfsGridHeight);
+    if (widthHeightRatioImage != widthHeightRatioGrid) {
+      double singlePsfWidth = trimmedImageWidth / psfsGridWidth;
+      double singlePsfHeight = trimmedImageHeight / psfsGridHeight;
+      Logger::Warn << "Psfs grid chosen will not deliver square psfs. Each psf "
+                      "has size [ "
+                   << singlePsfWidth << ", " << singlePsfHeight
+                   << "] instead.\n";
+    }
   }
 
   if (parallelDeconvolutionMaxThreads == 0) {

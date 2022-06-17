@@ -90,9 +90,7 @@ class Settings {
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
-  bool makeDirectionDependentPsfs;
-  double nPsfs;
-  size_t nRowsPsfsGrid, nColsPsfsGrid;
+  size_t psfsGridHeight, psfsGridWidth;
   DirectFTPrecision directFTPrecision;
   double wgridderAccuracy;
   std::string atermConfigFilename;
@@ -294,8 +292,8 @@ inline Settings::Settings()
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),
-      makeDirectionDependentPsfs(false),
-      nPsfs(16.0),
+      psfsGridHeight(1),
+      psfsGridWidth(1),
       directFTPrecision(DirectFTPrecision::Double),
       wgridderAccuracy(1e-4),
       atermConfigFilename(),
