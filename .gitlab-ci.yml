@@ -20,6 +20,7 @@ workflow:
       casacore-data casacore-dev casacore-tools
       cmake
       g++
+      g++-12
       git
       libblas-dev liblapack-dev
       libboost-filesystem-dev libboost-system-dev libboost-date-time-dev
