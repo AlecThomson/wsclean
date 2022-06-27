@@ -37,6 +37,19 @@ class ImageFilename {
   void SetIsImaginary(bool isImaginary) { _isImaginary = isImaginary; }
 
   static std::string GetPSFPrefix(const Settings& settings, size_t channelIndex,
+                                  size_t intervalIndex, size_t ddpsfIndex) {
+    std::ostringstream partPrefixNameStr;
+    partPrefixNameStr << settings.prefixName;
+    if (settings.intervalsOut != 1)
+      partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
+    if (settings.ddpsfsGridHeight > 1 || settings.ddpsfsGridWidth > 1)
+      partPrefixNameStr << "-d" << fourDigitStr(ddpsfIndex);
+    if (settings.channelsOut != 1)
+      partPrefixNameStr << '-' << fourDigitStr(channelIndex);
+    return partPrefixNameStr.str();
+  }
+
+  static std::string GetPSFPrefix(const Settings& settings, size_t channelIndex,
                                   size_t intervalIndex) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;

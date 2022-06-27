@@ -91,6 +91,12 @@ struct ImagingTableEntry {
   std::shared_ptr<schaapcommon::facets::Facet> facet;
 
   /**
+   * Is this entry a direction dependent PSF?
+   *
+   */
+  bool isDdpsf;
+
+  /**
    * Difference from the centre to the facet centre to the facet centre.
    * Example, if the image centre was 100,100 and the facet centre 50,50, these
    * value will be -50,-50
