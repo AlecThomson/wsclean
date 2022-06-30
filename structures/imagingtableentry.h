@@ -94,7 +94,7 @@ struct ImagingTableEntry {
    * Is this entry a direction dependent PSF?
    *
    */
-  bool isDdpsf;
+  bool isDdPsf;
 
   /**
    * Difference from the centre to the facet centre to the facet centre.

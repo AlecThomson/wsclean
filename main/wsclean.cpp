@@ -199,7 +199,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
-  if (entry.isDdpsf || _facets.empty()) processFullPSF(result.images[0], entry);
+  if (entry.isDdPsf || _facets.empty()) processFullPSF(result.images[0], entry);
 
   _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -268,14 +268,14 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
 
   Logger::Info.Flush();
   const std::string name(
-      (entry.isDdpsf ? ImageFilename::GetPSFPrefix(settings, channelIndex,
+      (entry.isDdPsf ? ImageFilename::GetPSFPrefix(settings, channelIndex,
                                                    entry.outputIntervalIndex,
                                                    entry.facetIndex)
                      : ImageFilename::GetPSFPrefix(settings, channelIndex,
                                                    entry.outputIntervalIndex)) +
       "-psf.fits");
   WSCFitsWriter fitsFile =
-      createWSCFitsWriter(entry, false, false, !entry.isDdpsf);
+      createWSCFitsWriter(entry, false, false, !entry.isDdPsf);
   fitsFile.WritePSF(name, image.Data());
   Logger::Info << "DONE\n";
 }
@@ -684,8 +684,8 @@ void WSClean::RunClean() {
 
   if (_settings.ddPsfGridHeight > 1 || _settings.ddPsfGridWidth > 1) {
     // TODO Make a grid instead of reading from file
-    _ddpsfs = FacetReader::ReadFacets("ddpsfs.reg");
-    for (std::shared_ptr<schaapcommon::facets::Facet>& ddpsf : _ddpsfs) {
+    _ddPsfs = FacetReader::ReadFacets("ddpsfs.reg");
+    for (std::shared_ptr<schaapcommon::facets::Facet>& ddpsf : _ddPsfs) {
       const size_t alignment = 2;
       ddpsf->CalculatePixels(
           _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
@@ -974,15 +974,15 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
   if (groupTable.Front().polarization == *_settings.polarizations.begin()) {
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
-                          _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
+                          _ddPsfs.empty() ? _facets.size() : _ddPsfs.size(),
                           _settings.prefixName + "-psf");
     _scalarBeamImages.Initialize(
         writer.Writer(), 1, groupTable.SquaredGroups().size(),
-        _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
+        _ddPsfs.empty() ? _facets.size() : _ddPsfs.size(),
         _settings.prefixName + "-scalar-beam");
     _matrixBeamImages.Initialize(
         writer.Writer(), 2, groupTable.SquaredGroups().size(),
-        _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
+        _ddPsfs.empty() ? _facets.size() : _ddPsfs.size(),
         _settings.prefixName + "-matrix-beam");
   }
 
@@ -1008,7 +1008,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     for (ImagingTableEntry& entry : groupTable) {
       const bool isFirstPol =
           entry.polarization == *_settings.polarizations.begin();
-      if ((entry.isDdpsf == doMakeDDPSF) && isFirstPol) {
+      if ((entry.isDdPsf == doMakeDDPSF) && isFirstPol) {
         if (_settings.reusePsf)
           loadExistingPSF(entry);
         else
@@ -1021,7 +1021,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
   ImagingTable groupTableNoDdpsf(
       groupTable,
-      [](const ImagingTableEntry& entry) { return !entry.isDdpsf; });
+      [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
 
   if (!_settings.makePSFOnly) {
     runFirstInversions(groupTableNoDdpsf, primaryBeam,
@@ -2108,10 +2108,10 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
     else
       templateEntry.imageCount = 1;
 
-    if (!_ddpsfs.empty()) {
+    if (!_ddPsfs.empty()) {
       ImagingTableEntry ddpsfTemplateEntry(templateEntry);
-      ddpsfTemplateEntry.isDdpsf = true;
-      addFacetsToImagingTable(ddpsfTemplateEntry, _ddpsfs);
+      ddpsfTemplateEntry.isDdPsf = true;
+      addFacetsToImagingTable(ddpsfTemplateEntry, _ddPsfs);
     }
     addFacetsToImagingTable(templateEntry, _facets);
 

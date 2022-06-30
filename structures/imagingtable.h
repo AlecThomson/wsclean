@@ -128,10 +128,10 @@ class ImagingTable {
     updateGroups(
         _facetGroups,
         [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
-        [](const ImagingTableEntry& e) { return !e.isDdpsf; });
+        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
     updateGroups(
         _facets, [](const ImagingTableEntry& e) { return e.facetIndex; },
-        [](const ImagingTableEntry& e) { return !e.isDdpsf; });
+        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
     updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
       return e.squaredDeconvolutionIndex;
     });

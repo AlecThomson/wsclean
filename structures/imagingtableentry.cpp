@@ -17,7 +17,7 @@ ImagingTableEntry::ImagingTableEntry()
       facetGroupIndex(0),
       facetIndex(0),
       facet(nullptr),
-      isDdpsf(false),
+      isDdPsf(false),
       centreShiftX(0),
       centreShiftY(0),
       outputChannelIndex(0),

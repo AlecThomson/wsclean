@@ -288,7 +288,7 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddpsfs;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddPsfs;
   double _lastStartTime;
 };
 
