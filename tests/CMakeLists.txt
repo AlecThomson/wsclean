@@ -8,6 +8,7 @@ add_executable(
   testparsetreader.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
+  testwsclean.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
   math/trenderer.cpp
