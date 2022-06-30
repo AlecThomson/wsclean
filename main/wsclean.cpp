@@ -677,6 +677,15 @@ void WSClean::RunClean() {
       FacetReader::ReadFacets(_settings, _observationInfo);
   _facetCount = facets.size();
 
+  if ((_settings.psfsGridHeight > 1) || (_settings.psfsGridWidth > 1)) {
+    createRectangularPsfs(_ddpsfs, _observationInfo.phaseCentreRA,
+                          _observationInfo.phaseCentreDec,
+                          _settings.pixelScaleX, _settings.pixelScaleY,
+                          _settings.trimmedImageHeight,
+                          _settings.trimmedImageWidth, _settings.psfsGridWidth,
+                          _settings.psfsGridHeight);
+  }
+
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
   const bool hasCenter = std::any_of(
@@ -2150,5 +2159,41 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     throw std::runtime_error(
         "H5 correction is requested, but this is not supported "
         "when imaging a single polarization that is not Stokes I, XX, or YY.");
+  }
+}
+
+void WSClean::createRectangularPsfs(
+    std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& ddpsfs,
+    const double phaseCentreRA, const double phaseCentreDec,
+    const double pixelScaleX, const double pixelScaleY,
+    const double trimmedImageHeight, const double trimmedImageWidth,
+    const double psfsGridWidth, const double psfsGridHeight) {
+  double single_psf_height = pixelScaleY * trimmedImageHeight / psfsGridHeight;
+  double single_psf_width = pixelScaleX * trimmedImageWidth / psfsGridWidth;
+
+  double image_top_left_x = phaseCentreRA - pixelScaleX * trimmedImageWidth / 2;
+  double image_top_left_y =
+      phaseCentreDec - pixelScaleY * trimmedImageHeight / 2;
+
+  for (size_t hor = 0; hor < psfsGridHeight; ++hor) {
+    for (size_t ver = 0; ver < psfsGridWidth; ++ver) {
+      std::shared_ptr<schaapcommon::facets::Facet> temp =
+          std::make_shared<schaapcommon::facets::Facet>();
+      double facet_top_left_x = image_top_left_x + hor * single_psf_width;
+      double facet_top_left_y = image_top_left_y + ver * single_psf_height;
+      // Top left facet corner
+      temp->AddVertex(facet_top_left_x, facet_top_left_y);
+      // Top right facet corner
+      temp->AddVertex(facet_top_left_x + single_psf_width, facet_top_left_y);
+      // Bottom right facet corner
+      temp->AddVertex(facet_top_left_x + single_psf_width,
+                      facet_top_left_y + single_psf_height);
+      // Bottom left facet corner
+      temp->AddVertex(facet_top_left_x, facet_top_left_y + single_psf_height);
+
+      temp->SetDirectionLabel(std::to_string(hor) + ", " + std::to_string(ver));
+
+      ddpsfs.push_back(std::move(temp));
+    }
   }
 }

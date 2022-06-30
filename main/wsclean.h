@@ -60,6 +60,13 @@ class WSClean {
    */
   void RunPredict();
 
+  void createRectangularPsfs(
+      std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& ddpsfs,
+      const double phaseCentreRA, const double phaseCentreDec,
+      const double pixelScaleX, const double pixelScaleY,
+      const double trimmedImageHeight, const double trimmedImageWidth,
+      const double psfsGridWidth, const double psfsGridHeight);
+
  private:
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<PrimaryBeam>& primaryBeam);
@@ -288,6 +295,7 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddpsfs;
   double _lastStartTime;
 };
 
