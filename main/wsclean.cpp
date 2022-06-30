@@ -683,7 +683,7 @@ void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
-  if (_settings.ddpsfsGridHeight > 1 || _settings.ddpsfsGridWidth > 1) {
+  if (_settings.ddPsfGridHeight > 1 || _settings.ddPsfGridWidth > 1) {
     // TODO Make a grid instead of reading from file
     _ddpsfs = FacetReader::ReadFacets("ddpsfs.reg");
     for (std::shared_ptr<schaapcommon::facets::Facet>& ddpsf : _ddpsfs) {
@@ -981,10 +981,12 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                           _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
                           _settings.prefixName + "-psf");
     _scalarBeamImages.Initialize(
-        writer.Writer(), 1, groupTable.SquaredGroups().size(), _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
+        writer.Writer(), 1, groupTable.SquaredGroups().size(),
+        _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
         _settings.prefixName + "-scalar-beam");
     _matrixBeamImages.Initialize(
-        writer.Writer(), 2, groupTable.SquaredGroups().size(), _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
+        writer.Writer(), 2, groupTable.SquaredGroups().size(),
+        _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
         _settings.prefixName + "-matrix-beam");
   }
 
@@ -1003,8 +1005,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _inversionWatch.Start();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
-  const bool doMakeDDPSF = doMakePSF && (_settings.ddpsfsGridHeight > 1 ||
-                                         _settings.ddpsfsGridWidth > 1);
+  const bool doMakeDDPSF = doMakePSF && (_settings.ddPsfGridHeight > 1 ||
+                                         _settings.ddPsfGridWidth > 1);
 
   if (doMakePSF) {
     for (ImagingTableEntry& entry : groupTable) {
