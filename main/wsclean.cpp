@@ -981,10 +981,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                           _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
                           _settings.prefixName + "-psf");
     _scalarBeamImages.Initialize(
-        writer.Writer(), 1, groupTable.SquaredGroups().size(), _facets.size(),
+        writer.Writer(), 1, groupTable.SquaredGroups().size(), _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
         _settings.prefixName + "-scalar-beam");
     _matrixBeamImages.Initialize(
-        writer.Writer(), 2, groupTable.SquaredGroups().size(), _facets.size(),
+        writer.Writer(), 2, groupTable.SquaredGroups().size(), _ddpsfs.empty() ? _facets.size() : _ddpsfs.size(),
         _settings.prefixName + "-matrix-beam");
   }
 
