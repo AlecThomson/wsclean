@@ -95,7 +95,6 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
                                     entry.outputIntervalIndex, false) +
            "-dirty.fits";
   }
-  Logger::Info << name << "\n";
   aocommon::FitsReader reader(name);
   if (reader.ImageWidth() != _settings.trimmedImageWidth ||
       reader.ImageHeight() != _settings.trimmedImageHeight)
@@ -749,13 +748,10 @@ void WSClean::RunClean() {
 
     if (_settings.mfWeighting) initializeMFSImageWeights();
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
-
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
          groupIndex != _imagingTable.IndependentGroupCount(); ++groupIndex) {
       ImagingTable group = _imagingTable.GetIndependentGroup(groupIndex);
-      Logger::Info << "groupIndex: " << groupIndex << "/"
-                   << _imagingTable.IndependentGroupCount() << "\n";
       runIndependentGroup(group, primaryBeam);
     }
 
@@ -1939,7 +1935,6 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   //}
   _imagingTable.Update();
   _imagingTable.Print();
-  Logger::Info << _imagingTable.IndependentGroupCount() << "\n";
 }
 
 void WSClean::makeImagingTableEntry(
