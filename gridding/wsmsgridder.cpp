@@ -505,7 +505,6 @@ void WSMSGridder::Invert() {
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
-    // Perform trimming
     _realImage = _realImage.Trim(TrimWidth(), TrimHeight());
 
     if (IsComplex()) {
