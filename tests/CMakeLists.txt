@@ -8,7 +8,6 @@ add_executable(
   testparsetreader.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
-  testwsclean.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
   math/trenderer.cpp
@@ -16,6 +15,7 @@ add_executable(
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
+  structures/tddpsf.cpp
   structures/testimagingtable.cpp
   structures/toutputchannelinfo.cpp
   system/tmappedfile.cpp
