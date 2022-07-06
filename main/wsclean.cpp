@@ -678,7 +678,7 @@ void WSClean::RunClean() {
   _facetCount = facets.size();
 
   if ((_settings.psfsGridHeight > 1) || (_settings.psfsGridWidth > 1)) {
-    _ddpsfs = CreateRectangularPsfs(
+    _dd_psfs = CreateRectangularPsfs(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageHeight, _settings.trimmedImageWidth,

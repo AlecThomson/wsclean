@@ -2,44 +2,39 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace {
+const double kPhaseCentreRa = 0;
+const double kPhaseCentreDec = 0;
+const double kPixelScaleX = 1;
+const double kPixelScaleY = 1;
+const size_t kTrimmedImageHeight = 100;
+const size_t kTrimmedImageWidth = 100;
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(dd_psf)
 
 BOOST_AUTO_TEST_CASE(create_single_psf) {
-  const double phaseCentreRA = 0;
-  const double phaseCentreDec = 0;
-  const double pixelScaleX = 1;
-  const double pixelScaleY = 1;
+  const double kPsfGridWidth = 1;
+  const double kPsfGridHeight = 1;
 
-  const double psfsGridWidth = 1;
-  const double psfsGridHeight = 1;
-  size_t trimmedImageHeight = 100;
-  size_t trimmedImageWidth = 100;
+  const std::vector<schaapcommon::facets::Facet> dd_psfs =
+      CreateRectangularPsfs(kPhaseCentreRa, kPhaseCentreDec, kPixelScaleX,
+                            kPixelScaleY, kTrimmedImageHeight,
+                            kTrimmedImageWidth, kPsfGridWidth, kPsfGridHeight);
 
-  const std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ddpsfs =
-      CreateRectangularPsfs(phaseCentreRA, phaseCentreDec, pixelScaleX,
-                            pixelScaleY, trimmedImageHeight, trimmedImageWidth,
-                            psfsGridWidth, psfsGridHeight);
-
-  BOOST_CHECK_EQUAL(ddpsfs.size(), 1);
+  BOOST_CHECK_EQUAL(dd_psfs.size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(create_multiple_psfs) {
-  const double phaseCentreRA = 0;
-  const double phaseCentreDec = 0;
-  const double pixelScaleX = 1;
-  const double pixelScaleY = 1;
+  const double kPsfGridWidth = 5;
+  const double kPsfGridHeight = 5;
 
-  const double psfsGridWidth = 5;
-  const double psfsGridHeight = 5;
-  size_t trimmedImageHeight = 100;
-  size_t trimmedImageWidth = 100;
+  const std::vector<schaapcommon::facets::Facet> dd_psfs =
+      CreateRectangularPsfs(kPhaseCentreRa, kPhaseCentreDec, kPixelScaleX,
+                            kPixelScaleY, kTrimmedImageHeight,
+                            kTrimmedImageWidth, kPsfGridWidth, kPsfGridHeight);
 
-  const std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ddpsfs =
-      CreateRectangularPsfs(phaseCentreRA, phaseCentreDec, pixelScaleX,
-                            pixelScaleY, trimmedImageHeight, trimmedImageWidth,
-                            psfsGridWidth, psfsGridHeight);
-
-  BOOST_REQUIRE_EQUAL(ddpsfs.size(), 25);
+  BOOST_REQUIRE_EQUAL(dd_psfs.size(), 25);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
