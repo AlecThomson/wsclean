@@ -55,9 +55,6 @@ class WSCFitsWriter {
 
   static void RestoreList(const class Settings& settings);
 
-  static ObservationInfo ReadObservationInfo(
-      const aocommon::FitsReader& reader);
-
  private:
   void setSettingsKeywords(const Settings& settings,
                            const std::string& commandLine);
