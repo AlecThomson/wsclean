@@ -5,7 +5,7 @@
 std::vector<schaapcommon::facets::Facet> CreateRectangularPsfs(
     const double phase_centre_ra, const double phase_centre_dec,
     const double pixelScaleX, const double pixel_scale_y,
-    const double trimmed_image_height, const double trimmed_image_width,
+    const size_t trimmed_image_height, const size_t trimmed_image_width,
     const size_t psf_grid_width, const size_t psf_grid_height) {
   std::vector<schaapcommon::facets::Facet> ddpsfs;
   ddpsfs.reserve(psf_grid_height * psf_grid_width);
@@ -40,8 +40,8 @@ std::vector<schaapcommon::facets::Facet> CreateRectangularPsfs(
       add_vertex(facet_end_x, facet_start_y);
 
       // add a name label for this box
-      facet.SetDirectionLabel(std::to_string(grid_y) + ", " +
-                              std::to_string(grid_x));
+      facet.SetDirectionLabel(std::to_string(grid_x) + ", " +
+                              std::to_string(grid_y));
 
       ddpsfs.push_back(std::move(facet));
     }
