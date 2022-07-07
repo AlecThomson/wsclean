@@ -14,18 +14,16 @@
 
 #include "../gridding/msgridderbase.h"
 
-WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
-                             const Settings& settings,
-                             const std::optional<radler::Radler>& deconvolution,
-                             const ObservationInfo& observationInfo,
-                             size_t majorIterationNr,
-                             const std::string& commandLine,
-                             const OutputChannelInfo& channelInfo, bool isModel,
-                             double startTime) {
+WSCFitsWriter::WSCFitsWriter(
+    const ImagingTableEntry& entry, bool isImaginary, const Settings& settings,
+    const std::optional<radler::Radler>& deconvolution,
+    const ObservationInfo& observationInfo, double shiftL, double shiftM,
+    size_t majorIterationNr, const std::string& commandLine,
+    const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
   _filenamePrefix = ImageFilename::GetPrefix(
       settings, entry.polarization, entry.outputChannelIndex,
       entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo, startTime);
+  setGridderConfiguration(settings, observationInfo, shiftL, shiftM, startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -36,19 +34,17 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
   if (isModel) _writer.SetUnit(aocommon::FitsWriter::JanskyPerPixel);
 }
 
-WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
-                             aocommon::PolarizationEnum polarization,
-                             bool isImaginary, const Settings& settings,
-                             const std::optional<radler::Radler>& deconvolution,
-                             const ObservationInfo& observationInfo,
-                             size_t majorIterationNr,
-                             const std::string& commandLine,
-                             const OutputChannelInfo& channelInfo, bool isModel,
-                             double startTime) {
+WSCFitsWriter::WSCFitsWriter(
+    const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
+    bool isImaginary, const Settings& settings,
+    const std::optional<radler::Radler>& deconvolution,
+    const ObservationInfo& observationInfo, double shiftL, double shiftM,
+    size_t majorIterationNr, const std::string& commandLine,
+    const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
   _filenamePrefix =
       ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
                                entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo, startTime);
+  setGridderConfiguration(settings, observationInfo, shiftL, shiftM, startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -83,7 +79,7 @@ void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
 
 void WSCFitsWriter::setGridderConfiguration(
     const Settings& settings, const ObservationInfo& observationInfo,
-    double startTime) {
+    double shiftL, double shiftM, double startTime) {
   const double ra = observationInfo.phaseCentreRA,
                dec = observationInfo.phaseCentreDec,
                pixelScaleX = settings.pixelScaleX,
@@ -94,8 +90,7 @@ void WSCFitsWriter::setGridderConfiguration(
                              pixelScaleY);
 
   _writer.SetDate(startTime);
-  if (observationInfo.hasShiftedPhaseCentre)
-    _writer.SetPhaseCentreShift(observationInfo.shiftL, observationInfo.shiftM);
+  if (shiftL || shiftM) _writer.SetPhaseCentreShift(shiftL, shiftM);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
