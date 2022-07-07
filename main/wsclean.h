@@ -102,12 +102,16 @@ class WSClean {
 
   ObservationInfo getObservationInfo() const;
   /**
-   * Add the phase shift of a facet to an ObservationInfo object.
+   * Add the phase shift of a facet
    * @param entry entry. If its facet is null, nothing happens.
-   * @param observationInfo shiftL and shiftM of this object are updated.
+   * @param shiftL is updated.
+   * @param shiftM is updated.
    */
-  void applyFacetPhaseShift(const ImagingTableEntry& entry,
-                            ObservationInfo& observationInfo) const;
+
+  std::pair<double, double> getShiftLM() const;
+
+  void applyFacetPhaseShift(const ImagingTableEntry& entry, double& shiftL,
+                            double& shiftM) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
@@ -131,12 +135,9 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
-<<<<<<< HEAD
-=======
   void addFacetsToImagingTable(
       ImagingTableEntry& templateEntry,
       std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
->>>>>>> AST-938 Design handling of direction dependent psf
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
   void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
   void updateFacetsInImagingTable(
@@ -294,6 +295,9 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
+  bool _hasShiftedPhaseCentre;
+  double _shiftL;
+  double _shiftM;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddPsfs;
   double _lastStartTime;
