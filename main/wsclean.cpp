@@ -45,6 +45,7 @@
 #include <schaapcommon/fft/restoreimage.h>
 #include <schaapcommon/fitters/nlplfitter.h>
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
 
@@ -672,29 +673,19 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
-  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  _facets = FacetReader::ReadFacets(_settings, _observationInfo);
 
-  bool hasCenter = false;
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
-  for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
-    const size_t alignment = 2;
-    facet->CalculatePixels(
-        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-        _settings.pixelScaleX, _settings.pixelScaleY,
-        _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM,
-        _settings.imagePadding, alignment,
-        _settings.gridderType == GridderType::IDG);
-
-    const schaapcommon::facets::BoundingBox bbox =
-        facet->GetTrimmedBoundingBox();
-    if (!hasCenter && bbox.Contains(centerPixel)) {
-      // Point-in-poly test only evaluated if bounding box does
-      // contain the centerPixel
-      hasCenter = facet->Contains(centerPixel);
-    }
-  }
+  const bool hasCenter = std::any_of(
+      _facets.begin(), _facets.end(),
+      [&centerPixel](
+          const std::shared_ptr<schaapcommon::facets::Facet>& facet) {
+        // Point-in-poly test only evaluated if bounding box does
+        // contain the centerPixel
+        return facet->GetTrimmedBoundingBox().Contains(centerPixel) &&
+               facet->Contains(centerPixel);
+      });
 
   // FIXME: raise warning if facets do not cover the entire image, see AST-429
 
@@ -865,7 +856,8 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 void WSClean::RunPredict() {
   assert(!_deconvolution.has_value());
   _observationInfo = getObservationInfo();
-  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+
+  _facets = FacetReader::ReadFacets(_settings, _observationInfo);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -897,17 +889,6 @@ void WSClean::RunPredict() {
               : "-model.fits";
       aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
-
-      for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
-        const size_t alignment = 2;
-        facet->CalculatePixels(
-            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-            _settings.pixelScaleX, _settings.pixelScaleY,
-            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM,
-            _settings.imagePadding, alignment,
-            _settings.gridderType == GridderType::IDG);
-      }
 
       // FIXME: raise warning if facets do not cover the entire image, see
       // AST-429
