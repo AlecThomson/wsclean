@@ -60,6 +60,9 @@ WSCFitsWriter::WSCFitsWriter(aocommon::FitsReader& templateReader)
   copyWSCleanKeywords(templateReader);
 }
 
+WSCFitsWriter::WSCFitsWriter(const aocommon::FitsWriter& writer)
+    : _writer(writer) {}
+
 void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
                                         const std::string& commandLine) {
   _writer.SetOrigin("WSClean", "W-stacking imager written by Andre Offringa");
@@ -80,17 +83,19 @@ void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
 void WSCFitsWriter::setGridderConfiguration(
     const Settings& settings, const ObservationInfo& observationInfo,
     double shiftL, double shiftM, double startTime) {
-  const double ra = observationInfo.phaseCentreRA,
-               dec = observationInfo.phaseCentreDec,
-               pixelScaleX = settings.pixelScaleX,
-               pixelScaleY = settings.pixelScaleY;
+  _width = settings.trimmedImageWidth;
+  _height = settings.trimmedImageHeight;
+  _ra = observationInfo.phaseCentreRA;
+  _dec = observationInfo.phaseCentreDec;
+  _pixelScaleX = settings.pixelScaleX;
+  _pixelScaleY = settings.pixelScaleY;
+  _shiftL = shiftL;
+  _shiftM = shiftM;
 
-  _writer.SetImageDimensions(settings.trimmedImageWidth,
-                             settings.trimmedImageHeight, ra, dec, pixelScaleX,
-                             pixelScaleY);
-
+  _writer.SetImageDimensions(_width, _height, _ra, _dec, _pixelScaleX,
+                             _pixelScaleY);
   _writer.SetDate(startTime);
-  if (shiftL || shiftM) _writer.SetPhaseCentreShift(shiftL, shiftM);
+  _writer.SetPhaseCentreShift(_shiftL, _shiftM);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
@@ -151,15 +156,57 @@ void WSCFitsWriter::copyWSCleanKeywords(aocommon::FitsReader& reader) {
     _writer.CopyDoubleKeywordIfExists(reader, dblKeywords[i]);
 }
 
-template <typename NumT>
-void WSCFitsWriter::WriteImage(const std::string& suffix, const NumT* image) {
+void WSCFitsWriter::WriteImage(const std::string& suffix,
+                               const aocommon::Image& image) {
   std::string name = _filenamePrefix + '-' + suffix;
-  _writer.Write(name, image);
+  WriteImageFullName(name, image);
 }
-template void WSCFitsWriter::WriteImage(const std::string& suffix,
-                                        const double* image);
-template void WSCFitsWriter::WriteImage(const std::string& suffix,
-                                        const float* image);
+
+void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
+                                       const aocommon::Image& image) {
+  if (image.Width() != _width || image.Height() != _height) {
+    aocommon::FitsWriter writer(_writer);
+    writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
+                              _pixelScaleX, _pixelScaleY);
+    if (_shiftL || _shiftM) {
+      writer.SetPhaseCentreShift(_shiftL, _shiftM);
+    }
+    writer.Write(fullname, image.Data());
+  } else {
+    _writer.Write(fullname, image.Data());
+  }
+}
+
+void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
+                                       const aocommon::Image& image,
+                                       const schaapcommon::facets::Facet& facet) {
+  aocommon::FitsWriter writer(_writer);
+  writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
+                            _pixelScaleX, _pixelScaleY);
+  size_t centreShiftX = facet.GetUntrimmedBoundingBox().Centre().x -
+                            _width / 2;
+  size_t centreShiftY = facet.GetUntrimmedBoundingBox().Centre().y -
+                            _height / 2;
+  double shiftL = _shiftL - centreShiftX * _pixelScaleX;
+  double shiftM = _shiftM + centreShiftY * _pixelScaleY;
+  writer.SetPhaseCentreShift(shiftL, shiftM);
+  writer.Write(fullname, image.Data());
+}
+
+void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
+                                       const schaapcommon::facets::FacetImage& facetimage) {
+  aocommon::FitsWriter writer(_writer);
+  writer.SetImageDimensions(facetimage.Width(), facetimage.Height(), _ra, _dec,
+                            _pixelScaleX, _pixelScaleY);
+  size_t centreShiftX = facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x -
+                            _width / 2;
+  size_t centreShiftY = facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y -
+                            _height / 2;
+  double shiftL = _shiftL - centreShiftX * _pixelScaleX;
+  double shiftM = _shiftM + centreShiftY * _pixelScaleY;
+  writer.SetPhaseCentreShift(shiftL, shiftM);
+  writer.Write(fullname, facetimage.Data(0));
+}
 
 template <typename NumT>
 void WSCFitsWriter::WriteUV(const std::string& suffix, const NumT* image) {
@@ -175,15 +222,6 @@ template void WSCFitsWriter::WriteUV(const std::string& suffix,
                                      const double* image);
 template void WSCFitsWriter::WriteUV(const std::string& suffix,
                                      const float* image);
-
-template <typename NumT>
-void WSCFitsWriter::WritePSF(const std::string& fullname, const NumT* image) {
-  _writer.Write(fullname, image);
-}
-template void WSCFitsWriter::WritePSF(const std::string& fullname,
-                                      const double* image);
-template void WSCFitsWriter::WritePSF(const std::string& fullname,
-                                      const float* image);
 
 void WSCFitsWriter::Restore(const Settings& settings) {
   aocommon::FitsReader imgReader(settings.restoreInput),

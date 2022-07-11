@@ -6,7 +6,11 @@
 
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
+#include <aocommon/image.h>
+#include <aocommon/image.h>
 #include <aocommon/polarization.h>
+
+#include <schaapcommon/facets/facetimage.h>
 
 #include <radler/radler.h>
 
@@ -16,6 +20,20 @@
 #include "../structures/outputchannelinfo.h"
 #include "../structures/imagingtable.h"
 
+/**
+ * @brief Class to write FITS images with the appropriate generic and WSClean specific keywords
+ * 
+ * The configuration is set in the constructor. This includes a pointing, possibly a shift and a
+ * default image size. The underlying FitsWriter object can be obtained by a call to the Writer()
+ * function. This can be used to write images of default size from a raw pointer.
+ * 
+ * Images of different sizes can be written using the WriteImage() and WriteImageFullName() functions.
+ * These accept an Image as argument, which can be of a different size than the default size supplied
+ * to the constructor.
+ * 
+ * The WriteImageFullName function also accepts facets, writing the correct size and shift onto the FITS
+ * file. 
+ */
 class WSCFitsWriter {
  public:
   WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
@@ -39,16 +57,30 @@ class WSCFitsWriter {
 
   explicit WSCFitsWriter(aocommon::FitsReader& templateReader);
 
-  aocommon::FitsWriter& Writer() { return _writer; }
+  explicit WSCFitsWriter(const aocommon::FitsWriter& writer);
 
-  template <typename NumT>
-  void WriteImage(const std::string& suffix, const NumT* image);
+  aocommon::FitsWriter& Writer() { return _writer; }
+  const aocommon::FitsWriter& Writer() const { return _writer; }
+
+  size_t Width() const { return _writer.Width(); }
+  size_t Height() const { return _writer.Height(); }
+  void SetImageDimensions(size_t width, size_t height) {
+    _writer.SetImageDimensions(width, height);
+  }
+
+  void WriteImage(const std::string& suffix, const aocommon::Image& image);
+
+  void WriteImageFullName(const std::string& fullname,
+                          const aocommon::Image& image);
+
+  void WriteImageFullName(const std::string& fullname,
+                          const aocommon::Image& image, const schaapcommon::facets::Facet& facet);
+
+  void WriteImageFullName(const std::string& fullname,
+                          const schaapcommon::facets::FacetImage& facetimage);
 
   template <typename NumT>
   void WriteUV(const std::string& suffix, const NumT* image);
-
-  template <typename NumT>
-  void WritePSF(const std::string& fullname, const NumT* image);
 
   /**
    * Restore an elliptical beam using a FFT deconvolution directly from images.
@@ -79,6 +111,14 @@ class WSCFitsWriter {
  private:
   aocommon::FitsWriter _writer;
   std::string _filenamePrefix;
+  size_t _width;
+  size_t _height;
+  double _ra;
+  double _dec;
+  double _pixelScaleX;
+  double _pixelScaleY;
+  double _shiftL;
+  double _shiftM;
 };
 
 #endif
