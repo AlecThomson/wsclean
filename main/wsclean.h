@@ -124,7 +124,7 @@ class WSClean {
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
-                              bool isImaginary, const float* image);
+                              bool isImaginary, const aocommon::Image& image);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 
   void makeImagingTable(size_t outputIntervalIndex);
@@ -225,13 +225,11 @@ class WSClean {
   void makeBeam();
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    bool isImaginary, bool isModel,
-                                    bool isFullImage) const;
+                                    bool isImaginary, bool isModel) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     aocommon::PolarizationEnum polarization,
-                                    bool isImaginary, bool isModel,
-                                    bool isFullImage) const;
+                                    bool isImaginary, bool isModel) const;
   /**
    * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
    * file. Method is only invoked in case no beam corrections are applied.
