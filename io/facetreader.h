@@ -16,5 +16,7 @@ class FacetReader {
   // are validated, and validate the facet settings here.
   static std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ReadFacets(
       const Settings& settings, const ObservationInfo& observation_info);
+
+  static std::size_t CountFacets(const std::string& facet_region_filename);
 };
 #endif

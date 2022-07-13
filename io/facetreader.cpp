@@ -31,3 +31,7 @@ std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
 
   return facets;
 }
+
+std::size_t FacetReader::CountFacets(const std::string& filename) {
+  return filename.empty() ? 0 : DS9FacetFile(filename).Count();
+}

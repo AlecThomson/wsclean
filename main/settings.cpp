@@ -90,8 +90,7 @@ void Settings::Validate() const {
             "input measurement sets.");
       }
 
-      const std::size_t nfacets =
-          FacetReader::ReadFacets(*this, ObservationInfo()).size();
+      const std::size_t nfacets = FacetReader::CountFacets(facetRegionFilename);
       for (const std::string& facetSolutionFile : facetSolutionFiles) {
         schaapcommon::h5parm::H5Parm h5parm =
             schaapcommon::h5parm::H5Parm(facetSolutionFile);
