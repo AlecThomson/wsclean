@@ -183,9 +183,8 @@ void WSCFitsWriter::WriteImageFullName(
   aocommon::FitsWriter writer(_writer);
   writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
                             _pixelScaleX, _pixelScaleY);
-  size_t centreShiftX = facet.GetUntrimmedBoundingBox().Centre().x - _width / 2;
-  size_t centreShiftY =
-      facet.GetUntrimmedBoundingBox().Centre().y - _height / 2;
+  int centreShiftX = facet.GetTrimmedBoundingBox().Centre().x - _width / 2;
+  int centreShiftY = facet.GetTrimmedBoundingBox().Centre().y - _height / 2;
   double shiftL = _shiftL - centreShiftX * _pixelScaleX;
   double shiftM = _shiftM + centreShiftY * _pixelScaleY;
   writer.SetPhaseCentreShift(shiftL, shiftM);
