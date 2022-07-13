@@ -132,6 +132,7 @@ class WSClean {
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
   void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
+  void updateFacetsInImagingTable();
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
