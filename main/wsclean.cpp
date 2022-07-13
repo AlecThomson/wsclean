@@ -276,7 +276,11 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
                                                    entry.outputIntervalIndex)) +
       "-psf.fits");
   WSCFitsWriter fitsFile = createWSCFitsWriter(entry, false, false);
-  fitsFile.WriteImageFullName(name, image);
+  if (entry.isDdPsf) {
+    fitsFile.WriteImageFullName(name, image, *entry.facet);
+  } else {
+    fitsFile.WriteImageFullName(name, image);
+  }
   Logger::Info << "DONE\n";
 }
 
