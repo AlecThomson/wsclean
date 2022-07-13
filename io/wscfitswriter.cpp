@@ -177,31 +177,31 @@ void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
   }
 }
 
-void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
-                                       const aocommon::Image& image,
-                                       const schaapcommon::facets::Facet& facet) {
+void WSCFitsWriter::WriteImageFullName(
+    const std::string& fullname, const aocommon::Image& image,
+    const schaapcommon::facets::Facet& facet) {
   aocommon::FitsWriter writer(_writer);
   writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
                             _pixelScaleX, _pixelScaleY);
-  size_t centreShiftX = facet.GetUntrimmedBoundingBox().Centre().x -
-                            _width / 2;
-  size_t centreShiftY = facet.GetUntrimmedBoundingBox().Centre().y -
-                            _height / 2;
+  size_t centreShiftX = facet.GetUntrimmedBoundingBox().Centre().x - _width / 2;
+  size_t centreShiftY =
+      facet.GetUntrimmedBoundingBox().Centre().y - _height / 2;
   double shiftL = _shiftL - centreShiftX * _pixelScaleX;
   double shiftM = _shiftM + centreShiftY * _pixelScaleY;
   writer.SetPhaseCentreShift(shiftL, shiftM);
   writer.Write(fullname, image.Data());
 }
 
-void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
-                                       const schaapcommon::facets::FacetImage& facetimage) {
+void WSCFitsWriter::WriteImageFullName(
+    const std::string& fullname,
+    const schaapcommon::facets::FacetImage& facetimage) {
   aocommon::FitsWriter writer(_writer);
   writer.SetImageDimensions(facetimage.Width(), facetimage.Height(), _ra, _dec,
                             _pixelScaleX, _pixelScaleY);
-  size_t centreShiftX = facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x -
-                            _width / 2;
-  size_t centreShiftY = facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y -
-                            _height / 2;
+  size_t centreShiftX =
+      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x - _width / 2;
+  size_t centreShiftY =
+      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y - _height / 2;
   double shiftL = _shiftL - centreShiftX * _pixelScaleX;
   double shiftM = _shiftM + centreShiftY * _pixelScaleY;
   writer.SetPhaseCentreShift(shiftL, shiftM);

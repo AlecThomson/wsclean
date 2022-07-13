@@ -21,18 +21,20 @@
 #include "../structures/imagingtable.h"
 
 /**
- * @brief Class to write FITS images with the appropriate generic and WSClean specific keywords
- * 
- * The configuration is set in the constructor. This includes a pointing, possibly a shift and a
- * default image size. The underlying FitsWriter object can be obtained by a call to the Writer()
- * function. This can be used to write images of default size from a raw pointer.
- * 
- * Images of different sizes can be written using the WriteImage() and WriteImageFullName() functions.
- * These accept an Image as argument, which can be of a different size than the default size supplied
- * to the constructor.
- * 
- * The WriteImageFullName function also accepts facets, writing the correct size and shift onto the FITS
- * file. 
+ * @brief Class to write FITS images with the appropriate generic and WSClean
+ * specific keywords
+ *
+ * The configuration is set in the constructor. This includes a pointing,
+ * possibly a shift and a default image size. The underlying FitsWriter object
+ * can be obtained by a call to the Writer() function. This can be used to write
+ * images of default size from a raw pointer.
+ *
+ * Images of different sizes can be written using the WriteImage() and
+ * WriteImageFullName() functions. These accept an Image as argument, which can
+ * be of a different size than the default size supplied to the constructor.
+ *
+ * The WriteImageFullName function also accepts facets, writing the correct size
+ * and shift onto the FITS file.
  */
 class WSCFitsWriter {
  public:
@@ -74,7 +76,8 @@ class WSCFitsWriter {
                           const aocommon::Image& image);
 
   void WriteImageFullName(const std::string& fullname,
-                          const aocommon::Image& image, const schaapcommon::facets::Facet& facet);
+                          const aocommon::Image& image,
+                          const schaapcommon::facets::Facet& facet);
 
   void WriteImageFullName(const std::string& fullname,
                           const schaapcommon::facets::FacetImage& facetimage);

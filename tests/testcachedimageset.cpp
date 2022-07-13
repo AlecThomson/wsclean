@@ -68,8 +68,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   for (size_t i = 0; i < facets.size(); ++i) {
     facet_images.emplace_back(facets[i]->GetTrimmedBoundingBox().Width(),
-                                  facets[i]->GetTrimmedBoundingBox().Height(),
-                          static_cast<float>(i + 1));
+                              facets[i]->GetTrimmedBoundingBox().Height(),
+                              static_cast<float>(i + 1));
   }
 
   CachedImageSet cSet;
@@ -110,8 +110,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
       imageStorage.AddToImage({imageMain.Data()});
       BOOST_CHECK_EQUAL_COLLECTIONS(
           imageStorage.Data(0), imageStorage.Data(0) + num_facet_pixels,
-          facet_images[facet_idx].begin(),
-          facet_images[facet_idx].end());
+          facet_images[facet_idx].begin(), facet_images[facet_idx].end());
     }
 
     // Check whether data in imageMain is correct

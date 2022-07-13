@@ -15,7 +15,6 @@
 #include <set>
 #include <iomanip>
 
-
 class CachedImageSet {
  public:
   CachedImageSet() : _polCount(0), _freqCount(0), _facetCount(0), _image() {}
@@ -90,15 +89,15 @@ class CachedImageSet {
 
   /**
    * @brief Store image from raw pointer
-   * 
+   *
    * @tparam NumT Numeric type, template parameter, however if there is only
    * one polarization and and frequency in cache then the data is stored in
-   * memory in an Image object which is of type float. So in that case NumT 
+   * memory in an Image object which is of type float. So in that case NumT
    * should be float.
    * @param image pointer to data of type NumT
-   * @param polarization 
-   * @param freqIndex 
-   * @param isImaginary 
+   * @param polarization
+   * @param freqIndex
+   * @param isImaginary
    */
   template <typename NumT>
   void Store(const NumT* image, aocommon::PolarizationEnum polarization,
@@ -122,11 +121,11 @@ class CachedImageSet {
 
   /**
    * @brief Store an Image object. Safer than using a raw pointer, because
-   * an Image knows its size  
-   * @param image 
-   * @param polarization 
-   * @param freqIndex 
-   * @param isImaginary 
+   * an Image knows its size
+   * @param image
+   * @param polarization
+   * @param freqIndex
+   * @param isImaginary
    */
   void Store(const aocommon::Image& image,
              aocommon::PolarizationEnum polarization, size_t freqIndex,
@@ -151,16 +150,16 @@ class CachedImageSet {
 
   /**
    * @brief Store a facet image
-   * 
+   *
    * main Store is used if no facet is given,
    * otherwise facet parameter is used to shift the coordinate system
-   * 
-   * @param image 
-   * @param polarization 
-   * @param freqIndex 
-   * @param facetIndex 
-   * @param facet 
-   * @param isImaginary 
+   *
+   * @param image
+   * @param polarization
+   * @param freqIndex
+   * @param facetIndex
+   * @param facet
+   * @param isImaginary
    */
   void StoreFacet(
       const aocommon::Image& image, aocommon::PolarizationEnum polarization,
@@ -181,21 +180,20 @@ class CachedImageSet {
 
   /**
    * @brief Store a facet image
-   * 
+   *
    * @param facetimage contains both image data and facet metadata
-   * @param polarization 
-   * @param freqIndex 
-   * @param facetIndex 
-   * @param isImaginary 
+   * @param polarization
+   * @param freqIndex
+   * @param facetIndex
+   * @param isImaginary
    */
-  void StoreFacet(
-      const schaapcommon::facets::FacetImage& facetimage, aocommon::PolarizationEnum polarization,
-      size_t freqIndex, size_t facetIndex,
-      bool isImaginary) {
+  void StoreFacet(const schaapcommon::facets::FacetImage& facetimage,
+                  aocommon::PolarizationEnum polarization, size_t freqIndex,
+                  size_t facetIndex, bool isImaginary) {
     std::string filename =
         nameFacet(polarization, freqIndex, facetIndex, isImaginary);
     aocommon::Logger::Debug << "Storing " << filename << '\n';
-      _writer->WriteImageFullName(filename, facetimage);
+    _writer->WriteImageFullName(filename, facetimage);
     _storedNames.insert(filename);
   }
 
