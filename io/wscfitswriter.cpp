@@ -56,12 +56,28 @@ WSCFitsWriter::WSCFitsWriter(
 }
 
 WSCFitsWriter::WSCFitsWriter(aocommon::FitsReader& templateReader)
-    : _writer(templateReader) {
+    : _writer(templateReader),
+      _width(templateReader.ImageWidth()),
+      _height(templateReader.ImageHeight()),
+      _ra(templateReader.PhaseCentreRA()),
+      _dec(templateReader.PhaseCentreDec()),
+      _pixelScaleX(templateReader.PixelSizeX()),
+      _pixelScaleY(templateReader.PixelSizeY()),
+      _shiftL(templateReader.PhaseCentreDL()),
+      _shiftM(templateReader.PhaseCentreDM()) {
   copyWSCleanKeywords(templateReader);
 }
 
 WSCFitsWriter::WSCFitsWriter(const aocommon::FitsWriter& writer)
-    : _writer(writer) {}
+    : _writer(writer),
+      _width(0),
+      _height(0),
+      _ra(0.0),
+      _dec(0.0),
+      _pixelScaleX(1.0),
+      _pixelScaleY(1.0),
+      _shiftL(0.0),
+      _shiftM(0.0) {}
 
 void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
                                         const std::string& commandLine) {
