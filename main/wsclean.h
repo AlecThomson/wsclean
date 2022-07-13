@@ -131,6 +131,12 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
+<<<<<<< HEAD
+=======
+  void addFacetsToImagingTable(
+      ImagingTableEntry& templateEntry,
+      std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
+>>>>>>> AST-938 Design handling of direction dependent psf
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
   void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
   void updateFacetsInImagingTable(
@@ -288,8 +294,8 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
-  /// Direction Dependent Point Spread Functions
-  std::vector<schaapcommon::facets::Facet> _dd_psfs;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddPsfs;
   double _lastStartTime;
 };
 

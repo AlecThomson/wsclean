@@ -256,7 +256,7 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
-  if ((psfsGridHeight > 1) || (psfsGridWidth > 1)) {
+  if ((ddPsfGridHeight > 1) || (ddPsfGridWidth > 1)) {
     Logger::Warn << "WARNING: Direction dependent psfs are not implemented "
                     "yet. Single psf is used instead.\n";
   }
@@ -328,14 +328,14 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
-  if ((psfsGridHeight > 1) || (psfsGridWidth > 1)) {
+  if ((ddPsfGridHeight > 1) || (ddPsfGridWidth > 1)) {
     // Raise warning if psfs are not square
     double widthHeightRatioImage =
         double(trimmedImageWidth) / (trimmedImageHeight);
-    double widthHeightRatioGrid = double(psfsGridWidth) / (psfsGridHeight);
+    double widthHeightRatioGrid = double(ddPsfGridWidth) / (ddPsfGridHeight);
     if (widthHeightRatioImage != widthHeightRatioGrid) {
-      double singlePsfWidth = trimmedImageWidth / psfsGridWidth;
-      double singlePsfHeight = trimmedImageHeight / psfsGridHeight;
+      double singlePsfWidth = trimmedImageWidth / ddPsfGridWidth;
+      double singlePsfHeight = trimmedImageHeight / ddPsfGridHeight;
       Logger::Warn << "Psfs grid chosen will not deliver square psfs. Each psf "
                       "has size [ "
                    << singlePsfWidth << ", " << singlePsfHeight
