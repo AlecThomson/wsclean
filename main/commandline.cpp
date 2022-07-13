@@ -344,12 +344,6 @@ void PrintHelp() {
          "(normally) stored in\n"
          "   WEIGHT_SPECTRUM column are applied. Useful for estimating e.g. "
          "EoR power spectra errors.\n"
-         "   Normally one would use this in combination with "
-         "-no-normalize-for-weighting.\n"
-         "-no-normalize-for-weighting\n"
-         "   Disable the normalization for the weights, which makes the PSF's "
-         "peak one. See\n"
-         "   -visibility-weighting-mode. Only useful with natural weighting.\n"
          "-baseline-averaging <size-in-wavelengths>\n"
          "   Enable baseline-dependent averaging. The specified size is in "
          "number of wavelengths (i.e., uvw-units). One way\n"
@@ -948,11 +942,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "pb-grid-size") {
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
-    } else if (param == "psf-grid-size") {
-      size_t width = ParseSizeT(argv[argi + 1], "psf-grid-size"),
-             height = ParseSizeT(argv[argi + 2], "psf-grid-size");
-      settings.psfsGridWidth = width;
-      settings.psfsGridHeight = height;
+    } else if (param == "dd-psf-grid") {
+      size_t width = ParseSizeT(argv[argi + 1], "dd-psf-grid"),
+             height = ParseSizeT(argv[argi + 2], "dd-psf-grid");
+      settings.ddPsfGridWidth = width;
+      settings.ddPsfGridHeight = height;
       argi += 2;
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
