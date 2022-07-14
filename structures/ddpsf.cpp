@@ -2,48 +2,37 @@
 
 #include <aocommon/imagecoordinates.h>
 
-std::vector<schaapcommon::facets::Facet> CreateRectangularPsfs(
+using schaapcommon::facets::Facet;
+
+std::vector<Facet> CreateRectangularPsfs(
     const double phase_centre_ra, const double phase_centre_dec,
-    const double pixelScaleX, const double pixel_scale_y,
+    const double pixel_scale_x, const double pixel_scale_y,
     const size_t trimmed_image_height, const size_t trimmed_image_width,
     const size_t psf_grid_width, const size_t psf_grid_height) {
-  std::vector<schaapcommon::facets::Facet> ddpsfs;
+  Facet::InitializationData facet_data(
+      pixel_scale_x, pixel_scale_y, trimmed_image_width, trimmed_image_height);
+  facet_data.phase_centre.ra = phase_centre_ra;
+  facet_data.phase_centre.dec = phase_centre_dec;
+
+  std::vector<Facet> ddpsfs;
   ddpsfs.reserve(psf_grid_height * psf_grid_width);
 
   double single_psf_height = trimmed_image_height / psf_grid_height;
   double single_psf_width = trimmed_image_width / psf_grid_width;
 
-  for (size_t grid_y = 0; grid_y < psf_grid_height; ++grid_y) {
-    for (size_t grid_x = 0; grid_x < psf_grid_width; ++grid_x) {
-      schaapcommon::facets::Facet facet;
+  for (int grid_y = 0; grid_y < static_cast<int>(psf_grid_height); ++grid_y) {
+    for (int grid_x = 0; grid_x < static_cast<int>(psf_grid_width); ++grid_x) {
+      const int facet_start_x = grid_x * single_psf_width;
+      const int facet_start_y = grid_y * single_psf_height;
+      const int facet_end_x = (grid_x + 1) * single_psf_width;
+      const int facet_end_y = (grid_y + 1) * single_psf_height;
+      const schaapcommon::facets::BoundingBox box(
+          {{facet_start_x, facet_start_y}, {facet_end_x, facet_end_y}});
 
-      const auto add_vertex = [&](size_t x, size_t y) {
-        double l = 0.0;
-        double m = 0.0;
-        double ra = 0.0;
-        double dec = 0.0;
-        aocommon::ImageCoordinates::XYToLM(x, y, pixelScaleX, pixel_scale_y,
-                                           trimmed_image_width,
-                                           trimmed_image_height, l, m);
-        aocommon::ImageCoordinates::LMToRaDec(l, m, phase_centre_ra,
-                                              phase_centre_dec, ra, dec);
-        facet.AddVertex(ra, dec);
-      };
-
-      const size_t facet_start_x = grid_x * single_psf_width;
-      const size_t facet_start_y = grid_y * single_psf_height;
-      const size_t facet_end_x = (grid_x + 1) * single_psf_width;
-      const size_t facet_end_y = (grid_y + 1) * single_psf_height;
-      add_vertex(facet_start_x, facet_start_y);
-      add_vertex(facet_start_x, facet_end_y);
-      add_vertex(facet_end_x, facet_end_y);
-      add_vertex(facet_end_x, facet_start_y);
-
+      ddpsfs.emplace_back(facet_data, box);
       // add a name label for this box
-      facet.SetDirectionLabel(std::to_string(grid_x) + ", " +
-                              std::to_string(grid_y));
-
-      ddpsfs.push_back(std::move(facet));
+      ddpsfs.back().SetDirectionLabel(std::to_string(grid_x) + ", " +
+                                      std::to_string(grid_y));
     }
   }
 
