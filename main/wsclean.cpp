@@ -200,7 +200,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
-  if (_facets.empty()) processFullPSF(result.images[0], entry);
+  if (0 == _facetCount) processFullPSF(result.images[0], entry);
 
   _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -381,8 +381,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
                              polarization, isImaginary, images[i].Data());
     }
 
-    // If !_facets.empty(), these actions are performed in stitchFacets
-    if (isInitialInversion && _facets.empty()) {
+    // If facets are used, stitchFacets() performs these actions.
+    if (isInitialInversion && 0 == _facetCount) {
       // maxFacetGroupIndex is always 1
       const size_t maxFacetGroupIndex = 1;
       initializeModelImages(entry, polarization, maxFacetGroupIndex);
@@ -390,7 +390,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       _residualImages.SetFitsWriter(
           createWSCFitsWriter(entry, polarization, false, false, false)
               .Writer());
-      // If !_facets.empty(), dirty image is saved in stitchFacets
+      // If facets are used, stitchFacets() saves the dirty image.
       if (_settings.isDirtySaved) {
         for (size_t imageIndex = 0; imageIndex != entry.imageCount;
              ++imageIndex) {
@@ -673,12 +673,14 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
-  _facets = FacetReader::ReadFacets(_settings, _observationInfo);
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets =
+      FacetReader::ReadFacets(_settings, _observationInfo);
+  _facetCount = facets.size();
 
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
   const bool hasCenter = std::any_of(
-      _facets.begin(), _facets.end(),
+      facets.begin(), facets.end(),
       [&centerPixel](
           const std::shared_ptr<schaapcommon::facets::Facet>& facet) {
         // Point-in-poly test only evaluated if bounding box does
@@ -690,7 +692,7 @@ void WSClean::RunClean() {
   // FIXME: raise warning if facets do not cover the entire image, see AST-429
 
   // Center pixel should be present in one of the facets for the deconvolution
-  if (!_facets.empty() && _settings.deconvolutionIterationCount > 0 &&
+  if (!facets.empty() && _settings.deconvolutionIterationCount > 0 &&
       !hasCenter) {
     throw std::runtime_error(
         "The center pixel of the full image is not found in one of the facets. "
@@ -704,7 +706,7 @@ void WSClean::RunClean() {
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
     makeImagingTable(intervalIndex);
-    if (!_facets.empty()) updateFacetsInImagingTable();
+    if (!facets.empty()) updateFacetsInImagingTable(facets);
 
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 
@@ -855,12 +857,27 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
+  // The initialization of imaging table and the facets depend on eachother.
+  // We therefore use this approach:
+  // 1. Count the number of facets and store in _facetCount.
+  // 2. makeImagingTable (actually, addFacetsToImagingTable) uses _facetCount
+  //    and sets the facetIndex in the imaging table entries.
+  // 3. Using the first imaging table entry, create a model image file name.
+  // 4. overrideImageSettings reads the image size and pixel scale from the file
+  //    and updates the settings. This way, the user does not have to specify
+  //    these values on the command line.
+  // 5. FacetReader::ReadFacets creates the facets using the new settings.
+  //    Since all model image files should have the same image size and pixel
+  //    scale (see overrideImageSettings), the settings do not change in
+  //    subsequent loop iterations. Therefore, only create the facets in the
+  //    first loop iteration (when intervalIndex == 0).
+  // 6. updateFacetsInImagingTable sets the facets and related properties
+  //    in the imaging table entries, using the existing facetIndex.
+
   assert(!_deconvolution.has_value());
   _observationInfo = getObservationInfo();
-
-  // Create dummy facets, so makeImagingTable knows how many facets there are.
-  _facets.clear();
-  _facets.resize(FacetReader::CountFacets(_settings.facetRegionFilename));
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets;
+  _facetCount = FacetReader::CountFacets(_settings.facetRegionFilename);
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -880,7 +897,7 @@ void WSClean::RunPredict() {
 
     if (_settings.doReorder) performReordering(true);
 
-    if (!_facets.empty()) {
+    if (_facetCount != 0) {
       std::string prefix =
           ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
                                    _imagingTable[0].outputChannelIndex,
@@ -892,13 +909,12 @@ void WSClean::RunPredict() {
       aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
       if (intervalIndex == 0) {
-        _facets = FacetReader::ReadFacets(_settings, _observationInfo);
-
+        facets = FacetReader::ReadFacets(_settings, _observationInfo);
         // FIXME: raise warning if facets do not cover the entire image, see
         // AST-429
-
-        updateFacetsInImagingTable();
       }
+
+      updateFacetsInImagingTable(facets);
     }
 
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
@@ -923,22 +939,22 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   WSCFitsWriter modelWriter(
       createWSCFitsWriter(groupTable.Front(), false, true, false));
   _modelImages.Initialize(modelWriter.Writer(), _settings.polarizations.size(),
-                          _settings.channelsOut, _facets.size(),
+                          _settings.channelsOut, _facetCount,
                           _settings.prefixName + "-model");
   WSCFitsWriter writer(
       createWSCFitsWriter(groupTable.Front(), false, false, false));
   _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
-                             _settings.channelsOut, _facets.size(),
+                             _settings.channelsOut, _facetCount,
                              _settings.prefixName + "-residual");
   if (groupTable.Front().polarization == *_settings.polarizations.begin()) {
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
-                          _facets.size(), _settings.prefixName + "-psf");
-    _scalarBeamImages.Initialize(
-        writer.Writer(), 1, groupTable.SquaredGroups().size(), _facets.size(),
-        _settings.prefixName + "-scalar-beam");
-    _matrixBeamImages.Initialize(
-        writer.Writer(), 2, groupTable.SquaredGroups().size(), _facets.size(),
-        _settings.prefixName + "-matrix-beam");
+                          _facetCount, _settings.prefixName + "-psf");
+    _scalarBeamImages.Initialize(writer.Writer(), 1,
+                                 groupTable.SquaredGroups().size(), _facetCount,
+                                 _settings.prefixName + "-scalar-beam");
+    _matrixBeamImages.Initialize(writer.Writer(), 2,
+                                 groupTable.SquaredGroups().size(), _facetCount,
+                                 _settings.prefixName + "-matrix-beam");
   }
 
   // In the case of IDG we have to directly ask for all four polarizations.
@@ -1135,7 +1151,7 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
 
 void WSClean::partitionModelIntoFacets(const ImagingTable& table,
                                        bool isPredictOnly) {
-  if (!_facets.empty()) {
+  if (_facetCount != 0) {
     Logger::Info << "Clipping model image into facets...\n";
     // Allocate full image
     Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
@@ -1346,7 +1362,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       // be inferred from the first entry in the facetGroup table
       _modelImages.Initialize(
           createWSCFitsWriter(facetGroup.Front(), false, true, false).Writer(),
-          _settings.polarizations.size(), _settings.channelsOut, _facets.size(),
+          _settings.polarizations.size(), _settings.channelsOut, _facetCount,
           _settings.prefixName + "-model");
 
       readExistingModelImages(facetGroup.Front(),
@@ -1722,7 +1738,7 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
 void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& imageCache, bool writeDirty,
                            bool isPSF) {
-  if (!_facets.empty()) {
+  if (_facetCount != 0) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
     Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -2016,30 +2032,6 @@ void WSClean::makeImagingTableEntryChannelSettings(
   entry.outputIntervalIndex = outIntervalIndex;
 }
 
-void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
-  const size_t facet_count = _facets.empty() ? 1 : _facets.size();
-  for (size_t f = 0; f != facet_count; ++f) {
-    auto entry = std::make_unique<ImagingTableEntry>(templateEntry);
-    entry->facetIndex = f;
-    entry->facet.reset();  // updateFacetsInImagingTable will set the facet.
-    _imagingTable.AddEntry(std::move(entry));
-  }
-  ++templateEntry.facetGroupIndex;
-}
-
-void WSClean::updateFacetsInImagingTable() {
-  for (ImagingTableEntry& entry : _imagingTable) {
-    assert(entry.facetIndex < _facets.size());
-    entry.facet = _facets[entry.facetIndex];
-
-    // Calculate phase center delta for entry
-    entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
-                         _settings.trimmedImageWidth / 2;
-    entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
-                         _settings.trimmedImageHeight / 2;
-  }
-}
-
 void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
   for (PolarizationEnum p : _settings.polarizations) {
     templateEntry.polarization = p;
@@ -2061,6 +2053,31 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
   if (_settings.joinedPolarizationDeconvolution) {
     ++templateEntry.joinedGroupIndex;
     ++templateEntry.squaredDeconvolutionIndex;
+  }
+}
+
+void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
+  const size_t facet_entry_count = std::max(_facetCount, std::size_t(1));
+  for (size_t f = 0; f != facet_entry_count; ++f) {
+    auto entry = std::make_unique<ImagingTableEntry>(templateEntry);
+    entry->facetIndex = f;
+    entry->facet.reset();  // updateFacetsInImagingTable will set the facet.
+    _imagingTable.AddEntry(std::move(entry));
+  }
+  ++templateEntry.facetGroupIndex;
+}
+
+void WSClean::updateFacetsInImagingTable(
+    const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets) {
+  for (ImagingTableEntry& entry : _imagingTable) {
+    assert(entry.facetIndex < facets.size());
+    entry.facet = facets[entry.facetIndex];
+
+    // Calculate phase center delta for entry
+    entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
+                         _settings.trimmedImageWidth / 2;
+    entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
+                         _settings.trimmedImageHeight / 2;
   }
 }
 
