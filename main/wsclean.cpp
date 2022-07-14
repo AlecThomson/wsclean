@@ -2057,6 +2057,7 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
 }
 
 void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
+  // Create a single entry (with facetIndex == 0) when facets are not used.
   const size_t facet_entry_count = std::max(_facetCount, std::size_t(1));
   for (size_t f = 0; f != facet_entry_count; ++f) {
     auto entry = std::make_unique<ImagingTableEntry>(templateEntry);
