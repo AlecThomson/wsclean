@@ -880,7 +880,7 @@ void WSClean::RunPredict() {
 
     if (_settings.doReorder) performReordering(true);
 
-    if (!_settings.facetRegionFilename.empty()) {
+    if (!_facets.empty()) {
       std::string prefix =
           ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
                                    _imagingTable[0].outputChannelIndex,
@@ -891,18 +891,13 @@ void WSClean::RunPredict() {
               : "-model.fits";
       aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
-      _facets = FacetReader::ReadFacets(_settings, _observationInfo);
-      updateFacetsInImagingTable();
+      if (intervalIndex == 0) {
+        _facets = FacetReader::ReadFacets(_settings, _observationInfo);
 
-      // FIXME: raise warning if facets do not cover the entire image, see
-      // AST-429
+        // FIXME: raise warning if facets do not cover the entire image, see
+        // AST-429
 
-      // Set correct centre shifts for facets
-      for (auto& entry : _imagingTable) {
-        entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
-                             _settings.trimmedImageWidth / 2;
-        entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
-                             _settings.trimmedImageHeight / 2;
+        updateFacetsInImagingTable();
       }
     }
 
