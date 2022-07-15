@@ -3,7 +3,7 @@
 
 #include <schaapcommon/facets/ds9facetfile.h>
 
-#include "../structures/ddpsf.h"
+#include "../structures/facetutil.h"
 
 using schaapcommon::facets::DS9FacetFile;
 using schaapcommon::facets::Facet;
@@ -11,7 +11,7 @@ using schaapcommon::facets::Facet;
 std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     const Settings& settings, const ObservationInfo& observation_info) {
   const Facet::InitializationData data =
-      CreateFacetInitilizationData(settings, observation_info);
+      CreateFacetInitializationData(settings, observation_info);
 
   std::vector<std::shared_ptr<Facet>> facets;
   if (!settings.facetRegionFilename.empty()) {

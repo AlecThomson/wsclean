@@ -15,8 +15,8 @@ add_executable(
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
-  structures/tddpsf.cpp
   structures/testimagingtable.cpp
+  structures/tfacetutil.cpp
   structures/toutputchannelinfo.cpp
   system/tmappedfile.cpp
   ${WSCLEANFILES})

@@ -14,7 +14,7 @@
 
 #include "../system/application.h"
 
-#include "../structures/ddpsf.h"
+#include "../structures/facetutil.h"
 #include "../structures/imageweights.h"
 #include "../structures/msselection.h"
 #include "../structures/primarybeam.h"
@@ -678,7 +678,10 @@ void WSClean::RunClean() {
   _facetCount = facets.size();
 
   if ((_settings.psfsGridHeight > 1) || (_settings.psfsGridWidth > 1)) {
-    _dd_psfs = CreateRectangularPsfs(_settings, _observationInfo);
+    const schaapcommon::facets::Facet::InitializationData facet_data =
+        CreateFacetInitializationData(_settings, _observationInfo);
+    _dd_psfs = CreateFacetGrid(facet_data, _settings.psfsGridWidth,
+                               _settings.psfsGridHeight);
   }
 
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
