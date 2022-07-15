@@ -861,17 +861,17 @@ void WSClean::RunPredict() {
   // facets depend on eachother. We therefore use this approach:
   // 1. Count the number of facets and store in _facetCount.
   // 2. Create the imaging table using _facetCount and set the facet index in
-  //    the imaging table entries. Each loop iteration creates a new imaging
-  //    table.
-  // 3. Reads the image size and pixel scale from the input fits file
+  //    the imaging table entries. Each interval loop iteration creates a new
+  //    imaging table.
+  // 3. Read the image size and pixel scale from the input fits file
   //    corresponding to the first imaging table entry. This way, the user does
   //    not have to specify these values on the command line.
-  // 4. In the first loop iteration, update the settings using the values from
-  //    the input fits file. In subsequent iterations, check if the image size
-  //    and pixel scale match the existing settings.
-  // 5. In the first loop iteration, create the facets using the new settings.
-  //    In subsequent iterations, the settings do not change so recreating the
-  //    facets is not needed.
+  // 4. In the first interval loop iteration, update the settings using the
+  //    values from the input fits file. In subsequent iterations, check if the
+  //    image size and pixel scale match the existing settings.
+  // 5. In the first interval loop iteration, create the facets using the new
+  //    settings. In subsequent iterations, the settings do not change so
+  //    recreating the facets is not needed.
   // 6. Set the facets and related properties in the imaging table entries,
   //    using the existing facet index in the entries.
 
