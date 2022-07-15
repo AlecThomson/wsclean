@@ -59,9 +59,13 @@ class TestLongSystem:
 
     def test_multiple_intervals_and_facets(self):
         # Multiple intervals + multiple facets with some cleaning
-        s = f"{tcf.WSCLEAN} -name {name('intervals-and-facets')} -intervals-out 3 \
-            -facet-regions {tcf.FACETFILE_4FACETS} -niter 1000 -mgain 0.8 \
-            {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        s_base = f"{tcf.WSCLEAN} -name {name('intervals-and-facets')} -intervals-out 3 \
+            -facet-regions {tcf.FACETFILE_4FACETS}"
+        s = f"{s_base} -niter 1000 -mgain 0.8 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        # Run predict, using the model generated above.
+        s = f"{s_base} -predict {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multifrequency_hogbom(self):
