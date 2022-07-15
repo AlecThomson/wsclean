@@ -63,8 +63,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
   std::vector<std::shared_ptr<Facet>> facets{
       std::make_shared<Facet>(facet_data, std::move(coords0)),
       std::make_shared<Facet>(facet_data, std::move(coords1))};
-  std::vector<aocommon::Image> facet_images(facets.size());
-  facet_images.reserve(num_facets);
+  std::vector<aocommon::Image> facet_images;
+  facet_images.reserve(facets.size());
 
   for (size_t i = 0; i < facets.size(); ++i) {
     facet_images.emplace_back(facets[i]->GetTrimmedBoundingBox().Width(),

@@ -135,13 +135,12 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
-  void addFacetsToImagingTable(
-      ImagingTableEntry& templateEntry,
-      std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
-  void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
+  void addFacetsToImagingTable(ImagingTableEntry& templateEntry,
+                               const size_t facet_count);
   void updateFacetsInImagingTable(
-      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets,
+      bool updateDdPsfs = false);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;
@@ -293,11 +292,10 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
+  std::size_t _ddPsfCount;  // 0 means dd-psfs are not used.
   bool _hasShiftedPhaseCentre;
   double _shiftL;
   double _shiftM;
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _ddPsfs;
   double _lastStartTime;
 };
 
