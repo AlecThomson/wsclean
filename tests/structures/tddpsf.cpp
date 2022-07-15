@@ -3,36 +3,39 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
-const double kPhaseCentreRa = 0;
-const double kPhaseCentreDec = 0;
-const double kPixelScaleX = 1;
-const double kPixelScaleY = 1;
-const size_t kTrimmedImageHeight = 100;
-const size_t kTrimmedImageWidth = 100;
+
+struct SettingsFixture {
+  SettingsFixture() {
+    settings.pixelScaleX = 0.01;
+    settings.pixelScaleY = 0.01;
+    settings.trimmedImageWidth = 100;
+    settings.trimmedImageHeight = 100;
+  }
+
+  Settings settings;
+  ObservationInfo observation_info;  // Use default values only.
+};
+
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(dd_psf)
 
-BOOST_AUTO_TEST_CASE(create_single_psf) {
-  const double kPsfGridWidth = 1;
-  const double kPsfGridHeight = 1;
+BOOST_FIXTURE_TEST_CASE(create_single_psf, SettingsFixture) {
+  settings.psfsGridWidth = 1;
+  settings.psfsGridHeight = 1;
 
   const std::vector<schaapcommon::facets::Facet> dd_psfs =
-      CreateRectangularPsfs(kPhaseCentreRa, kPhaseCentreDec, kPixelScaleX,
-                            kPixelScaleY, kTrimmedImageHeight,
-                            kTrimmedImageWidth, kPsfGridWidth, kPsfGridHeight);
+      CreateRectangularPsfs(settings, observation_info);
 
   BOOST_CHECK_EQUAL(dd_psfs.size(), 1);
 }
 
-BOOST_AUTO_TEST_CASE(create_multiple_psfs) {
-  const double kPsfGridWidth = 5;
-  const double kPsfGridHeight = 5;
+BOOST_FIXTURE_TEST_CASE(create_multiple_psfs, SettingsFixture) {
+  settings.psfsGridWidth = 5;
+  settings.psfsGridHeight = 5;
 
   const std::vector<schaapcommon::facets::Facet> dd_psfs =
-      CreateRectangularPsfs(kPhaseCentreRa, kPhaseCentreDec, kPixelScaleX,
-                            kPixelScaleY, kTrimmedImageHeight,
-                            kTrimmedImageWidth, kPsfGridWidth, kPsfGridHeight);
+      CreateRectangularPsfs(settings, observation_info);
 
   BOOST_REQUIRE_EQUAL(dd_psfs.size(), 25);
 }

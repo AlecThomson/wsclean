@@ -5,9 +5,13 @@
 
 #include <schaapcommon/facets/facet.h>
 
+#include "../main/settings.h"
+#include "../structures/observationinfo.h"
+
+schaapcommon::facets::Facet::InitializationData CreateFacetInitilizationData(
+    const Settings& settings, const ObservationInfo& observation_info);
+
 std::vector<schaapcommon::facets::Facet> CreateRectangularPsfs(
-    double phase_centre_ra, double phase_centre_dec, double pixel_scale_x,
-    double pixel_scale_y, size_t trimmed_image_height,
-    size_t trimmed_image_width, size_t psf_grid_width, size_t psf_grid_height);
+    const Settings& settings, const ObservationInfo& observation_info);
 
 #endif  // STRUCTURES_DDPSF_H_

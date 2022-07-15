@@ -4,21 +4,33 @@
 
 using schaapcommon::facets::Facet;
 
+Facet::InitializationData CreateFacetInitilizationData(
+    const Settings& settings, const ObservationInfo& observation_info) {
+  Facet::InitializationData data(settings.pixelScaleX, settings.pixelScaleY,
+                                 settings.trimmedImageWidth,
+                                 settings.trimmedImageHeight);
+  data.phase_centre.ra = observation_info.phaseCentreRA;
+  data.phase_centre.dec = observation_info.phaseCentreDec;
+  data.shift_l = observation_info.shiftL;
+  data.shift_m = observation_info.shiftM;
+  data.padding = settings.imagePadding;
+  data.align = 2;
+  data.make_square = settings.gridderType == GridderType::IDG;
+  return data;
+}
+
 std::vector<Facet> CreateRectangularPsfs(
-    const double phase_centre_ra, const double phase_centre_dec,
-    const double pixel_scale_x, const double pixel_scale_y,
-    const size_t trimmed_image_height, const size_t trimmed_image_width,
-    const size_t psf_grid_width, const size_t psf_grid_height) {
-  Facet::InitializationData facet_data(
-      pixel_scale_x, pixel_scale_y, trimmed_image_width, trimmed_image_height);
-  facet_data.phase_centre.ra = phase_centre_ra;
-  facet_data.phase_centre.dec = phase_centre_dec;
+    const Settings& settings, const ObservationInfo& observation_info) {
+  const Facet::InitializationData facet_data =
+      CreateFacetInitilizationData(settings, observation_info);
+  const size_t psf_grid_width = settings.psfsGridWidth;
+  const size_t psf_grid_height = settings.psfsGridHeight;
 
   std::vector<Facet> ddpsfs;
   ddpsfs.reserve(psf_grid_height * psf_grid_width);
 
-  double single_psf_height = trimmed_image_height / psf_grid_height;
-  double single_psf_width = trimmed_image_width / psf_grid_width;
+  double single_psf_height = settings.trimmedImageHeight / psf_grid_height;
+  double single_psf_width = settings.trimmedImageWidth / psf_grid_width;
 
   for (int grid_y = 0; grid_y < static_cast<int>(psf_grid_height); ++grid_y) {
     for (int grid_x = 0; grid_x < static_cast<int>(psf_grid_width); ++grid_x) {

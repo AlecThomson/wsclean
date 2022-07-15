@@ -678,11 +678,7 @@ void WSClean::RunClean() {
   _facetCount = facets.size();
 
   if ((_settings.psfsGridHeight > 1) || (_settings.psfsGridWidth > 1)) {
-    _dd_psfs = CreateRectangularPsfs(
-        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-        _settings.pixelScaleX, _settings.pixelScaleY,
-        _settings.trimmedImageHeight, _settings.trimmedImageWidth,
-        _settings.psfsGridWidth, _settings.psfsGridHeight);
+    _dd_psfs = CreateRectangularPsfs(_settings, _observationInfo);
   }
 
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
