@@ -698,17 +698,19 @@ void WSClean::RunClean() {
           _settings.imagePadding, _settings.gridderType == GridderType::IDG);
   _facetCount = facets.size();
 
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ddPsfs;
-  if (_settings.ddPsfGridHeight > 1 || _settings.ddPsfGridWidth > 1) {
-    // TODO Make a grid instead of reading from file
-    ddPsfs = FacetReader::ReadFacets(
-        "ddpsfs.reg", _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _settings.pixelScaleX, _settings.pixelScaleY,
-        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-        _shiftL, _shiftM, _settings.imagePadding,
-        _settings.gridderType == GridderType::IDG);
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> dd_psfs;
+  if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
+    const schaapcommon::facets::Facet::InitializationData facet_data =
+        CreateFacetInitializationData(
+            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+            _settings.pixelScaleX, _settings.pixelScaleY,
+            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+            _shiftL, _shiftM, _settings.imagePadding,
+            _settings.gridderType == GridderType::IDG);
+    dd_psfs = CreateFacetGrid(facet_data, _settings.ddPsfGridWidth,
+                              _settings.ddPsfGridHeight);
   }
-  _ddPsfCount = ddPsfs.size();
+  _ddPsfCount = dd_psfs.size();
 
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
@@ -740,7 +742,7 @@ void WSClean::RunClean() {
        ++intervalIndex) {
     makeImagingTable(intervalIndex);
     if (!facets.empty()) updateFacetsInImagingTable(facets);
-    if (!ddPsfs.empty()) updateFacetsInImagingTable(ddPsfs, true);
+    if (!dd_psfs.empty()) updateFacetsInImagingTable(dd_psfs, true);
 
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 

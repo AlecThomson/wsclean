@@ -12,14 +12,9 @@ std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     std::string filename, double width, double height, double pixelScaleX,
     double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
     double shiftL, double shiftM, double imagePadding, bool make_square) {
-  Facet::InitializationData data(pixelScaleX, pixelScaleY, width, height);
-  data.phase_centre.ra = phaseCentreRA;
-  data.phase_centre.dec = phaseCentreDec;
-  data.shift_l = shiftL;
-  data.shift_m = shiftM;
-  data.padding = imagePadding;
-  data.align = 2;
-  data.make_square = make_square;
+  const Facet::InitializationData data = CreateFacetInitializationData(
+      width, height, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec,
+      shiftL, shiftM, imagePadding, make_square);
 
   std::vector<std::shared_ptr<Facet>> facets;
   if (!filename.empty()) {
