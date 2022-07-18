@@ -95,9 +95,6 @@ class CachedImageSet {
    * memory in an Image object which is of type float. So in that case NumT
    * should be float.
    * @param image pointer to data of type NumT
-   * @param polarization
-   * @param freqIndex
-   * @param isImaginary
    */
   template <typename NumT>
   void Store(const NumT* image, aocommon::PolarizationEnum polarization,
@@ -120,12 +117,7 @@ class CachedImageSet {
   }
 
   /**
-   * @brief Store an Image object. Safer than using a raw pointer, because
-   * an Image knows its size
-   * @param image
-   * @param polarization
-   * @param freqIndex
-   * @param isImaginary
+   * @brief Store an Image object.
    */
   void Store(const aocommon::Image& image,
              aocommon::PolarizationEnum polarization, size_t freqIndex,
@@ -153,13 +145,6 @@ class CachedImageSet {
    *
    * main Store is used if no facet is given,
    * otherwise facet parameter is used to shift the coordinate system
-   *
-   * @param image
-   * @param polarization
-   * @param freqIndex
-   * @param facetIndex
-   * @param facet
-   * @param isImaginary
    */
   void StoreFacet(
       const aocommon::Image& image, aocommon::PolarizationEnum polarization,
@@ -182,10 +167,6 @@ class CachedImageSet {
    * @brief Store a facet image
    *
    * @param facetimage contains both image data and facet metadata
-   * @param polarization
-   * @param freqIndex
-   * @param facetIndex
-   * @param isImaginary
    */
   void StoreFacet(const schaapcommon::facets::FacetImage& facetimage,
                   aocommon::PolarizationEnum polarization, size_t freqIndex,
