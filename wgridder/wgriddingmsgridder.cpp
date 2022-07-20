@@ -36,19 +36,22 @@ WGriddingMSGridder::~WGriddingMSGridder() = default;
 
 size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
     size_t channelCount) const {
-  size_t constantMem, perVisMem;
+  size_t constantMem;
+  size_t perVisMem;
   _gridder->memUsage(constantMem, perVisMem);
   if (int64_t(constantMem) >= _resources.Memory()) {
+    // Assume that half the memory is necessary for the constant parts (like image grid), and the
+    // other half remains available for the dynamic buffers
     constantMem = _resources.Memory() / 2;
     Logger::Warn << "Not enough memory available for doing the gridding:\n"
                     "swapping might occur!\n";
   }
-  uint64_t memForBuffers = _resources.Memory() - constantMem;
+  const uint64_t memForBuffers = _resources.Memory() - constantMem;
 
-  uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
+  const uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
                            channelCount       // vis themselves
                        + sizeof(double) * 3;  // uvw
-  size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
+  const size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
   if (maxNRows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
                     "means performance is going to be very poor!\n";
