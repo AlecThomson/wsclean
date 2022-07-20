@@ -10,10 +10,8 @@
 using aocommon::Logger;
 
 namespace {
-double RoundOneDecimal(double value) {
-  return std::round(value * 10.0) / 10.0;
-}
-}
+double RoundOneDecimal(double value) { return std::round(value * 10.0) / 10.0; }
+}  // namespace
 
 const Resources Resources::GetPart(size_t part_size) const {
   assert(part_size != 0);
@@ -34,11 +32,11 @@ int64_t GetAvailableMemory(double memory_fraction, double abs_memory_limit) {
   const long page_count = sysconf(_SC_PHYS_PAGES);
   const long page_size = sysconf(_SC_PAGE_SIZE);
   int64_t memory = (int64_t)page_count * (int64_t)page_size;
-  const double memory_size_in_gb = (double) memory / gb;
+  const double memory_size_in_gb = (double)memory / gb;
   if (memory_fraction == 1.0 && abs_memory_limit == 0.0) {
-    if(print_output) {
+    if (print_output) {
       Logger::Info << "Detected " << RoundOneDecimal(memory_size_in_gb)
-                  << " GB of system memory, usage not limited.\n";
+                   << " GB of system memory, usage not limited.\n";
     }
   } else {
     if (print_output) {
@@ -47,8 +45,9 @@ int64_t GetAvailableMemory(double memory_fraction, double abs_memory_limit) {
         limit_in_gb = std::min(limit_in_gb, abs_memory_limit);
       Logger::Info << "Detected " << RoundOneDecimal(memory_size_in_gb)
                    << " GB of system memory, usage limited to "
-                   << RoundOneDecimal(limit_in_gb) << " GB (frac="
-                   << RoundOneDecimal(memory_fraction * 100.0) << "%, ";
+                   << RoundOneDecimal(limit_in_gb)
+                   << " GB (frac=" << RoundOneDecimal(memory_fraction * 100.0)
+                   << "%, ";
       if (abs_memory_limit == 0.0)
         Logger::Info << "no abs limit)\n";
       else
