@@ -16,13 +16,3 @@ def test_basis(command):
             validate_call([tcf.WSCLEAN, command])
     else:
         validate_call([tcf.WSCLEAN, command])
-
-
-@pytest.mark.parametrize("dd_psf_args", ["-dd-psf-grid 5 5", ""])
-def test_dd_psfs_call(dd_psf_args):
-    s = (
-        f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -niter 1 -mgain 0.7 -nmiter 1 -threshold 0.001 -make-psf-only "
-        + dd_psf_args
-        + f" {tcf.MWA_MOCK_MS}"
-    )
-    validate_call(s.split())
