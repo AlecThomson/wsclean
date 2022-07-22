@@ -114,14 +114,6 @@ class WSCFitsWriter {
  private:
   aocommon::FitsWriter _writer;
   std::string _filenamePrefix;
-  size_t _width;
-  size_t _height;
-  double _ra;
-  double _dec;
-  double _pixelScaleX;
-  double _pixelScaleY;
-  double _shiftL;
-  double _shiftM;
 };
 
 #endif

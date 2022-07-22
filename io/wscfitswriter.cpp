@@ -56,28 +56,12 @@ WSCFitsWriter::WSCFitsWriter(
 }
 
 WSCFitsWriter::WSCFitsWriter(aocommon::FitsReader& templateReader)
-    : _writer(templateReader),
-      _width(templateReader.ImageWidth()),
-      _height(templateReader.ImageHeight()),
-      _ra(templateReader.PhaseCentreRA()),
-      _dec(templateReader.PhaseCentreDec()),
-      _pixelScaleX(templateReader.PixelSizeX()),
-      _pixelScaleY(templateReader.PixelSizeY()),
-      _shiftL(templateReader.PhaseCentreDL()),
-      _shiftM(templateReader.PhaseCentreDM()) {
+    : _writer(templateReader) {
   copyWSCleanKeywords(templateReader);
 }
 
 WSCFitsWriter::WSCFitsWriter(const aocommon::FitsWriter& writer)
-    : _writer(writer),
-      _width(0),
-      _height(0),
-      _ra(0.0),
-      _dec(0.0),
-      _pixelScaleX(1.0),
-      _pixelScaleY(1.0),
-      _shiftL(0.0),
-      _shiftM(0.0) {}
+    : _writer(writer) {}
 
 void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
                                         const std::string& commandLine) {
@@ -99,19 +83,12 @@ void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
 void WSCFitsWriter::setGridderConfiguration(
     const Settings& settings, const ObservationInfo& observationInfo,
     double shiftL, double shiftM, double startTime) {
-  _width = settings.trimmedImageWidth;
-  _height = settings.trimmedImageHeight;
-  _ra = observationInfo.phaseCentreRA;
-  _dec = observationInfo.phaseCentreDec;
-  _pixelScaleX = settings.pixelScaleX;
-  _pixelScaleY = settings.pixelScaleY;
-  _shiftL = shiftL;
-  _shiftM = shiftM;
-
-  _writer.SetImageDimensions(_width, _height, _ra, _dec, _pixelScaleX,
-                             _pixelScaleY);
+  _writer.SetImageDimensions(
+      settings.trimmedImageWidth, settings.trimmedImageHeight,
+      observationInfo.phaseCentreRA, observationInfo.phaseCentreDec,
+      settings.pixelScaleX, settings.pixelScaleY);
   _writer.SetDate(startTime);
-  _writer.SetPhaseCentreShift(_shiftL, _shiftM);
+  _writer.SetPhaseCentreShift(shiftL, shiftM);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
@@ -180,12 +157,14 @@ void WSCFitsWriter::WriteImage(const std::string& suffix,
 
 void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
                                        const aocommon::Image& image) {
-  if (image.Width() != _width || image.Height() != _height) {
+  if (image.Width() != _writer.Width() || image.Height() != _writer.Height()) {
     aocommon::FitsWriter writer(_writer);
-    writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
-                              _pixelScaleX, _pixelScaleY);
-    if (_shiftL || _shiftM) {
-      writer.SetPhaseCentreShift(_shiftL, _shiftM);
+    writer.SetImageDimensions(image.Width(), image.Height(), _writer.RA(),
+                              _writer.Dec(), _writer.PixelSizeX(),
+                              _writer.PixelSizeY());
+    if (_writer.PhaseCentreDL() || _writer.PhaseCentreDM()) {
+      writer.SetPhaseCentreShift(_writer.PhaseCentreDL(),
+                                 _writer.PhaseCentreDM());
     }
     writer.Write(fullname, image.Data());
   } else {
@@ -197,12 +176,15 @@ void WSCFitsWriter::WriteImageFullName(
     const std::string& fullname, const aocommon::Image& image,
     const schaapcommon::facets::Facet& facet) {
   aocommon::FitsWriter writer(_writer);
-  writer.SetImageDimensions(image.Width(), image.Height(), _ra, _dec,
-                            _pixelScaleX, _pixelScaleY);
-  int centreShiftX = facet.GetTrimmedBoundingBox().Centre().x - _width / 2;
-  int centreShiftY = facet.GetTrimmedBoundingBox().Centre().y - _height / 2;
-  double shiftL = _shiftL - centreShiftX * _pixelScaleX;
-  double shiftM = _shiftM + centreShiftY * _pixelScaleY;
+  writer.SetImageDimensions(image.Width(), image.Height(), _writer.RA(),
+                            _writer.Dec(), _writer.PixelSizeX(),
+                            _writer.PixelSizeY());
+  int centreShiftX =
+      facet.GetTrimmedBoundingBox().Centre().x - _writer.Width() / 2;
+  int centreShiftY =
+      facet.GetTrimmedBoundingBox().Centre().y - _writer.Height() / 2;
+  double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
+  double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
   writer.SetPhaseCentreShift(shiftL, shiftM);
   writer.Write(fullname, image.Data());
 }
@@ -211,14 +193,17 @@ void WSCFitsWriter::WriteImageFullName(
     const std::string& fullname,
     const schaapcommon::facets::FacetImage& facetimage) {
   aocommon::FitsWriter writer(_writer);
-  writer.SetImageDimensions(facetimage.Width(), facetimage.Height(), _ra, _dec,
-                            _pixelScaleX, _pixelScaleY);
+  writer.SetImageDimensions(facetimage.Width(), facetimage.Height(),
+                            _writer.RA(), _writer.Dec(), _writer.PixelSizeX(),
+                            _writer.PixelSizeY());
   int centreShiftX =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x - _width / 2;
+      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x -
+      _writer.Width() / 2;
   int centreShiftY =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y - _height / 2;
-  double shiftL = _shiftL - centreShiftX * _pixelScaleX;
-  double shiftM = _shiftM + centreShiftY * _pixelScaleY;
+      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y -
+      _writer.Height() / 2;
+  double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
+  double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
   writer.SetPhaseCentreShift(shiftL, shiftM);
   writer.Write(fullname, facetimage.Data(0));
 }
