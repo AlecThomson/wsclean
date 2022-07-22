@@ -119,9 +119,9 @@ class CachedImageSet {
   /**
    * @brief Store an Image object.
    */
-  void Store(const aocommon::Image& image,
-             aocommon::PolarizationEnum polarization, size_t freqIndex,
-             bool isImaginary) {
+
+  void Store(aocommon::Image&& image, aocommon::PolarizationEnum polarization,
+             size_t freqIndex, bool isImaginary) {
     if (!_writer) throw std::runtime_error("Writer is not set.");
     aocommon::Logger::Debug
         << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
@@ -130,12 +130,14 @@ class CachedImageSet {
       if (_image.Empty()) {
         _image = aocommon::Image(_writer->Width(), _writer->Height());
       }
-      std::copy(image.Data(),
-                image.Data() + _writer->Width() * _writer->Height(),
-                _image.Data());
+      // add assertion about image size = writer width/height
+      _image = std::move(image);
+      // std::copy(image.Data(),
+      //           image.Data() + _writer->Width() * _writer->Height(),
+      //           _image.Data());
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
-      _writer->WriteImageFullName(filename, image);
+      _writer->WriteImageFullName(filename, std::move(image));
       _storedNames.insert(filename);
     }
   }
@@ -147,18 +149,18 @@ class CachedImageSet {
    * otherwise facet parameter is used to shift the coordinate system
    */
   void StoreFacet(
-      const aocommon::Image& image, aocommon::PolarizationEnum polarization,
+      aocommon::Image&& image, aocommon::PolarizationEnum polarization,
       size_t freqIndex, size_t facetIndex,
       const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
       bool isImaginary) {
     if (!facet) {
       // If _facetCount 0, use the main "Store" as is
-      Store(image, polarization, freqIndex, isImaginary);
+      Store(std::move(image), polarization, freqIndex, isImaginary);
     } else {
       std::string filename =
           nameFacet(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Storing " << filename << '\n';
-      _writer->WriteImageFullName(filename, image, *facet);
+      _writer->WriteImageFullName(filename, std::move(image), *facet);
       _storedNames.insert(filename);
     }
   }
@@ -168,13 +170,13 @@ class CachedImageSet {
    *
    * @param facetimage contains both image data and facet metadata
    */
-  void StoreFacet(const schaapcommon::facets::FacetImage& facetimage,
+  void StoreFacet(schaapcommon::facets::FacetImage&& facetimage,
                   aocommon::PolarizationEnum polarization, size_t freqIndex,
                   size_t facetIndex, bool isImaginary) {
     std::string filename =
         nameFacet(polarization, freqIndex, facetIndex, isImaginary);
     aocommon::Logger::Debug << "Storing " << filename << '\n';
-    _writer->WriteImageFullName(filename, facetimage);
+    _writer->WriteImageFullName(filename, std::move(facetimage));
     _storedNames.insert(filename);
   }
 

@@ -124,7 +124,7 @@ class WSClean {
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
-                              bool isImaginary, const aocommon::Image& image);
+                              bool isImaginary, aocommon::Image&& image);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 
   void makeImagingTable(size_t outputIntervalIndex);
