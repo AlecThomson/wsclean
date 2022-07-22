@@ -210,8 +210,9 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
-  _psfImages.StoreFacet(result.images[0], *_settings.polarizations.begin(),
-                        channelIndex, entry.facetIndex, entry.facet, false);
+  _psfImages.StoreFacet(aocommon::Image{result.images[0]},
+                        *_settings.polarizations.begin(), channelIndex,
+                        entry.facetIndex, entry.facet, false);
 
   if (writeBeamImage && griddingUsesATerms()) {
     Logger::Info << "Writing IDG beam image...\n";
@@ -391,7 +392,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
         images[i] *= psfFactor * entry.siCorrection;
       const bool isImaginary = i == 1;
       storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry,
-                             polarization, isImaginary, images[i]);
+                             polarization, isImaginary, std::move(images[i]));
     }
 
     // If facets are used, stitchFacets() performs these actions.
@@ -426,7 +427,7 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
                                      size_t joinedChannelIndex,
                                      const ImagingTableEntry& entry,
                                      PolarizationEnum polarization,
-                                     bool isImaginary, const Image& image) {
+                                     bool isImaginary, Image&& image) {
   if (polarization == Polarization::YX &&
       _settings.polarizations.count(Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
@@ -450,11 +451,11 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
       for (size_t i = 0; i != xyImage.Size(); ++i)
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
-    dest.StoreFacet(xyImage, Polarization::XY, joinedChannelIndex,
+    dest.StoreFacet(std::move(xyImage), Polarization::XY, joinedChannelIndex,
                     entry.facetIndex, entry.facet, isImaginary);
   } else {
-    dest.StoreFacet(image, polarization, joinedChannelIndex, entry.facetIndex,
-                    entry.facet, isImaginary);
+    dest.StoreFacet(std::move(image), polarization, joinedChannelIndex,
+                    entry.facetIndex, entry.facet, isImaginary);
   }
 }
 
@@ -1239,9 +1240,9 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
         facetImage *= 1.0f / std::sqrt(m);
       }
     }
-    imageCache.StoreFacet(facetImage, facetEntry.polarization,
-                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                          isImaginary);
+    imageCache.StoreFacet(
+        schaapcommon::facets::FacetImage{facetImage}, facetEntry.polarization,
+        facetEntry.outputChannelIndex, facetEntry.facetIndex, isImaginary);
   }
 }
 
@@ -1259,11 +1260,9 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry,
           _settings.polarizations.count(Polarization::XY) != 0)) {
       Image modelImage(_settings.trimmedImageWidth,
                        _settings.trimmedImageHeight, 0.0f);
-      _modelImages.Store(modelImage, polarization, entry.outputChannelIndex,
-                         false);
-      if (Polarization::IsComplex(polarization))
-        _modelImages.Store(modelImage, polarization, entry.outputChannelIndex,
-                           true);
+      _modelImages.Store(std::move(modelImage), polarization,
+                         entry.outputChannelIndex,
+                         Polarization::IsComplex(polarization));
     }
   }
 }
@@ -1321,7 +1320,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
             "The input image contains non-finite values -- can't predict "
             "from an image with non-finite values");
     }
-    _modelImages.Store(buffer, polarization, entry.outputChannelIndex, i == 1);
+    _modelImages.Store(std::move(buffer), polarization,
+                       entry.outputChannelIndex, i == 1);
   }
 }
 
@@ -1855,7 +1855,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
   const size_t channelIndex = facetGroup.Front().outputChannelIndex;
   const PolarizationEnum polarization = facetGroup.Front().polarization;
-  imageCache.Store(fullImage, polarization, channelIndex, isImaginary);
+  imageCache.Store(std::move(fullImage), polarization, channelIndex,
+                   isImaginary);
 }
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
