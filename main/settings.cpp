@@ -328,21 +328,6 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
-  if ((ddPsfGridHeight > 1) || (ddPsfGridWidth > 1)) {
-    // Raise warning if psfs are not square
-    double widthHeightRatioImage =
-        double(trimmedImageWidth) / (trimmedImageHeight);
-    double widthHeightRatioGrid = double(ddPsfGridWidth) / (ddPsfGridHeight);
-    if (widthHeightRatioImage != widthHeightRatioGrid) {
-      double singlePsfWidth = trimmedImageWidth / ddPsfGridWidth;
-      double singlePsfHeight = trimmedImageHeight / ddPsfGridHeight;
-      Logger::Warn << "Psfs grid chosen will not deliver square psfs. Each psf "
-                      "has size [ "
-                   << singlePsfWidth << ", " << singlePsfHeight
-                   << "] instead.\n";
-    }
-  }
-
   if (parallelDeconvolutionMaxThreads == 0) {
     parallelDeconvolutionMaxThreads = threadCount;
   }

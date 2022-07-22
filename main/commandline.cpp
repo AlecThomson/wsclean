@@ -943,10 +943,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
     } else if (param == "dd-psf-grid") {
-      size_t width = ParseSizeT(argv[argi + 1], "dd-psf-grid"),
-             height = ParseSizeT(argv[argi + 2], "dd-psf-grid");
-      settings.ddPsfGridWidth = width;
-      settings.ddPsfGridHeight = height;
+      settings.ddPsfGridWidth = ParseSizeT(argv[argi + 1], "dd-psf-grid");
+      settings.ddPsfGridHeight = ParseSizeT(argv[argi + 2], "dd-psf-grid");
       argi += 2;
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
