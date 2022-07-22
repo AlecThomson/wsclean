@@ -95,32 +95,20 @@ class CachedImageSet {
    * memory in an Image object which is of type float. So in that case NumT
    * should be float.
    * @param image pointer to data of type NumT
-   */
-  template <typename NumT>
-  void Store(const NumT* image, aocommon::PolarizationEnum polarization,
-             size_t freqIndex, bool isImaginary) {
-    if (!_writer) throw std::runtime_error("Writer is not set.");
-    aocommon::Logger::Debug
-        << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
-      assert(!isImaginary);
-      if (_image.Empty()) {
-        _image = aocommon::Image(_writer->Width(), _writer->Height());
-      }
-      std::copy(image, image + _writer->Width() * _writer->Height(),
-                _image.Data());
-    } else {
-      std::string filename = name(polarization, freqIndex, isImaginary);
-      _writer->Writer().Write(filename, image);
-      _storedNames.insert(filename);
-    }
-  }
+
 
   /**
-   * @brief Store an Image object.
+   * @brief Store image.
+   *
+   * @tparam ImageT Image type, template parameter. It can be a raw pointer or
+   * an rvalue reference to aocommon::Image. If there is only one polarization
+   * and one frequency in cache then the data is stored in memory in an Image
+   * object which is of type float. In that case ImageT is of float type.
+   * @param image pointer to data of type ImageT or rvalue reference of
+   * aocommon::Image
    */
-
-  void Store(aocommon::Image&& image, aocommon::PolarizationEnum polarization,
+  template <typename ImageT>
+  void Store(ImageT&& image, aocommon::PolarizationEnum polarization,
              size_t freqIndex, bool isImaginary) {
     if (!_writer) throw std::runtime_error("Writer is not set.");
     aocommon::Logger::Debug
@@ -130,14 +118,26 @@ class CachedImageSet {
       if (_image.Empty()) {
         _image = aocommon::Image(_writer->Width(), _writer->Height());
       }
-      // add assertion about image size = writer width/height
-      _image = std::move(image);
-      // std::copy(image.Data(),
-      //           image.Data() + _writer->Width() * _writer->Height(),
-      //           _image.Data());
+      if constexpr (std::is_same_v<ImageT, aocommon::Image>) {
+        // In this case ImageT is an rvalue reference of aocommon::Image and the
+        // object can be moved.
+        assert((image.Width() == _writer->Width()) &&
+               (image.Height() == _writer->Height()));
+        _image = std::move(image);
+      } else if constexpr (std::is_pointer_v<ImageT>) {
+        std::copy(image, image + _writer->Width() * _writer->Height(),
+                  _image.Data());
+      } else {
+        static_assert(sizeof(ImageT) == 0, "invalid_type");
+      }
+
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
-      _writer->WriteImageFullName(filename, std::move(image));
+      if constexpr (std::is_same_v<ImageT, aocommon::Image>) {
+        _writer->WriteImageFullName(filename, std::move(image));
+      } else {
+        _writer->Writer().Write(filename, image);
+      }
       _storedNames.insert(filename);
     }
   }
