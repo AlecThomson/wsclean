@@ -88,6 +88,16 @@ class CachedImageSet {
   }
 
   /**
+   * @brief Store image from raw pointer
+   *
+   * @tparam NumT Numeric type, template parameter, however if there is only
+   * one polarization and and frequency in cache then the data is stored in
+   * memory in an Image object which is of type float. So in that case NumT
+   * should be float.
+   * @param image pointer to data of type NumT
+
+
+  /**
    * @brief Store image.
    *
    * @tparam ImageT Image type, template parameter. It can be a raw pointer or
