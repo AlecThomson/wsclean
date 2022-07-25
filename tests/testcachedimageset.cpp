@@ -80,8 +80,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   for (const auto& polarization : polarizations) {
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
-      cSet.StoreFacet(aocommon::Image{facet_images[facet_idx]}, polarization, 1,
-                      facet_idx, facets[facet_idx], false);
+      cSet.StoreFacet(facet_images[facet_idx], polarization, 1, facet_idx,
+                      facets[facet_idx], false);
     }
   }
 
