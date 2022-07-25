@@ -359,5 +359,5 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_dd_psfs_call(self):
-        s = f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -niter 1 -mgain 0.7 -nmiter 1 -threshold 0.001 -make-psf-only -dd-psf-grid 5 5 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -make-psf -dd-psf-grid 5 5 {tcf.MWA_MS}"
         validate_call(s.split())
