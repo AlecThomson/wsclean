@@ -72,7 +72,7 @@ class PrimaryBeamImageSet {
     beamLimit = beamLimit * beamLimit;
     const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
-      aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
+      const aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
           {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
            _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
            _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
@@ -81,7 +81,7 @@ class PrimaryBeamImageSet {
            _beamImages[15][j]});
       if (beam.Norm() > beamLimit) {
         const std::array<double, 4> diagonal = beam.DiagonalValues();
-        if (diagonal[0] == 0.0 || diagonal[3] == 0.0) {
+        if (diagonal[0] + diagonal[3] == 0.0) {
           stokesI[j] = std::numeric_limits<float>::quiet_NaN();
         } else {
           const double inverted_beam = 2.0 / (diagonal[0] + diagonal[3]);
