@@ -86,7 +86,10 @@ class Settings {
   std::string beamModel;
   std::string beamMode;
   std::string beamNormalisationMode;
-  bool applyPrimaryBeam, reusePrimaryBeam, savePsfPb;
+  bool applyPrimaryBeam;
+  bool reusePrimaryBeam;
+  bool savePsfPb;
+  bool useScalarPrimaryBeam;
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
@@ -289,6 +292,7 @@ inline Settings::Settings()
       applyPrimaryBeam(false),
       reusePrimaryBeam(false),
       savePsfPb(false),
+      useScalarPrimaryBeam(false),
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),

@@ -147,6 +147,9 @@ void PrintHelp() {
          "-primary-beam-limit <limit>\n"
          "   Level at which to trim the beam when performing image-based beam\n"
          "   correction,. Default: 0.005.\n"
+         "-scalar-beam\n"
+         "   In the case of Stokes I imaging, this will take the average of\n"
+         "   1/XX and 1/YY instead of the inverted Mueller matrix.\n"
          "-mwa-path <path>\n"
          "   Set path where to find the MWA beam file(s).\n"
          "-save-psf-pb\n"
@@ -932,6 +935,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.primaryBeamLimit =
           ParseDouble(argv[argi], 0.0, "primary-beam-limit");
+    } else if (param == "scalar-beam") {
+      settings.useScalarPrimaryBeam = true;
     } else if (param == "mwa-path") {
       IncArgi(argi, argc);
       settings.mwaPath = argv[argi];
