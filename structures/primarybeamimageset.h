@@ -79,16 +79,12 @@ class PrimaryBeamImageSet {
            _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
            _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
            _beamImages[15][j]});
-      if (beam.Norm() > beamLimit) {
-        const std::array<double, 4> diagonal = beam.DiagonalValues();
-        if (diagonal[0] + diagonal[3] == 0.0) {
-          stokesI[j] = std::numeric_limits<float>::quiet_NaN();
-        } else {
-          const double inverted_beam = 2.0 / (diagonal[0] + diagonal[3]);
-          stokesI[j] *= inverted_beam;
-        }
-      } else {
+      const std::array<double, 4> diagonal = beam.DiagonalValues();
+      if (beam.Norm() <= beamLimit || diagonal[0] + diagonal[3] == 0.0) {
         stokesI[j] = std::numeric_limits<float>::quiet_NaN();
+      } else {
+        const double inverted_beam = 2.0 / (diagonal[0] + diagonal[3]);
+        stokesI[j] *= inverted_beam;
       }
     }
   }
