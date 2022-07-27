@@ -66,10 +66,10 @@ class PrimaryBeamImageSet {
     return *this;
   }
 
-  void ApplyScalarStokesI(float* stokesI, double beamLimit) const {
+  void ApplyScalarStokesI(float* stokes_i, double beam_limit) const {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
-    beamLimit = beamLimit * beamLimit;
+    beam_limit = beam_limit * beam_limit;
     const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
       const aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
@@ -80,11 +80,11 @@ class PrimaryBeamImageSet {
            _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
            _beamImages[15][j]});
       const std::array<double, 4> diagonal = beam.DiagonalValues();
-      if (beam.Norm() <= beamLimit || diagonal[0] + diagonal[3] == 0.0) {
-        stokesI[j] = std::numeric_limits<float>::quiet_NaN();
+      if (beam.Norm() <= beam_limit || diagonal[0] + diagonal[3] == 0.0) {
+        stokes_i[j] = std::numeric_limits<float>::quiet_NaN();
       } else {
         const double inverted_beam = 2.0 / (diagonal[0] + diagonal[3]);
-        stokesI[j] *= inverted_beam;
+        stokes_i[j] *= inverted_beam;
       }
     }
   }
