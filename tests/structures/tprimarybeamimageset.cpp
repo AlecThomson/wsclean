@@ -13,11 +13,10 @@ BOOST_AUTO_TEST_CASE(apply_scalar_stokes_i) {
 
   // a complex Hermitian Mueller matrix consists of 16 values:
   BOOST_REQUIRE_EQUAL(beams.NImages(), 16);
-  for(size_t i=0; i!=beams.NImages(); ++i)
-    beams[i][0] = i+3;
+  for (size_t i = 0; i != beams.NImages(); ++i) beams[i][0] = i + 3;
 
-  beams[0][1]=0.01;
-  beams[15][1]=0.01;
+  beams[0][1] = 0.01;
+  beams[15][1] = 0.01;
 
   float stokes_i[kWidth * kHeight] = {1.0, 1.0, 1.0, 1.0};
   beams.ApplyScalarStokesI(stokes_i, 0.1);
@@ -26,8 +25,7 @@ BOOST_AUTO_TEST_CASE(apply_scalar_stokes_i) {
 
   // According to the beam, the other pixels do not have enough
   // sensitivity and should be set to NaN:
-  for(size_t i=1; i!=4; ++i)
-    BOOST_CHECK(!std::isfinite(stokes_i[i]));
+  for (size_t i = 1; i != 4; ++i) BOOST_CHECK(!std::isfinite(stokes_i[i]));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
