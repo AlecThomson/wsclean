@@ -7,6 +7,9 @@
 #include <aocommon/fits/fitswriter.h>
 
 #include <schaapcommon/facets/facet.h>
+#include <schaapcommon/facets/facetimage.h>
+
+#include "../io/wscfitswriter.h"
 
 #include <string.h>
 #include <set>
@@ -24,7 +27,7 @@ class CachedImageSet {
   CachedImageSet(const CachedImageSet& source) = delete;
   CachedImageSet& operator=(const CachedImageSet& source) = delete;
 
-  void Initialize(const aocommon::FitsWriter& writer, size_t polCount,
+  void Initialize(const WSCFitsWriter& writer, size_t polCount,
                   size_t freqCount, size_t facetCount,
                   const std::string& prefix) {
     _writer = writer;
@@ -35,15 +38,21 @@ class CachedImageSet {
     _image.Reset();
   }
 
-  void SetFitsWriter(const aocommon::FitsWriter& writer) { _writer = writer; }
+  void Initialize(const aocommon::FitsWriter& writer, size_t polCount,
+                  size_t freqCount, size_t facetCount,
+                  const std::string& prefix) {
+    Initialize(WSCFitsWriter(writer), polCount, freqCount, facetCount, prefix);
+  }
 
-  aocommon::FitsWriter& Writer() { return _writer; }
-  const aocommon::FitsWriter& Writer() const { return _writer; }
+  void SetWSCFitsWriter(const WSCFitsWriter& writer) { _writer = writer; }
+
+  WSCFitsWriter& Writer() { return *_writer; }
+  const WSCFitsWriter& Writer() const { return *_writer; }
 
   template <typename NumT>
   void Load(NumT* image, aocommon::PolarizationEnum polarization,
             size_t freqIndex, bool isImaginary) const {
-    if (_writer.Width() == 0 || _writer.Height() == 0)
+    if (_writer->Width() == 0 || _writer->Height() == 0)
       throw std::runtime_error("Writer is not set.");
     aocommon::Logger::Debug
         << "Loading " << name(polarization, freqIndex, isImaginary) << '\n';
@@ -53,7 +62,7 @@ class CachedImageSet {
         throw std::runtime_error("Loading image before store");
       else
         std::copy(_image.Data(),
-                  _image.Data() + _writer.Width() * _writer.Height(), image);
+                  _image.Data() + _writer->Width() * _writer->Height(), image);
     } else {
       aocommon::FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
@@ -78,50 +87,87 @@ class CachedImageSet {
     }
   }
 
-  template <typename NumT>
-  void Store(const NumT* image, aocommon::PolarizationEnum polarization,
+  /**
+   * @brief Store image.
+   *
+   * @tparam ImageT Image type, template parameter. It can be a raw pointer or
+   * an rvalue reference to aocommon::Image. If there is only one polarization
+   * and one frequency in cache then the data is stored in memory in an Image
+   * object which is of type float. In that case ImageT is of float type.
+   * @param image pointer to data of type ImageT or rvalue reference of
+   * aocommon::Image
+   */
+  template <typename ImageT>
+  void Store(ImageT&& image, aocommon::PolarizationEnum polarization,
              size_t freqIndex, bool isImaginary) {
-    if (_writer.Width() == 0 || _writer.Height() == 0)
-      throw std::runtime_error("Writer is not set.");
+    if (!_writer) throw std::runtime_error("Writer is not set.");
     aocommon::Logger::Debug
         << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       assert(!isImaginary);
       if (_image.Empty()) {
-        _image = aocommon::Image(_writer.Width(), _writer.Height());
+        _image = aocommon::Image(_writer->Width(), _writer->Height());
       }
-      std::copy(image, image + _writer.Width() * _writer.Height(),
-                _image.Data());
+      if constexpr (std::is_same_v<ImageT, aocommon::Image>) {
+        // In this case ImageT is an rvalue reference of aocommon::Image and the
+        // object can be moved.
+        assert((image.Width() == _writer->Width()) &&
+               (image.Height() == _writer->Height()));
+        _image = std::move(image);
+      } else if constexpr (std::is_pointer_v<ImageT>) {
+        std::copy(image, image + _writer->Width() * _writer->Height(),
+                  _image.Data());
+      } else {
+        static_assert(sizeof(ImageT) == 0, "invalid_type");
+      }
+
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
-      _writer.Write(filename, image);
+      if constexpr (std::is_same_v<ImageT, aocommon::Image>) {
+        _writer->WriteImageFullName(filename, std::move(image));
+      } else {
+        _writer->Writer().Write(filename, image);
+      }
       _storedNames.insert(filename);
     }
   }
 
-  template <typename NumT>
+  /**
+   * @brief Store a facet image
+   *
+   * main Store is used if no facet is given,
+   * otherwise facet parameter is used to shift the coordinate system
+   */
   void StoreFacet(
-      const NumT* image, aocommon::PolarizationEnum polarization,
+      aocommon::Image&& image, aocommon::PolarizationEnum polarization,
       size_t freqIndex, size_t facetIndex,
       const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
       bool isImaginary) {
     if (!facet) {
       // If _facetCount 0, use the main "Store" as is
-      Store<NumT>(image, polarization, freqIndex, isImaginary);
+      Store(std::move(image), polarization, freqIndex, isImaginary);
     } else {
       std::string filename =
           nameFacet(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Storing " << filename << '\n';
-
-      // Initialize FacetWriter, use the trimmed facet width and
-      // height as dimensions. The image argument that is fed into
-      // the Write() function should have the same size.
-      aocommon::FitsWriter facetWriter;
-      facetWriter.SetImageDimensions(facet->GetTrimmedBoundingBox().Width(),
-                                     facet->GetTrimmedBoundingBox().Height());
-      facetWriter.Write(filename, image);
+      _writer->WriteImageFullName(filename, std::move(image), *facet);
       _storedNames.insert(filename);
     }
+  }
+
+  /**
+   * @brief Store a facet image
+   *
+   * @param facetimage contains both image data and facet metadata
+   */
+  void StoreFacet(schaapcommon::facets::FacetImage&& facetimage,
+                  aocommon::PolarizationEnum polarization, size_t freqIndex,
+                  size_t facetIndex, bool isImaginary) {
+    std::string filename =
+        nameFacet(polarization, freqIndex, facetIndex, isImaginary);
+    aocommon::Logger::Debug << "Storing " << filename << '\n';
+    _writer->WriteImageFullName(filename, std::move(facetimage));
+    _storedNames.insert(filename);
   }
 
   /**
@@ -173,7 +219,7 @@ class CachedImageSet {
     }
   }
 
-  aocommon::FitsWriter _writer;
+  std::optional<WSCFitsWriter> _writer;
   size_t _polCount, _freqCount, _facetCount;
   std::string _prefix;
 
