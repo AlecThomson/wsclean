@@ -7,7 +7,6 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
-#include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
 #include <schaapcommon/facets/facetimage.h>

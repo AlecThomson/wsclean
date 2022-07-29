@@ -293,9 +293,13 @@ class WSClean {
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
   std::size_t _ddPsfCount;  // 0 means dd-psfs are not used.
-  bool _hasShiftedPhaseCentre;
+  /// These contain the user-requested image shift values converted from ra,dec
+  /// to l,m units
+  /// @{
   double _shiftL;
   double _shiftM;
+  /// @}
+
   double _lastStartTime;
 };
 

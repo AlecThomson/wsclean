@@ -91,7 +91,7 @@ struct ImagingTableEntry {
   std::shared_ptr<schaapcommon::facets::Facet> facet;
 
   /**
-   * Flag to indicate whether this entry is a direction dependent PSF?
+   * Flag which indicates whether this entry is a direction dependent PSF
    *
    * Entries for which this flag is true are only processed while making the
    * PSF. After that they are stripped from the ImagingTable, so they are not
