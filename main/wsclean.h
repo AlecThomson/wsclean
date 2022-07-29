@@ -108,7 +108,7 @@ class WSClean {
    * @param shiftM is updated.
    */
 
-  std::pair<double, double> getShiftLM() const;
+  std::pair<double, double> getLMShift() const;
 
   void applyFacetPhaseShift(const ImagingTableEntry& entry, double& shiftL,
                             double& shiftM) const;

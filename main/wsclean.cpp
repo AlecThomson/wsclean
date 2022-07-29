@@ -278,9 +278,9 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
       "-psf.fits");
   WSCFitsWriter fitsFile = createWSCFitsWriter(entry, false, false);
   if (entry.isDdPsf) {
-    fitsFile.WriteImageFullName(name, image, *entry.facet);
+    fitsFile.WriteFullNameImage(name, image, *entry.facet);
   } else {
-    fitsFile.WriteImageFullName(name, image);
+    fitsFile.WriteFullNameImage(name, image);
   }
   Logger::Info << "DONE\n";
 }
@@ -531,7 +531,7 @@ ObservationInfo WSClean::getObservationInfo() const {
   return observationInfo;
 }
 
-std::pair<double, double> WSClean::getShiftLM() const {
+std::pair<double, double> WSClean::getLMShift() const {
   double shiftL = 0.0;
   double shiftM = 0.0;
   if (_settings.hasShift) {
@@ -687,7 +687,7 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
-  std::tie(_shiftL, _shiftM) = getShiftLM();
+  std::tie(_shiftL, _shiftM) = getLMShift();
 
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets =
       FacetReader::ReadFacets(
@@ -913,7 +913,7 @@ void WSClean::RunPredict() {
   _observationInfo = getObservationInfo();
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets;
   _facetCount = FacetReader::CountFacets(_settings.facetRegionFilename);
-  std::tie(_shiftL, _shiftM) = getShiftLM();
+  std::tie(_shiftL, _shiftM) = getLMShift();
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1011,14 +1011,14 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _inversionWatch.Start();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
-  const bool doMakeDDPSF = doMakePSF && (_settings.ddPsfGridHeight > 1 ||
+  const bool doMakeDdPsf = doMakePSF && (_settings.ddPsfGridHeight > 1 ||
                                          _settings.ddPsfGridWidth > 1);
 
   if (doMakePSF) {
     for (ImagingTableEntry& entry : groupTable) {
       const bool isFirstPol =
           entry.polarization == *_settings.polarizations.begin();
-      if ((entry.isDdPsf == doMakeDDPSF) && isFirstPol) {
+      if ((entry.isDdPsf == doMakeDdPsf) && isFirstPol) {
         if (_settings.reusePsf)
           loadExistingPSF(entry);
         else
@@ -1026,22 +1026,22 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       }
     }
     _griddingTaskManager->Finish();
-    if (!doMakeDDPSF) stitchFacets(groupTable, _psfImages, false, true);
+    if (!doMakeDdPsf) stitchFacets(groupTable, _psfImages, false, true);
   }
 
-  ImagingTable groupTableNoDdpsf(
+  ImagingTable tableWithoutDdPsf(
       groupTable,
       [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
 
   if (!_settings.makePSFOnly) {
-    runFirstInversions(groupTableNoDdpsf, primaryBeam,
+    runFirstInversions(tableWithoutDdPsf, primaryBeam,
                        requestPolarizationsAtOnce, parallelizePolarizations);
   }
 
   _inversionWatch.Pause();
 
   if (!_settings.makePSFOnly) {
-    runMajorIterations(groupTableNoDdpsf, primaryBeam,
+    runMajorIterations(tableWithoutDdPsf, primaryBeam,
                        requestPolarizationsAtOnce, parallelizePolarizations);
   }
 
@@ -2089,9 +2089,9 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
       templateEntry.imageCount = 1;
 
     if (_ddPsfCount) {
-      ImagingTableEntry ddpsfTemplateEntry(templateEntry);
-      ddpsfTemplateEntry.isDdPsf = true;
-      addFacetsToImagingTable(ddpsfTemplateEntry, _ddPsfCount);
+      ImagingTableEntry ddPsfTemplateEntry(templateEntry);
+      ddPsfTemplateEntry.isDdPsf = true;
+      addFacetsToImagingTable(ddPsfTemplateEntry, _ddPsfCount);
     }
     addFacetsToImagingTable(templateEntry, _facetCount);
 

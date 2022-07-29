@@ -30,10 +30,10 @@
  * images of default size from a raw pointer.
  *
  * Images of different sizes can be written using the WriteImage() and
- * WriteImageFullName() functions. These accept an Image as argument, which can
+ * WriteFullNameImage() functions. These accept an Image as argument, which can
  * be of a different size than the default size supplied to the constructor.
  *
- * The WriteImageFullName function also accepts facets, writing the correct size
+ * The WriteFullNameImage function also accepts facets, writing the correct size
  * and shift onto the FITS file.
  */
 class WSCFitsWriter {
@@ -72,14 +72,14 @@ class WSCFitsWriter {
 
   void WriteImage(const std::string& suffix, const aocommon::Image& image);
 
-  void WriteImageFullName(const std::string& fullname,
+  void WriteFullNameImage(const std::string& fullname,
                           const aocommon::Image& image);
 
-  void WriteImageFullName(const std::string& fullname,
+  void WriteFullNameImage(const std::string& fullname,
                           const aocommon::Image& image,
                           const schaapcommon::facets::Facet& facet);
 
-  void WriteImageFullName(const std::string& fullname,
+  void WriteFullNameImage(const std::string& fullname,
                           const schaapcommon::facets::FacetImage& facetimage);
 
   template <typename NumT>

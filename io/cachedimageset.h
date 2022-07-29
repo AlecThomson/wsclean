@@ -135,7 +135,7 @@ class CachedImageSet {
                 _image.Data());
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
-      _writer->WriteImageFullName(filename, image);
+      _writer->WriteFullNameImage(filename, image);
       _storedNames.insert(filename);
     }
   }
@@ -158,7 +158,7 @@ class CachedImageSet {
       std::string filename =
           nameFacet(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Storing " << filename << '\n';
-      _writer->WriteImageFullName(filename, image, *facet);
+      _writer->WriteFullNameImage(filename, image, *facet);
       _storedNames.insert(filename);
     }
   }
@@ -174,7 +174,7 @@ class CachedImageSet {
     std::string filename =
         nameFacet(polarization, freqIndex, facetIndex, isImaginary);
     aocommon::Logger::Debug << "Storing " << filename << '\n';
-    _writer->WriteImageFullName(filename, facetimage);
+    _writer->WriteFullNameImage(filename, facetimage);
     _storedNames.insert(filename);
   }
 

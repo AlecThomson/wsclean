@@ -152,10 +152,10 @@ void WSCFitsWriter::copyWSCleanKeywords(aocommon::FitsReader& reader) {
 void WSCFitsWriter::WriteImage(const std::string& suffix,
                                const aocommon::Image& image) {
   std::string name = _filenamePrefix + '-' + suffix;
-  WriteImageFullName(name, image);
+  WriteFullNameImage(name, image);
 }
 
-void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
+void WSCFitsWriter::WriteFullNameImage(const std::string& fullname,
                                        const aocommon::Image& image) {
   if (image.Width() != _writer.Width() || image.Height() != _writer.Height()) {
     aocommon::FitsWriter writer(_writer);
@@ -172,7 +172,7 @@ void WSCFitsWriter::WriteImageFullName(const std::string& fullname,
   }
 }
 
-void WSCFitsWriter::WriteImageFullName(
+void WSCFitsWriter::WriteFullNameImage(
     const std::string& fullname, const aocommon::Image& image,
     const schaapcommon::facets::Facet& facet) {
   aocommon::FitsWriter writer(_writer);
@@ -189,7 +189,7 @@ void WSCFitsWriter::WriteImageFullName(
   writer.Write(fullname, image.Data());
 }
 
-void WSCFitsWriter::WriteImageFullName(
+void WSCFitsWriter::WriteFullNameImage(
     const std::string& fullname,
     const schaapcommon::facets::FacetImage& facetimage) {
   aocommon::FitsWriter writer(_writer);
