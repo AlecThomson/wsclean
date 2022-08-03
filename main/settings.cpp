@@ -25,9 +25,9 @@ size_t GetImages(const size_t image_size, const size_t max_grid_size) {
   size_t images = 1;
   if (max_grid_size > 0) {
     images = (image_size + max_grid_size - 1) / max_grid_size;
-    // Since images typically have an interesting object at its center,
-    // ensure that the number of images is odd. That object then resides in one
-    // grid cell instead of two.
+    // Since an image typically has an interesting object at its center,
+    // ensure that the number of grid cells is odd. That object then resides in 
+    // one grid cell instead of two.
     images |= 1;
   }
   return images;
