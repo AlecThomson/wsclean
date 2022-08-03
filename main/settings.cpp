@@ -21,12 +21,12 @@ namespace {
  *        Zero indicates using a single grid cell.
  * @return The number of grid cells.
  */
-size_t GetImages(const size_t image_size, const size_t max_grid_size) {
+size_t GetNumCells(const size_t image_size, const size_t max_grid_size) {
   size_t images = 1;
   if (max_grid_size > 0) {
     images = (image_size + max_grid_size - 1) / max_grid_size;
     // Since an image typically has an interesting object at its center,
-    // ensure that the number of grid cells is odd. That object then resides in 
+    // ensure that the number of grid cells is odd. That object then resides in
     // one grid cell instead of two.
     images |= 1;
   }
@@ -387,9 +387,9 @@ void Settings::RecalculateDerivedDimensions(bool verbose) {
                     << " x " << paddedImageHeight << ".\n";
 
     parallelDeconvolutionGridWidth =
-        GetImages(trimmedImageWidth, parallelDeconvolutionMaxSize);
+        GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
     parallelDeconvolutionGridHeight =
-        GetImages(trimmedImageHeight, parallelDeconvolutionMaxSize);
+        GetNumCells(trimmedImageHeight, parallelDeconvolutionMaxSize);
     if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
         ddPsfGridHeight > parallelDeconvolutionGridHeight) {
       Logger::Warn
