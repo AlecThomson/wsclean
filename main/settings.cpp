@@ -393,15 +393,16 @@ void Settings::RecalculateDerivedDimensions(bool verbose) {
     if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
         ddPsfGridHeight > parallelDeconvolutionGridHeight) {
       Logger::Warn
-          << "The DD PSF grid (" << ddPsfGridWidth << " x " << ddPsfGridHeight
-          << ") is larger than parallel deconvolution grid ("
-          << parallelDeconvolutionGridWidth << " x "
+          << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x"
+          << ddPsfGridHeight
+          << ") has more cells than parallel deconvolution grid ("
+          << parallelDeconvolutionGridWidth << "x"
           << parallelDeconvolutionGridHeight
           << ") in at least one dimension. Reducing the DD PSF grid to ";
       ddPsfGridWidth = std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
       ddPsfGridHeight =
           std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
-      Logger::Warn << ddPsfGridWidth << " x " << ddPsfGridHeight << ".\n";
+      Logger::Warn << ddPsfGridWidth << "x" << ddPsfGridHeight << ".\n";
     }
   }
 }
