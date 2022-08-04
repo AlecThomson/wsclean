@@ -1,14 +1,14 @@
 #ifndef CACHED_IMAGE_ACCESSOR_H_
 #define CACHED_IMAGE_ACCESSOR_H_
 
-#include <aocommon/imageaccessor.h>
+#include <aocommon/dataaccessor.h>
 
 #include "cachedimageset.h"
 
 /**
- * @brief ImageAccessor implementation that internally uses CachedImageSet.
+ * @brief DataAccessor implementation that internally uses CachedImageSet.
  */
-class CachedImageAccessor : public aocommon::ImageAccessor {
+class CachedImageAccessor : public aocommon::DataAccessor<float> {
  public:
   /**
    * @brief Construct a new CachedImageAccessor object
@@ -27,14 +27,16 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
         frequency_index_(frequency_index),
         is_imaginary_(is_imaginary) {}
 
-  void Load(aocommon::Image& image) const override {
-    image_set_.Load(image.Data(), polarization_, frequency_index_,
-                    is_imaginary_);
+  std::size_t Size() const override {
+    return image_set_.Writer().Width() * image_set_.Writer().Height();
   }
 
-  void Store(const aocommon::Image& image) override {
-    image_set_.Store(image.Data(), polarization_, frequency_index_,
-                     is_imaginary_);
+  void Load(float* data) const override {
+    image_set_.Load(data, polarization_, frequency_index_, is_imaginary_);
+  }
+
+  void Store(const float* data) override {
+    image_set_.Store(data, polarization_, frequency_index_, is_imaginary_);
   }
 
   /**

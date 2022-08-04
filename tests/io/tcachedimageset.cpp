@@ -19,17 +19,22 @@ using radler::ImageSet;
 
 namespace {
 
-class DummyImageAccessor : public aocommon::ImageAccessor {
+class DummyDataAccessor : public aocommon::DataAccessor<float> {
  public:
-  DummyImageAccessor() {}
-  ~DummyImageAccessor() override {}
+  DummyDataAccessor() {}
+  ~DummyDataAccessor() override {}
 
-  void Load(Image&) const override {
-    BOOST_FAIL("Unexpected ImageAccessor::Load() call");
+  size_t Size() const override {
+    BOOST_FAIL("Unexpected DataAccessor::Size() call");
+    return 0;
   }
 
-  void Store(const Image&) override {
-    BOOST_FAIL("Unexpected ImageAccessor::Store() call");
+  void Load(float*) const override {
+    BOOST_FAIL("Unexpected DataAccessor::Load() call");
+  }
+
+  void Store(const float*) override {
+    BOOST_FAIL("Unexpected DataAccessor::Store() call");
   }
 };
 
@@ -53,7 +58,7 @@ struct ImageSetFixtureBase {
     e->image_weight = imageWeight;
     e->model_accessor =
         std::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
-    e->residual_accessor = std::make_unique<DummyImageAccessor>();
+    e->residual_accessor = std::make_unique<DummyDataAccessor>();
     table->AddEntry(std::move(e));
   }
 
