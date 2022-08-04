@@ -45,7 +45,7 @@ struct ImagingTableEntry {
    * @param channel_index_offset Index of the first channel in the ImagingTable.
    * @param psf_images Pointer to a CachedImageSet for PSF images. If this
    * pointer is null, the created DeconvolutionTableEntry will have no
-   * ImageAccessor for a PSF image.
+   * DataAccessor for a PSF image.
    * @param model_images CachedImageSet for model images.
    * @param residual_images CachedImageSet for residual images.
    * @param is_imaginary False: Create a DeconvolutionTableEntry for an image
