@@ -71,9 +71,9 @@ void Settings::Validate() const {
     throw std::runtime_error(s.str());
   }
 
-  if (facetRegionFilename.empty()) {
-    if (!facetSolutionFiles.empty() && ddPsfGridWidth == 1 &&
-        ddPsfGridHeight == 1)
+  if (facetRegionFilename.empty() && ddPsfGridWidth == 1 &&
+      ddPsfGridHeight == 1) {
+    if (!facetSolutionFiles.empty())
       throw std::runtime_error(
           "A facet solution file can only be specified in conjunction with a "
           "facet regions file. Either remove -apply-facet-solutions from the "
