@@ -163,7 +163,7 @@ class MSGridderBase {
   }
 
   void SetMainImageDL(const double main_image_dl) {
-    _main_image_dl = _main_image_dl;
+    _main_image_dl = main_image_dl;
   }
   void SetMainImageDM(const double main_image_dm) {
     _main_image_dm = main_image_dm;
