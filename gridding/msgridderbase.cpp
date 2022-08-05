@@ -240,7 +240,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetIndex(0),
       _facetGroupIndex(0),
       _msIndex(0),
-      _additivePredict(false),
+      _isFacet(false),
       _imagePadding(1.0),
       _imageWidth(0),
       _imageHeight(0),
@@ -253,6 +253,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _measurementSets(),
       _dataColumnName(settings.dataColumnName),
       _doImagePSF(false),
+      _doImageDdPsf(false),
       _doSubtractModel(false),
       _smallInversion(settings.smallInversion),
       _wLimit(settings.wLimit / 100.0),
@@ -306,7 +307,7 @@ void MSGridderBase::initializePointResponse(
     const MSGridderBase::MSData& msData) {
   SynchronizedMS ms(msData.msProvider->MS());
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+  if (_settings.applyFacetBeam) {
     // Hard-coded for now
     const bool frequency_interpolation = true;
     const bool use_channel_frequency = true;
@@ -338,16 +339,11 @@ void MSGridderBase::initializePointResponse(
     _cachedBeamResponse.resize(msData.bandData.ChannelCount() *
                                _pointResponse->GetAllStationsBufferSize());
   } else {
-    if (_settings.applyFacetBeam) {
-      throw std::runtime_error(
-          "-apply-facet-beam was set, but no corresponding facet "
-          "regions file was specified.");
-    }
     _pointResponse = nullptr;
     _cachedBeamResponse.resize(0);
   }
 #else
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+  if (_settings.applyFacetBeam) {
     throw std::runtime_error(
         "-apply-facet-beam was set, but wsclean was not compiled "
         "with EveryBeam. Please compile wsclean with EveryBeam to "
@@ -615,16 +611,13 @@ void MSGridderBase::initializeMSDataVector(
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
-  if (!DoImagePSF() && !_settings.facetSolutionFiles.empty()) {
+  if (!_settings.facetSolutionFiles.empty()) {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
     // object would be re-used for a multiple gridding tasks.
     _cachedParmResponse.assign(MeasurementSetCount(), {});
     _cachedMSTimes.assign(MeasurementSetCount(), {});
     _timeOffset.assign(MeasurementSetCount(), 0u);
-  }
-
-  if (!_settings.facetSolutionFiles.empty()) {
     SetH5Parms();
   }
 
@@ -632,7 +625,7 @@ void MSGridderBase::initializeMSDataVector(
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
                              hasCache);
-    if (!DoImagePSF() && !_settings.facetSolutionFiles.empty()) {
+    if (!_settings.facetSolutionFiles.empty()) {
       _cachedMSTimes[i] = SelectUniqueTimes(*msDataVector[i].msProvider);
     }
   }
@@ -840,7 +833,7 @@ void MSGridderBase::writeVisibilities(
   {
     WriterLockManager::LockGuard guard = _writerLockManager->GetLock(
         _facetGroupIndex * MeasurementSetCount() + _msIndex);
-    msProvider.WriteModel(buffer, _additivePredict);
+    msProvider.WriteModel(buffer, IsFacet());
   }
   msProvider.NextOutputRow();
 }
@@ -870,7 +863,8 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
                                              InversionRow& rowData,
                                              const aocommon::BandData& curBand,
-                                             const float* weightBuffer) {
+                                             const float* weightBuffer,
+                                             bool apply_forward) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -886,6 +880,9 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
 
     const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
     const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
+    if (apply_forward) {
+      ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+    }
     ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
     const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
@@ -902,7 +899,7 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedFacetDdEffects(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
-    const float* weightBuffer) {
+    const float* weightBuffer, bool apply_forward) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -928,6 +925,9 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
 
       const aocommon::MC2x2F gain_b_1(&_cachedBeamResponse[beam_offset1]);
       const aocommon::MC2x2F gain_b_2(&_cachedBeamResponse[beam_offset2]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain_b_1, gain_b_2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain_b_1,
                                                         gain_b_2);
       const std::complex<float> g_b =
@@ -945,6 +945,9 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
       const aocommon::MC2x2F gain_h5_2(
           _cachedParmResponse[_msIndex][h5_offset2], 0, 0,
           _cachedParmResponse[_msIndex][h5_offset2 + 1]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain_h5_1, gain_h5_2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain_h5_1,
                                                         gain_h5_2);
       const std::complex<float> g_h5 =
@@ -971,6 +974,9 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
 
       const aocommon::MC2x2F gain_b_1(&_cachedBeamResponse[beam_offset1]);
       const aocommon::MC2x2F gain_b_2(&_cachedBeamResponse[beam_offset2]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain_b_1, gain_b_2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain_b_1,
                                                         gain_b_2);
       const std::complex<float> g_b =
@@ -986,6 +992,9 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
           &_cachedParmResponse[_msIndex][offset_h5_1]);
       const aocommon::MC2x2F gain_h5_2(
           &_cachedParmResponse[_msIndex][offset_h5_2]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain_h5_1, gain_h5_2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain_h5_1,
                                                         gain_h5_2);
       const std::complex<float> g_h5 =
@@ -1012,7 +1021,7 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedH5Parm(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
-    const float* weightBuffer) {
+    const float* weightBuffer, bool apply_forward) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -1038,6 +1047,9 @@ void MSGridderBase::ApplyConjugatedH5Parm(
                                    _cachedParmResponse[_msIndex][offset1 + 1]);
       const aocommon::MC2x2F gain2(_cachedParmResponse[_msIndex][offset2], 0, 0,
                                    _cachedParmResponse[_msIndex][offset2 + 1]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
@@ -1058,6 +1070,9 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       const size_t offset2 = offset + metaData.antenna2 * nparms;
       const aocommon::MC2x2F gain1(&_cachedParmResponse[_msIndex][offset1]);
       const aocommon::MC2x2F gain2(&_cachedParmResponse[_msIndex][offset2]);
+      if (apply_forward) {
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+      }
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
@@ -1080,14 +1095,24 @@ void MSGridderBase::readAndWeightVisibilities(
     const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
+    // Visibilities for a point source at the phase centre are all ones
     std::fill_n(rowData.data, dataSize, 1.0);
-    if (HasDenormalPhaseCentre() && _settings.facetRegionFilename.empty()) {
-      const double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
-                                      PhaseCentreDM() * PhaseCentreDM());
-      const double shiftFactor = 2.0 * M_PI *
-                                 ((rowData.uvw[0] * PhaseCentreDL() +
-                                   rowData.uvw[1] * PhaseCentreDM()) +
-                                  rowData.uvw[2] * (lmsqrt - 1.0));
+    double dl = 0.0;
+    double dm = 0.0;
+    if (DoImageDdPsf()) {
+      // The point source is shifted to the centre of the current DdPsf position
+      dl = PhaseCentreDL();
+      dm = PhaseCentreDM();
+    } else {
+      // The point source is shifted to the centre of the main image
+      dl = MainImageDL();
+      dm = MainImageDM();
+    }
+    if (dl != 0.0 || dm != 0.0) {
+      const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
+      const double shiftFactor =
+          2.0 * M_PI *
+          (rowData.uvw[0] * dl + rowData.uvw[1] * dm + rowData.uvw[2] * dn);
       rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
     }
   } else {
@@ -1140,18 +1165,20 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchImageWeights.data());
 
-  if (!DoImagePSF()) {
+  if (IsFacet() && (!DoImagePSF() || DoImageDdPsf())) {
     if (_settings.applyFacetBeam && !_h5parms.empty()) {
 #ifdef HAVE_EVERYBEAM
       ApplyConjugatedFacetDdEffects<PolarizationCount, GainEntry>(
-          msReader, antennaNames, rowData, curBand, weightBuffer);
+          msReader, antennaNames, rowData, curBand, weightBuffer,
+          DoImageDdPsf());
     } else if (_settings.applyFacetBeam) {
       ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
-          msReader, rowData, curBand, weightBuffer);
+          msReader, rowData, curBand, weightBuffer, DoImageDdPsf());
 #endif  // HAVE_EVERYBEAM
     } else if (!_h5parms.empty()) {
       ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
-          msReader, antennaNames, rowData, curBand, weightBuffer);
+          msReader, antennaNames, rowData, curBand, weightBuffer,
+          DoImageDdPsf());
     }
   }
 
