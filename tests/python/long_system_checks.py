@@ -350,26 +350,22 @@ class TestLongSystem:
     def test_spectrally_fitted_with_joined_polarizations(self):
         s = f"{tcf.WSCLEAN} -name {name('iv-jointly-fitted')} {tcf.DIMS_LARGE} -parallel-gridding 4 -channels-out 4 -join-channels -fit-spectral-pol 2 -pol i,v -join-polarizations -niter 1000 -auto-threshold 5 -multiscale -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
-
-    def test_dd_psfs_call(self):
-        s = f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -make-psf -dd-psf-grid 5 5 {tcf.MWA_MS}"
-        validate_call(s.split())
-
+        
     def test_dd_psfs(self):
         # get window around point
         def get_subimage(center_point_x, center_point_y, interval, x):
             return x[center_point_x - interval : center_point_x + interval, center_point_y - interval : center_point_y + interval]
             
-        s = f"{tcf.WSCLEAN} -name point_off_phase_center -scale 6asec -size 4800 4800 -make-psf-only -dd-psf-grid 4 4 -apply-facet-beam /home/csalvoni/schaap/jupyter/point_off_phase_center_reduced.ms"
+        s = f"{tcf.WSCLEAN} -name {name('point_off_phase_center')} -scale 6asec -size 4800 4800 -use-idg -grid-with-beam {tcf.SKA_MS}"
         validate_call(s.split())
-        s = f"{tcf.WSCLEAN} -name point_off_phase_center -scale 6asec -size 4800 4800 -use-idg -grid-with-beam /home/csalvoni/schaap/jupyter/point_off_phase_center_reduced.ms"
+        s = f"{tcf.WSCLEAN} -name {name('point_off_phase_center')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
         validate_call(s.split())
 
         from astropy.io import fits
         import numpy as np
-        dirty = fits.open("point_off_phase_center-dirty.fits")[0].data.squeeze()
-        psf_in_center = fits.open("point_off_phase_center-d0005-psf.fits")[0].data.squeeze()
-        psf_off_center = fits.open("point_off_phase_center-d0000-psf.fits")[0].data.squeeze()
+        dirty = fits.open(f"{name('point_off_phase_center-dirty.fits')}")[0].data.squeeze()
+        psf_in_center = fits.open(f"{name('point_off_phase_center-d0005-psf.fits')}")[0].data.squeeze()
+        psf_off_center = fits.open(f"{name('point_off_phase_center-d0000-psf.fits')}")[0].data.squeeze()
 
         ind_max_dirty = np.unravel_index(np.argmax(dirty, axis=None), dirty.shape)
         ind_max_psf = np.unravel_index(np.argmax(psf_in_center, axis=None), psf_in_center.shape)
