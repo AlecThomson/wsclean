@@ -14,7 +14,7 @@ Test script containing a collection of wsclean commands, tested on an MWA
 measurement set. Tests contained in this file can be invoked via various routes:
 
 - execute "make longsystemcheck"  in your build directory
-- execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests/python directory
+- execute "[python3 -m] pytest [OPTIONS] source/long_system_checks.py::TestLongSystem::<test_name.py>" in your build/tests/python directory
 """
 
 
@@ -350,30 +350,55 @@ class TestLongSystem:
     def test_spectrally_fitted_with_joined_polarizations(self):
         s = f"{tcf.WSCLEAN} -name {name('iv-jointly-fitted')} {tcf.DIMS_LARGE} -parallel-gridding 4 -channels-out 4 -join-channels -fit-spectral-pol 2 -pol i,v -join-polarizations -niter 1000 -auto-threshold 5 -multiscale -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
-        
+
     def test_dd_psfs(self):
-        # get window around point
+        # Tests direction dependent PSfs.
+        # Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away.
+
         def get_subimage(center_point_x, center_point_y, interval, x):
-            return x[center_point_x - interval : center_point_x + interval, center_point_y - interval : center_point_y + interval]
-            
-        s = f"{tcf.WSCLEAN} -name {name('point_off_phase_center')} -scale 6asec -size 4800 4800 -use-idg -grid-with-beam {tcf.SKA_MS}"
+            # Generates a subimage from x with center in (center_point_x, center_point_y) and width/height = 2 * interval
+            return x[
+                center_point_x - interval : center_point_x + interval,
+                center_point_y - interval : center_point_y + interval,
+            ]
+
+        # Generate dirty image
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -use-idg -grid-with-beam {tcf.SKA_MS}"
         validate_call(s.split())
-        s = f"{tcf.WSCLEAN} -name {name('point_off_phase_center')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
-        validate_call(s.split())
+
+        # # Generate 16 direction-dependent PSFs
+        # s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
+        # validate_call(s.split())
 
         from astropy.io import fits
         import numpy as np
-        dirty = fits.open(f"{name('point_off_phase_center-dirty.fits')}")[0].data.squeeze()
-        psf_in_center = fits.open(f"{name('point_off_phase_center-d0005-psf.fits')}")[0].data.squeeze()
-        psf_off_center = fits.open(f"{name('point_off_phase_center-d0000-psf.fits')}")[0].data.squeeze()
 
+        dirty = fits.open(f"{name('DD-PSFs-dirty.fits')}")[0].data.squeeze()
+        psf_in_center = fits.open(f"{name('DD-PSFs-d0005-psf.fits')}")[0].data.squeeze()
+        psf_off_center = fits.open(f"{name('DD-PSFs-d0000-psf.fits')}")[0].data.squeeze()
+
+        # Get coordinates of the peaks, to ensure good alignment for the subtraction (the source is a point source)
         ind_max_dirty = np.unravel_index(np.argmax(dirty, axis=None), dirty.shape)
         ind_max_psf = np.unravel_index(np.argmax(psf_in_center, axis=None), psf_in_center.shape)
         ind_max_psf_off = np.unravel_index(np.argmax(psf_off_center, axis=None), psf_off_center.shape)
 
-        interval = 40 
+        interval = 40
 
-        diff_image_in_center = get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty) / np.max(get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty))  - get_subimage(ind_max_psf[0], ind_max_psf[1], interval, psf_in_center)
-        diff_image_off_center = get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty) / np.max(get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty))  - get_subimage(ind_max_psf_off[0], ind_max_psf_off[1], interval, psf_off_center)
+        diff_image_in_center = get_subimage(
+            ind_max_dirty[0], ind_max_dirty[1], interval, dirty
+        ) / np.max(
+            get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty)
+        ) - get_subimage(
+            ind_max_psf[0], ind_max_psf[1], interval, psf_in_center
+        )
+        
+        diff_image_off_center = get_subimage(
+            ind_max_dirty[0], ind_max_dirty[1], interval, dirty
+        ) / np.max(
+            get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty)
+        ) - get_subimage(
+            ind_max_psf_off[0], ind_max_psf_off[1], interval, psf_off_center
+        )
 
-        assert(np.max(diff_image_off_center) < np.max(diff_image_in_center))
+        # Assert that the PSF closer to the source is more similar to the source than the PSF lying further away
+        assert np.max(diff_image_off_center) < np.max(diff_image_in_center)
