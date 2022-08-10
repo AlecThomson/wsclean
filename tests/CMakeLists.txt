@@ -61,6 +61,10 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
+# This is a 9h long SKA-mid simulated measurement set. 
+# It contains a point source off the phase center. 
+# These conditions ensure a strong variablity of the PSF in different directions. 
+# The dataset is heavily averaged to reduce its size.
 ExternalProject_Add(
   ska_low_ms
   URL ${WSCLEAN_DATA_URL}/ska-low-sim-averaged.tar.gz

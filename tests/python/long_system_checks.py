@@ -353,8 +353,8 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} -name {name('iv-jointly-fitted')} {tcf.DIMS_LARGE} -parallel-gridding 4 -channels-out 4 -join-channels -fit-spectral-pol 2 -pol i,v -join-polarizations -niter 1000 -auto-threshold 5 -multiscale -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
 
-    def test_dd_psfs(self):
-        # Tests direction dependent PSfs.
+    def test_direction_dependent_psfs(self):
+        # Tests direction-dependent PSFs.
         # Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away.
 
         def get_subimage(center_point_x, center_point_y, interval, x):
@@ -377,26 +377,26 @@ class TestLongSystem:
         psf_off_center = fits.open(f"{name('DD-PSFs-d0000-psf.fits')}")[0].data.squeeze()
 
         # Get coordinates of the peaks, to ensure good alignment for the subtraction (the source is a point source)
-        ind_max_dirty = np.unravel_index(np.argmax(dirty, axis=None), dirty.shape)
-        ind_max_psf = np.unravel_index(np.argmax(psf_in_center, axis=None), psf_in_center.shape)
-        ind_max_psf_off = np.unravel_index(np.argmax(psf_off_center, axis=None), psf_off_center.shape)
+        index_max_dirty = np.unravel_index(np.argmax(dirty, axis=None), dirty.shape)
+        index_max_psf_in_center = np.unravel_index(np.argmax(psf_in_center, axis=None), psf_in_center.shape)
+        index_max_psf_off_center = np.unravel_index(np.argmax(psf_off_center, axis=None), psf_off_center.shape)
 
         interval = 40
 
         diff_image_in_center = get_subimage(
-            ind_max_dirty[0], ind_max_dirty[1], interval, dirty
+            index_max_dirty[0], index_max_dirty[1], interval, dirty
         ) / np.max(
-            get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty)
+            get_subimage(index_max_dirty[0], index_max_dirty[1], interval, dirty)
         ) - get_subimage(
-            ind_max_psf[0], ind_max_psf[1], interval, psf_in_center
+            index_max_psf_in_center[0], index_max_psf_in_center[1], interval, psf_in_center
         )
 
         diff_image_off_center = get_subimage(
-            ind_max_dirty[0], ind_max_dirty[1], interval, dirty
+            index_max_dirty[0], index_max_dirty[1], interval, dirty
         ) / np.max(
-            get_subimage(ind_max_dirty[0], ind_max_dirty[1], interval, dirty)
+            get_subimage(index_max_dirty[0], index_max_dirty[1], interval, dirty)
         ) - get_subimage(
-            ind_max_psf_off[0], ind_max_psf_off[1], interval, psf_off_center
+            index_max_psf_off_center[0], index_max_psf_off_center[1], interval, psf_off_center
         )
 
         # Assert that the PSF closer to the source is more similar to the source than the PSF lying further away
