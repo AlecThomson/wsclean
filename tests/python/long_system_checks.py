@@ -369,7 +369,7 @@ class TestLongSystem:
         validate_call(s.split())
 
         # Generate 16 direction-dependent PSFs
-        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -parallel-deconvolution 1200 {tcf.SKA_MS}"
         validate_call(s.split())
 
         dirty = fits.open(f"{name('DD-PSFs-dirty.fits')}")[0].data.squeeze()
