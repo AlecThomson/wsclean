@@ -43,4 +43,4 @@ MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
 JVLA_MS = "JVLA-MultiBand-S1_C5-minimal.ms"
 
 # SKA averaged measurement set with a point source off the phase center
-SKA_MS = "/home/csalvoni/schaap/jupyter/point_off_phase_center_reduced.ms"
+SKA_MS = "ska-low-sim-averaged.ms"

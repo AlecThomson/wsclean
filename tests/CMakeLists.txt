@@ -32,6 +32,7 @@ add_custom_target(
   download_mocks
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_h5solution_file.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_ska_ms.sh
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(WSCLEAN_DATA_URL https://support.astron.nl/software/ci_data/wsclean)
