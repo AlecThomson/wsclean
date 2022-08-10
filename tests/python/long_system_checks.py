@@ -1,6 +1,8 @@
 import pytest
 import os, glob
 import sys
+from astropy.io import fits
+import numpy as np
 from utils import validate_call
 
 # Append current directory to system path in order to import testconfig
@@ -366,12 +368,9 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -use-idg -grid-with-beam {tcf.SKA_MS}"
         validate_call(s.split())
 
-        # # Generate 16 direction-dependent PSFs
-        # s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
-        # validate_call(s.split())
-
-        from astropy.io import fits
-        import numpy as np
+        # Generate 16 direction-dependent PSFs
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -psf-grid-size 4 4 -apply-facet-beam {tcf.SKA_MS}"
+        validate_call(s.split())
 
         dirty = fits.open(f"{name('DD-PSFs-dirty.fits')}")[0].data.squeeze()
         psf_in_center = fits.open(f"{name('DD-PSFs-d0005-psf.fits')}")[0].data.squeeze()
@@ -391,7 +390,7 @@ class TestLongSystem:
         ) - get_subimage(
             ind_max_psf[0], ind_max_psf[1], interval, psf_in_center
         )
-        
+
         diff_image_off_center = get_subimage(
             ind_max_dirty[0], ind_max_dirty[1], interval, dirty
         ) / np.max(
