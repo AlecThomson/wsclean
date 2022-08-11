@@ -12,8 +12,8 @@ sys.path.append(".")
 import config_vars as tcf
 
 """
-Test script containing a collection of wsclean commands, tested on an MWA
-measurement set. Tests contained in this file can be invoked via various routes:
+Test script containing a collection of wsclean commands, tested on big MWA/SKA
+measurement sets. Tests contained in this file can be invoked via various routes:
 
 - execute "make longsystemcheck"  in your build directory
 - execute "[python3 -m] pytest [OPTIONS] source/long_system_checks.py::TestLongSystem::<test_name.py>" in your build/tests/python directory
@@ -354,12 +354,13 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_direction_dependent_psfs(self):
-        # Tests direction-dependent PSFs.
-        # Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away.
+        ''' Tests direction-dependent PSFs.
+            Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away. 
+        '''
 
-        def get_subimage(center_point_x, center_point_y, interval, x):
-            # Generates a subimage from x with center in (center_point_x, center_point_y) and width/height = 2 * interval
-            return x[
+        def get_subimage(center_point_x, center_point_y, interval, img):
+            ''' Generates a subimage from x with center in (center_point_x, center_point_y) and width/height = 2 * interval '''
+            return img[
                 center_point_x - interval : center_point_x + interval,
                 center_point_y - interval : center_point_y + interval,
             ]
@@ -400,4 +401,4 @@ class TestLongSystem:
         )
 
         # Assert that the PSF closer to the source is more similar to the source than the PSF lying further away
-        assert np.max(diff_image_off_center) < np.max(diff_image_in_center)
+        assert np.max(diff_image_off_center) < 0.5 * np.max(diff_image_in_center)
