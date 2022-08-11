@@ -1021,28 +1021,27 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       if ((entry.isDdPsf == doMakeDdPsf) && isFirstPol) {
         if (_settings.reusePsf)
           loadExistingPSF(entry);
-        else
+        else {
           imagePSF(entry);
+        }
       }
     }
+    std::cout << "Waiting for _griddingTaskManager->Finish() ..." << std::flush;
     _griddingTaskManager->Finish();
+    std::cout << "done." << std::endl;
     if (!doMakeDdPsf) stitchFacets(groupTable, _psfImages, false, true);
   }
 
-  ImagingTable tableWithoutDdPsf(
-      groupTable,
-      [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
-
   if (!_settings.makePSFOnly) {
-    runFirstInversions(tableWithoutDdPsf, primaryBeam,
-                       requestPolarizationsAtOnce, parallelizePolarizations);
+    runFirstInversions(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                       parallelizePolarizations);
   }
 
   _inversionWatch.Pause();
 
   if (!_settings.makePSFOnly) {
-    runMajorIterations(tableWithoutDdPsf, primaryBeam,
-                       requestPolarizationsAtOnce, parallelizePolarizations);
+    runMajorIterations(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                       parallelizePolarizations);
   }
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
@@ -1569,13 +1568,17 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
   std::unique_ptr<radler::WorkTable> deconvolution_table =
-      groupTable.GetFacet(0).CreateDeconvolutionTable(
-          _settings.deconvolutionChannelCount, _psfImages, _modelImages,
-          _residualImages);
+      groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
+                                          _psfImages, _modelImages,
+                                          _residualImages);
+
+  ImagingTable tableWithoutDdPsf(
+      groupTable,
+      [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
 
   _deconvolution.emplace(_settings.GetRadlerSettings(),
                          std::move(deconvolution_table),
-                         minTheoreticalBeamSize(groupTable));
+                         minTheoreticalBeamSize(tableWithoutDdPsf));
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop
@@ -1588,21 +1591,22 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
           _settings.isFirstResidualSaved)
-        writeFirstResidualImages(groupTable);
+        writeFirstResidualImages(tableWithoutDdPsf);
       const bool isFinished = !reachedMajorThreshold;
       if (isFinished) {
-        writeModelImages(groupTable);
+        writeModelImages(tableWithoutDdPsf);
       }
 
       if (_settings.deconvolutionMGain != 1.0) {
-        partitionModelIntoFacets(groupTable, false);
+        partitionModelIntoFacets(tableWithoutDdPsf, false);
         if (requestPolarizationsAtOnce) {
-          resetModelColumns(groupTable);
+          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      (groupTable.MaxFacetGroupIndex() + 1));
+          _griddingTaskManager->Start(
+              getMaxNrMSProviders() *
+              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           // Iterate over polarizations, channels & facets
-          for (const ImagingTableEntry& entry : groupTable) {
+          for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
             // Only request one polarization for each facet/channel. The
             // gridder will grid all polarizations
             if (entry.polarization == *_settings.polarizations.begin())
@@ -1613,19 +1617,20 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _predictingWatch.Pause();
           _inversionWatch.Start();
 
-          for (ImagingTableEntry& entry : groupTable) {
+          for (ImagingTableEntry& entry : tableWithoutDdPsf) {
             if (entry.polarization == *_settings.polarizations.begin())
               imageMain(entry, false, false);
           }
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
         } else if (parallelizePolarizations) {
-          resetModelColumns(groupTable);
+          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      (groupTable.MaxFacetGroupIndex() + 1));
+          _griddingTaskManager->Start(
+              getMaxNrMSProviders() *
+              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           for (const ImagingTable::Group& sqGroup :
-               groupTable.SquaredGroups()) {
+               tableWithoutDdPsf.SquaredGroups()) {
             for (const ImagingTable::EntryPtr& entry : sqGroup) {
               predict(*entry);
             }
@@ -1635,7 +1640,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
           _inversionWatch.Start();
           for (const ImagingTable::Group& sqGroup :
-               groupTable.SquaredGroups()) {
+               tableWithoutDdPsf.SquaredGroups()) {
             for (const ImagingTable::EntryPtr& entry : sqGroup) {
               imageMain(*entry, false, false);
             }  // end of polarization & facets loop
@@ -1643,16 +1648,17 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
         } else {  // only parallelize channels
-          resetModelColumns(groupTable);
+          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      (groupTable.MaxFacetGroupIndex() + 1));
+          _griddingTaskManager->Start(
+              getMaxNrMSProviders() *
+              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           bool hasMore;
           size_t sqIndex = 0;
           do {
             hasMore = false;
             for (const ImagingTable::Group& sqGroup :
-                 groupTable.SquaredGroups()) {
+                 tableWithoutDdPsf.SquaredGroups()) {
               if (sqIndex < sqGroup.size()) {
                 hasMore = true;
                 predict(*sqGroup[sqIndex]);
@@ -1668,7 +1674,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           do {
             hasMore = false;
             for (const ImagingTable::Group& sqGroup :
-                 groupTable.SquaredGroups()) {
+                 tableWithoutDdPsf.SquaredGroups()) {
               if (sqIndex < sqGroup.size()) {
                 hasMore = true;
                 imageMain(*sqGroup[sqIndex], false, false);
@@ -1679,7 +1685,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           } while (hasMore);
           _inversionWatch.Pause();
         }
-        stitchFacets(groupTable, _residualImages, false, false);
+        stitchFacets(tableWithoutDdPsf, _residualImages, false, false);
       }
 
       ++_majorIterationNr;
@@ -1690,16 +1696,18 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   }
 
   for (size_t facetGroupIndex = 0;
-       facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
-    const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
+       facetGroupIndex != tableWithoutDdPsf.FacetGroupCount();
+       ++facetGroupIndex) {
+    const ImagingTable facetGroup =
+        tableWithoutDdPsf.GetFacetGroup(facetGroupIndex);
     saveRestoredImagesForGroup(facetGroup, primaryBeam);
   }
 
   if (_settings.saveSourceList) {
     std::unique_ptr<radler::WorkTable> deconvolution_table =
-        groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
-                                            _psfImages, _modelImages,
-                                            _residualImages);
+        tableWithoutDdPsf.CreateDeconvolutionTable(
+            _settings.deconvolutionChannelCount, _psfImages, _modelImages,
+            _residualImages);
     ComponentListWriter componentListWriter(_settings,
                                             std::move(deconvolution_table));
     componentListWriter.SaveSourceList(
@@ -2080,6 +2088,7 @@ void WSClean::makeImagingTableEntryChannelSettings(
 
 void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
   for (PolarizationEnum p : _settings.polarizations) {
+    const bool isFirstPol = (p == *_settings.polarizations.begin());
     templateEntry.polarization = p;
     if (p == Polarization::XY)
       templateEntry.imageCount = 2;
@@ -2088,7 +2097,7 @@ void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
     else
       templateEntry.imageCount = 1;
 
-    if (_ddPsfCount) {
+    if (_ddPsfCount && isFirstPol) {
       ImagingTableEntry ddPsfTemplateEntry(templateEntry);
       ddPsfTemplateEntry.isDdPsf = true;
       addFacetsToImagingTable(ddPsfTemplateEntry, _ddPsfCount);

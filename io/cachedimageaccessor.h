@@ -25,16 +25,58 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
       : image_set_(image_set),
         polarization_(polarization),
         frequency_index_(frequency_index),
-        is_imaginary_(is_imaginary) {}
+        is_imaginary_(is_imaginary),
+        facet_id_(0),
+        facet_(),
+        width_(image_set.Writer().Width()),
+        height_(image_set.Writer().Height()) {}
 
-  void Load(aocommon::Image& image) const override {
-    image_set_.Load(image.Data(), polarization_, frequency_index_,
-                    is_imaginary_);
+  /**
+   * @brief Construct a new CachedImageAccessor object
+   *
+   * @param image_set The CachedImageSet for loading and storing the image.
+   * @param polarization Image polarization.
+   * @param frequency_index Frequency index of the image.
+   * @param is_imaginary False: Image has real values. True: Image has imaginary
+   * values.
+   * @param facet
+   * @param facet_id
+   */
+  CachedImageAccessor(
+      CachedImageSet& image_set, aocommon::PolarizationEnum polarization,
+      size_t frequency_index, size_t facet_id,
+      const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
+      bool is_imaginary)
+      : image_set_(image_set),
+        polarization_(polarization),
+        frequency_index_(frequency_index),
+        is_imaginary_(is_imaginary),
+        facet_id_(facet_id),
+        facet_(facet),
+        width_(facet->GetTrimmedBoundingBox().Width()),
+        height_(facet->GetTrimmedBoundingBox().Height()) {}
+
+  std::size_t Width() const override { return width_; }
+
+  std::size_t Height() const override { return height_; }
+
+  void Load(float* data) const override {
+    if (facet_) {
+      image_set_.LoadFacet(data, polarization_, frequency_index_, facet_id_,
+                           facet_, is_imaginary_);
+    } else {
+      image_set_.Load(data, polarization_, frequency_index_, is_imaginary_);
+    }
   }
 
-  void Store(const aocommon::Image& image) override {
-    image_set_.Store(image.Data(), polarization_, frequency_index_,
-                     is_imaginary_);
+  void Store(const float* data) override {
+    if (facet_) {
+      const aocommon::Image image(const_cast<float*>(data), width_, height_);
+      image_set_.StoreFacet(image, polarization_, frequency_index_, facet_id_,
+                            facet_, is_imaginary_);
+    } else {
+      image_set_.Store(data, polarization_, frequency_index_, is_imaginary_);
+    }
   }
 
   /**
@@ -52,6 +94,10 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
   aocommon::PolarizationEnum polarization_;
   size_t frequency_index_;
   bool is_imaginary_;
+  std::size_t facet_id_;
+  std::shared_ptr<const schaapcommon::facets::Facet> facet_;
+  size_t width_;
+  size_t height_;
 };
 
 #endif

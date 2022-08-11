@@ -295,9 +295,9 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
     BOOST_TEST(deconvolution_entry.image_weight == entry->imageWeight);
 
     if (index == 0) {
-      BOOST_TEST_REQUIRE(deconvolution_entry.psfs.size() == 1);
+      BOOST_TEST_REQUIRE(deconvolution_entry.psf_accessors.size() == 1);
       auto* psf_accessor = dynamic_cast<CachedImageAccessor*>(
-          deconvolution_entry.psfs.front().accessor.get());
+          deconvolution_entry.psf_accessors.front().get());
       BOOST_TEST_REQUIRE(psf_accessor);
       BOOST_TEST(&psf_accessor->GetImageSet() == &psf_images);
       BOOST_TEST(psf_accessor->GetPolarization() == entry->polarization);
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
                  entry->outputChannelIndex);
       BOOST_TEST(!psf_accessor->GetIsImaginary());
     } else {
-      BOOST_TEST(deconvolution_entry.psfs.empty());
+      BOOST_TEST(deconvolution_entry.psf_accessors.empty());
     }
 
     auto* model_accessor = dynamic_cast<CachedImageAccessor*>(

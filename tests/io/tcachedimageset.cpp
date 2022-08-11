@@ -24,12 +24,22 @@ class DummyImageAccessor : public aocommon::ImageAccessor {
   DummyImageAccessor() {}
   ~DummyImageAccessor() override {}
 
-  void Load(Image&) const override {
+  void Load(float*) const override {
     BOOST_FAIL("Unexpected ImageAccessor::Load() call");
   }
 
-  void Store(const Image&) override {
+  void Store(const float*) override {
     BOOST_FAIL("Unexpected ImageAccessor::Store() call");
+  }
+
+  std::size_t Width() const override {
+    BOOST_FAIL("Unexpected ImageAccessor::Width() call");
+    return 0;
+  }
+
+  std::size_t Height() const override {
+    BOOST_FAIL("Unexpected ImageAccessor::Height() call");
+    return 0;
   }
 };
 
@@ -39,8 +49,9 @@ struct ImageSetFixtureBase {
   ImageSetFixtureBase() {}
 
   void initTable(size_t n_original_channels, size_t n_deconvolution_channels) {
-    table = std::make_unique<radler::WorkTable>(n_original_channels,
-                                                n_deconvolution_channels);
+    std::vector<radler::PsfOffset> psf_offsets;
+    table = std::make_unique<radler::WorkTable>(
+        psf_offsets, n_original_channels, n_deconvolution_channels);
   }
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,

@@ -1,6 +1,7 @@
 #include "imagingtable.h"
 
 #include <aocommon/logger.h>
+#include <schaapcommon/facets/facet.h>
 
 #include <algorithm>
 #include <cassert>
@@ -128,12 +129,43 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   const int n_original_channels =
       _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
+  // Gather dd-psf info from ImagingTable
+  // The ImagingTable is a fairly free format
+  // The following addional assumptions are needed to create a valid
+  // WorkTable with ddp-psfs
+  //
+  // * The dd-psfs are the same, and in the same order for all images
+  // * the facet_ids of the dd-psfs form a simple sequence 0,1,2,...
+  //
+
+  std::vector<radler::PsfOffset> psf_offsets;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> psf_facets;
+
+  // There could be multiple independent groups so the first
+  // facetGroupIndex is not necessarily zero.
+  size_t first_facet_group_index = (*_entries.begin())->facetGroupIndex;
+
+  // Assuming that the polarisations are added in order to the imaging table,
+  // so the polarisation of first facet group is the first polarisation, and
+  // contains hence the dd psfs
+  for (const EntryPtr& entry_ptr : _entries) {
+    if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
+    if (!entry_ptr->isDdPsf) continue;
+    psf_offsets.emplace_back(
+        entry_ptr->facet->GetTrimmedBoundingBox().Centre().x,
+        entry_ptr->facet->GetTrimmedBoundingBox().Centre().y);
+    psf_facets.push_back(entry_ptr->facet);
+  }
+
   auto table = std::make_unique<radler::WorkTable>(
-      n_original_channels, n_deconvolution_channels, channel_index_offset);
+      psf_offsets, n_original_channels, n_deconvolution_channels,
+      channel_index_offset);
   int max_squared_index = -1;
 
   for (const EntryPtr& entry_ptr : _entries) {
     assert(entry_ptr);
+
+    if ((entry_ptr->facetIndex != 0) || entry_ptr->isDdPsf) continue;
 
     if (entry_ptr->imageCount >= 1) {
       CachedImageSet* psf_images_ptr = nullptr;
@@ -147,9 +179,9 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
       }
 
       std::unique_ptr<radler::WorkTableEntry> real_entry =
-          entry_ptr->CreateDeconvolutionEntry(channel_index_offset,
-                                              psf_images_ptr, model_images,
-                                              residual_images, false);
+          entry_ptr->CreateDeconvolutionEntry(
+              channel_index_offset, psf_images_ptr, model_images,
+              residual_images, psf_facets, false);
       table->AddEntry(std::move(real_entry));
     }
 
@@ -157,7 +189,7 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
       std::unique_ptr<radler::WorkTableEntry> imaginary_entry =
           entry_ptr->CreateDeconvolutionEntry(channel_index_offset, nullptr,
                                               model_images, residual_images,
-                                              true);
+                                              psf_facets, true);
       table->AddEntry(std::move(imaginary_entry));
     }
   }
