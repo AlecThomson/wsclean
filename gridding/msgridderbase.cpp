@@ -91,7 +91,8 @@ template <>
 void ApplyConjugatedGain<2, DDGainMatrix::kFull>(std::complex<float>*,
                                                  const aocommon::MC2x2F&,
                                                  const aocommon::MC2x2F&) {
-  throw std::runtime_error("Not implemented");
+  throw std::runtime_error(
+      "ApplyConjugatedGain<2, DDGainMatrix::kFull> not implemented");
 }
 
 template <>
@@ -144,7 +145,7 @@ template <>
 void ApplyGain<2, DDGainMatrix::kFull>(std::complex<float>*,
                                        const aocommon::MC2x2F&,
                                        const aocommon::MC2x2F&) {
-  throw std::runtime_error("Not implemented");
+  throw std::runtime_error("ApplyGain<2, DDGainMatrix::kFull> not implemented");
 }
 
 template <>
@@ -190,7 +191,7 @@ template <>
 std::complex<float> ComputeGain<DDGainMatrix::kFull>(
     [[maybe_unused]] const aocommon::MC2x2F& gain1,
     [[maybe_unused]] const aocommon::MC2x2F& gain2) {
-  throw std::runtime_error("Not implemented!");
+  throw std::runtime_error("ComputeGain<DDGainMatrix::kFull> not implemented!");
 }
 
 /**
@@ -307,7 +308,7 @@ void MSGridderBase::initializePointResponse(
     const MSGridderBase::MSData& msData) {
   SynchronizedMS ms(msData.msProvider->MS());
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam) {
+  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
     // Hard-coded for now
     const bool frequency_interpolation = true;
     const bool use_channel_frequency = true;
@@ -343,9 +344,10 @@ void MSGridderBase::initializePointResponse(
     _cachedBeamResponse.resize(0);
   }
 #else
-  if (_settings.applyFacetBeam) {
+  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
     throw std::runtime_error(
-        "-apply-facet-beam was set, but wsclean was not compiled "
+        "-apply-facet-beam or -grid-with-beam was set, but wsclean was not "
+        "compiled "
         "with EveryBeam. Please compile wsclean with EveryBeam to "
         "use the Facet Beam functionality");
   }
@@ -765,7 +767,7 @@ void MSGridderBase::writeVisibilities(
     _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
     // function
-    if (!_settings.applyFacetBeam) {
+    if (!(_settings.applyFacetBeam || _settings.gridWithBeam)) {
       _predictReader->NextInputRow();
     }
 
@@ -808,7 +810,7 @@ void MSGridderBase::writeVisibilities(
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam) {
+  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
     assert(!_settings.facetRegionFilename.empty());
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
@@ -1166,12 +1168,13 @@ void MSGridderBase::readAndWeightVisibilities(
     msReader.WriteImagingWeights(_scratchImageWeights.data());
 
   if (IsFacet() && (!DoImagePSF() || DoImageDdPsf())) {
-    if (_settings.applyFacetBeam && !_h5parms.empty()) {
+    if ((_settings.applyFacetBeam || _settings.gridWithBeam) &&
+        !_h5parms.empty()) {
 #ifdef HAVE_EVERYBEAM
       ApplyConjugatedFacetDdEffects<PolarizationCount, GainEntry>(
           msReader, antennaNames, rowData, curBand, weightBuffer,
           DoImageDdPsf());
-    } else if (_settings.applyFacetBeam) {
+    } else if (_settings.applyFacetBeam || _settings.gridWithBeam) {
       ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
           msReader, rowData, curBand, weightBuffer, DoImageDdPsf());
 #endif  // HAVE_EVERYBEAM

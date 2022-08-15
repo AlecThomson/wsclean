@@ -167,8 +167,8 @@ class WSClean {
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
   void imagePSF(ImagingTableEntry& entry);
-  void imagePSFCallback(ImagingTableEntry& entry, struct GriddingResult& result,
-                        bool writeBeamImage);
+  void imagePSFCallback(ImagingTableEntry& entry,
+                        struct GriddingResult& result);
 
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                  bool updateBeamInfo);
@@ -262,7 +262,7 @@ class WSClean {
     return _settings.polarizations ==
                    std::set<aocommon::PolarizationEnum>{
                        aocommon::Polarization::StokesI}
-               ? aocommon::Polarization::DiagonalInstrumental
+               ? aocommon::Polarization::StokesI
                : aocommon::Polarization::Instrumental;
   }
 
