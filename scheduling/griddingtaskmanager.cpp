@@ -92,16 +92,16 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetPhaseCentreDM(task.shiftM);
   gridder.SetPhaseCentreDL(task.shiftL);
 
-  double main_image_dl = 0.0;
-  double main_image_dm = 0.0;
   if (_settings.hasShift) {
+    double main_image_dl = 0.0;
+    double main_image_dm = 0.0;
     aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec,
                                           task.observationInfo.phaseCentreRA,
                                           task.observationInfo.phaseCentreDec,
                                           main_image_dl, main_image_dm);
+    gridder.SetMainImageDL(main_image_dl);
+    gridder.SetMainImageDM(main_image_dm);
   }
-  gridder.SetMainImageDM(main_image_dm);
-  gridder.SetMainImageDL(main_image_dl);
 
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||

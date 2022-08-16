@@ -82,8 +82,7 @@ void Settings::Validate() const {
     if (applyFacetBeam)
       throw std::runtime_error(
           "A facet beam can only applied if a facet regions file is specified, "
-          "or "
-          "if a dd-psf is used. "
+          "or if a dd-psf is used. "
           "Either remove -apply-facet-beam from the command line, or specify a "
           "regions file with -facet-regions, or specify a grid of dd-psfs with "
           "-dd-psf-grid.");

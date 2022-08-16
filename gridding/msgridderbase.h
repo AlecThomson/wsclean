@@ -163,10 +163,10 @@ class MSGridderBase {
   }
 
   void SetMainImageDL(const double main_image_dl) {
-    _main_image_dl = main_image_dl;
+    _mainImageDL = main_image_dl;
   }
   void SetMainImageDM(const double main_image_dm) {
-    _main_image_dm = main_image_dm;
+    _mainImageDM = main_image_dm;
   }
 
   void SetFacetDirectionRA(double facetDirectionRA) {
@@ -180,8 +180,8 @@ class MSGridderBase {
   double FacetDirectionDec() const { return _facetDirectionDec; }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
-  double MainImageDL() const { return _main_image_dl; }
-  double MainImageDM() const { return _main_image_dm; }
+  double MainImageDL() const { return _mainImageDL; }
+  double MainImageDM() const { return _mainImageDM; }
 
   /**
    * Deallocate any data that is no longer necessary, but all methods
@@ -453,7 +453,7 @@ class MSGridderBase {
 #endif  // HAVE_EVERYBEAM
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-  double _main_image_dl, _main_image_dm;
+  double _mainImageDL, _mainImageDM;
   double _facetDirectionRA, _facetDirectionDec;
   size_t _facetIndex;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
@@ -462,7 +462,7 @@ class MSGridderBase {
   /// only relevant for prediction.
   size_t _facetGroupIndex;
   size_t _msIndex;
-  /// @see SetIsFAcet()
+  /// @see SetIsFacet()
   bool _isFacet;
   double _imagePadding;
   size_t _imageWidth, _imageHeight;
