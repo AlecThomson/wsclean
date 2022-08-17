@@ -365,13 +365,6 @@ void Settings::Propagate(bool verbose) {
     parallelDeconvolutionMaxThreads = threadCount;
   }
 
-  // When using IDG with aterms, a PSF must be made, because the beam
-  // image is created during the PSF imaging stage.
-  // if (gridderType == GridderType::IDG &&
-  //     (!atermConfigFilename.empty() || gridWithBeam)) {
-  //   makePSF = true;
-  // }
-
   // When using IDG, polarizations should always be joined
   if (gridderType == GridderType::IDG) {
     joinedPolarizationDeconvolution = true;

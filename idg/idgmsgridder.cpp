@@ -102,8 +102,7 @@ void IdgMsGridder::Invert() {
 
   if (GetPsfMode() != PsfMode::kNone) {
     // Computing the PSF
-    // For the PSF the aterm is computed but not applied
-    // The aterm is computed so that the average beam can be computed
+    // For the PSF the aterm is not applied
     _bufferset->set_apply_aterm(false);
     _bufferset->unset_matrix_inverse_beam();
     resetVisibilityCounters();
