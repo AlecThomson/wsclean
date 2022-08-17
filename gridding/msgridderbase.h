@@ -47,6 +47,14 @@ class SolTab;
  */
 enum class DDGainMatrix { kXX, kYY, kTrace, kFull };
 
+enum class PsfMode {
+  kNone,    // Not a psf, grid the visibilities in the MS
+  kSingle,  // Grid generated visibilities for a point source at the centre of
+            // the main image
+  kDirectionDependent  // Grid generated visibilities for a point source at the
+                       // centre of the current facet
+};
+
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
@@ -78,8 +86,7 @@ class MSGridderBase {
 
   const std::string& DataColumnName() const { return _dataColumnName; }
   bool IsFacet() const { return _isFacet; }
-  bool DoImagePSF() const { return _doImagePSF; }
-  bool DoImageDdPsf() const { return _doImageDdPsf; }
+  PsfMode GetPsfMode() const { return _psfMode; }
   bool DoSubtractModel() const { return _doSubtractModel; }
   bool SmallInversion() const { return _smallInversion; }
   aocommon::PolarizationEnum Polarization() const { return _polarization; }
@@ -109,8 +116,7 @@ class MSGridderBase {
   void SetActualWGridSize(size_t actualWGridSize) {
     _actualWGridSize = actualWGridSize;
   }
-  void SetDoImagePSF(bool doImagePSF) { _doImagePSF = doImagePSF; }
-  void SetDoImageDdPsf(bool doImageDdPsf) { _doImageDdPsf = doImageDdPsf; }
+  void SetPsfMode(PsfMode psf_mode) { _psfMode = psf_mode; }
   void SetImagePadding(double imagePadding) { _imagePadding = imagePadding; }
   void SetPolarization(aocommon::PolarizationEnum polarization) {
     _polarization = polarization;
@@ -425,6 +431,17 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
   void initializePredictReader(MSProvider& msProvider);
 
+  /**
+   * @brief Applies both the conjugated h5 parm
+   * solutions to the visibilities and computes the weight corresponding to the
+   * combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
+   */
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
@@ -434,6 +451,17 @@ class MSGridderBase {
                              bool apply_forward = false);
 
 #ifdef HAVE_EVERYBEAM
+  /**
+   * @brief Applies the conjugated facet beam to the visibilities and computes
+   * the weight corresponding to the combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
+   */
+
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
                                 const aocommon::BandData& curBand,
@@ -444,6 +472,12 @@ class MSGridderBase {
    * @brief Applies both the conjugated facet beam and the conjugated h5 parm
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
    */
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetDdEffects(
@@ -471,7 +505,8 @@ class MSGridderBase {
   size_t _wGridSize, _actualWGridSize;
   std::vector<MSProvider*> _measurementSets;
   std::string _dataColumnName;
-  bool _doImagePSF, _doImageDdPsf, _doSubtractModel, _smallInversion;
+  PsfMode _psfMode;
+  bool _doSubtractModel, _smallInversion;
   double _wLimit;
   const class ImageWeights* _precalculatedWeightInfo;
   aocommon::PolarizationEnum _polarization;

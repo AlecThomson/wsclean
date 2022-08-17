@@ -255,8 +255,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _actualWGridSize(0),
       _measurementSets(),
       _dataColumnName(settings.dataColumnName),
-      _doImagePSF(false),
-      _doImageDdPsf(false),
+      _psfMode(PsfMode::kNone),
       _doSubtractModel(false),
       _smallInversion(settings.smallInversion),
       _wLimit(settings.wLimit / 100.0),
@@ -761,7 +760,7 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer) {
-  assert(!DoImagePSF());  // The PSF is never predicted.
+  assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
   if (!_h5parms.empty()) {
     assert(!_settings.facetRegionFilename.empty());
@@ -1098,19 +1097,19 @@ void MSGridderBase::readAndWeightVisibilities(
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
-  if (DoImagePSF()) {
+  if (GetPsfMode() != PsfMode::kNone) {
     // Visibilities for a point source at the phase centre are all ones
     std::fill_n(rowData.data, dataSize, 1.0);
     double dl = 0.0;
     double dm = 0.0;
-    if (DoImageDdPsf()) {
-      // The point source is shifted to the centre of the current DdPsf position
-      dl = PhaseCentreDL();
-      dm = PhaseCentreDM();
-    } else {
+    if (GetPsfMode() == PsfMode::kSingle) {
       // The point source is shifted to the centre of the main image
       dl = MainImageDL();
       dm = MainImageDM();
+    } else {  // GetPsfMode() == PsfMode::kDirectionDependent
+      // The point source is shifted to the centre of the current DdPsf position
+      dl = PhaseCentreDL();
+      dm = PhaseCentreDM();
     }
     if (dl != 0.0 || dm != 0.0) {
       const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
@@ -1169,21 +1168,22 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchImageWeights.data());
 
-  if (IsFacet() && (!DoImagePSF() || DoImageDdPsf())) {
+  if (IsFacet() && (GetPsfMode() != PsfMode::kNone)) {
     if ((_settings.applyFacetBeam || _settings.gridWithBeam) &&
         !_h5parms.empty()) {
 #ifdef HAVE_EVERYBEAM
       ApplyConjugatedFacetDdEffects<PolarizationCount, GainEntry>(
           msReader, antennaNames, rowData, curBand, weightBuffer,
-          DoImageDdPsf());
+          GetPsfMode() == PsfMode::kDirectionDependent);
     } else if (_settings.applyFacetBeam || _settings.gridWithBeam) {
       ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
-          msReader, rowData, curBand, weightBuffer, DoImageDdPsf());
+          msReader, rowData, curBand, weightBuffer,
+          GetPsfMode() == PsfMode::kDirectionDependent);
 #endif  // HAVE_EVERYBEAM
     } else if (!_h5parms.empty()) {
       ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
           msReader, antennaNames, rowData, curBand, weightBuffer,
-          DoImageDdPsf());
+          GetPsfMode() == PsfMode::kDirectionDependent);
     }
   }
 

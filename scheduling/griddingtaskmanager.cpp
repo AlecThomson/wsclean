@@ -114,9 +114,14 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
         std::unique_ptr<MetaDataCache>(new MetaDataCache()));
   gridder.SetImageWeights(task.imageWeights.get());
   if (task.operation == GriddingTask::Invert) {
-    gridder.SetDoImagePSF(task.imagePSF);
-    gridder.SetDoImageDdPsf(task.imagePSF && (_settings.ddPsfGridWidth > 1 ||
-                                              _settings.ddPsfGridHeight > 1));
+    if (task.imagePSF) {
+      if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
+        gridder.SetPsfMode(PsfMode::kDirectionDependent);
+      } else {
+      }
+    } else {
+      gridder.SetPsfMode(PsfMode::kNone);
+    }
     gridder.SetDoSubtractModel(task.subtractModel);
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
