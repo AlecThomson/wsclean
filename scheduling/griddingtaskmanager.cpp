@@ -118,6 +118,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
       if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
         gridder.SetPsfMode(PsfMode::kDirectionDependent);
       } else {
+        gridder.SetPsfMode(PsfMode::kSingle); 
       }
     } else {
       gridder.SetPsfMode(PsfMode::kNone);

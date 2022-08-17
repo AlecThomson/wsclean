@@ -1168,7 +1168,7 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchImageWeights.data());
 
-  if (IsFacet() && (GetPsfMode() != PsfMode::kNone)) {
+  if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
     if ((_settings.applyFacetBeam || _settings.gridWithBeam) &&
         !_h5parms.empty()) {
 #ifdef HAVE_EVERYBEAM

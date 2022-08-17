@@ -234,13 +234,13 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
           weightBuffer.data(), modelBuffer.data(), isSelected.data());
       // The data is placed in the first quarter of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
-      // be able to directly accept 1 pols instead of 4.
+      // be able to directly accept 1 polarization instead of 4.
       size_t source_index = dataBuffer.size() / 4;
       for (size_t i = dataBuffer.size(); i != 0; i -= 4) {
-        rowData.data[i - 1] = rowData.data[source_index - 1];
-        rowData.data[i - 2] = 0.0;
-        rowData.data[i - 3] = 0.0;
-        rowData.data[i - 4] = rowData.data[source_index - 1];
+        dataBuffer[i - 1] = dataBuffer[source_index - 1];
+        dataBuffer[i - 2] = 0.0;
+        dataBuffer[i - 3] = 0.0;
+        dataBuffer[i - 4] = dataBuffer[source_index - 1];
         weightBuffer[i - 1] = weightBuffer[source_index - 1];
         weightBuffer[i - 2] = weightBuffer[source_index - 1];
         weightBuffer[i - 3] = weightBuffer[source_index - 1];
@@ -454,7 +454,7 @@ void IdgMsGridder::computePredictionBuffer(
       // Remove the XY/YX pols from the data and place the result in the first
       // quarter of the array
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
-        row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.f;
+        row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
       }
       writeVisibilities<1, DDGainMatrix::kTrace>(*_outputProvider, antennaNames,
                                                  _selectedBand, row.second);
