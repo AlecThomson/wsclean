@@ -46,7 +46,7 @@ format:
     - apt-get install -y -qq clang-format-12
     # The formatter needs a binary named 'clang-format', not 'clang-format-12'.
     - ln -sf clang-format-12 /usr/bin/clang-format
-    - pip3 install cmake-format
+    - pip3 install black cmake-format
     # Check formatting of header (*.h), source (*.cpp) and CMake files
     - ./scripts/run-format.sh
   rules:
