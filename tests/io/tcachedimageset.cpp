@@ -69,6 +69,7 @@ struct ImageSetFixtureBase {
   }
 
   std::unique_ptr<radler::WorkTable> table;
+  FitsWriter writer;
   CachedImageSet cSet;
 };
 
@@ -93,7 +94,6 @@ struct ImageSetFixture : public ImageSetFixtureBase {
     this->cSet.Store(image.data(), aocommon::Polarization::YY, 1, false);
   }
 
-  FitsWriter writer;
   aocommon::UVector<double> image;
 };
 
@@ -136,7 +136,6 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
                                        PolarizationEnum::YY};
   const size_t width = 7;
   const size_t height = 9;
-  FitsWriter writer;
   writer.SetImageDimensions(width, height);
   const std::vector<double> weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
   cSet.Initialize(writer, 4, 6, 0, "imagesettest");
