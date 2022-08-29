@@ -49,7 +49,7 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   vmav<float, 2> tdirty({width_t_, height_t_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-  if (tuning_)
+  if (!tuning_)
     ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
                            pixelSizeY_, epsilon_, true, nthreads_, tdirty,
                            verbosity_, true, false, sigma_min, sigma_max,
@@ -95,7 +95,7 @@ void WGriddingGridder_Simple::PredictVisibilities(
   cmav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-  if (tuning_)
+  if (!tuning_)
     dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                            pixelSizeY_, epsilon_, true, nthreads_, ms,
                            verbosity_, true, false, sigma_min, sigma_max,
