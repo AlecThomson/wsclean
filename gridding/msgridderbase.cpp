@@ -462,9 +462,8 @@ void MSGridderBase::SetH5Parms() {
       } else {
         throw std::runtime_error(
             "Incorrect or mismatching number of polarizations in the "
-            "provided amplitude and phase soltabs. Number of polarizations "
-            "should be either "
-            "all 1, 2 or 4, but received " +
+            "provided amplitude and phase soltabs. The number of polarizations "
+            "should both be either 1, 2 or 4, but received " +
             std::to_string(n_amplitude_pol) + " for amplitude and " +
             std::to_string(n_phase_pol) + " for phase");
       }
