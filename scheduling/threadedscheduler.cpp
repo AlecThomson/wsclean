@@ -13,15 +13,20 @@ ThreadedScheduler::ThreadedScheduler(const Settings& settings)
       resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {}
 
 ThreadedScheduler::~ThreadedScheduler() {
-  try {
-    if (!thread_list_.empty()) Finish();
-  } catch (std::exception& e) {
-    // We are in a destructor and might very well be here because of an earlier
-    // exception, so all that can be done is report the error.
-    using namespace std::string_literals;
-    aocommon::Logger::Error
-        << "Exception caught during destruction of ThreadedScheduler:\n"s +
-               e.what() + '\n';
+  if (!thread_list_.empty()) {
+    try {
+      Finish();
+    } catch (std::exception& e) {
+      // Normally, the user of the ThreadedScheduler calls Finish(), which
+      // empties the thread_list_. If thread_list_ is non-empty in this
+      // destructor, the ThreadedScheduler is destroyed because some another
+      // exception occurred. We are in a destructor, so all that can be done is
+      // report the error.
+      using namespace std::string_literals;
+      aocommon::Logger::Error
+          << "Exception caught during destruction of ThreadedScheduler:\n"s +
+                 e.what() + '\n';
+    }
   }
 }
 
@@ -79,7 +84,7 @@ void ThreadedScheduler::Finish() {
   for (std::thread& t : thread_list_) t.join();
   thread_list_.clear();
   task_list_.clear();
-  std::lock_guard<std::mutex> lock(mutex_);
+  // All threads have joined, so no lock required
   while (!ready_list_.empty()) {
     // Call callbacks for any finished tasks
     ready_list_.back().second(ready_list_.back().first);
