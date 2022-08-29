@@ -56,6 +56,7 @@ void ThreadedScheduler::ProcessQueue() {
       std::lock_guard<std::mutex> lock(mutex_);
       ready_list_.emplace_back(std::move(result), taskPair.second);
     } catch (std::exception&) {
+      std::lock_guard<std::mutex> lock(mutex_);
       latest_exception_ = std::current_exception();
     }
   }
@@ -78,6 +79,7 @@ void ThreadedScheduler::Finish() {
   for (std::thread& t : thread_list_) t.join();
   thread_list_.clear();
   task_list_.clear();
+  std::lock_guard<std::mutex> lock(mutex_);
   while (!ready_list_.empty()) {
     // Call callbacks for any finished tasks
     ready_list_.back().second(ready_list_.back().first);
