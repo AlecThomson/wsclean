@@ -77,13 +77,12 @@ template <size_t NDeconvolutionChannels>
 struct ImageSetFixture : public ImageSetFixtureBase {
   ImageSetFixture() : image(4, 0.0) {
     initTable(2, NDeconvolutionChannels);
+    writer.SetImageDimensions(2, 2);
+    this->cSet.Initialize(writer, 2, 2, 0, "wsctest");
     addToImageSet(0, aocommon::Polarization::XX, 100);
     addToImageSet(0, aocommon::Polarization::YY, 100);
     addToImageSet(1, aocommon::Polarization::XX, 200);
     addToImageSet(1, aocommon::Polarization::YY, 200);
-
-    writer.SetImageDimensions(2, 2);
-    this->cSet.Initialize(writer, 2, 2, 0, "wsctest");
     image[0] = 2.0;
     this->cSet.Store(image.data(), aocommon::Polarization::XX, 0, false);
     image[0] = -1.0;
