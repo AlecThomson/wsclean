@@ -20,7 +20,7 @@ ThreadedScheduler::~ThreadedScheduler() {
     // exception, so all that can be done is report the error.
     using namespace std::string_literals;
     aocommon::Logger::Error
-        << "Exception caught during destruction of ThreadedScheduler:\n" s +
+        << "Exception caught during destruction of ThreadedScheduler:\n"s +
                e.what() + '\n';
   }
 }
