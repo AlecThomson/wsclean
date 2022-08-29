@@ -425,20 +425,20 @@ void MSGridderBase::SetH5Parms() {
 
       const auto amplitude_iter =
           std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
-      const auto phase_amplitude =
+      const auto phase_iter =
           std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
 
       if (amplitude_iter == solTabTypes.end() ||
-          phase_amplitude == solTabTypes.end()) {
+          phase_iter == solTabTypes.end()) {
         throw std::runtime_error(
-            "WSClean expected solution tables with name 'amplitude' and "
+            "WSClean expects solution tables with name 'amplitude' and "
             "'phase', but received " +
             solTabTypes[0] + " and " + solTabTypes[1]);
       } else {
         const size_t amplitude_index =
             std::distance(solTabTypes.begin(), amplitude_iter);
         const size_t phase_index =
-            std::distance(solTabTypes.begin(), phase_amplitude);
+            std::distance(solTabTypes.begin(), phase_iter);
         _h5SolTabs[i] =
             std::make_pair(&_h5parms[i]->GetSolTab(
                                _settings.facetSolutionTables[amplitude_index]),
