@@ -219,7 +219,7 @@ void WGriddingMSGridder::Invert() {
   gridder_.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
       trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
-      PhaseCentreDM(), resources_.NCpus(), accuracy_, use_tuned_wgridder_));
+      PhaseCentreDM(), resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_));
   gridder_->InitializeInversion();
 
   resetVisibilityCounters();
@@ -281,7 +281,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   gridder_.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
       trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
-      PhaseCentreDM(), resources_.NCpus(), accuracy_, use_tuned_wgridder_));
+      PhaseCentreDM(), resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmedImage(ImageWidth(), ImageHeight());
