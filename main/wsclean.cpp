@@ -120,21 +120,6 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   Logger::Info << "Loading existing PSF from disk...\n";
   GriddingResult result = loadExistingImage(entry, true);
-
-  if (griddingUsesATerms()) {
-    ImageFilename imageName(entry.outputChannelIndex,
-                            entry.outputIntervalIndex);
-
-    const std::string beamImageName =
-        imageName.GetBeamPrefix(_settings) + ".fits";
-    if (!boost::filesystem::exists(beamImageName)) {
-      throw std::runtime_error(
-          "When reuse-psf is used in combination with the IDG gridder, please "
-          "make sure that a corresponding beam image can be found. Expected "
-          "file name: " +
-          beamImageName);
-    }
-  }
   imagePSFCallback(entry, result);
 }
 
@@ -212,8 +197,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                         channelIndex, entry.facetIndex, entry.facet, false);
 
   _isFirstInversion = false;
-
-  storeAverageBeam(entry, result.averageBeam);
 }
 
 void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
