@@ -1002,9 +1002,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       const bool isFirstPol =
           entry.polarization == *_settings.polarizations.begin();
       if ((entry.isDdPsf == doMakeDdPsf) && isFirstPol) {
-        if (_settings.reusePsf)
+        if (_settings.reusePsf) {
           loadExistingPSF(entry);
-        else {
+        } else {
           imagePSF(entry);
         }
       }
