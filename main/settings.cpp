@@ -289,6 +289,13 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
+  if (reuseDirty && (gridWithBeam || !atermConfigFilename.empty())) {
+    throw std::runtime_error(
+        "Reusing dirty image and beam/aterm corrections"
+        " can not be combined, because the average beam is"
+        " computed when the dirty image is made.");
+  }
+
   checkPolarizations();
 }
 
