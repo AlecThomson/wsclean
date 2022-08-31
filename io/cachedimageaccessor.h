@@ -27,9 +27,7 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
         frequency_index_(frequency_index),
         is_imaginary_(is_imaginary),
         facet_id_(0),
-        facet_(),
-        width_(image_set.Writer().Width()),
-        height_(image_set.Writer().Height()) {}
+        facet_() {}
 
   /**
    * @brief Construct a new CachedImageAccessor object
@@ -52,13 +50,17 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
         frequency_index_(frequency_index),
         is_imaginary_(is_imaginary),
         facet_id_(facet_id),
-        facet_(facet),
-        width_(facet->GetTrimmedBoundingBox().Width()),
-        height_(facet->GetTrimmedBoundingBox().Height()) {}
+        facet_(facet) {}
 
-  std::size_t Width() const override { return width_; }
+  std::size_t Width() const override {
+    return facet_ ? facet_->GetTrimmedBoundingBox().Width()
+                  : image_set_.Writer().Width();
+  }
 
-  std::size_t Height() const override { return height_; }
+  std::size_t Height() const override {
+    return facet_ ? facet_->GetTrimmedBoundingBox().Height()
+                  : image_set_.Writer().Height();
+  }
 
   void Load(float* data) const override {
     if (facet_) {
@@ -71,7 +73,7 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
 
   void Store(const float* data) override {
     if (facet_) {
-      const aocommon::Image image(const_cast<float*>(data), width_, height_);
+      const aocommon::Image image(const_cast<float*>(data), Width(), Height());
       image_set_.StoreFacet(image, polarization_, frequency_index_, facet_id_,
                             facet_, is_imaginary_);
     } else {
@@ -96,8 +98,6 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
   bool is_imaginary_;
   std::size_t facet_id_;
   std::shared_ptr<const schaapcommon::facets::Facet> facet_;
-  size_t width_;
-  size_t height_;
 };
 
 #endif
