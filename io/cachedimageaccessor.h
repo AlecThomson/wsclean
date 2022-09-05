@@ -37,13 +37,14 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
    * @param frequency_index Frequency index of the image.
    * @param is_imaginary False: Image has real values. True: Image has imaginary
    * values.
-   * @param facet
-   * @param facet_id
+   * @param facet [optional] Facet object, in case the accessor should use a facet of the image.
+   *              If null, the accessor uses the entire image.
+   * @param facet_id The facet index, when the 'facet' argument is valid. Otherwise, this argument is ignored.
    */
   CachedImageAccessor(
       CachedImageSet& image_set, aocommon::PolarizationEnum polarization,
       size_t frequency_index, size_t facet_id,
-      const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
+      std::shared_ptr<const schaapcommon::facets::Facet> facet,
       bool is_imaginary)
       : image_set_(image_set),
         polarization_(polarization),

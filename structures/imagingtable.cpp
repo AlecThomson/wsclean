@@ -151,14 +151,13 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   for (const EntryPtr& entry_ptr : _entries) {
     if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
     if (!entry_ptr->isDdPsf) continue;
-    psf_offsets.emplace_back(
-        entry_ptr->facet->GetTrimmedBoundingBox().Centre().x,
-        entry_ptr->facet->GetTrimmedBoundingBox().Centre().y);
+    const schaapcommon::facet::Pixel centre = entry_ptr->facet->GetTrimmedBoundingBox().Centre();
+    psf_offsets.emplace_back(centre.x, centre.y);
     psf_facets.push_back(entry_ptr->facet);
   }
 
   auto table = std::make_unique<radler::WorkTable>(
-      psf_offsets, n_original_channels, n_deconvolution_channels,
+      std::move(psf_offsets), n_original_channels, n_deconvolution_channels,
       channel_index_offset);
   int max_squared_index = -1;
 
