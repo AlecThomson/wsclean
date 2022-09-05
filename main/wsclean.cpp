@@ -1009,9 +1009,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         }
       }
     }
-    std::cout << "Waiting for _griddingTaskManager->Finish() ..." << std::flush;
     _griddingTaskManager->Finish();
-    std::cout << "done." << std::endl;
     if (!doMakeDdPsf) stitchFacets(groupTable, _psfImages, false, true);
   }
 
