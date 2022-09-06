@@ -119,6 +119,17 @@ void ImagingTable::AssignGridDataFromPolarization(
 std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
     int n_deconvolution_channels, CachedImageSet& psf_images,
     CachedImageSet& model_images, CachedImageSet& residual_images) const {
+  if (_entries.empty()) {
+    throw std::runtime_error(
+        "Can not create a DeconvolutionTable from an empty ImagingTable.");
+  }
+
+  if (_facets.empty()) {
+    throw std::runtime_error(
+        "Member _facets of ImagingTable is empty. Probably Update() was not "
+        "called after adding entries.");
+  }
+
   // In a DeconvolutionTable the output channel indices range from
   // 0 to (#channels - 1). In an ImagingTable that forms an indepent group,
   // output channel indices may start at a higher index.
@@ -148,8 +159,8 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   size_t first_facet_group_index = (*_entries.begin())->facetGroupIndex;
 
   // Although an ImagingTable may contain entries for multiple polarizations,
-  // there should only be DD PSF entries for the first polarization, since the DD PSF layout
-  // is equal for all polarizations.
+  // there should only be DD PSF entries for the first polarization, since the
+  // DD PSF layout is equal for all polarizations.
   for (const EntryPtr& entry_ptr : _entries) {
     if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
     if (!entry_ptr->isDdPsf) continue;

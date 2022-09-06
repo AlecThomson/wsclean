@@ -251,6 +251,16 @@ BOOST_AUTO_TEST_CASE(squared_groups) {
 
 BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   ImagingTable table;
+  CachedImageSet psf_images;
+  CachedImageSet model_images;
+  CachedImageSet residual_images;
+
+  // Check for exception on empty table
+  BOOST_CHECK_THROW(std::unique_ptr<radler::WorkTable> deconvolution_table =
+                        table.CreateDeconvolutionTable(
+                            1, psf_images, model_images, residual_images),
+                    std::runtime_error);
+
   test::UniquePtr<ImagingTableEntry> entry;
   entry->polarization = aocommon::PolarizationEnum::StokesV;
   entry->bandStartFrequency = 42.0;
@@ -261,9 +271,14 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   entry->imageCount = 2;
   table.AddEntry(entry.take());
 
-  CachedImageSet psf_images;
-  CachedImageSet model_images;
-  CachedImageSet residual_images;
+  // Check for invalid table
+  // Update was not called after adding entry
+  BOOST_CHECK_THROW(std::unique_ptr<radler::WorkTable> deconvolution_table =
+                        table.CreateDeconvolutionTable(
+                            1, psf_images, model_images, residual_images),
+                    std::runtime_error);
+  table.Update();
+
   std::unique_ptr<radler::WorkTable> deconvolution_table =
       table.CreateDeconvolutionTable(1, psf_images, model_images,
                                      residual_images);
@@ -339,6 +354,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
     entries[i]->imageCount = 1;
     table.AddEntry(entries[i].take());
   }
+  table.Update();
 
   CachedImageSet images;
   std::unique_ptr<radler::WorkTable> deconvolution_table =
