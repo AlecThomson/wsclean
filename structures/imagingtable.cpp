@@ -143,11 +143,13 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
 
   // There could be multiple independent groups so the first
   // facetGroupIndex is not necessarily zero.
+  // Note that looping over _facetGroups.front() is not possible here, since it
+  // does not contain the DD PSF entries.
   size_t first_facet_group_index = (*_entries.begin())->facetGroupIndex;
 
-  // Assuming that the polarisations are added in order to the imaging table,
-  // so the polarisation of first facet group is the first polarisation, and
-  // contains hence the dd psfs
+  // Although an ImagingTable may contain entries for multiple polarizations,
+  // there should only be DD PSF entries for the first polarization, since the DD PSF layout
+  // is equal for all polarizations.
   for (const EntryPtr& entry_ptr : _entries) {
     if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
     if (!entry_ptr->isDdPsf) continue;
@@ -162,10 +164,8 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
       channel_index_offset);
   int max_squared_index = -1;
 
-  for (const EntryPtr& entry_ptr : _entries) {
+  for (const EntryPtr& entry_ptr : _facets.front()) {
     assert(entry_ptr);
-
-    if ((entry_ptr->facetIndex != 0) || entry_ptr->isDdPsf) continue;
 
     if (entry_ptr->imageCount >= 1) {
       CachedImageSet* psf_images_ptr = nullptr;

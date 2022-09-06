@@ -52,7 +52,7 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
         frequency_index_(frequency_index),
         is_imaginary_(is_imaginary),
         facet_id_(facet_id),
-        facet_(facet) {}
+        facet_(std::move(facet)) {}
 
   std::size_t Width() const override {
     return facet_ ? facet_->GetTrimmedBoundingBox().Width()
