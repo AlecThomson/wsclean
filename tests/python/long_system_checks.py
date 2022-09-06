@@ -265,7 +265,7 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
 
-    @pytest.mark.skip(reason="-reuse-dirty and -grid-with-beam options conflict due to average beam computation")
+    @pytest.mark.skip(reason="-reuse-dirty and -grid-with-beam options conflict due to average beam computation (AST-995)")
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
         # First make sure input files exist:
