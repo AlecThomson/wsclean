@@ -196,12 +196,8 @@ void WSCFitsWriter::WriteFullNameImage(
   writer.SetImageDimensions(facetimage.Width(), facetimage.Height(),
                             _writer.RA(), _writer.Dec(), _writer.PixelSizeX(),
                             _writer.PixelSizeY());
-  int centreShiftX =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x -
-      _writer.Width() / 2;
-  int centreShiftY =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y -
-      _writer.Height() / 2;
+  int centreShiftX = facetimage.OffsetX() - _writer.Width() / 2;
+  int centreShiftY = facetimage.OffsetY() - _writer.Height() / 2;
   double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
   double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
   writer.SetPhaseCentreShift(shiftL, shiftM);
