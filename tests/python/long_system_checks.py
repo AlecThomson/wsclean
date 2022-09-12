@@ -366,11 +366,7 @@ class TestLongSystem:
             ]
 
         # Generate dirty image
-        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -use-idg -grid-with-beam {tcf.SKA_MS}"
-        validate_call(s.split())
-
-        # Generate 16 direction-dependent PSFs
-        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf-only -dd-psf-grid 4 4 -parallel-deconvolution 1200 {tcf.SKA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -no-reorder -scale 6asec -size 4800 4800 -gridder idg -grid-with-beam -parallel-deconvolution 1200 -dd-psf-grid 4 4 -niter 1 {tcf.SKA_MS}"
         validate_call(s.split())
 
         dirty = fits.open(f"{name('DD-PSFs-dirty.fits')}")[0].data.squeeze()
