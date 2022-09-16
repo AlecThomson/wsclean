@@ -36,8 +36,8 @@ std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     const size_t n = facets.end() - to_remove;
     aocommon::Logger::Warn << n
                            << " facets fall outside the image boundaries.\n";
+    facets.erase(to_remove, facets.end());
   }
-  facets.erase(to_remove, facets.end());
 
   return facets;
 }
