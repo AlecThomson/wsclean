@@ -26,17 +26,21 @@ std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     if (facets.empty()) {
       throw std::runtime_error("No facets found in " + filename);
     }
-  }
 
-  std::vector<std::shared_ptr<Facet>>::const_iterator to_remove =
-      std::remove_if(
-          facets.begin(), facets.end(),
-          [](std::shared_ptr<Facet> facet) { return facet->Empty(); });
-  if (to_remove != facets.end()) {
-    const size_t n = facets.end() - to_remove;
-    aocommon::Logger::Warn << n
-                           << " facets fall outside the image boundaries.\n";
-    facets.erase(to_remove, facets.end());
+    std::vector<std::shared_ptr<Facet>>::const_iterator to_remove =
+        std::remove_if(
+            facets.begin(), facets.end(),
+            [](std::shared_ptr<Facet> facet) { return facet->Empty(); });
+    if (to_remove != facets.end()) {
+      const size_t n = facets.end() - to_remove;
+      aocommon::Logger::Warn << n
+                             << " facets fall outside the image boundaries.\n";
+      facets.erase(to_remove, facets.end());
+    }
+
+    if (facets.empty()) {
+      throw std::runtime_error("All facets fall outside the image");
+    }
   }
 
   return facets;
