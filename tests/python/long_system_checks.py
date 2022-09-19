@@ -77,7 +77,7 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_multifrequency_without_joining_pol(self):
-        # Multi-frequency clean, no joining of pols (reproduces bug #
+        # Multi-frequency clean, no joining of pols (reproduces bug #128)
         s = f"{tcf.WSCLEAN} -name {name('mf-no-join-pol')} -pol iv -channels-out 2 -join-channels -niter 1 -interval 10 13 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
