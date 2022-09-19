@@ -422,6 +422,6 @@ class TestLongSystem:
         )
 
         # Assert that the PSF closer to the source is more similar to the source than the PSF lying further away
-        assert np.max(diff_image_off_center) < 0.5 * np.max(
+        assert np.max(diff_image_off_center) < 0.1 * np.max(
             diff_image_in_center
         )
