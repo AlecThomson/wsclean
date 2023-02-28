@@ -8,6 +8,23 @@ CentOS 8
 
 The source repository contains a Docker file `scripts/docker/Centos8 <https://gitlab.com/aroffringa/wsclean/-/blob/master/scripts/docker/Centos8>`_. This is a script to build a Docker container based on CentOS 8. These same steps can be used as a reference when building the latest WSClean on a (non-virtual) CentOS system. Other Red Hat systems should be very similar.
 
+General hints for CentOS / RHEL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FFTW
+----
+In case FFTW is built manually, be sure to run the ``configure`` call of FFTW with the setting ``-enable-float``. This enables the single-precision floating-point version of FFTW, which is used by WSClean.
+
+HDF5
+----
+The HDF5 library needs to be built with support for thread safety. This requires turning on the 'unsupported' option during the compilation of hdf5, for example like this:
+
+.. code-block:: bash
+
+  cd hdf5 && mkdir -p build && cd build
+  cmake -DALLOW_UNSUPPORTED=ON -DHDF5_ENABLE_THREADSAFE=ON ../
+  ...
+
 WSClean 2.7 on Red Hat 7.6
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -47,7 +64,7 @@ Install fftw
   cd ~/wsclean
   tar xzvf fftw-3.3.8.tar.gz
   cd fftw-3.3.8/
-  ./configure --prefix=/export/local  --enable-threads --enable-openmp  --enable-shared
+  ./configure --prefix=/export/local  --enable-threads --enable-openmp  --enable-shared --enable-float
   make
   make install
 

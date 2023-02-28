@@ -18,9 +18,11 @@ The Python script should declare a function with the name and signature ``deconv
 * ``meta.channels``: An array, where each element has the properties ``frequency`` and ``weights``.
 * ``meta.square_joined_channels``: Set to ``True`` when the user has requested squared channels during joining.
 * ``meta.spectral_fitter``: An object that can apply the user-requested spectral fitting (see :doc:`wideband_deconvolution`). It has two methods that each take a spectrum, which is a list of ``n_channels`` flux density values.
+  
   - ``fit(spectrum)``: returns the fitted coefficients
   - ``fit_and_evaluate(spectrum)``: returns the fitted spectrum
 
 There are a few example Python files in the ``wsclean/scripts/python-examples`` directory of the repository, notably:
+
 * `simple-deconvolution-example.py <https://gitlab.com/aroffringa/wsclean/-/blob/master/scripts/python-examples/simple-deconvolution-example.py>`_, which is a single-frequency, single-polarization algorithm that is similar to a basic clean method. It demonstrates the interface (note that it is slow and not aimed at performance comparisons).
 * `mf-deconvolution-example.py <https://gitlab.com/aroffringa/wsclean/-/blob/master/scripts/python-examples/mf-deconvolution-example.py>`_, a similar algorithm, but this one makes use of the spectral fitter to demonstrate multi-frequency deconvolution.
