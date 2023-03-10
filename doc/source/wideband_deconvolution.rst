@@ -118,13 +118,23 @@ This is much faster than the previous command, and equally precise. Setting the 
 Forced spectral indices
 -----------------------
 
-Spectral fitting is useful to reduce the degrees of freedom in deconvolution. It does not always produce accurate, physical spectral indices. This can either be because the bandwidth is too small, sources are very complex causing degeneracies, or both. WSClean version 2.12 has therefore a method called 'forced spectrum fitting'. In this mode, a pre-existing spectral index map is used during the deconvolution, and the resulting spectra of the model components are forced onto this spectral index map.
+Spectral fitting is useful to reduce the degrees of freedom in deconvolution. It does not always produce accurate, physical spectral indices. This can be for various reasons, e.g. because the bandwidth is too small, sources are complex causing degeneracies, low signal-to-noise, or a combination. WSClean therefore has a method called 'forced spectrum fitting'. In this mode, a pre-existing spectral index map is used during the deconvolution, and the resulting spectra of the model components are forced onto this spectral index map. Together with :doc:`multiscale cleaning <multiscale_cleaning>` and :doc:`source list output <component_list>`, the forced spectrum mode allows building (text) models of sources with accurate spectral index information. 
 
-The spectral index map may be the result of earlier runs or from fitting between data from other bandwidths / telescopes. An added advantage is that those maps can be smoothed to limit the effect of noise and imaging artefacts. The mode is enabled by combining ``-force-spectrum <fits filename>`` with ``-fit-log-pol 2``. The fits file should have the same dimensions and coordinate system as used for the imaging, and each pixel should hold a spectral index value. This mode should currently not be used together with the ``-deconvolution-channels`` option.
+The spectral index map may be the result of earlier runs or from fitting between data from other bandwidths / telescopes. An added advantage is that those maps can be smoothed or otherwise processed to limit the effect of noise and imaging artefacts. The mode is enabled by combining ``-force-spectrum <fits filename>`` with ``-fit-log-pol <N>``. The fits file should have the same dimensions and coordinate system as used for the imaging, and each pixel should hold a spectral index value. This mode should currently not be used together with the ``-deconvolution-channels`` option.
 
-Together with :doc:`multiscale cleaning <multiscale_cleaning>` and :doc:`source list output <component_list>`, this mode allows building (text) models of sources with accurate spectral index information. 
+To force the spectral index to a spectral index map, the option ``-fit-log-pol 2`` should be used and the provided fits file should contain a single image. To additionally constrain higher order terms (curvature, etc.), the ``-fit-log-pol`` parameter should be adjusted accordingly and the fits file provided to the ``-force-spectrum`` option should contain multiple images (so it should be a cube). Any 3rd dimension will be interpreted by WSClean as the "terms"-dimension, and thus the images will in sequence be interpreted as the spectral index map, curvature map, 3rd order log-polynomial map, etc. In Python, it is simple to create such a file from a standard image. For example, the following code will open an existing image ``my-example-image.fits`` and use it as template for writing a 3-dimensional forced spectrum map, for which the first term (the spectral index) is set to ``-0.85`` and the second term (the curvature) is set to ``0.5``:
 
-This method is currently being written up into an article -- to be submitted somewhere in 2022.
+.. code-block:: python
+
+  with fits.open('my-example-image.fits') as hdu:
+    hdu[0].data = numpy.ndarray([1, 2, height, width])
+    hdu[0].data[:, 0, :, :] = -0.85
+    hdu[0].data[:, 1, :, :] = 0.5
+    hdu[0].writeto('forced-spectrum-map.fits')
+
+This resulting map can be used in wsclean with parameters ``-fit-log-pol 3 -force-spectrum forced-spectrum-map.fits``. Remember that the ``-fit-log-pol`` option takes as parameter the number of terms being fitted, and not the order of the polynomial.
+    
+A description and further testing of the forced spectrum method is currently being written up into an article (Ceccotti et al., 2023). Basic spectral index forcing is available since :doc:`WSClean version 3.0 <changelog/v3.0>`. In :doc:`version 3.3 <changelog/v3.3>` this was generalized to constraining any number of terms.
 
 Fit normal or logarithmic polynomials?
 --------------------------------------

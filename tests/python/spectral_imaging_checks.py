@@ -3,6 +3,7 @@ import os
 import sys
 from utils import validate_call
 from astropy.io import fits
+import numpy
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -59,8 +60,6 @@ class TestSpectralImaging:
 
         # Combine the two fits images into one to make a "mask cube"
         with fits.open(name("spectral-mask-0000-model.fits")) as hdu:
-            import numpy
-
             # Dimensions of a fits cube are: STOKES, FREQ, Y, X
             hdu[0].data = numpy.zeros([1, 2, height, width])
             hdu[0].data[0, 0, source0_pos_y, source0_pos_x] = 1.0
@@ -95,3 +94,42 @@ class TestSpectralImaging:
             source1_pos_y,
             source1_flux,
         )
+
+
+@pytest.mark.usefixtures("prepare_large_ms")
+class TestForcedSpectrum:
+    def test_forced_spectrum(self):
+        width = 512
+        height = 512
+
+        # Create a quick template image
+        s = f"{tcf.WSCLEAN} -name {name('forced-spectrum-terms')} -channel-range 196 204 -interval 10 20 -size {width} {height} -scale 1amin {tcf.MWA_MS}"
+        validate_call(s.split())
+        # The PSF file is used as template
+        spectral_terms_file = name("forced-spectrum-terms-dirty.fits")
+
+        # Create a cube that contains a (constant) spectral index and curvature value to which the deconvolution is forced.
+        with fits.open(spectral_terms_file) as hdu:
+            hdu[0].data = numpy.ndarray([1, 2, height, width])
+            hdu[0].data[:, 0, :, :] = -0.85
+            hdu[0].data[:, 1, :, :] = 0.5
+            hdu[0].writeto(spectral_terms_file, overwrite=True)
+
+        s = f"{tcf.WSCLEAN} -name {name('forced-spectrum')} -force-spectrum {spectral_terms_file} -fit-spectral-log-pol 3 -join-channels -save-source-list -interval 10 20 -channels-out 16 -parallel-gridding 8 -niter 1000000 -auto-threshold 3 -mgain 0.8 -size {width} {height} -scale 1amin {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        # Validate the output
+        with open(name("forced-spectrum-sources.txt")) as source_file:
+            lines = source_file.readlines()
+            assert len(lines) > 100
+            for line in lines[1:]:
+                terms_start = line.split(",[")[1]
+                assert len(terms_start) > 0
+                terms_str = terms_start.split("],")[0]
+                assert len(terms_str) > 0
+                terms = terms_str.split(",")
+                assert len(terms) == 2
+                term0 = float(terms[0])
+                assert -0.86 < term0 < -0.84
+                term1 = float(terms[1])
+                assert 0.49 < term1 < 0.51

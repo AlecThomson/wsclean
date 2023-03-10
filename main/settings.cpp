@@ -273,13 +273,13 @@ void Settings::Validate() const {
     throw std::runtime_error("A source list cannot be saved without cleaning.");
 
   if (!forcedSpectrumFilename.empty() &&
-      (spectralFittingMode !=
-           schaapcommon::fitters::SpectralFittingMode::kLogPolynomial ||
-       spectralFittingTerms != 2))
+      spectralFittingMode !=
+          schaapcommon::fitters::SpectralFittingMode::kLogPolynomial)
     throw std::runtime_error(
-        "When using forced spectrum mode, currently it is required to fit "
-        "logarithmic polynomials (i.e. spectral index + further terms). This "
-        "implies you have to specify -fit-spectral-log-pol 2.");
+        "When using forced spectrum mode, it is required to fit logarithmic"
+        "polynomials (i.e. spectral index + further terms). This "
+        "implies you have to specify -fit-spectral-log-pol <N>, with N the"
+        "number of terms.");
 
   if (parallelGridding != 1 &&
       (applyFacetBeam || !facetSolutionFiles.empty()) &&
@@ -457,7 +457,11 @@ radler::Settings Settings::GetRadlerSettings() const {
   if (horizonMask) {
     radler_settings.horizon_mask_distance = horizonMaskDistance;
   }
-  radler_settings.spectral_fitting.mode = spectralFittingMode;
+  if (!forcedSpectrumFilename.empty())
+    radler_settings.spectral_fitting.mode =
+        schaapcommon::fitters::SpectralFittingMode::kForcedTerms;
+  else
+    radler_settings.spectral_fitting.mode = spectralFittingMode;
   radler_settings.spectral_fitting.terms = spectralFittingTerms;
   radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
   radler_settings.algorithm_type = algorithmType;
