@@ -103,7 +103,7 @@ def create_dummy_fits_screen():
     header["TELESCOP"] = "LOFAR"
     hdulist[0].header = header
 
-    hdulist.writeto(fits_filename)
+    hdulist.writeto(fits_filename, overwrite=True)
 
 
 def create_aterm_config():
