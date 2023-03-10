@@ -12,22 +12,14 @@
 using aocommon::Logger;
 
 ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
-    : _entries(entries),
-      _independentGroups(),
-      _facetGroups(),
-      _facets(),
-      _squaredGroups() {
+    : _entries(entries), _independentGroups(), _facets(), _squaredGroups() {
   Update();
 }
 
 ImagingTable::ImagingTable(
     const ImagingTable& other,
     std::function<bool(const ImagingTableEntry&)> isSelected)
-    : _entries(),
-      _independentGroups(),
-      _facetGroups(),
-      _facets(),
-      _squaredGroups() {
+    : _entries(), _independentGroups(), _facets(), _squaredGroups() {
   std::copy_if(other._entries.begin(), other._entries.end(),
                std::back_inserter(_entries),
                [&](const EntryPtr& entry) { return isSelected(*entry); });

@@ -115,7 +115,7 @@ class WSClean {
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
-  void initializeMFSImageWeights();
+  void initializeMFImageWeights();
   void initializeMSList(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
@@ -140,7 +140,7 @@ class WSClean {
                                const size_t facet_count);
   void updateFacetsInImagingTable(
       const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets,
-      bool updateDdPsfs = false);
+      bool updateDdPsfs);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;

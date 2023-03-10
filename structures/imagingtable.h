@@ -60,6 +60,8 @@ class ImagingTable {
   ImagingTable(const ImagingTable& other,
                std::function<bool(const ImagingTableEntry&)> isSelected);
 
+  explicit ImagingTable(const Group& entries);
+
   size_t IndependentGroupCount() const { return _independentGroups.size(); }
 
   ImagingTable GetIndependentGroup(size_t index) const {
@@ -74,22 +76,22 @@ class ImagingTable {
 
   const Groups& SquaredGroups() const { return _squaredGroups; }
 
-  size_t FacetGroupCount() const { return _facetGroups.size(); }
-
   // When an imagingtable is split into different tables, a facetGroupIndex may
   // be greater-equal than FacetGroupCount(). Since facetGroupIndices are used
   // for acquiring scheduler locks, always use (MaxFacetGroupIndex() + 1) for
   // determining the number of scheduler locks.
-  size_t MaxFacetGroupIndex() const {
-    // _facetGroups is sorted, since Update() converts a sorted map to it.
-    return _facetGroups.back().front()->facetGroupIndex;
-  }
+  size_t MaxFacetGroupIndex() const { return _entries.back()->facetGroupIndex; }
 
-  ImagingTable GetFacetGroup(size_t index) const {
-    return ImagingTable(_facetGroups[index]);
+  const Groups FacetGroups(bool include_dd_psf) const {
+    Groups facet_groups;
+    updateGroups(
+        facet_groups,
+        [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
+        [include_dd_psf](const ImagingTableEntry& e) {
+          return include_dd_psf || !e.isDdPsf;
+        });
+    return facet_groups;
   }
-
-  const Groups& FacetGroups() const { return _facetGroups; }
 
   size_t FacetCount() const { return _facets.size(); }
 
@@ -126,10 +128,6 @@ class ImagingTable {
     updateGroups(_independentGroups,
                  [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
     updateGroups(
-        _facetGroups,
-        [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
-        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
-    updateGroups(
         _facets, [](const ImagingTableEntry& e) { return e.facetIndex; },
         [](const ImagingTableEntry& e) { return !e.isDdPsf; });
     updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
@@ -153,8 +151,6 @@ class ImagingTable {
       CachedImageSet& model_images, CachedImageSet& residual_images) const;
 
  private:
-  explicit ImagingTable(const Group& entries);
-
   static void PrintEntry(const ImagingTableEntry& entry);
   void updateGroups(
       Groups& groups, std::function<size_t(const ImagingTableEntry&)> getIndex,
@@ -164,8 +160,11 @@ class ImagingTable {
   Group _entries;
 
   Groups _independentGroups;
-  Groups _facetGroups;
   Groups _facets;
+  /**
+   * Item i will contain a Group for which each entry has a
+   * squaredDeconvolutionIndex equal to i.
+   */
   Groups _squaredGroups;
 };
 

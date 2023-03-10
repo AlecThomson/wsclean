@@ -17,8 +17,7 @@ void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount,
                      size_t facetGroupCount, size_t facetCount,
                      size_t squaredGroupCount) {
   BOOST_TEST(table.IndependentGroupCount() == indepentGroupCount);
-  BOOST_TEST(table.FacetGroupCount() == facetGroupCount);
-  BOOST_TEST(table.FacetGroups().size() == facetGroupCount);
+  BOOST_TEST(table.FacetGroups(false).size() == facetGroupCount);
   BOOST_TEST(table.FacetCount() == facetCount);
   BOOST_TEST(table.Facets().size() == facetCount);
   BOOST_TEST(table.SquaredGroupCount() == squaredGroupCount);
@@ -64,8 +63,8 @@ BOOST_AUTO_TEST_CASE(add_update_clear) {
   ++iterator;
   BOOST_TEST((iterator == table.end()));
 
-  // No Update called -> only EntryCount is correct.
-  TestGroupCounts(table, 0, 0, 0, 0);
+  // No Update called -> EntryCount and facet groups are correct.
+  TestGroupCounts(table, 0, 1, 0, 0);
 
   table.Update();
   TestGroupCounts(table, 2, 1, 1, 1);
@@ -128,14 +127,13 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   table.AddEntry(entry0_2.take());
   table.AddEntry(entry1_0.take());
 
-  BOOST_TEST(table.FacetGroupCount() == 0u);
   table.Update();
-  BOOST_TEST_REQUIRE(table.FacetGroupCount() == 2u);
+  BOOST_TEST_REQUIRE(table.FacetGroups(false).size() == 2u);
   TestGroupCounts(table, 1, 2, 1, 1);
 
   // Test GetFacetGroup. The ImagingTable orders the groups by group index.
-  ImagingTable group0 = table.GetFacetGroup(0);
-  ImagingTable group1 = table.GetFacetGroup(1);
+  ImagingTable group0 = ImagingTable(table.FacetGroups(false)[0]);
+  ImagingTable group1 = ImagingTable(table.FacetGroups(false)[1]);
   BOOST_TEST_REQUIRE(group1.EntryCount() == 3u);
   BOOST_TEST_REQUIRE(group0.EntryCount() == 1u);
   BOOST_TEST(&group1[0] == entry0_0.get());
@@ -147,7 +145,7 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   TestGroupCounts(group1, 1, 1, 1, 1);
 
   // Test FacetGroups. The ImagingTable orders the groups by group index.
-  const ImagingTable::Groups& groups = table.FacetGroups();
+  const ImagingTable::Groups groups = table.FacetGroups(false);
   BOOST_TEST_REQUIRE(groups.size() == 2u);
   BOOST_TEST_REQUIRE(groups[1].size() == 3u);
   BOOST_TEST_REQUIRE(groups[0].size() == 1u);

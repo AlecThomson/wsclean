@@ -23,7 +23,7 @@ void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
 }
 
 /**
- * @brief Compute the gain based from the given gain matrices.
+ * @brief Compute the gain from the given solution matrices.
  *
  * @tparam GainEntry Which entry or entries from the gain matrices should be
  * taken into account? See GainMode for further documentation.

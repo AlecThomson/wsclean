@@ -77,6 +77,7 @@ void ImageWeights::Grid(MSProvider& msProvider,
   assert(!_isGriddingFinished);
   const size_t polarizationCount = msProvider.NPolarizations();
   if (_weightMode.RequiresGridding()) {
+    assert(selectedBand.ChannelCount() == msProvider.NChannels());
     aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
                                           polarizationCount);
 

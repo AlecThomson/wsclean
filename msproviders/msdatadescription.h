@@ -51,6 +51,11 @@ class MSDataDescription {
 
   std::unique_ptr<MSProvider> GetProvider() const;
 
+  /**
+   * A MSSelection object that identifies the data range of the
+   * measurement set that is selected. This includes separating
+   * channels caused by e.g. -channels-out and -channel-range.
+   */
   const MSSelection& Selection() const { return _selection; }
 
   size_t DataDescId() const { return _dataDescId; }
