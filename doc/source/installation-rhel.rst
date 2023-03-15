@@ -6,7 +6,10 @@ This chapter contains some instructions for Red Hat based systems.
 CentOS 8
 ~~~~~~~~
 
-The source repository contains a Docker file `scripts/docker/Centos8 <https://gitlab.com/aroffringa/wsclean/-/blob/master/scripts/docker/Centos8>`_. This is a script to build a Docker container based on CentOS 8. These same steps can be used as a reference when building the latest WSClean on a (non-virtual) CentOS system. Other Red Hat systems should be very similar.
+The source repository contains a Docker file in `scripts/docker/CentOS/ <https://gitlab.com/aroffringa/wsclean/-/blob/master/scripts/docker/CentOS/>`_. 
+This is a script to build a WSClean master branch Docker container based on CentOS 8. 
+These same steps can be used as a reference when building WSClean versions on a (non-virtual) CentOS system. 
+Other Red Hat systems should be very similar.
 
 General hints for CentOS / RHEL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
