@@ -19,13 +19,22 @@
 class BBSModel {
  public:
   /**
-   * Parse the specified model file and place the result in a Model object.
+   * Parse the specified model file or stream and place the result in a Model
+   * object.
    * @returns The model containing all sources specified by the file.
+   * @{
    */
-  static Model Read(const std::string& input,
-                    const std::string& sourceName = "") {
-    return read(input, {}, sourceName);
+  static Model Read(const std::string& input_filename,
+                    const std::string& source_name = "") {
+    return read(input_filename, {}, source_name);
   }
+
+  static Model Read(std::istream& input_stream,
+                    const std::string& source_name = "") {
+    return read(input_stream, {}, source_name);
+  }
+
+  /** @} */
 
   /**
    * Parse the specified model file and call a function when a source is
@@ -37,20 +46,37 @@ class BBSModel {
   static void Read(
       const std::string& input,
       const std::function<void(const ModelSource& source)>& processSource,
-      const std::string& sourceName = "") {
-    read(input, processSource, sourceName);
+      const std::string& source_name = "") {
+    read(input, processSource, source_name);
   }
 
  private:
+  static std::string TrimQuotes(const std::string& input) {
+    if (input.empty()) return {};
+    if (input[0] != '\'' || input.size() == 1)
+      return input;
+    else {
+      return input.substr(1, input.size() - 2);
+    }
+  }
+
   static Model read(
-      const std::string& input,
+      const std::string& input_filename,
       const std::function<void(const ModelSource& source)>& processSource,
       const std::string& sourceName = "") {
-    std::ifstream inFile(input);
-    if (!inFile)
-      throw BBSParseException("Could not open model file '" + input + "'");
+    std::ifstream input_file(input_filename);
+    if (!input_file)
+      throw BBSParseException("Could not open model file '" + input_filename +
+                              "'");
+    return read(input_file, processSource, sourceName);
+  }
+
+  static Model read(
+      std::istream& input_stream,
+      const std::function<void(const ModelSource& source)>& processSource,
+      const std::string& sourceName = "") {
     std::string line;
-    std::getline(inFile, line);
+    std::getline(input_stream, line);
     if (line.size() >= 3 && line.substr(0, 3) == "# (")
       line = line.substr(3);
     else if (boost::to_lower_copy(line.substr(0, 8)) == "format =")
@@ -64,13 +90,16 @@ class BBSModel {
     boost::tokenizer<boost::char_separator<char>> tok(line, sep);
     Headers h;
     int index = 0;
+    double default_reference_frequency = 0.0;
     for (auto s : tok) {
       std::string key =
           boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(s));
       std::string defaultVal;
       size_t eq = key.find('=');
       if (eq != std::string::npos) {
-        if (eq + 1 <= key.size()) defaultVal = key.substr(eq + 1);
+        if (eq + 1 <= key.size())
+          defaultVal =
+              TrimQuotes(boost::algorithm::trim_copy(key.substr(eq + 1)));
         key = key.substr(0, eq);
       }
 
@@ -88,9 +117,10 @@ class BBSModel {
         h.iInd = index;
       else if (key == "spectralterms" || key == "spectralindex")
         h.spectrInd = index;
-      else if (key == "referencefrequency")
+      else if (key == "referencefrequency") {
         h.referenceFrequency = index;
-      else if (key == "majoraxis")
+        default_reference_frequency = std::atof(defaultVal.c_str());
+      } else if (key == "majoraxis")
         h.majAxisInd = index;
       else if (key == "minoraxis")
         h.minAxisInd = index;
@@ -106,10 +136,10 @@ class BBSModel {
     }
 
     Model model;
-    std::getline(inFile, line);
+    std::getline(input_stream, line);
     ModelSource globalSource;
     if (!sourceName.empty()) globalSource.SetName(sourceName);
-    while (inFile.good()) {
+    while (input_stream.good()) {
       ModelSource source;
       ModelComponent component;
       bool isPatch = false;
@@ -177,9 +207,10 @@ class BBSModel {
                                    (M_PI / 180.0 / 60.0 / 60.0));
           else if (index == h.orientationInd)
             component.SetPositionAngle(atof(val.c_str()) * (M_PI / 180.0));
-          else if (index == h.referenceFrequency)
+          else if (index == h.referenceFrequency) {
             refFreq = atof(val.c_str());
-          else if (index == h.iInd)
+            if (refFreq == 0.0) refFreq = default_reference_frequency;
+          } else if (index == h.iInd)
             stokesI = atof(val.c_str());
           else if (index == h.logSIInd)
             sed.SetIsLogarithmic(val != "false");
@@ -200,7 +231,7 @@ class BBSModel {
           }
         }
       }
-      std::getline(inFile, line);
+      std::getline(input_stream, line);
     }
     if (!sourceName.empty()) {
       if (processSource)
