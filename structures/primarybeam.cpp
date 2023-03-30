@@ -450,18 +450,20 @@ void PrimaryBeam::MakeImage(const ImageFilename& image_name,
     const double ms_weight =
         MakeBeamForMS(ms_beam, *ms_provider_info.provider, selection,
                       *image_weights, coordinates, central_frequency, field_id);
-    if (result.empty()) {
-      result = std::move(ms_beam);
-      for (aocommon::HMC4x4& m : result) {
-        m *= ms_weight;
+    if (ms_weight > 0.0) {
+      if (result.empty()) {
+        result = std::move(ms_beam);
+        for (aocommon::HMC4x4& m : result) {
+          m *= ms_weight;
+        }
+      } else {
+        assert(ms_beam.size() == result.size());
+        for (size_t i = 0; i != result.size(); ++i) {
+          result[i] += ms_beam[i] * ms_weight;
+        }
       }
-    } else {
-      assert(ms_beam.size() == result.size());
-      for (size_t i = 0; i != result.size(); ++i) {
-        result[i] += ms_beam[i] * ms_weight;
-      }
+      ms_weight_sum += ms_weight;
     }
-    ms_weight_sum += ms_weight;
   }
 
   // Apply MS weights
