@@ -1,0 +1,41 @@
+WSClean version 3.3
+===================
+
+Released 2023-03-31
+
+New/changed dependencies:
+
+* To make use of EveryBeam, WSClean 3.3 requires EveryBeam `version 0.5.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.5.0>`_ or `0.4.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.4.0>`_.
+* The requirements on IDG have not been changed; WSClean 3.3 requires `IDG version 1.0 <https://git.astron.nl/RD/idg/-/releases/1.0.0>`_ or newer.
+
+Summary: 
+
+Version 3.3 is mostly a bug-fix release. Apart from multi-term forced spectral fitting, no new features were added. Among the bugs fixed, two particularly important problems that were fixed are i) the use of mask cubes as e.g. often done for HI imaging; ii) combining DD psfs with facetting.
+
+New features
+------------
+
+* Support :ref:`forced spectral fitting <Forced spectrum fitting>` with multiple terms.
+
+Bug fixes
+---------
+
+* Fix spectral imaging with mask cube.
+* Fix the combined use of :doc:`direction-dependent PSFs <../direction_dependent_psfs>` and :doc:`facetting <../facet_based_imaging>`.
+* Support default values in the BBS model format when restoring sources with ``-restore-list``.
+* Support read-only measurement sets in faceting mode.
+* Use generic threads lib instead of pthreads.
+* Fix hanging gridder when an exception occurs.
+* Fix the GMRT, VLA and ATCA beam calculations.
+* Fixes for :doc:`the Python deconvolution option <../python_deconvolution>`:
+
+  - Usage of GIL;
+  - Spectral fitter interface in Python;
+  - Segfault when a Python exception occurs
+  
+* Fix memory leak in wgridder.
+* Fix uninitialized WSCMINOR value.
+* Fix two bugs involving uninitialized memory in Radler.
+* Fix possible artefacts when using multiscale masks with parallel deconvolution
+* Fix beam of zeros when one input measurement set has no data 
+* Lots of documentation improvements.

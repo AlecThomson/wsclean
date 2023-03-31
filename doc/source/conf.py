@@ -23,7 +23,7 @@ copyright = "%d, André Offringa" % date.today().year
 author = "André Offringa"
 
 # The full version, including alpha/beta/rc tags
-release = "git"
+release = ""
 
 
 # -- General configuration ---------------------------------------------------

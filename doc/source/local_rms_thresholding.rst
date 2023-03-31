@@ -23,7 +23,7 @@ When WSClean is asked to use a local RMS without supplying an RMS image, WSClean
       -auto-threshold 3 -mgain 0.8 -niter 1000000 \
       [...] observation.ms
     
-The local RMS thresholding is typically to be used together with the ``-auto-threshold`` parameter. While it is possible to combine it with a normal ``-threshold`` parameter, which will scale the threshold relatively to the minimum in the RMS map, this is not recommended. Local RMS thresholding can also be used together with [automatic masking](Masking) using the ``-auto-mask`` parameter. A typical run to do this looks like this:
+The local RMS thresholding is typically to be used together with the ``-auto-threshold`` parameter. While it is possible to combine it with a normal ``-threshold`` parameter, which will scale the threshold relatively to the minimum in the RMS map, this is not recommended. Local RMS thresholding can also be used together with :doc:`automatic masking <masking>` using the ``-auto-mask`` parameter. A typical run to do this looks like this:
 
 .. code-block:: bash
 
