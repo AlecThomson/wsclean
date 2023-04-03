@@ -34,7 +34,11 @@ class PartitionedMSReader final : public MSReader {
 
  private:
   size_t _currentInputRow;
-  bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
+
+  // Chunkoffset counts the amount of data rows we are ahead or behind.
+  // Positive values mean we are lagging, whereas negative values mean we are
+  //  ahead of the current time step.
+  long _readPtrRowOffset, _metaPtrRowOffset, _weightPtrRowOffset;
 
   std::ifstream _metaFile, _weightFile, _dataFile;
 

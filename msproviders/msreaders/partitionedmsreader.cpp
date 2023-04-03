@@ -4,9 +4,9 @@
 PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
     : MSReader(partitionedMS),
       _currentInputRow(0),
-      _readPtrIsOk(true),
-      _metaPtrIsOk(true),
-      _weightPtrIsOk(true) {
+      _readPtrRowOffset(0),
+      _metaPtrRowOffset(0),
+      _weightPtrRowOffset(0) {
   _metaFile.open(PartitionedMS::getMetaFilename(
                      partitionedMS->_handle._data->_msPath,
                      partitionedMS->_handle._data->_temporaryDirectory,
@@ -43,31 +43,20 @@ void PartitionedMSReader::NextInputRow() {
   const PartitionedMS& partitionedms =
       static_cast<const PartitionedMS&>(*_msProvider);
 
-  const size_t n_visibilities = partitionedms._partHeader.channelCount *
-                                partitionedms._polarizationCountInFile;
   ++_currentInputRow;
   if (_currentInputRow < partitionedms._metaHeader.selectedRowCount) {
-    if (_readPtrIsOk)
-      _dataFile.seekg(n_visibilities * sizeof(std::complex<float>),
-                      std::ios::cur);
-    else
-      _readPtrIsOk = true;
-
-    if (_metaPtrIsOk)
-      _metaFile.seekg(PartitionedMS::MetaRecord::BINARY_SIZE, std::ios::cur);
-    else
-      _metaPtrIsOk = true;
-
-    if (_weightPtrIsOk)
-      _weightFile.seekg(n_visibilities * sizeof(float), std::ios::cur);
-    _weightPtrIsOk = true;
+    _readPtrRowOffset += 1;
+    _metaPtrRowOffset += 1;
+    _weightPtrRowOffset += 1;
   }
 }
 
 void PartitionedMSReader::ReadMeta(double& u, double& v, double& w) {
-  if (!_metaPtrIsOk)
-    _metaFile.seekg(-PartitionedMS::MetaRecord::BINARY_SIZE, std::ios::cur);
-  _metaPtrIsOk = false;
+  if (_metaPtrRowOffset != 0)
+    _metaFile.seekg(
+        _metaPtrRowOffset * (PartitionedMS::MetaRecord::BINARY_SIZE),
+        std::ios::cur);
+  _metaPtrRowOffset = -1;
 
   PartitionedMS::MetaRecord record;
   record.Read(_metaFile);
@@ -77,9 +66,11 @@ void PartitionedMSReader::ReadMeta(double& u, double& v, double& w) {
 }
 
 void PartitionedMSReader::ReadMeta(MSProvider::MetaData& metaData) {
-  if (!_metaPtrIsOk)
-    _metaFile.seekg(-PartitionedMS::MetaRecord::BINARY_SIZE, std::ios::cur);
-  _metaPtrIsOk = false;
+  if (_metaPtrRowOffset != 0)
+    _metaFile.seekg(
+        _metaPtrRowOffset * (PartitionedMS::MetaRecord::BINARY_SIZE),
+        std::ios::cur);
+  _metaPtrRowOffset = -1;
 
   PartitionedMS::MetaRecord record;
   record.Read(_metaFile);
@@ -98,11 +89,13 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
 
   const int64_t n_visibilities = partitionedms._partHeader.channelCount *
                                  partitionedms._polarizationCountInFile;
-  if (!_readPtrIsOk) {
+  if (_readPtrRowOffset != 0) {
     // Data file position was moved forward already, so seek back by one block
-    _dataFile.seekg(-n_visibilities * sizeof(std::complex<float>),
-                    std::ios::cur);
+    _dataFile.seekg(
+        _readPtrRowOffset * (n_visibilities * sizeof(std::complex<float>)),
+        std::ios::cur);
   }
+  _readPtrRowOffset = -1;
 #ifndef NDEBUG
   const size_t pos =
       size_t(_dataFile.tellg()) - PartitionedMS::PartHeader::BINARY_SIZE;
@@ -117,7 +110,6 @@ void PartitionedMSReader::ReadData(std::complex<float>* buffer) {
 #endif
   _dataFile.read(reinterpret_cast<char*>(buffer),
                  n_visibilities * sizeof(std::complex<float>));
-  _readPtrIsOk = false;
 }
 
 void PartitionedMSReader::ReadModel(std::complex<float>* buffer) {
@@ -141,13 +133,14 @@ void PartitionedMSReader::ReadWeights(float* buffer) {
 
   const int64_t n_visibilities = partitionedms._partHeader.channelCount *
                                  partitionedms._polarizationCountInFile;
-  if (!_weightPtrIsOk) {
+  if (_weightPtrRowOffset != 0) {
     // jump to the previous block of weights
-    _weightFile.seekg(-n_visibilities * sizeof(float), std::ios::cur);
+    _weightFile.seekg(_weightPtrRowOffset * (n_visibilities * sizeof(float)),
+                      std::ios::cur);
   }
   _weightFile.read(reinterpret_cast<char*>(buffer),
                    n_visibilities * sizeof(float));
-  _weightPtrIsOk = false;
+  _weightPtrRowOffset = -1;
 }
 
 void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
