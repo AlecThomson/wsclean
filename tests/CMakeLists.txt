@@ -11,6 +11,7 @@ add_executable(
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
   math/trenderer.cpp
+  math/ttophatconvolution.cpp
   model/tbbsmodel.cpp
   msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp
