@@ -225,14 +225,26 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   double bMaj, bMin, bPA, bTheoretical;
   ImageOperations::DetermineBeamSize(settings, bMaj, bMin, bPA, bTheoretical,
                                      image.Data(), initialFitSize);
-  _infoPerChannel[channelIndex].theoreticBeamSize = bTheoretical;
-  _infoPerChannel[channelIndex].beamMaj = bMaj;
-  _infoPerChannel[channelIndex].beamMin = bMin;
-  _infoPerChannel[channelIndex].beamPA = bPA;
+
+  // Create a temporary copy of the output channel info
+  // and put the fitting result in the copy
+  OutputChannelInfo channel_info(_infoPerChannel[channelIndex]);
+  channel_info.theoreticBeamSize = bTheoretical;
+  channel_info.beamMaj = bMaj;
+  channel_info.beamMin = bMin;
+  channel_info.beamPA = bPA;
+
+  // If this entry is the main psf, or if it is the dd-psf at the centre
+  // then use the fitting result for the main image
+  if (!entry.isDdPsf ||
+      entry.facet->Contains(schaapcommon::facets::Pixel(
+          _settings.trimmedImageWidth / 2, _settings.trimmedImageHeight / 2))) {
+    _infoPerChannel[channelIndex] = channel_info;
+  }
 
   Logger::Info << "Writing psf image... ";
   if (settings.isUVImageSaved) {
-    saveUVImage(image, entry, false, "uvpsf");
+    saveUVImage(image, entry, channel_info, false, "uvpsf");
   }
 
   Logger::Info.Flush();
@@ -243,7 +255,8 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
                      : ImageFilename::GetPSFPrefix(settings, channelIndex,
                                                    entry.outputIntervalIndex)) +
       "-psf.fits");
-  WSCFitsWriter fitsFile = createWSCFitsWriter(entry, false, false);
+  WSCFitsWriter fitsFile =
+      createWSCFitsWriter(entry, channel_info, false, false);
   if (entry.isDdPsf) {
     fitsFile.WriteFullNameImage(name, image, *entry.facet);
   } else {
@@ -1758,6 +1771,13 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
 
 void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
+  saveUVImage(image, entry, _infoPerChannel[entry.outputChannelIndex],
+              isImaginary, prefix);
+}
+
+void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
+                          const OutputChannelInfo& channel_info,
+                          bool isImaginary, const std::string& prefix) const {
   Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   schaapcommon::fft::Resampler fft(
@@ -1767,10 +1787,10 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
   // Factors of 2 involved: because of SingleFT()
   // (also one from the fact that normF excludes a factor of two?)
   realUV *=
-      _infoPerChannel[entry.outputChannelIndex].normalizationFactor /
+      channel_info.normalizationFactor /
       sqrt(0.5 * _settings.trimmedImageWidth * _settings.trimmedImageHeight);
   imagUV *=
-      _infoPerChannel[entry.outputChannelIndex].normalizationFactor /
+      channel_info.normalizationFactor /
       sqrt(0.5 * _settings.trimmedImageWidth * _settings.trimmedImageHeight);
   WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
   writer.WriteUV(prefix + "-real.fits", realUV.Data());
@@ -2132,6 +2152,14 @@ void WSClean::updateFacetsInImagingTable(
     entry.centreShiftY = entry.facet->GetUntrimmedBoundingBox().Centre().y -
                          _settings.trimmedImageHeight / 2;
   }
+}
+
+WSCFitsWriter WSClean::createWSCFitsWriter(
+    const ImagingTableEntry& entry, const OutputChannelInfo& channel_info,
+    bool isImaginary, bool isModel) const {
+  return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
+                       _observationInfo, _l_shift, _m_shift, _majorIterationNr,
+                       _commandLine, channel_info, isModel, _lastStartTime);
 }
 
 WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,

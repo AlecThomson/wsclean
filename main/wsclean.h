@@ -181,6 +181,10 @@ class WSClean {
   void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
 
+  void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
+                   const OutputChannelInfo& channel_info, bool isImaginary,
+                   const std::string& prefix) const;
+
   void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry);
 
   /**
@@ -222,6 +226,10 @@ class WSClean {
   double minTheoreticalBeamSize(const ImagingTable& table) const;
 
   void makeBeam();
+
+  WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
+                                    const OutputChannelInfo& channel_info,
+                                    bool isImaginary, bool isModel) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     bool isImaginary, bool isModel) const;

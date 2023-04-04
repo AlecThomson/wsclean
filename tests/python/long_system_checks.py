@@ -419,9 +419,26 @@ class TestLongSystem:
             os.path.dirname(__file__), "test_deconvolution_write_input.py"
         )
 
+        # Generate the regular (direction independent) psf
+        s = f"{tcf.WSCLEAN} -name {name('NO-DD-PSFs')} -make-psf-only -data-column MODEL_DATA -no-reorder -size 4800 4800 -scale 5asec -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 {tcf.SKA_MS}"
+        validate_call(s.split())
+
         # Generate dirty image and PSF_GRID_SIZE_1D x PSF_GRID_SIZE_1D direction-dependent PSFs
         s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -data-column MODEL_DATA -parallel-deconvolution 1600 -no-reorder -size 4800 4800 -scale 5asec -mgain 0.8 -niter 10000000 -threshold 10.0mJy -auto-mask 5.0 -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 -dd-psf-grid 3 3 -nmiter 1 -python-deconvolution {deconvolution_script} {tcf.SKA_MS}"
         validate_call(s.split())
+
+        # Check whether the restoring beam for dd-psf and regular imaging is the same
+        reference_header = fits.getheader(name("NO-DD-PSFs" + "-psf.fits"))
+        ddpsf_header = fits.getheader(name("DD-PSFs" + "-image.fits"))
+        assert np.isclose(
+            reference_header["BMAJ"], ddpsf_header["BMAJ"], rtol=1e-3, atol=0.0
+        )
+        assert np.isclose(
+            reference_header["BMIN"], ddpsf_header["BMIN"], rtol=1e-3, atol=0.0
+        )
+        assert np.isclose(
+            reference_header["BPA"], ddpsf_header["BPA"], rtol=0.0, atol=0.1
+        )
 
         SUBIMAGE_SIZE = 40
         dirty = get_peak_centered_normalized_subimage(
