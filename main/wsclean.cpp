@@ -70,14 +70,7 @@ WSClean::WSClean()
       _ddPsfCount(0),
       _lastStartTime(0.0) {}
 
-WSClean::~WSClean() {}
-
-void WSClean::multiplyImage(double factor, double* image) const {
-  if (factor != 1.0) {
-    size_t nPix = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
-    for (size_t i = 0; i != nPix; ++i) image[i] *= factor;
-  }
-}
+WSClean::~WSClean() = default;
 
 GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
                                           bool isPSF) {

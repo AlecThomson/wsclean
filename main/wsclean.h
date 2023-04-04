@@ -32,13 +32,15 @@
 #include <optional>
 #include <set>
 
+class ImageWeightCache;
+class PrimaryBeam;
+
 namespace schaapcommon {
 namespace facets {
 class FacetImage;
 }
 }  // namespace schaapcommon
 
-class PrimaryBeam;
 class WSClean {
  public:
   WSClean();
@@ -114,7 +116,7 @@ class WSClean {
                             double& m_shift) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
-      std::vector<std::unique_ptr<class MSDataDescription>>& msList);
+      std::vector<std::unique_ptr<MSDataDescription>>& msList);
   void initializeMFImageWeights();
   void initializeMSList(
       const ImagingTableEntry& entry,
@@ -141,9 +143,7 @@ class WSClean {
   void updateFacetsInImagingTable(
       const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets,
       bool updateDdPsfs);
-  std::unique_ptr<class ImageWeightCache> createWeightCache();
-
-  void multiplyImage(double factor, double* image) const;
+  std::unique_ptr<ImageWeightCache> createWeightCache();
 
   /**
    * Initializes full-size model images for the given entry. Depending on the
@@ -167,14 +167,12 @@ class WSClean {
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
   void imagePSF(ImagingTableEntry& entry);
-  void imagePSFCallback(ImagingTableEntry& entry,
-                        struct GriddingResult& result);
+  void imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result);
 
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                  bool updateBeamInfo);
-  void imageMainCallback(ImagingTableEntry& entry,
-                         struct GriddingResult& result, bool updateBeamInfo,
-                         bool isInitialInversion);
+  void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
+                         bool updateBeamInfo, bool isInitialInversion);
 
   void predict(const ImagingTableEntry& entry);
 
@@ -289,8 +287,8 @@ class WSClean {
   OutputChannelInfo _infoForMFS;
   std::map<size_t, std::unique_ptr<MetaDataCache>> _msGridderMetaCache;
 
-  std::unique_ptr<class GriddingTaskManager> _griddingTaskManager;
-  std::unique_ptr<class ImageWeightCache> _imageWeightCache;
+  std::unique_ptr<GriddingTaskManager> _griddingTaskManager;
+  std::unique_ptr<ImageWeightCache> _imageWeightCache;
   Stopwatch _inversionWatch, _predictingWatch, _deconvolutionWatch;
   bool _isFirstInversion;
   size_t _majorIterationNr;
