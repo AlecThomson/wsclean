@@ -574,8 +574,7 @@ void WSClean::initializeMFImageWeights() {
               _msBands[msIndex], dataDescId, entry);
           if (hasSelection) {
             const PolarizationEnum pol =
-                _settings.gridderType == GridderType::IDG ? getIdgPolarization()
-                                                          : entry.polarization;
+                getProviderPolarization(entry.polarization);
             PartitionedMS msProvider(_partitionedMSHandles[msIndex],
                                      entry_ms_info.bands[dataDescId].partIndex,
                                      pol, dataDescId);
@@ -593,9 +592,8 @@ void WSClean::initializeMFImageWeights() {
   } else {
     for (size_t i = 0; i != _settings.filenames.size(); ++i) {
       for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
-        const PolarizationEnum pol = _settings.gridderType == GridderType::IDG
-                                         ? getIdgPolarization()
-                                         : *_settings.polarizations.begin();
+        const PolarizationEnum pol =
+            getProviderPolarization(*_settings.polarizations.begin());
         ContiguousMS msProvider(_settings.filenames[i],
                                 _settings.dataColumnName, _globalSelection, pol,
                                 d, _settings.useMPI);
@@ -1434,10 +1432,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 void WSClean::initializeMSList(
     const ImagingTableEntry& entry,
     std::vector<std::unique_ptr<MSDataDescription>>& msList) {
-  const PolarizationEnum pol = _settings.gridderType == GridderType::IDG
-                                   ? getIdgPolarization()
-                                   : entry.polarization;
-
+  const PolarizationEnum pol = getProviderPolarization(entry.polarization);
   msList.clear();
   for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
     for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();

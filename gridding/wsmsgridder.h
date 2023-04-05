@@ -55,7 +55,7 @@ class WSMSGridder final : public MSGridderBase {
     size_t rowId;
   };
 
-  void gridMeasurementSet(MSData& msData, GainMode gain_mode);
+  void gridMeasurementSet(MSData& msData);
 
   void countSamplesPerLayer(MSData& msData);
   virtual size_t getSuggestedWGridSize() const override;

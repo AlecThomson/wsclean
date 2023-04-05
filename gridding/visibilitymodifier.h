@@ -39,18 +39,37 @@ enum class GainMode {
 
 inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
                             size_t n_visibility_polarizations) {
-  if (n_visibility_polarizations == 1) {
-    switch (polarization) {
-      case aocommon::Polarization::XX:
-        return GainMode::kXX;
-      case aocommon::Polarization::YY:
-        return GainMode::kYY;
-      default:
+  switch (n_visibility_polarizations) {
+    case 1:
+      switch (polarization) {
+        case aocommon::Polarization::XX:
+          return GainMode::kXX;
+        case aocommon::Polarization::YY:
+          return GainMode::kYY;
+        case aocommon::Polarization::StokesI:
+          // polarization might also be RR. We still need to provide a GainMode,
+          // so we also return diagonal in those cases.
+        default:
+          return GainMode::kDiagonal;
+      }
+      break;
+    case 2:
+      if (polarization == aocommon::Polarization::DiagonalInstrumental ||
+          polarization == aocommon::Polarization::StokesI)
         return GainMode::kDiagonal;
-    }
-  } else {
-    throw std::runtime_error("Not yet implemented");
+      break;
+    case 4:
+      if (polarization == aocommon::Polarization::DiagonalInstrumental)
+        return GainMode::kDiagonal;
+      else if (polarization == aocommon::Polarization::Instrumental)
+        return GainMode::kFull;
+      break;
   }
+  throw std::runtime_error(
+      "Invalid combination of polarization (" +
+      aocommon::Polarization::TypeToFullString(polarization) +
+      ") and n_visibility_polarizations (" +
+      std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
 }
 
 class VisibilityModifier {

@@ -264,17 +264,24 @@ class WSClean {
    * Determines if IDG uses diagonal instrumental or full instrumental
    * polarizations.
    */
-  aocommon::PolarizationEnum getIdgPolarization() const {
-    if (_settings.polarizations ==
-        std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI}) {
-      if ((_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) &&
-          _settings.gridWithBeam) {
-        return aocommon::Polarization::StokesI;
+  aocommon::PolarizationEnum getProviderPolarization(
+      aocommon::PolarizationEnum entry_polarization) const {
+    if (_settings.gridderType == GridderType::IDG) {
+      if (_settings.polarizations.size() == 1 &&
+          *_settings.polarizations.begin() == aocommon::Polarization::StokesI) {
+        if ((_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) &&
+            _settings.gridWithBeam) {
+          return aocommon::Polarization::StokesI;
+        } else {
+          return aocommon::Polarization::DiagonalInstrumental;
+        }
       } else {
-        return aocommon::Polarization::DiagonalInstrumental;
+        return aocommon::Polarization::Instrumental;
       }
+    } else if (_settings.diagonalSolutions) {
+      return aocommon::Polarization::DiagonalInstrumental;
     } else {
-      return aocommon::Polarization::Instrumental;
+      return entry_polarization;
     }
   }
 

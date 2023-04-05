@@ -289,6 +289,9 @@ Options can be:
    Apply solutions from the provided (h5) file per facet when gridding facet based images.
    Provided file is assumed to be in H5Parm format.
    Filename is followed by a comma separated list of strings specifying which sol tabs from the provided H5Parm file are used.
+-diagonal-solutions
+   Will apply diagonal (h5) solutions separately to the specified polarizations. This allows
+   separate correction of XX and YY while only making Stokes I images.
 -apply-facet-beam
    Apply beam gains to facet center when gridding facet based images or direction dependent psfs
 -facet-beam-update <seconds>
@@ -1149,6 +1152,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "List of solution tables (soltabs) should contain at most two "
             "entries.");
       }
+    } else if (param == "diagonal-solutions") {
+      settings.diagonalSolutions = true;
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {

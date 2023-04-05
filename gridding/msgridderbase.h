@@ -12,6 +12,8 @@
 #include "../structures/msselection.h"
 #include "../structures/weightmode.h"
 
+#include "../msproviders/msreaders/msreader.h"
+
 #include "visibilitymodifier.h"
 #include "visibilityweightingmode.h"
 
@@ -25,7 +27,6 @@
 #include <mutex>
 #include <memory>
 
-class MSReader;
 namespace schaapcommon {
 namespace h5parm {
 class H5Parm;
@@ -40,6 +41,45 @@ enum class PsfMode {
   kDirectionDependent  // Grid generated visibilities for a point source at the
                        // centre of the current facet
 };
+
+namespace internal {
+
+template <size_t PolarizationCount>
+inline void CollapseData(size_t n_channels, std::complex<float>* buffer) {
+  // PolarizationCount is either 2 or 4. In the case it is two, we need to add
+  // element 0 and 1. In the case it is four, we need to add element 0 and 3.
+  for (size_t ch = 0; ch != n_channels; ++ch) {
+    buffer[ch] = buffer[ch * PolarizationCount] +
+                 buffer[(ch * PolarizationCount + (PolarizationCount - 1))];
+  }
+}
+
+template <size_t PolarizationCount>
+inline void ExpandData(size_t n_channels, std::complex<float>* buffer,
+                       std::complex<float>* output);
+
+template <>
+inline void ExpandData<2>(size_t n_channels, std::complex<float>* buffer,
+                          std::complex<float>* output) {
+  for (size_t ch = 0; ch != n_channels; ++ch) {
+    output[ch * 2] = buffer[ch];
+    output[ch * 2 + 1] = buffer[ch];
+  }
+}
+
+template <>
+inline void ExpandData<4>(size_t n_channels, std::complex<float>* buffer,
+                          std::complex<float>* output) {
+  for (size_t i = 0; i != n_channels; ++i) {
+    const size_t ch = n_channels - 1 - i;
+    output[ch * 4] = buffer[ch];
+    output[ch * 4 + 1] = 0.0;
+    output[ch * 4 + 2] = 0.0;
+    output[ch * 4 + 3] = buffer[ch];
+  }
+}
+
+}  // namespace internal
 
 class MSGridderBase {
  public:
@@ -93,8 +133,8 @@ class MSGridderBase {
    * @brief In case of facet-based imaging, the model data in the @param
    * MSProvider is reset to zeros in every major cycle, and predicted data
    * should be add-assigned to the model data (_isFacet = true) rather
-   * than overwriting it. For "standard" imaging, the model data should
-   * be overwritten (_isFacet = false).
+   * than overwriting it. For standard imaging (_isFacet = false), the model
+   * data should be overwritten.
    */
   void SetIsFacet(bool isFacet) { _isFacet = isFacet; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
@@ -265,15 +305,16 @@ class MSGridderBase {
   };
 
   /**
-   * Initializes MS related data members, i.e. the @param _telescope and the
-   * @param _pointResponse data in case a beam is applied on the facets and
-   * EveryBeam is available and the @param _predictReader data member in case
-   * @param isPredict is true.
+   * Initializes MS related data members, i.e. the @c _telescope and the
+   * @c _pointResponse data in case a beam is applied on the facets and
+   * EveryBeam is available and the @c _predictReader data member in case
+   * @c isPredict is true.
    */
   void StartMeasurementSet(const MSGridderBase::MSData& msData, bool isPredict);
 
   /**
-   * Read the visibilities from the msprovider, and apply weights and flags.
+   * Read the visibilities from the msprovider, and apply weights, flags and
+   * a-terms.
    *
    * This function applies both the selected method of visibility weighting
    * (i.e. the weights that are normally stored in the WEIGHT_SPECTRUM column)
@@ -282,44 +323,116 @@ class MSGridderBase {
    * store intermediate values in. Even if the caller does not need these
    * values, they still need to provide an already allocated buffer. This is to
    * avoid having to allocate memory within this method.
-   * @tparam PolarizationCount Normally set to one when imaging a single
-   * polarization, but set to 2 or 4 for IDG as it images multiple polarizations
-   * at once.
+   *
+   * This function collapses the visibilities in the polarization direction.
+   * Gridders that grid a single polarization should use this method instead of
+   * @ref GetInstrumentalVisibilities(). The output is stored in the first
+   * n_channel elements of the visibility data buffer in @c rowData.
+   *
+   * @tparam PolarizationCount Number of polarizations in the input buffer.
+   * Normally set to one when imaging a single
+   * polarization. It may be set to 2 or 4 for IDG as it images multiple
+   * polarizations at once, and it may be set to 2 or 4 when applying
+   * solulutions.
    * @param msProvider The measurement set provider
    * @param rowData The resulting weighted data
    * @param curBand The spectral band currently being imaged
-   * @param weightBuffer An allocated buffer to store intermediate weights in.
-   * After returning from the call, these values will hold the full applied
-   * weight (i.e. visibility weight * imaging weight).
-   * @param modelBuffer An allocated buffer to store intermediate model data in.
+   * @param weightBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate weights in. After returning from the call, these values will
+   * hold the full applied weight (i.e. visibility weight * imaging weight).
+   * @param modelBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate model data in.
    * @param isSelected Per visibility whether that visibility will be gridded in
    * this pass. When the visibility is not gridded, its weight will not be added
-   * to the relevant sums (visibility count, weight sum, etc.).
+   * to the relevant sums (visibility count, weight sum, etc.). This buffer is
+   * of size n_chan; i.e. it is not specified per polarization.
    * @param gain_mode Selects which entry or entries in the gain matrix
    * (provided by EveryBeam and/or an h5 solution) file to use for correcting
    * the visibilities.
    */
-  template <size_t PolarizationCount>
-  void readAndWeightVisibilities(MSReader& msReader,
-                                 const std::vector<std::string>& antennaNames,
-                                 InversionRow& rowData,
-                                 const aocommon::BandData& curBand,
-                                 float* weightBuffer,
-                                 std::complex<float>* modelBuffer,
-                                 const bool* isSelected, GainMode gain_mode);
+  void GetCollapsedVisibilities(MSReader& msReader,
+                                const std::vector<std::string>& antennaNames,
+                                InversionRow& rowData,
+                                const aocommon::BandData& curBand,
+                                float* weightBuffer,
+                                std::complex<float>* modelBuffer,
+                                const bool* isSelected) {
+    switch (_nVisPolarizations) {
+      case 1:
+        GetInstrumentalVisibilities<1>(msReader, antennaNames, rowData, curBand,
+                                       weightBuffer, modelBuffer, isSelected);
+        break;
+      case 2:
+        GetInstrumentalVisibilities<2>(msReader, antennaNames, rowData, curBand,
+                                       weightBuffer, modelBuffer, isSelected);
+        internal::CollapseData<2>(curBand.ChannelCount(), rowData.data);
+        break;
+      case 4:
+        GetInstrumentalVisibilities<4>(msReader, antennaNames, rowData, curBand,
+                                       weightBuffer, modelBuffer, isSelected);
+        internal::CollapseData<4>(curBand.ChannelCount(), rowData.data);
+        break;
+    }
+  }
 
   /**
-   * @brief Write (modelled) visibilities to MS, provides an interface to
-   * MSProvider::WriteModel(). Method can be templated on the number of
+   * Same as @ref GetCollapsedVisibilities(), but without collapsing the
+   * polarization direction. This implies that the output visibility buffer in
+   * the rowData structure will contain n_channel x n_polarization elements.
+   */
+  template <size_t PolarizationCount>
+  void GetInstrumentalVisibilities(MSReader& msReader,
+                                   const std::vector<std::string>& antennaNames,
+                                   InversionRow& rowData,
+                                   const aocommon::BandData& curBand,
+                                   float* weightBuffer,
+                                   std::complex<float>* modelBuffer,
+                                   const bool* isSelected);
+
+  /**
+   * Write (modelled) visibilities to MS, provides an interface to
+   * MSProvider::WriteModel(). Any active facet beam or solution corrections
+   * are applied. Method is templated on the number of
    * polarizations (1, 2 or 4). The gain_mode can be used to
    * select an entry or entries from the gain matrix that should be used for the
    * correction.
+   * @param buffer should on entry contain n_channels visibilities to be
+   * written.
+   */
+  void WriteCollapsedVisibilities(MSProvider& msProvider,
+                                  const std::vector<std::string>& antennaNames,
+                                  const aocommon::BandData& curBand,
+                                  std::complex<float>* buffer) {
+    switch (_nVisPolarizations) {
+      case 1:
+        WriteInstrumentalVisibilities<1>(msProvider, antennaNames, curBand,
+                                         buffer);
+        break;
+      case 2:
+        internal::ExpandData<2>(curBand.ChannelCount(), buffer,
+                                _scratchModelData.data());
+        WriteInstrumentalVisibilities<2>(msProvider, antennaNames, curBand,
+                                         _scratchModelData.data());
+        break;
+      case 4:
+        internal::ExpandData<4>(curBand.ChannelCount(), buffer,
+                                _scratchModelData.data());
+        WriteInstrumentalVisibilities<4>(msProvider, antennaNames, curBand,
+                                         _scratchModelData.data());
+        break;
+    }
+  }
+
+  /**
+   * Similar to @ref WriteCollapsedVisibilities(), but assumes the input are
+   * instrumental visibilities.
+   * @param Buffer with PolarizationCount x n_channels entries, which are the
+   * instrumental visibilities.
    */
   template <size_t PolarizationCount>
-  void writeVisibilities(MSProvider& msProvider,
-                         const std::vector<std::string>& antennaNames,
-                         const aocommon::BandData& curBand,
-                         std::complex<float>* buffer, GainMode gain_mode);
+  void WriteInstrumentalVisibilities(
+      MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+      const aocommon::BandData& curBand, std::complex<float>* buffer);
 
   double _maxW, _minW;
 
@@ -381,22 +494,20 @@ class MSGridderBase {
   void initializeBandData(const casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
   void initializePointResponse(const MSGridderBase::MSData& msData);
-  void initializePredictReader(MSProvider& msProvider);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  void readAndWeightVisibilities(MSReader& msReader,
-                                 const std::vector<std::string>& antennaNames,
-                                 InversionRow& rowData,
-                                 const aocommon::BandData& curBand,
-                                 float* weightBuffer,
-                                 std::complex<float>* modelBuffer,
-                                 const bool* isSelected);
+  void GetInstrumentalVisibilities(MSReader& msReader,
+                                   const std::vector<std::string>& antennaNames,
+                                   InversionRow& rowData,
+                                   const aocommon::BandData& curBand,
+                                   float* weightBuffer,
+                                   std::complex<float>* modelBuffer,
+                                   const bool* isSelected);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  void writeVisibilities(MSProvider& msProvider,
-                         const std::vector<std::string>& antennaNames,
-                         const aocommon::BandData& curBand,
-                         std::complex<float>* buffer);
+  void WriteInstrumentalVisibilities(
+      MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+      const aocommon::BandData& curBand, std::complex<float>* buffer);
 
   /**
    * @brief Applies both the conjugated h5 parm
@@ -480,6 +591,8 @@ class MSGridderBase {
   double _wLimit;
   const class ImageWeights* _precalculatedWeightInfo;
   aocommon::PolarizationEnum _polarization;
+  size_t _nVisPolarizations;
+  GainMode _gainMode;
   bool _isComplex;
   WeightMode _weighting;
   bool _isFirstIteration;
@@ -500,6 +613,9 @@ class MSGridderBase {
   double _visibilityWeightSum;
 
   aocommon::UVector<float> _scratchImageWeights;
+  /// Initialized in StartMeasurementSet(), used in WriteCollapsedVisibilities()
+  /// to expand visibilities into.
+  aocommon::UVector<std::complex<float>> _scratchModelData;
 
   std::unique_ptr<MSReader> _predictReader;
   WriterLockManager* _writerLockManager;
@@ -508,60 +624,72 @@ class MSGridderBase {
 };
 
 template <size_t PolarizationCount>
-inline void MSGridderBase::readAndWeightVisibilities(
+inline void MSGridderBase::GetInstrumentalVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected, GainMode gain_mode) {
-  switch (gain_mode) {
+    const bool* isSelected) {
+  switch (_gainMode) {
     case GainMode::kXX:
-      readAndWeightVisibilities<PolarizationCount, GainMode::kXX>(
-          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-          isSelected);
-      break;
-    case GainMode::kYY:
-      readAndWeightVisibilities<PolarizationCount, GainMode::kYY>(
-          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-          isSelected);
-      break;
-    case GainMode::kDiagonal:
-      readAndWeightVisibilities<PolarizationCount, GainMode::kDiagonal>(
-          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-          isSelected);
-      break;
-    case GainMode::kFull:
-      if constexpr (PolarizationCount == 2 || PolarizationCount == 4)
-        readAndWeightVisibilities<PolarizationCount, GainMode::kFull>(
+      if constexpr (PolarizationCount == 1) {
+        GetInstrumentalVisibilities<PolarizationCount, GainMode::kXX>(
             msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
             isSelected);
-      else
+      }
+      break;
+    case GainMode::kYY:
+      if constexpr (PolarizationCount == 1) {
+        GetInstrumentalVisibilities<PolarizationCount, GainMode::kYY>(
+            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+            isSelected);
+      }
+      break;
+    case GainMode::kDiagonal:
+      if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
+        GetInstrumentalVisibilities<PolarizationCount, GainMode::kDiagonal>(
+            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+            isSelected);
+      }
+      break;
+    case GainMode::kFull:
+      if constexpr (PolarizationCount == 4) {
+        GetInstrumentalVisibilities<PolarizationCount, GainMode::kFull>(
+            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+            isSelected);
+      } else {
         throw std::runtime_error(
             "Invalid combination of visibility polarizations and gain mode");
+      }
       break;
   }
 }
 
 template <size_t PolarizationCount>
-inline void MSGridderBase::writeVisibilities(
+inline void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer,
-    GainMode gain_mode) {
-  switch (gain_mode) {
+    const aocommon::BandData& curBand, std::complex<float>* buffer) {
+  switch (_gainMode) {
     case GainMode::kXX:
-      writeVisibilities<PolarizationCount, GainMode::kXX>(
-          msProvider, antennaNames, curBand, buffer);
+      if constexpr (PolarizationCount == 1) {
+        WriteInstrumentalVisibilities<PolarizationCount, GainMode::kXX>(
+            msProvider, antennaNames, curBand, buffer);
+      }
       break;
     case GainMode::kYY:
-      writeVisibilities<PolarizationCount, GainMode::kYY>(
-          msProvider, antennaNames, curBand, buffer);
+      if constexpr (PolarizationCount == 1) {
+        WriteInstrumentalVisibilities<PolarizationCount, GainMode::kYY>(
+            msProvider, antennaNames, curBand, buffer);
+      }
       break;
     case GainMode::kDiagonal:
-      writeVisibilities<PolarizationCount, GainMode::kDiagonal>(
-          msProvider, antennaNames, curBand, buffer);
+      if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
+        WriteInstrumentalVisibilities<PolarizationCount, GainMode::kDiagonal>(
+            msProvider, antennaNames, curBand, buffer);
+      }
       break;
     case GainMode::kFull:
-      if constexpr (PolarizationCount == 2 || PolarizationCount == 4)
-        writeVisibilities<PolarizationCount, GainMode::kFull>(
+      if constexpr (PolarizationCount == 4)
+        WriteInstrumentalVisibilities<PolarizationCount, GainMode::kFull>(
             msProvider, antennaNames, curBand, buffer);
       else
         throw std::runtime_error(

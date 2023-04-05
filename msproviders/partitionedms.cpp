@@ -211,6 +211,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
     } else {
       polsOut.insert(aocommon::Polarization::Instrumental);
     }
+  } else if (settings.diagonalSolutions) {
+    polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
   } else {
     polsOut = settings.polarizations;
   }
@@ -245,10 +247,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
       PartitionFiles& f = files[fileIndex];
       std::string partPrefix = getPartPrefix(
           msPath, part, p, channels[part].dataDescId, temporaryDirectory);
-      f.data.reset(new std::ofstream(partPrefix + ".tmp"));
-      f.weight.reset(new std::ofstream(partPrefix + "-w.tmp"));
+      f.data = std::make_unique<std::ofstream>(partPrefix + ".tmp");
+      f.weight = std::make_unique<std::ofstream>(partPrefix + "-w.tmp");
       if (initialModelRequired)
-        f.model.reset(new std::ofstream(partPrefix + "-m.tmp"));
+        f.model = std::make_unique<std::ofstream>(partPrefix + "-m.tmp");
       f.data->seekp(PartHeader::BINARY_SIZE, std::ios::beg);
 
       ++fileIndex;
@@ -276,10 +278,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
           "Baseline-dependent averaging is enabled together with a mode that "
           "requires the model data (e.g. -continue or -subtract-model). This "
           "is not possible.");
-    rowProvider.reset(new AveragingMSRowProvider(
+    rowProvider = std::make_unique<AveragingMSRowProvider>(
         settings.baselineDependentAveragingInWavelengths, msPath, selection,
         selectedDataDescIds, settings.fieldIds[0], dataColumnName,
-        initialModelRequired));
+        initialModelRequired);
   }
 
   const std::map<size_t, std::vector<aocommon::PolarizationEnum>>
@@ -301,7 +303,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     const size_t spwIndex = p.second;
     std::string metaFilename =
         getMetaFilename(msPath, temporaryDirectory, dataDescId);
-    metaFiles[spwIndex].reset(new std::ofstream(metaFilename));
+    metaFiles[spwIndex] = std::make_unique<std::ofstream>(metaFilename);
     MetaHeader metaHeader;
     metaHeader.selectedRowCount = 0;  // not yet known
     metaHeader.filenameLength = msPath.size();

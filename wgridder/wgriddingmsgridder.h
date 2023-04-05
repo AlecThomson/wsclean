@@ -34,9 +34,9 @@ class WGriddingMSGridder final : public MSGridderBase {
   std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
                                                     size_t height) const;
 
-  void gridMeasurementSet(MSData& msData, GainMode gain_mode);
+  void gridMeasurementSet(MSData& msData);
 
-  void predictMeasurementSet(MSData& msData, GainMode gain_mode);
+  void predictMeasurementSet(MSData& msData);
 
   size_t calculateMaxNRowsInMemory(size_t channelCount) const;
 

@@ -100,6 +100,7 @@ class Settings {
   double beamAtermUpdateTime;  // in seconds.
   std::vector<std::string> facetSolutionFiles;
   std::vector<std::string> facetSolutionTables;
+  bool diagonalSolutions = false;
   bool applyFacetBeam;
   double facetBeamUpdateTime;  // in seconds.
   bool saveATerms;

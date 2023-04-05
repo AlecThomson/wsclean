@@ -71,6 +71,18 @@ void Settings::Validate() const {
     throw std::runtime_error(s.str());
   }
 
+  if (diagonalSolutions) {
+    if (facetSolutionFiles.empty()) {
+      throw std::runtime_error(
+          "-diagonal-solutions must be combined with -apply-facet-solutions");
+    }
+    if (polarizations.size() != 1 ||
+        *polarizations.begin() != aocommon::PolarizationEnum::StokesI) {
+      throw std::runtime_error(
+          "-diagonal-solutions can only be used when making Stokes I images");
+    }
+  }
+
   if (facetRegionFilename.empty() && ddPsfGridWidth == 1 &&
       ddPsfGridHeight == 1) {
     if (!facetSolutionFiles.empty())

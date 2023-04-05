@@ -101,6 +101,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _wLimit(settings.wLimit / 100.0),
       _precalculatedWeightInfo(nullptr),
       _polarization(aocommon::Polarization::StokesI),
+      _nVisPolarizations(1),
       _isComplex(false),
       _weighting(settings.weightMode),
       _isFirstIteration(false),
@@ -166,11 +167,14 @@ void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
                                         bool isPredict) {
   initializePointResponse(msData);
   _msIndex = msData.msIndex;
-  if (isPredict) initializePredictReader(*msData.msProvider);
-}
-
-void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
-  _predictReader = msProvider.MakeReader();
+  _nVisPolarizations = msData.msProvider->NPolarizations();
+  _gainMode = GetGainMode(Polarization(), _nVisPolarizations);
+  const size_t n_channels = msData.SelectedBand().ChannelCount();
+  _scratchImageWeights.resize(n_channels);
+  if (isPredict) {
+    _scratchModelData.resize(n_channels * msData.msProvider->NPolarizations());
+    _predictReader = msData.msProvider->MakeReader();
+  }
 }
 
 void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
@@ -346,10 +350,9 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     msData.maxBaselineInM = cacheEntry.maxBaselineInM;
     msData.integrationTime = cacheEntry.integrationTime;
   } else {
-    if (msProvider.Polarization() == aocommon::Polarization::Instrumental)
+    if (msProvider.NPolarizations() == 4)
       calculateWLimits<4>(msData);
-    else if (msProvider.Polarization() ==
-             aocommon::Polarization::DiagonalInstrumental)
+    else if (msProvider.NPolarizations() == 2)
       calculateWLimits<2>(msData);
     else
       calculateWLimits<1>(msData);
@@ -446,7 +449,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 }
 
 template <size_t PolarizationCount, GainMode GainEntry>
-void MSGridderBase::writeVisibilities(
+void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
@@ -492,28 +495,30 @@ void MSGridderBase::writeVisibilities(
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1, GainMode::kXX>(
+template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kXX>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<1, GainMode::kYY>(
+template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kYY>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<1, GainMode::kDiagonal>(
+template void
+MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kDiagonal>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<2, GainMode::kFull>(
+template void
+MSGridderBase::WriteInstrumentalVisibilities<2, GainMode::kDiagonal>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4, GainMode::kFull>(
+template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
 template <size_t PolarizationCount, GainMode GainEntry>
-void MSGridderBase::readAndWeightVisibilities(
+void MSGridderBase::GetInstrumentalVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
@@ -560,8 +565,10 @@ void MSGridderBase::readAndWeightVisibilities(
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
-  for (size_t i = 0; i != dataSize; ++i) {
-    if (!isSelected[i]) weightBuffer[i] = 0.0;
+  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+    for (size_t p = 0; p != PolarizationCount; ++p) {
+      if (!isSelected[ch]) weightBuffer[ch * PolarizationCount + p] = 0.0;
+    }
   }
 
   switch (GetVisibilityWeightingMode()) {
@@ -581,7 +588,6 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 
   // Precompute imaging weights
-  _scratchImageWeights.resize(curBand.ChannelCount());
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
     const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
@@ -648,9 +654,9 @@ void MSGridderBase::readAndWeightVisibilities(
         _visibilityWeightSum += *weightIter;
         _maxGriddedWeight = std::max(cumWeight, _maxGriddedWeight);
         ++_griddedVisibilityCount;
-        // Total weight includes imaging weights
-        _totalWeight += cumWeight;
       }
+      // Total weight includes imaging weights
+      _totalWeight += cumWeight;
       *weightIter = cumWeight;
       *dataIter *= cumWeight;
       ++dataIter;
@@ -659,31 +665,33 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 }
 
-template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kXX>(
+template void MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kXX>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kYY>(
+template void MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kYY>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kDiagonal>(
+template void
+MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kDiagonal>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<2, GainMode::kFull>(
+template void
+MSGridderBase::GetInstrumentalVisibilities<2, GainMode::kDiagonal>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<4, GainMode::kFull>(
+template void MSGridderBase::GetInstrumentalVisibilities<4, GainMode::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,

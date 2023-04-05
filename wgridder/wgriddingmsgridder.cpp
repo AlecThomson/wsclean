@@ -77,14 +77,15 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   return maxNRows;
 }
 
-void WGriddingMSGridder::gridMeasurementSet(MSData& msData,
-                                            GainMode gain_mode) {
+void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, false);
 
+  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
   aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.ChannelCount());
-  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
+  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
+                                        n_vis_polarizations);
   aocommon::UVector<bool> isSelected(selectedBand.ChannelCount(), true);
 
   size_t totalNRows = 0;
@@ -100,7 +101,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData,
 
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
   InversionRow newRowData;
   newRowData.data = newItemData.data();
 
@@ -118,10 +119,9 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData,
       newRowData.uvw[0] = uInMeters;
       newRowData.uvw[1] = vInMeters;
       newRowData.uvw[2] = wInMeters;
-      readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newRowData,
-                                   selectedBand, weightBuffer.data(),
-                                   modelBuffer.data(), isSelected.data(),
-                                   gain_mode);
+      GetCollapsedVisibilities(*msReader, msData.antennaNames, newRowData,
+                               selectedBand, weightBuffer.data(),
+                               modelBuffer.data(), isSelected.data());
 
       std::copy_n(newRowData.data, selectedBand.ChannelCount(),
                   &visBuffer[nRows * selectedBand.ChannelCount()]);
@@ -142,8 +142,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData,
   msData.totalRowsProcessed += totalNRows;
 }
 
-void WGriddingMSGridder::predictMeasurementSet(MSData& msData,
-                                               GainMode gain_mode) {
+void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, true);
@@ -182,9 +181,9 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData,
 
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != nRows; ++row) {
-      writeVisibilities<1>(
-          *msData.msProvider, msData.antennaNames, selectedBand,
-          &visBuffer[row * selectedBand.ChannelCount()], gain_mode);
+      WriteCollapsedVisibilities(*msData.msProvider, msData.antennaNames,
+                                 selectedBand,
+                                 &visBuffer[row * selectedBand.ChannelCount()]);
     }
     totalNRows += nRows;
   }  // end of chunk
@@ -225,7 +224,7 @@ void WGriddingMSGridder::Invert() {
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
-    gridMeasurementSet(msData, GetGainMode(Polarization(), 1));
+    gridMeasurementSet(msData);
   }
 
   gridder_->FinalizeImage(1.0 / totalWeight());
@@ -297,6 +296,6 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   images[0].Reset();
 
   for (MSData& msData : msDataVector) {
-    predictMeasurementSet(msData, GetGainMode(Polarization(), 1));
+    predictMeasurementSet(msData);
   }
 }

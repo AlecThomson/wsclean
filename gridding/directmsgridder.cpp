@@ -37,7 +37,7 @@ void DirectMSGridder<num_t>::Invert() {
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
-    invertMeasurementSet(msData, progress, i, GetGainMode(Polarization(), 1));
+    invertMeasurementSet(msData, progress, i);
   }
 
   _inversionLane.write_end();
@@ -123,18 +123,20 @@ void DirectMSGridder<num_t>::inversionWorker(size_t layer) {
 
 template <typename num_t>
 void DirectMSGridder<num_t>::invertMeasurementSet(
-    const MSGridderBase::MSData& msData, ProgressBar& progress, size_t msIndex,
-    GainMode gain_mode) {
+    const MSGridderBase::MSData& msData, ProgressBar& progress,
+    size_t msIndex) {
   StartMeasurementSet(msData, false);
+  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.ChannelCount());
-  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
+  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
+                                        n_vis_polarizations);
   aocommon::UVector<bool> isSelected(selectedBand.ChannelCount(), true);
 
   InversionRow newItem;
   aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
   newItem.data = newItemData.data();
 
   std::vector<size_t> idToMSRow;
@@ -147,9 +149,9 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
 
     msReader->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2]);
 
-    readAndWeightVisibilities<1>(
-        *msReader, msData.antennaNames, newItem, selectedBand,
-        weightBuffer.data(), modelBuffer.data(), isSelected.data(), gain_mode);
+    GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
+                             selectedBand, weightBuffer.data(),
+                             modelBuffer.data(), isSelected.data());
     InversionSample sample;
     for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
       const double wl = selectedBand.ChannelWavelength(ch);

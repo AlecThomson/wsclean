@@ -127,13 +127,15 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   return suggestedGridSize;
 }
 
-void WSMSGridder::gridMeasurementSet(MSData& msData, GainMode gain_mode) {
+void WSMSGridder::gridMeasurementSet(MSData& msData) {
+  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
   const aocommon::BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.ChannelCount());
-  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
+  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
+                                        n_vis_polarizations);
   aocommon::UVector<bool> isSelected(selectedBand.ChannelCount());
 
   // Samples of the same w-layer are collected in a buffer
@@ -153,7 +155,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData, GainMode gain_mode) {
 
   InversionRow newItem;
   aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.ChannelCount());
+      selectedBand.ChannelCount() * n_vis_polarizations);
   newItem.data = newItemData.data();
 
   try {
@@ -173,19 +175,20 @@ void WSMSGridder::gridMeasurementSet(MSData& msData, GainMode gain_mode) {
         // Any visibilities that are not gridded in this pass
         // should not contribute to the weight sum
         for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-          double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
+          const double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
           isSelected[ch] = _gridder->IsInLayerRange(w);
         }
 
-        readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
-                                     curBand, weightBuffer.data(),
-                                     modelBuffer.data(), isSelected.data(),
-                                     gain_mode);
+        GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
+                                 curBand, weightBuffer.data(),
+                                 modelBuffer.data(), isSelected.data());
 
         if (HasDenormalPhaseCentre()) {
           const double shiftFactor =
               -2.0 * M_PI *
               (newItem.uvw[0] * LShift() + newItem.uvw[1] * MShift());
+          // Because the visibilities have been collapsed, there's only one
+          // polarization left:
           rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
         }
 
@@ -354,8 +357,8 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (!queue.empty() && queue.top().rowId == nextRowId) {
-      writeVisibilities<1>(*msData->msProvider, msData->antennaNames, *bandData,
-                           queue.top().data.get(), gain_mode);
+      WriteCollapsedVisibilities(*msData->msProvider, msData->antennaNames,
+                                 *bandData, queue.top().data.get());
 
       queue.pop();
       ++nextRowId;
@@ -368,10 +371,10 @@ void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
-  _gridder.reset(new GridderType(
+  _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
       ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
-      OverSamplingFactor()));
+      OverSamplingFactor());
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(LShift(), MShift());
@@ -408,7 +411,7 @@ void WSMSGridder::Invert() {
       const aocommon::BandData selectedBand(msData.SelectedBand());
 
       startInversionWorkThreads(selectedBand.ChannelCount());
-      gridMeasurementSet(msData, GetGainMode(Polarization(), 1));
+      gridMeasurementSet(msData);
       finishInversionWorkThreads();
     }
 
@@ -494,10 +497,10 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
-  _gridder = std::unique_ptr<GridderType>(new GridderType(
+  _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
       ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
-      OverSamplingFactor()));
+      OverSamplingFactor());
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(LShift(), MShift());

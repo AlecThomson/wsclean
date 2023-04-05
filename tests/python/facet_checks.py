@@ -1,6 +1,11 @@
 import pytest
 import shutil
 import sys
+from astropy.io import fits
+from astropy.wcs import WCS
+import casacore.tables
+import h5py
+import numpy as np
 from utils import (
     assert_taql,
     basic_image_check,
@@ -17,7 +22,11 @@ import config_vars as tcf
 
 
 def gridders():
-    return {"wstacking": "", "wgridder": "-use-wgridder", "idg": "-use-idg"}
+    return {
+        "wstacking": "-gridder wstacking",
+        "wgridder": "-gridder wgridder",
+        "idg": "-gridder idg",
+    }
 
 
 def predict_full_image(ms, gridder):
@@ -55,6 +64,52 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
         ms,
     ]
     validate_call(" ".join(s).split())
+
+
+def create_pointsource_grid_skymodel(
+    skymodel_filename, grid_size, nr_pixels, wcs
+):
+    """
+    Writes a skymodel file for a square grid of point sources in a square image.
+
+    Parameters
+    ----------
+    skymodel_filename: str
+    grid_size: int
+        Number of point sources (in one direction)
+    nr_pixels: int
+        Number of pixels in the image (in one direction)
+    wcs: astropy.wcs.WCS
+        World coordinate system of the image
+
+    Returns
+    -------
+    list of tuples
+        A list of source/pixel positions of length grid_size*grid_size
+    """
+    source_positions = []
+    source_pixel_index_range = (np.arange(grid_size)) * (
+        nr_pixels // grid_size
+    ) + (nr_pixels // grid_size // 2)
+    with open(skymodel_filename, "w") as sky_model_file:
+        print(
+            "Format = Name, Patch, Type, Ra, Dec, I, SpectralIndex, LogarithmicSI, ReferenceFrequency='150000000', MajorAxis, MinorAxis, Orientation",
+            file=sky_model_file,
+        )
+        for i, idx0 in enumerate(source_pixel_index_range):
+            for j, idx1 in enumerate(source_pixel_index_range):
+                sky = wcs.pixel_to_world(idx0, idx1, 0, 0)
+                print(
+                    f",direction_{i}{j},,{sky[0].ra.rad},{sky[0].dec.rad},,,,,,,",
+                    file=sky_model_file,
+                )
+                print(
+                    f"source-{i}-{j},direction_{i}{j},POINT,{sky[0].ra.rad},{sky[0].dec.rad},1.0,[],false,150000000,,,",
+                    file=sky_model_file,
+                )
+                source_positions.append((idx0, idx1))
+
+    return source_positions
 
 
 @pytest.mark.usefixtures("prepare_mock_ms", "prepare_model_image")
@@ -211,6 +266,13 @@ class TestFacets:
         s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name multi-channel-faceting -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
         validate_call(s.split())
 
+    def test_diagonal_solutions(self):
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
+        validate_call(h5download.split())
+
+        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name faceted-diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -diagonal-solutions -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+        validate_call(s.split())
+
     def test_parallel_gridding(self):
         # Compare serial, threaded and mpi run for facet based imaging
         # with h5 corrections. Number of used threads/processes is
@@ -231,7 +293,11 @@ class TestFacets:
 
         # Compare images, the threshold is chosen relatively large since the difference
         # seems to fluctuate somewhat between runs.
-        threshold = 1e-6
+        # The value of the threshold was increased from 1e-6 to 1e-5 in
+        # https://gitlab.com/aroffringa/wsclean/-/merge_requests/522
+        # This needs to be further investigated in
+        # https://jira.skatelescope.org/browse/AST-1234
+        threshold = 1e-5
         compare_rms_fits(
             f"{names[0]}-YY-image.fits", f"{names[1]}-YY-image.fits", threshold
         )
@@ -304,3 +370,132 @@ class TestFacets:
         # assert_taql(taql_command for taql_command in taql_commands)
         for taql_command in taql_commands:
             assert_taql(taql_command)
+
+    def test_diagonal_solutions(self):
+        # Initialize random rumber generator
+        rng = np.random.default_rng(1)
+
+        # Strip unused stations from mock measurement set
+        s = f"DP3 msin={tcf.MWA_MOCK_MS}  msout=diagonal_solutions.ms msout.overwrite=True steps=[filter] filter.remove=True"
+        validate_call(s.split())
+
+        # Fill WEIGHT_SPECTRUM with random values
+        with casacore.tables.table(
+            "diagonal_solutions.ms", readonly=False
+        ) as t:
+            weight_spectrum_shape = np.concatenate(
+                (
+                    np.array([t.nrows()]),
+                    t.getcoldesc("WEIGHT_SPECTRUM")["shape"],
+                )
+            )
+            weights = rng.uniform(0, 1, weight_spectrum_shape) + np.array(
+                [1, 2, 3, 4], ndmin=3
+            )
+            t.putcol("WEIGHT_SPECTRUM", weights)
+
+        # Create a template image
+        s = (
+            f"{tcf.WSCLEAN} -gridder wgridder -name template-diagonal-solutions "
+            f"-size 256 256 -scale 4amin -interval 0 1 diagonal_solutions.ms"
+        )
+        validate_call(s.split())
+
+        # Use template image to create a sky model consisting of a grid of point sources
+        with fits.open("template-diagonal-solutions-image.fits") as f:
+            wcs = WCS(f[0].header)
+            nr_pixels = f[0].shape[-1]
+        pointsource_grid_size = 2
+        source_positions = create_pointsource_grid_skymodel(
+            "diagonal-solutions-skymodel.txt",
+            pointsource_grid_size,
+            nr_pixels,
+            wcs,
+        )
+
+        # Predict (without solutions)
+        s = f"DP3 msin=diagonal_solutions.ms msout= steps=[predict] predict.sourcedb=diagonal-solutions-skymodel.txt"
+        validate_call(s.split())
+
+        # Image (without solutions)
+        s = (
+            f"{tcf.WSCLEAN} -name diagonal-solutions-reference -size 256 256 "
+            "-no-reorder "
+            "-scale 4amin "
+            "diagonal_solutions.ms"
+        )
+        validate_call(s.split())
+
+        # Create template solutions .h5 file
+        s = "DP3 msin=diagonal_solutions.ms msout= steps=[ddecal] ddecal.sourcedb=diagonal-solutions-skymodel.txt ddecal.h5parm=diagonal-solutions.h5 ddecal.mode=complexgain"
+        validate_call(s.split())
+
+        # Fill the template solutions file with random data
+        with h5py.File("diagonal-solutions.h5", mode="r+") as f:
+            f["sol000"]["phase000"]["val"][:] = rng.uniform(
+                -np.pi, np.pi, f["sol000"]["phase000"]["val"].shape
+            )
+            f["sol000"]["phase000"]["weight"][:] = 1.0
+            f["sol000"]["amplitude000"]["val"][:] = rng.uniform(
+                0.5, 3, f["sol000"]["amplitude000"]["val"].shape
+            )
+            f["sol000"]["amplitude000"]["weight"][:] = 1.0
+
+        # Predict with (random) solutions
+        s = (
+            "DP3 msin=diagonal_solutions.ms msout= steps=[h5parmpredict] "
+            "h5parmpredict.sourcedb=diagonal-solutions-skymodel.txt "
+            "h5parmpredict.applycal.parmdb=diagonal-solutions.h5 "
+            "h5parmpredict.applycal.steps=[ampl,phase] "
+            "h5parmpredict.applycal.ampl.correction=amplitude000 "
+            "h5parmpredict.applycal.phase.correction=phase000 "
+            "h5parmpredict.applycal.correction=amplitude000"
+        )
+        validate_call(s.split())
+
+        # Image data predicted with solutions applied,
+        # without applying corrections for the solutions while imaging
+        s = (
+            f"{tcf.WSCLEAN} -name diagonal-solutions-no-correction -size 256 256 "
+            "-no-reorder "
+            "-scale 4amin "
+            "diagonal_solutions.ms"
+        )
+        validate_call(s.split())
+
+        # Image data predicted with solutions applied,
+        # while applying corrections
+        s = (
+            f"{tcf.WSCLEAN} -name diagonal-solutions "
+            "-parallel-gridding 3 "
+            "-size 256 256 "
+            "-no-reorder "
+            "-scale 4amin "
+            "-mgain 0.8 "
+            "-threshold 10mJy "
+            "-niter 10000 "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            "-apply-facet-solutions diagonal-solutions.h5 "
+            "amplitude000,phase000 -diagonal-solutions "
+            "diagonal_solutions.ms"
+        )
+        validate_call(s.split())
+
+        # Compare reference, uncorrection and corrected fluxes
+        reference_image_data = fits.getdata(
+            "diagonal-solutions-reference-image.fits"
+        )[0, 0]
+        no_correction_image_data = fits.getdata(
+            "diagonal-solutions-no-correction-image.fits"
+        )[0, 0]
+        image_data = fits.getdata("diagonal-solutions-image-pb.fits")[0, 0]
+        # loop over input sources
+        for idx0, idx1 in source_positions:
+            # Assert that without corrections less than 5 percent flux is recovered
+            assert np.abs(no_correction_image_data[idx0, idx1]) < 5e-2
+            # Assert that with corrections the recovered flux is within 2 percent of the reference
+            assert np.isclose(
+                reference_image_data[idx0, idx1],
+                image_data[idx0, idx1],
+                rtol=2e-2,
+            )

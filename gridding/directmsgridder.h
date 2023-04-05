@@ -39,7 +39,7 @@ class DirectMSGridder final : public MSGridderBase {
   aocommon::Lane<InversionSample> _inversionLane;
 
   void invertMeasurementSet(const MSData& msData, ProgressBar& progress,
-                            size_t msIndex, GainMode gain_mode);
+                            size_t msIndex);
   void inversionWorker(size_t layer);
   void gridSample(const InversionSample& sample, size_t layer);
   void initializeSqrtLMLookupTable();
