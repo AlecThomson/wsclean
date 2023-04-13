@@ -203,7 +203,7 @@ void WSCFitsWriter::WriteFullNameImage(
         "WSCFitsWriter::WriteFullNameImage can not write a FacetImage when its "
         "facet is not set.");
   }
-  schaapcommon::facets::Pixel centre_pixel =
+  schaapcommon::facets::PixelPosition centre_pixel =
       facetimage.GetFacet()->GetUntrimmedBoundingBox().Centre();
 
   int centreShiftX = centre_pixel.x - _writer.Width() / 2;

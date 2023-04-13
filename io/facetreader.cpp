@@ -14,10 +14,11 @@ using schaapcommon::facets::Facet;
 std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     std::string filename, double width, double height, double pixelScaleX,
     double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
-    double l_shift, double m_shift, double imagePadding, bool make_square) {
+    double l_shift, double m_shift, double imagePadding, bool make_square,
+    size_t feather_size) {
   const Facet::InitializationData data = CreateFacetInitializationData(
       width, height, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec,
-      l_shift, m_shift, imagePadding, make_square);
+      l_shift, m_shift, imagePadding, make_square, feather_size);
 
   std::vector<std::shared_ptr<Facet>> facets;
   if (!filename.empty()) {

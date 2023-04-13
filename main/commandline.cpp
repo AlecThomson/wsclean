@@ -226,6 +226,11 @@ Options can be:
 -shift <ra> <dec>
    Shift the phase centre to the given location. The shift is along
    the tangential plane.
+-facet-regions <facets.reg>
+   Split the image into facets using the facet regions defined in  the facets.reg file. Default: off.
+-feather-size <npixels>
+   Set the size of the feathered facet boundaries. Setting this to zero will disable feathering.
+   Default: 10% of the average facet dimensions, i.e., 1% of sqrt(width * height).
 -gap-channel-division
    In case of irregular frequency spacing, this option can be used to not try and split channels
    to make the output channel bandwidth similar, but instead to split largest gaps first.
@@ -368,8 +373,6 @@ Options can be:
 -link-polarizations <pollist>
    Links all polarizations to be cleaned from the given list: components are found in the
    given list, but cleaned from all polarizations.
--facet-regions <facets.reg>
-   Split the image into facets using the facet regions defined in  the facets.reg file. Default: off.
 -join-channels
    Perform deconvolution by searching for peaks in the MF image,
 but subtract components from individual channels.
@@ -855,6 +858,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "facet-regions") {
       IncArgi(argi, argc);
       settings.facetRegionFilename = argv[argi];
+    } else if (param == "feather-size") {
+      IncArgi(argi, argc);
+      settings.featherSize = ParseSizeT(argv[argi], "feather-size");
     } else if (param == "join-polarizations") {
       settings.joinedPolarizationDeconvolution = true;
     } else if (param == "link-polarizations") {

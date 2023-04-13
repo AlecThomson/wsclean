@@ -1,6 +1,8 @@
 #ifndef WSCLEAN_SETTINGS_H
 #define WSCLEAN_SETTINGS_H
 
+#include <cassert>
+
 #include "../gridding/wstackinggridder.h"
 
 #include "../gridding/visibilityweightingmode.h"
@@ -68,6 +70,7 @@ class Settings {
   std::string dataColumnName;
   std::set<aocommon::PolarizationEnum> polarizations;
   std::string facetRegionFilename;
+  std::optional<size_t> featherSize;
   std::set<size_t> spectralWindows;
   WeightMode weightMode;
   std::string prefixName;
@@ -188,6 +191,16 @@ class Settings {
   bool IsSpectralFittingEnabled() const {
     return spectralFittingMode !=
            schaapcommon::fitters::SpectralFittingMode::kNoFitting;
+  }
+
+  size_t GetFeatherSize() const {
+    if (featherSize) {
+      return *featherSize;
+    } else {
+      // Return the default: 1% of sqrt(width * height)
+      return std::ceil(std::sqrt(trimmedImageWidth * trimmedImageHeight) *
+                       0.01);
+    }
   }
 
  private:

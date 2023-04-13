@@ -7,7 +7,7 @@ using schaapcommon::facets::Facet;
 Facet::InitializationData CreateFacetInitializationData(
     double width, double height, double pixelScaleX, double pixelScaleY,
     double phaseCentreRA, double phaseCentreDec, double l_shift, double m_shift,
-    double imagePadding, bool make_square) {
+    double imagePadding, bool make_square, size_t feather_size) {
   Facet::InitializationData data(pixelScaleX, pixelScaleY, width, height);
   data.phase_centre.ra = phaseCentreRA;
   data.phase_centre.dec = phaseCentreDec;
@@ -16,6 +16,7 @@ Facet::InitializationData CreateFacetInitializationData(
   data.padding = imagePadding;
   data.align = 2;
   data.make_square = make_square;
+  data.feather_size = feather_size;
   return data;
 }
 
@@ -35,7 +36,8 @@ std::vector<std::shared_ptr<Facet>> CreateFacetGrid(
       const int facet_end_x =
           (grid_x + 1) * facet_data.image_width / grid_width;
       const schaapcommon::facets::BoundingBox box(
-          {{facet_start_x, facet_start_y}, {facet_end_x, facet_end_y}});
+          {{facet_start_x, facet_start_y}, {facet_end_x, facet_end_y}}, 1,
+          false);
 
       facets.emplace_back(std::make_shared<Facet>(facet_data, box));
       // add a name label for this box

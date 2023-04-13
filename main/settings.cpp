@@ -142,6 +142,11 @@ void Settings::Validate() const {
     }
   }
 
+  if (facetRegionFilename.empty() && featherSize && *featherSize != 0) {
+    throw std::runtime_error(
+        "Parameter -feather-size was specified without enabling facetting.");
+  }
+
   if (gridderType == GridderType::IDG) {
     const bool stokesIOnly =
         polarizations.size() == 1 &&

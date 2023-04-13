@@ -10,6 +10,7 @@ add_executable(
   testserialization.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
+  main/tsettings.cpp
   math/trenderer.cpp
   math/ttophatconvolution.cpp
   model/tbbsmodel.cpp

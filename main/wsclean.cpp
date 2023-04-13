@@ -230,7 +230,7 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   // If this entry is the main psf, or if it is the dd-psf at the centre
   // then use the fitting result for the main image
   if (!entry.isDdPsf ||
-      entry.facet->Contains(schaapcommon::facets::Pixel(
+      entry.facet->Contains(schaapcommon::facets::PixelPosition(
           _settings.trimmedImageWidth / 2, _settings.trimmedImageHeight / 2))) {
     _infoPerChannel[channelIndex] = channel_info;
   }
@@ -684,7 +684,8 @@ void WSClean::RunClean() {
           _settings.trimmedImageHeight, _settings.pixelScaleX,
           _settings.pixelScaleY, _observationInfo.phaseCentreRA,
           _observationInfo.phaseCentreDec, _l_shift, _m_shift,
-          _settings.imagePadding, _settings.gridderType == GridderType::IDG);
+          _settings.imagePadding, _settings.gridderType == GridderType::IDG,
+          _settings.GetFeatherSize());
   _facetCount = facets.size();
 
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> dd_psfs;
@@ -695,14 +696,14 @@ void WSClean::RunClean() {
             _settings.pixelScaleX, _settings.pixelScaleY,
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _l_shift, _m_shift, _settings.imagePadding,
-            _settings.gridderType == GridderType::IDG);
+            _settings.gridderType == GridderType::IDG, 0);
     dd_psfs = CreateFacetGrid(facet_data, _settings.ddPsfGridWidth,
                               _settings.ddPsfGridHeight);
   }
   _ddPsfCount = dd_psfs.size();
 
-  schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
-                                          _settings.trimmedImageHeight / 2);
+  schaapcommon::facets::PixelPosition centerPixel(
+      _settings.trimmedImageWidth / 2, _settings.trimmedImageHeight / 2);
   const bool hasCenter = std::any_of(
       facets.begin(), facets.end(),
       [&centerPixel](
@@ -937,7 +938,8 @@ void WSClean::RunPredict() {
             _settings.trimmedImageHeight, _settings.pixelScaleX,
             _settings.pixelScaleY, _observationInfo.phaseCentreRA,
             _observationInfo.phaseCentreDec, _l_shift, _m_shift,
-            _settings.imagePadding, _settings.gridderType == GridderType::IDG);
+            _settings.imagePadding, _settings.gridderType == GridderType::IDG,
+            _settings.GetFeatherSize());
 
         // FIXME: raise warning if facets do not cover the entire image, see
         // AST-429

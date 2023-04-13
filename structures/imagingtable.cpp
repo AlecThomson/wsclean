@@ -156,7 +156,7 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   for (const EntryPtr& entry_ptr : _entries) {
     if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
     if (!entry_ptr->isDdPsf) continue;
-    const schaapcommon::facets::Pixel centre =
+    const schaapcommon::facets::PixelPosition centre =
         entry_ptr->facet->GetTrimmedBoundingBox().Centre();
     psf_offsets.emplace_back(centre.x, centre.y);
     psf_facets.push_back(entry_ptr->facet);

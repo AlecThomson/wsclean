@@ -22,7 +22,7 @@ size_t FacetCollision(const std::vector<std::shared_ptr<Facet>>& facets, int x,
                       int y) {
   size_t facetCollision = std::numeric_limits<size_t>::max();
   for (size_t f = 0; f < facets.size(); ++f) {
-    schaapcommon::facets::BoundingBox bbox(facets[f]->GetPixels());
+    schaapcommon::facets::BoundingBox bbox(facets[f]->GetPixels(), 1, false);
     if (y >= bbox.Min().y && y < bbox.Max().y && x >= bbox.Min().x &&
         x < bbox.Max().x) {
       facetCollision = f;
