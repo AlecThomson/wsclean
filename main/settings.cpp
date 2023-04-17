@@ -282,9 +282,14 @@ void Settings::Validate() const {
 
   if (saveSourceList &&
       (polarizations.size() != 1 ||
-       (*polarizations.begin()) != aocommon::Polarization::StokesI))
+       (*polarizations.begin() != aocommon::Polarization::StokesI &&
+        *polarizations.begin() != aocommon::Polarization::XX &&
+        *polarizations.begin() != aocommon::Polarization::YY &&
+        *polarizations.begin() != aocommon::Polarization::LL &&
+        *polarizations.begin() != aocommon::Polarization::RR)))
     throw std::runtime_error(
-        "Saving a source list currently only works for Stokes I imaging.");
+        "Saving a source list currently only works for Stokes I or pseudo "
+        "Stokes I (XX, YY, LL or RR) imaging.");
 
   if (saveSourceList && deconvolutionIterationCount == 0)
     throw std::runtime_error("A source list cannot be saved without cleaning.");
