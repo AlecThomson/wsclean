@@ -248,12 +248,16 @@ ExternalProject_Add(
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
     -DCFITSIO_ROOT_DIR=${CFITSIO_ROOT_DIR}
-    -DCASACORE_ROOT_DIR=${CASACORE_ROOT_DIR}
+    # The casacore root is set to the location where casacore was found.
+    # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
+    # shouldn't set Radler's CASACORE_ROOT_DIR to WSClean's one.
+    -DCASACORE_ROOT_DIR=${CASACORE_INCLUDE_DIR}/..
     -DHDF5_DIR=${HDF5_DIR}
     -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include/
     -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
     -DPYBIND11_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/pybind11
     -DBUILD_TESTING=OFF
+    -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
