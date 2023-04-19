@@ -25,6 +25,7 @@
 #include "../idg/idgmsgridder.h"
 
 #include "../math/renderer.h"
+#include "../math/tophatconvolution.h"
 
 #include "../model/model.h"
 
@@ -1793,12 +1794,13 @@ void WSClean::stitchFacets(const ImagingTable& table,
   if (_facetCount != 0) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
-    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
-                    0.0f);
-    // Initialize FacetImage with properties of stitched image, always
-    // stitch facets for 1 spectral term.
+    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+
+    // Initialize FacetImage with properties of stitched image.
+    // There's only one image, because WSClean uses only 1 spectral term.
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+    std::unique_ptr<Image> weight_image;
     const ImagingTable::Groups facet_groups = table.FacetGroups(false);
     for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
          ++facetGroupIndex) {
@@ -1811,7 +1813,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
         const size_t imageCount = stitchGroup.Front().imageCount;
         for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
           stitchSingleGroup(stitchGroup, imageIndex, imageCache, writeDirty,
-                            isPSF, fullImage, facetImage,
+                            isPSF, fullImage, weight_image, facetImage,
                             table.MaxFacetGroupIndex());
         }
       }
@@ -1822,10 +1824,18 @@ void WSClean::stitchFacets(const ImagingTable& table,
 void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
                                 bool writeDirty, bool isPSF, Image& fullImage,
+                                std::unique_ptr<Image>& weight_image,
                                 schaapcommon::facets::FacetImage& facetImage,
                                 size_t maxFacetGroupIndex) {
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;
+  if (_settings.GetFeatherSize() != 0) {
+    if (weight_image)
+      *weight_image = 0.0f;
+    else
+      weight_image = std::make_unique<Image>(
+          _settings.trimmedImageWidth, _settings.trimmedImageHeight, 0.0f);
+  }
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
@@ -1840,10 +1850,47 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
       facetImage *= 1.0f / std::sqrt(m);
     }
 
-    // TODO with our current stitching implementation, facets should always be
-    // directly copied to the full image, not added. The facets should not
-    // overlap though.
-    facetImage.AddToImage({fullImage.Data()});
+    const size_t feather_size = _settings.GetFeatherSize();
+    if (feather_size != 0) {
+      aocommon::Image mask = facetImage.MakeMask();
+      const schaapcommon::facets::Facet& facet = *facetEntry.facet;
+      const bool needs_padding =
+          facet.GetConvolutionBox() != facet.GetTrimmedBoundingBox();
+      size_t left = 0;
+      size_t top = 0;
+      if (needs_padding) {
+        const auto clipped_subtract = [](size_t a, size_t b) {
+          return a > b ? a - b : 0;
+        };
+        left = clipped_subtract(facet.GetTrimmedBoundingBox().Min().x,
+                                facet.GetConvolutionBox().Min().x);
+        top = clipped_subtract(facet.GetTrimmedBoundingBox().Min().y,
+                               facet.GetConvolutionBox().Min().y);
+        const size_t right =
+            clipped_subtract(facet.GetConvolutionBox().Max().x,
+                             facet.GetTrimmedBoundingBox().Max().x);
+        const size_t bottom =
+            clipped_subtract(facet.GetConvolutionBox().Max().y,
+                             facet.GetTrimmedBoundingBox().Max().y);
+        mask = mask.Pad(left, top, right, bottom);
+      }
+      tophat_convolution::Convolve(mask, feather_size, _settings.threadCount);
+      if (needs_padding) {
+        mask = mask.TrimBox(left, top, facet.GetTrimmedBoundingBox().Width(),
+                            facet.GetTrimmedBoundingBox().Height());
+      }
+      facetImage.AddWithMask(fullImage.Data(), weight_image->Data(), mask, 0);
+    } else {
+      facetImage.AddToImage({fullImage.Data()});
+    }
+  }
+  if (weight_image) {
+    for (size_t i = 0; i != fullImage.Size(); ++i) {
+      if ((*weight_image)[i] != 0.0)
+        fullImage[i] /= (*weight_image)[i];
+      else
+        fullImage[i] = 0.0;
+    }
   }
   if (writeDirty) {
     initializeModelImages(facetGroup.Front(), facetGroup.Front().polarization,

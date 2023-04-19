@@ -197,11 +197,15 @@ class WSClean {
                     bool writeDirty, bool isPSF);
 
   /**
-   * @brief Stitch facet for a single (Facet)Group
+   * Stitch facet for a single (Facet)Group
+   * @param weight_image weight image pointer that should be either empty
+   * or should be an image with the right size. This can be used to reuse
+   * the same weight image over multiple calls and prevent re-allocation.
    */
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
                          bool isPSF, aocommon::Image& fullImage,
+                         std::unique_ptr<aocommon::Image>& weight_image,
                          schaapcommon::facets::FacetImage& facetImage,
                          size_t nFacetGroups);
   /**
