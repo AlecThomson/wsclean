@@ -23,6 +23,7 @@ GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept =
 
 void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
   stream.ObjectVector(images)
+      .Double(startTime)
       .Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)
@@ -36,6 +37,7 @@ void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
 
 void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
   stream.ObjectVector(images)
+      .Double(startTime)
       .Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)
