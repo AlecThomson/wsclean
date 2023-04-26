@@ -273,6 +273,13 @@ class TestFacets:
         s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name faceted-diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -diagonal-solutions -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
         validate_call(s.split())
 
+    def test_diagonal_solutions_with_beam(self):
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
+        validate_call(h5download.split())
+
+        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name faceted-diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -diagonal-solutions -mwa-path . -apply-facet-beam -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+        validate_call(s.split())
+
     def test_parallel_gridding(self):
         # Compare serial, threaded and mpi run for facet based imaging
         # with h5 corrections. Number of used threads/processes is

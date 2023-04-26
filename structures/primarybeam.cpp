@@ -588,11 +588,9 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
 
   aocommon::MultiBandData multi_band(ms->spectralWindow(),
                                      ms->dataDescription());
-  size_t n_channels =
+  const size_t n_channels =
       selection.ChannelRangeEnd() - selection.ChannelRangeStart();
-  size_t n_polarizations =
-      (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
-                                                                          : 1;
+  const size_t n_polarizations = msProvider.NPolarizations();
   aocommon::UVector<float> weight_array(n_channels * n_polarizations);
   std::unique_ptr<MSReader> ms_reader = msProvider.MakeReader();
   const aocommon::BandData band = multi_band[msProvider.DataDescId()];
