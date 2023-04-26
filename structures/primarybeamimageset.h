@@ -13,12 +13,20 @@
 
 #include <radler/component_list.h>
 
+/**
+ * A set of images that describe the beam correction. The image set
+ * has maximally 16 images that present the 16 elements of a Hermitian Mueller
+ * matrix. In the case not all elements are required (e.g. for Stokes I
+ * correction), some of the images may remain empty (i.e. unallocated),
+ * indicating these elements should be assumed to be zero.
+ *
+ * All images should have the same size at all time, unless they are empty.
+ */
 class PrimaryBeamImageSet {
  public:
-  PrimaryBeamImageSet() : _width(0), _height(0) {}
+  PrimaryBeamImageSet() {}
 
-  PrimaryBeamImageSet(size_t width, size_t height)
-      : _width(width), _height(height) {
+  PrimaryBeamImageSet(size_t width, size_t height) {
     for (size_t i = 0; i != _beamImages.size(); ++i)
       _beamImages[i] = aocommon::Image(width, height);
   }
@@ -59,7 +67,7 @@ class PrimaryBeamImageSet {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beam_limit = beam_limit * beam_limit;
-    const size_t size = _width * _height;
+    const size_t size = _beamImages[0].Size();
     for (size_t j = 0; j != size; ++j) {
       const aocommon::HMC4x4 beam = Value(j);
       const std::array<double, 4> diagonal = beam.DiagonalValues();
@@ -76,7 +84,7 @@ class PrimaryBeamImageSet {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beamLimit = beamLimit * beamLimit;
-    const size_t size = _width * _height;
+    const size_t size = _beamImages[0].Size();
     for (size_t j = 0; j != size; ++j) {
       aocommon::HMC4x4 beam = Value(j);
       if (beam.Norm() > beamLimit) {
@@ -99,7 +107,7 @@ class PrimaryBeamImageSet {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beamLimit = beamLimit * beamLimit;
-    const size_t size = _width * _height;
+    const size_t size = _beamImages[0].Size();
     for (size_t j = 0; j != size; ++j) {
       aocommon::HMC4x4 beam = Value(j);
       if (beam.Norm() > beamLimit) {
@@ -139,12 +147,12 @@ class PrimaryBeamImageSet {
   }
 
   static constexpr size_t NImages() { return kNImages; }
-  size_t Width() const { return _width; }
-  size_t Height() const { return _height; }
+  size_t Width() const { return _beamImages[0].Width(); }
+  size_t Height() const { return _beamImages[0].Height(); }
 
  private:
   aocommon::HMC4x4 Value(size_t x, size_t y) const {
-    return Value(x + y * _width);
+    return Value(x + y * Width());
   }
 
   aocommon::HMC4x4 Value(size_t pixel_index) const {
@@ -158,8 +166,13 @@ class PrimaryBeamImageSet {
   }
 
   static constexpr size_t kNImages = 16;
+  /**
+   * Some images of this array may be left unset if they are not relevant for
+   * the beam correction (e.g. for Stokes I correction). The first and last
+   * images are always set, unless the entire PrimaryBeamImageSet object is
+   * empty.
+   */
   std::array<aocommon::Image, kNImages> _beamImages;
-  size_t _width, _height;
 };
 
 #endif

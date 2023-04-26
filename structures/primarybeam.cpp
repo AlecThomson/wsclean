@@ -345,8 +345,7 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
     }
     return beam_images;
   } else {
-    PrimaryBeamImageSet beam_images(settings_.trimmedImageWidth,
-                                    settings_.trimmedImageHeight);
+    PrimaryBeamImageSet beam_images;
     for (size_t element = 0; element != beam_images.NImages(); ++element) {
       if (elements.count(element)) {
         beam_images[element] = ::Load(settings_, image_name, element);
