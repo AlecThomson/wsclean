@@ -20,5 +20,5 @@ module load py-pytest/6.2.5
 module load py-six/1.16.0
 
 module load dp3/5.4
-module load everybeam/20220922
+module load everybeam/0.5.1
 module load idg/20220919
