@@ -20,6 +20,33 @@
 
 class PartitionedMSReader;
 
+// We will create some efficiently packed structs to fetch data with 1 read.
+// This will reduce the count of file-reads that are made.
+// We do not apply this on the classes/structs themselves, because this will
+//  reduce the data access performance.
+#pragma pack(push, 1)
+struct MetaRecordBuffer {
+  double u;
+  double v;
+  double w;
+  double time;
+  uint16_t antenna1;
+  uint16_t antenna2;
+  uint16_t fieldId;
+};
+struct PartHeaderBuffer {
+  uint64_t channelCount;
+  uint64_t channelStart;
+  uint32_t dataDescId;
+  bool hasModel;
+};
+struct MetaHeaderBuffer {
+  double startTime;
+  uint64_t selectedRowCount;
+  uint32_t filenameLength;
+};
+#pragma pack(pop)
+
 class PartitionedMS final : public MSProvider {
   friend class PartitionedMSReader;
 
@@ -175,18 +202,18 @@ class PartitionedMS final : public MSProvider {
     uint64_t selectedRowCount = 0;
     uint32_t filenameLength = 0;
     void Read(std::istream& str) {
-      str.read(reinterpret_cast<char*>(&startTime), sizeof(startTime));
-      str.read(reinterpret_cast<char*>(&selectedRowCount),
-               sizeof(selectedRowCount));
-      str.read(reinterpret_cast<char*>(&filenameLength),
-               sizeof(filenameLength));
+      MetaHeaderBuffer metaHeaderBuffer;
+      str.read(reinterpret_cast<char*>(&metaHeaderBuffer),
+               sizeof(MetaHeaderBuffer));
+      startTime = metaHeaderBuffer.startTime;
+      selectedRowCount = metaHeaderBuffer.selectedRowCount;
+      filenameLength = metaHeaderBuffer.filenameLength;
     }
     void Write(std::ostream& str) const {
-      str.write(reinterpret_cast<const char*>(&startTime), sizeof(startTime));
-      str.write(reinterpret_cast<const char*>(&selectedRowCount),
-                sizeof(selectedRowCount));
-      str.write(reinterpret_cast<const char*>(&filenameLength),
-                sizeof(filenameLength));
+      MetaHeaderBuffer metaHeaderBuffer{startTime, selectedRowCount,
+                                        filenameLength};
+      str.write(reinterpret_cast<const char*>(&metaHeaderBuffer),
+                sizeof(MetaHeaderBuffer));
     }
     static constexpr size_t BINARY_SIZE =
         sizeof(startTime) + sizeof(selectedRowCount) + sizeof(filenameLength);
@@ -199,22 +226,23 @@ class PartitionedMS final : public MSProvider {
         sizeof(double) * 4 + sizeof(uint16_t) * 3;
     static_assert(BINARY_SIZE == 38);
     void Read(std::istream& str) {
-      str.read(reinterpret_cast<char*>(&u), sizeof(double));
-      str.read(reinterpret_cast<char*>(&v), sizeof(double));
-      str.read(reinterpret_cast<char*>(&w), sizeof(double));
-      str.read(reinterpret_cast<char*>(&time), sizeof(double));
-      str.read(reinterpret_cast<char*>(&antenna1), sizeof(uint16_t));
-      str.read(reinterpret_cast<char*>(&antenna2), sizeof(uint16_t));
-      str.read(reinterpret_cast<char*>(&fieldId), sizeof(uint16_t));
+      MetaRecordBuffer metaRecordBuffer;
+      str.read(reinterpret_cast<char*>(&metaRecordBuffer),
+               sizeof(MetaRecordBuffer));
+
+      u = metaRecordBuffer.u;
+      v = metaRecordBuffer.v;
+      w = metaRecordBuffer.w;
+      time = metaRecordBuffer.time;
+      antenna1 = metaRecordBuffer.antenna1;
+      antenna2 = metaRecordBuffer.antenna2;
+      fieldId = metaRecordBuffer.fieldId;
     }
     void Write(std::ostream& str) const {
-      str.write(reinterpret_cast<const char*>(&u), sizeof(double));
-      str.write(reinterpret_cast<const char*>(&v), sizeof(double));
-      str.write(reinterpret_cast<const char*>(&w), sizeof(double));
-      str.write(reinterpret_cast<const char*>(&time), sizeof(double));
-      str.write(reinterpret_cast<const char*>(&antenna1), sizeof(uint16_t));
-      str.write(reinterpret_cast<const char*>(&antenna2), sizeof(uint16_t));
-      str.write(reinterpret_cast<const char*>(&fieldId), sizeof(uint16_t));
+      MetaRecordBuffer metaRecordBuffer{u,        v,        w,      time,
+                                        antenna1, antenna2, fieldId};
+      str.write(reinterpret_cast<const char*>(&metaRecordBuffer),
+                sizeof(MetaRecordBuffer));
     }
   };
   struct PartHeader {
@@ -227,18 +255,19 @@ class PartitionedMS final : public MSProvider {
                                           sizeof(dataDescId) + sizeof(hasModel);
     static_assert(BINARY_SIZE == 21);
     void Read(std::istream& str) {
-      str.read(reinterpret_cast<char*>(&channelCount), sizeof(channelCount));
-      str.read(reinterpret_cast<char*>(&channelStart), sizeof(channelStart));
-      str.read(reinterpret_cast<char*>(&dataDescId), sizeof(dataDescId));
-      str.read(reinterpret_cast<char*>(&hasModel), sizeof(hasModel));
+      PartHeaderBuffer partHeaderBuffer;
+      str.read(reinterpret_cast<char*>(&partHeaderBuffer),
+               sizeof(PartHeaderBuffer));
+      channelCount = partHeaderBuffer.channelCount;
+      channelStart = partHeaderBuffer.channelStart;
+      dataDescId = partHeaderBuffer.dataDescId;
+      hasModel = partHeaderBuffer.hasModel;
     }
     void Write(std::ostream& str) const {
-      str.write(reinterpret_cast<const char*>(&channelCount),
-                sizeof(channelCount));
-      str.write(reinterpret_cast<const char*>(&channelStart),
-                sizeof(channelStart));
-      str.write(reinterpret_cast<const char*>(&dataDescId), sizeof(dataDescId));
-      str.write(reinterpret_cast<const char*>(&hasModel), sizeof(hasModel));
+      PartHeaderBuffer partHeaderBuffer{channelCount, channelStart, dataDescId,
+                                        hasModel};
+      str.write(reinterpret_cast<const char*>(&partHeaderBuffer),
+                sizeof(PartHeaderBuffer));
     }
   } _partHeader;
 

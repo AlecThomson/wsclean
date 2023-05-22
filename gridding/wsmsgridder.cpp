@@ -163,7 +163,12 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     while (msReader->CurrentRowAvailable()) {
       double uInMeters, vInMeters, wInMeters;
-      msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
+      MSProvider::MetaData metaData;
+      msReader->ReadMeta(metaData);
+      uInMeters = metaData.uInM;
+      vInMeters = metaData.vInM;
+      wInMeters = metaData.wInM;
+
       const aocommon::BandData& curBand(selectedBand);
       const double w1 = wInMeters / curBand.LongestWavelength(),
                    w2 = wInMeters / curBand.SmallestWavelength();
@@ -181,7 +186,8 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
 
         GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
                                  curBand, weightBuffer.data(),
-                                 modelBuffer.data(), isSelected.data());
+                                 modelBuffer.data(), isSelected.data(),
+                                 metaData);
 
         if (HasDenormalPhaseCentre()) {
           const double shiftFactor =

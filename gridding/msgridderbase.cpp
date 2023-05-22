@@ -522,7 +522,7 @@ void MSGridderBase::GetInstrumentalVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected) {
+    const bool* isSelected, const MSProvider::MetaData& metaData) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (GetPsfMode() != PsfMode::kNone) {
     // Visibilities for a point source at the phase centre are all ones
@@ -602,8 +602,6 @@ void MSGridderBase::GetInstrumentalVisibilities(
         _visibilityModifier.HasH5Parm()) {
 #ifdef HAVE_EVERYBEAM
       // Load and apply (in conjugate) both the beam and the h5parm solutions
-      MSProvider::MetaData metaData;
-      msReader.ReadMeta(metaData);
       _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
                                             curBand);
       _visibilityModifier.CacheParmResponse(metaData.time, antennaNames,
@@ -617,8 +615,6 @@ void MSGridderBase::GetInstrumentalVisibilities(
       _metaDataCache->correctionSum += result.correctionSum;
     } else if (_settings.applyFacetBeam || _settings.gridWithBeam) {
       // Load and apply only the conjugate beam
-      MSProvider::MetaData metaData;
-      msReader.ReadMeta(metaData);
       _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
                                             curBand);
       _metaDataCache->correctionSum +=
@@ -628,9 +624,6 @@ void MSGridderBase::GetInstrumentalVisibilities(
                   curBand, metaData.antenna1, metaData.antenna2, apply_forward);
 #endif  // HAVE_EVERYBEAM
     } else if (_visibilityModifier.HasH5Parm()) {
-      MSProvider::MetaData metaData;
-      msReader.ReadMeta(metaData);
-
       _visibilityModifier.CacheParmResponse(metaData.time, antennaNames,
                                             curBand, _msIndex);
 
@@ -669,33 +662,33 @@ template void MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kXX>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kYY>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::GetInstrumentalVisibilities<1, GainMode::kDiagonal>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::GetInstrumentalVisibilities<2, GainMode::kDiagonal>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::GetInstrumentalVisibilities<4, GainMode::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount>
 void MSGridderBase::rotateVisibilities(const aocommon::BandData& bandData,

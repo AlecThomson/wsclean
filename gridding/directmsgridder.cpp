@@ -147,11 +147,15 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
                          MeasurementSetCount() * idToMSRow.size());
 
-    msReader->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2]);
+    MSProvider::MetaData metaData;
+    msReader->ReadMeta(metaData);
+    newItem.uvw[0] = metaData.uInM;
+    newItem.uvw[1] = metaData.vInM;
+    newItem.uvw[2] = metaData.wInM;
 
     GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
                              selectedBand, weightBuffer.data(),
-                             modelBuffer.data(), isSelected.data());
+                             modelBuffer.data(), isSelected.data(), metaData);
     InversionSample sample;
     for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
       const double wl = selectedBand.ChannelWavelength(ch);

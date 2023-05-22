@@ -114,14 +114,15 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
     // Read / fill the chunk
     while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
-      double uInMeters, vInMeters, wInMeters;
-      msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
-      newRowData.uvw[0] = uInMeters;
-      newRowData.uvw[1] = vInMeters;
-      newRowData.uvw[2] = wInMeters;
+      MSProvider::MetaData metaData;
+      msReader->ReadMeta(metaData);
+      newRowData.uvw[0] = metaData.uInM;
+      newRowData.uvw[1] = metaData.vInM;
+      newRowData.uvw[2] = metaData.wInM;
+
       GetCollapsedVisibilities(*msReader, msData.antennaNames, newRowData,
                                selectedBand, weightBuffer.data(),
-                               modelBuffer.data(), isSelected.data());
+                               modelBuffer.data(), isSelected.data(), metaData);
 
       std::copy_n(newRowData.data, selectedBand.ChannelCount(),
                   &visBuffer[nRows * selectedBand.ChannelCount()]);
@@ -163,11 +164,8 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
     size_t nRows = 0;
     // Read / fill the chunk
     while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
-      double uInMeters, vInMeters, wInMeters;
-      msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
-      uvwBuffer[nRows * 3] = uInMeters;
-      uvwBuffer[nRows * 3 + 1] = vInMeters;
-      uvwBuffer[nRows * 3 + 2] = wInMeters;
+      msReader->ReadMeta(uvwBuffer[nRows * 3], uvwBuffer[nRows * 3 + 1],
+                         uvwBuffer[nRows * 3 + 2]);
       ++nRows;
       msReader->NextInputRow();
     }

@@ -350,26 +350,27 @@ class MSGridderBase {
    * (provided by EveryBeam and/or an h5 solution) file to use for correcting
    * the visibilities.
    */
-  void GetCollapsedVisibilities(MSReader& msReader,
-                                const std::vector<std::string>& antennaNames,
-                                InversionRow& rowData,
-                                const aocommon::BandData& curBand,
-                                float* weightBuffer,
-                                std::complex<float>* modelBuffer,
-                                const bool* isSelected) {
+  void GetCollapsedVisibilities(
+      MSReader& msReader, const std::vector<std::string>& antennaNames,
+      InversionRow& rowData, const aocommon::BandData& curBand,
+      float* weightBuffer, std::complex<float>* modelBuffer,
+      const bool* isSelected, const MSProvider::MetaData& metaData) {
     switch (_nVisPolarizations) {
       case 1:
         GetInstrumentalVisibilities<1>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected);
+                                       weightBuffer, modelBuffer, isSelected,
+                                       metaData);
         break;
       case 2:
         GetInstrumentalVisibilities<2>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected);
+                                       weightBuffer, modelBuffer, isSelected,
+                                       metaData);
         internal::CollapseData<2>(curBand.ChannelCount(), rowData.data);
         break;
       case 4:
         GetInstrumentalVisibilities<4>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected);
+                                       weightBuffer, modelBuffer, isSelected,
+                                       metaData);
         internal::CollapseData<4>(curBand.ChannelCount(), rowData.data);
         break;
     }
@@ -381,13 +382,11 @@ class MSGridderBase {
    * the rowData structure will contain n_channel x n_polarization elements.
    */
   template <size_t PolarizationCount>
-  void GetInstrumentalVisibilities(MSReader& msReader,
-                                   const std::vector<std::string>& antennaNames,
-                                   InversionRow& rowData,
-                                   const aocommon::BandData& curBand,
-                                   float* weightBuffer,
-                                   std::complex<float>* modelBuffer,
-                                   const bool* isSelected);
+  void GetInstrumentalVisibilities(
+      MSReader& msReader, const std::vector<std::string>& antennaNames,
+      InversionRow& rowData, const aocommon::BandData& curBand,
+      float* weightBuffer, std::complex<float>* modelBuffer,
+      const bool* isSelected, const MSProvider::MetaData& metaData);
 
   /**
    * Write (modelled) visibilities to MS, provides an interface to
@@ -496,13 +495,11 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  void GetInstrumentalVisibilities(MSReader& msReader,
-                                   const std::vector<std::string>& antennaNames,
-                                   InversionRow& rowData,
-                                   const aocommon::BandData& curBand,
-                                   float* weightBuffer,
-                                   std::complex<float>* modelBuffer,
-                                   const bool* isSelected);
+  void GetInstrumentalVisibilities(
+      MSReader& msReader, const std::vector<std::string>& antennaNames,
+      InversionRow& rowData, const aocommon::BandData& curBand,
+      float* weightBuffer, std::complex<float>* modelBuffer,
+      const bool* isSelected, const MSProvider::MetaData& metaData);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   void WriteInstrumentalVisibilities(
@@ -628,34 +625,34 @@ inline void MSGridderBase::GetInstrumentalVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected) {
+    const bool* isSelected, const MSProvider::MetaData& metaData) {
   switch (_gainMode) {
     case GainMode::kXX:
       if constexpr (PolarizationCount == 1) {
         GetInstrumentalVisibilities<PolarizationCount, GainMode::kXX>(
             msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected);
+            isSelected, metaData);
       }
       break;
     case GainMode::kYY:
       if constexpr (PolarizationCount == 1) {
         GetInstrumentalVisibilities<PolarizationCount, GainMode::kYY>(
             msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected);
+            isSelected, metaData);
       }
       break;
     case GainMode::kDiagonal:
       if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
         GetInstrumentalVisibilities<PolarizationCount, GainMode::kDiagonal>(
             msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected);
+            isSelected, metaData);
       }
       break;
     case GainMode::kFull:
       if constexpr (PolarizationCount == 4) {
         GetInstrumentalVisibilities<PolarizationCount, GainMode::kFull>(
             msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected);
+            isSelected, metaData);
       } else {
         throw std::runtime_error(
             "Invalid combination of visibility polarizations and gain mode");

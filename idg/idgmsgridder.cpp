@@ -227,9 +227,9 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.timeIndex = timeIndex;
 
     if (n_vis_polarizations == 1) {
-      GetInstrumentalVisibilities<1>(*msReader, msData.antennaNames, rowData,
-                                     _selectedBand, weightBuffer.data(),
-                                     modelBuffer.data(), isSelected.data());
+      GetInstrumentalVisibilities<1>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
       // The data is placed in the first quarter of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 1 polarization instead of 4.
@@ -246,9 +246,9 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
         source_index--;
       }
     } else if (n_vis_polarizations == 2) {
-      GetInstrumentalVisibilities<2>(*msReader, msData.antennaNames, rowData,
-                                     _selectedBand, weightBuffer.data(),
-                                     modelBuffer.data(), isSelected.data());
+      GetInstrumentalVisibilities<2>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
       // The data is placed in the first half of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 2 pols instead of 4.
@@ -266,9 +266,9 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
       }
     } else {
       assert(n_vis_polarizations == 4);
-      GetInstrumentalVisibilities<4>(*msReader, msData.antennaNames, rowData,
-                                     _selectedBand, weightBuffer.data(),
-                                     modelBuffer.data(), isSelected.data());
+      GetInstrumentalVisibilities<4>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
     }
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
