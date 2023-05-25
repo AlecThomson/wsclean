@@ -180,11 +180,12 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
+  _msGridderMetaCache[entry.index] = std::move(result.cache);
+
   if (entry.isDdPsf || _facetCount == 0)
     processFullPSF(result.images[0], entry);
 
   _lastStartTime = result.startTime;
-  _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
   _psfImages.StoreFacet(result.images[0], *_settings.polarizations.begin(),
@@ -201,6 +202,15 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
       settings.trimmedImageWidth / 2 +
       (settings.trimmedImageHeight / 2) * settings.trimmedImageWidth;
 
+  // When imaging with dd psfs, facet corrections are applied, so correct for
+  // this. di psfs do not receive facet corrections and do not require this
+  // multiplication.
+  if (entry.isDdPsf &&
+      (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
+    const double factor = GetFacetCorrectionFactor(entry);
+    image *= 1.0 / factor;
+  }
+
   double normFactor;
   if (image[centralIndex] != 0.0)
     normFactor = 1.0 / image[centralIndex];
@@ -208,7 +218,6 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
     normFactor = 0.0;
 
   const size_t channelIndex = entry.outputChannelIndex;
-  _infoPerChannel[channelIndex].psfNormalizationFactor = normFactor;
   image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
@@ -218,15 +227,15 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
       std::max(_infoPerChannel[channelIndex].beamSizeEstimate, minPixelScale);
   double bMaj, bMin, bPA, bTheoretical;
   ImageOperations::DetermineBeamSize(settings, bMaj, bMin, bPA, bTheoretical,
-                                     image.Data(), initialFitSize);
-
+                                     image, initialFitSize);
   // Create a temporary copy of the output channel info
-  // and put the fitting result in the copy
+  // and put the fitting and normalization result in the copy
   OutputChannelInfo channel_info(_infoPerChannel[channelIndex]);
   channel_info.theoreticBeamSize = bTheoretical;
   channel_info.beamMaj = bMaj;
   channel_info.beamMin = bMin;
   channel_info.beamPA = bPA;
+  channel_info.psfNormalizationFactor = normFactor;
 
   // If this entry is the main psf, or if it is the dd-psf at the centre
   // then use the fitting result for the main image
@@ -249,12 +258,12 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
                      : ImageFilename::GetPSFPrefix(settings, channelIndex,
                                                    entry.outputIntervalIndex)) +
       "-psf.fits");
-  WSCFitsWriter fitsFile =
+  WSCFitsWriter fits_writer =
       createWSCFitsWriter(entry, channel_info, false, false);
   if (entry.isDdPsf) {
-    fitsFile.WriteFullNameImage(name, image, *entry.facet);
+    fits_writer.WriteFullNameImage(name, image, *entry.facet);
   } else {
-    fitsFile.WriteFullNameImage(name, image);
+    fits_writer.WriteFullNameImage(name, image);
   }
   Logger::Info << "DONE\n";
 }
@@ -363,8 +372,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
           _settings.gridderType == GridderType::IDG
               ? 1.0
               : _infoPerChannel[joinedChannelIndex].psfNormalizationFactor;
-      if (_settings.gridderType != GridderType::IDG)
-        images[i] *= psfFactor * entry.siCorrection;
+      images[i] *= psfFactor * entry.siCorrection;
       const bool isImaginary = i == 1;
       storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry,
                              polarization, isImaginary, images[i]);
@@ -762,13 +770,18 @@ void WSClean::RunClean() {
                           pol == *_settings.polarizations.begin();
 
         if (psfWasMade) {
-          ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
-                                        "psf", intervalIndex, pol,
-                                        ImageFilenameType::Psf);
-          if (_settings.savePsfPb)
-            ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "psf-pb", intervalIndex,
-                                          pol, ImageFilenameType::Psf);
+          const size_t n_directions = _ddPsfCount ? _ddPsfCount : 1;
+          for (size_t direction = 0; direction != n_directions; ++direction) {
+            std::optional<size_t> dd_psf_dir =
+                _ddPsfCount ? std::optional<size_t>(direction) : std::nullopt;
+            ImageOperations::MakeMFSImage(
+                _settings, _infoPerChannel, _infoForMFS, "psf", intervalIndex,
+                pol, ImageFilenameType::Psf, dd_psf_dir);
+            if (_settings.savePsfPb)
+              ImageOperations::MakeMFSImage(
+                  _settings, _infoPerChannel, _infoForMFS, "psf-pb",
+                  intervalIndex, pol, ImageFilenameType::Psf, dd_psf_dir);
+          }
         }
         if (griddingUsesATerms()) {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
@@ -979,14 +992,14 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                              _settings.prefixName + "-residual");
 
   if (groupTable.Front().polarization == *_settings.polarizations.begin()) {
+    const size_t image_count = _ddPsfCount ? _ddPsfCount : _facetCount;
     _psfImages.Initialize(writer, 1, groupTable.SquaredGroups().size(),
-                          _ddPsfCount ? _ddPsfCount : _facetCount,
-                          _settings.prefixName + "-psf");
+                          image_count, _settings.prefixName + "-psf");
     _scalarBeamImages.Initialize(writer, 1, groupTable.SquaredGroups().size(),
-                                 _ddPsfCount ? _ddPsfCount : _facetCount,
+                                 image_count,
                                  _settings.prefixName + "-scalar-beam");
     _matrixBeamImages.Initialize(writer, 2, groupTable.SquaredGroups().size(),
-                                 _ddPsfCount ? _ddPsfCount : _facetCount,
+                                 image_count,
                                  _settings.prefixName + "-matrix-beam");
   }
 
@@ -1225,11 +1238,8 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     facetImage.CopyToFacet({fullImage.Data()});
     if (!isPredictOnly) {
       if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
-        // Apply average direction dependent correction before storing
-        const long double m =
-            _msGridderMetaCache[facetEntry.index]->correctionSum /
-            facetEntry.imageWeight;
-        facetImage *= 1.0f / std::sqrt(m);
+        const double factor = GetFacetCorrectionFactor(facetEntry);
+        facetImage *= 1.0 / std::sqrt(factor);
       }
     }
     imageCache.StoreFacet(facetImage, facetEntry.polarization,
@@ -1844,10 +1854,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-      const long double m =
-          _msGridderMetaCache[facetEntry.index]->correctionSum /
-          facetEntry.imageWeight;
-      facetImage *= 1.0f / std::sqrt(m);
+      const double factor = GetFacetCorrectionFactor(facetEntry);
+      facetImage *= 1.0 / std::sqrt(factor);
     }
 
     const size_t feather_size = _settings.GetFeatherSize();
@@ -2243,11 +2251,8 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     std::vector<float*> imagePtr{image.Data()};
     for (const ImagingTableEntry& entry : table) {
       facetImage.SetFacet(*entry.facet, true);
-      // Requires std::map::at in order to comply with constness of member
-      // function
-      const long double m = _msGridderMetaCache.at(entry.index)->correctionSum /
-                            entry.imageWeight;
-      facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+      const double factor = GetFacetCorrectionFactor(entry);
+      facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
     }
 
     // Always write to -pb.fits

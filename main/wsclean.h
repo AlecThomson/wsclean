@@ -289,6 +289,13 @@ class WSClean {
     }
   }
 
+  long double GetFacetCorrectionFactor(const ImagingTableEntry& entry) const {
+    const std::map<size_t, std::unique_ptr<MetaDataCache>>::const_iterator
+        entry_cache = _msGridderMetaCache.find(entry.index);
+    assert(entry_cache != _msGridderMetaCache.end());
+    return entry_cache->second->correctionSum / entry.imageWeight;
+  }
+
   MSSelection _globalSelection;
   std::string _commandLine;
 

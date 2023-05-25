@@ -20,22 +20,23 @@ using aocommon::Logger;
 using aocommon::units::Angle;
 
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
-                                  double& bMin, double& bPA, const float* image,
+                                  double& bMin, double& bPA,
+                                  const aocommon::Image& image,
                                   double beamEstimate) {
   schaapcommon::fitters::GaussianFitter beamFitter;
   Logger::Info << "Fitting beam... ";
   Logger::Info.Flush();
   if (settings.circularBeam) {
     bMaj = beamEstimate;
-    beamFitter.Fit2DCircularGaussianCentred(image, settings.trimmedImageWidth,
-                                            settings.trimmedImageHeight, bMaj,
+    beamFitter.Fit2DCircularGaussianCentred(image.Data(), image.Width(),
+                                            image.Height(), bMaj,
                                             settings.beamFittingBoxSize);
     bMin = bMaj;
     bPA = 0.0;
   } else {
-    beamFitter.Fit2DGaussianCentred(
-        image, settings.trimmedImageWidth, settings.trimmedImageHeight,
-        beamEstimate, bMaj, bMin, bPA, settings.beamFittingBoxSize);
+    beamFitter.Fit2DGaussianCentred(image.Data(), image.Width(), image.Height(),
+                                    beamEstimate, bMaj, bMin, bPA,
+                                    settings.beamFittingBoxSize);
   }
   bMaj = bMaj * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
   bMin = bMin * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
@@ -44,7 +45,7 @@ void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
 void ImageOperations::DetermineBeamSize(const Settings& settings, double& bMaj,
                                         double& bMin, double& bPA,
                                         double& bTheoretical,
-                                        const float* image,
+                                        const aocommon::Image& image,
                                         double initialEstimate) {
   bTheoretical = initialEstimate;
   if (settings.gaussianTaperBeamSize != 0.0) {
@@ -85,24 +86,33 @@ void ImageOperations::MakeMFSImage(
     const Settings& settings,
     const std::vector<OutputChannelInfo>& infoPerChannel,
     OutputChannelInfo& mfsInfo, const std::string& suffix, size_t intervalIndex,
-    aocommon::PolarizationEnum pol, ImageFilenameType image_type) {
+    aocommon::PolarizationEnum pol, ImageFilenameType image_type,
+    std::optional<size_t> directionIndex) {
   double lowestFreq = 0.0, highestFreq = 0.0;
-  const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
-  aocommon::UVector<float> mfsImage(size, 0.0);
-  aocommon::UVector<double> addedImage(size), weightImage(size, 0.0);
+  aocommon::Image mfsImage;
+  aocommon::UVector<double> addedImage;
+  aocommon::UVector<double> weightImage;
   double weightSum = 0.0;
   aocommon::FitsWriter writer;
   const std::string suffix_with_extension =
       suffix.empty() ? ".fits" : '-' + suffix + ".fits";
   for (size_t ch = 0; ch != settings.channelsOut; ++ch) {
-    const std::string prefix =
-        ImageFilename::GetPrefix(image_type, settings, pol, ch, intervalIndex);
+    const std::string prefix = ImageFilename::GetPrefix(
+        image_type, settings, pol, ch, intervalIndex, directionIndex);
     const std::string name = prefix + suffix_with_extension;
     // In the case of beam images, not all 16 beam images might be present, so
     // immediately leave in that case.
     if (image_type == ImageFilenameType::Beam && !std::filesystem::exists(name))
       return;
     aocommon::FitsReader reader(name);
+    const size_t size = reader.ImageWidth() * reader.ImageHeight();
+    if (mfsImage.Empty()) {
+      mfsImage =
+          aocommon::Image(reader.ImageWidth(), reader.ImageHeight(), 0.0);
+      weightImage.assign(size, 0.0);
+      addedImage.resize(size);
+    }
+    assert(mfsImage.Size() == size);
     if (ch == 0) {
       WSCFitsWriter wscWriter(reader);
       writer = wscWriter.Writer();
@@ -124,7 +134,7 @@ void ImageOperations::MakeMFSImage(
       }
     }
   }
-  for (size_t i = 0; i != size; ++i) mfsImage[i] /= weightImage[i];
+  for (size_t i = 0; i != mfsImage.Size(); ++i) mfsImage[i] /= weightImage[i];
 
   if (image_type == ImageFilenameType::Psf) {
     const double pixelScale =
@@ -134,23 +144,23 @@ void ImageOperations::MakeMFSImage(
 
     ImageOperations::DetermineBeamSize(
         settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA,
-        mfsInfo.theoreticBeamSize, mfsImage.data(), smallestTheoreticBeamSize);
+        mfsInfo.theoreticBeamSize, mfsImage, smallestTheoreticBeamSize);
   }
   if (std::isfinite(mfsInfo.beamMaj))
     writer.SetBeamInfo(mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA);
   else
     writer.SetNoBeamInfo();
 
-  std::string mfs_name(
-      ImageFilename::GetMFSPrefix(settings, pol, intervalIndex, image_type) +
-      suffix_with_extension);
+  std::string mfs_name(ImageFilename::GetMFSPrefix(settings, pol, intervalIndex,
+                                                   image_type, directionIndex) +
+                       suffix_with_extension);
   Logger::Info << "Writing " << mfs_name << "...\n";
   writer.SetFrequency((lowestFreq + highestFreq) * 0.5,
                       highestFreq - lowestFreq);
   writer.SetExtraKeyword("WSCIMGWG", weightSum);
   writer.RemoveExtraKeyword("WSCCHANS");
   writer.RemoveExtraKeyword("WSCCHANE");
-  writer.Write(mfs_name, mfsImage.data());
+  writer.Write(mfs_name, mfsImage.Data());
 }
 
 void ImageOperations::RenderMFSImage(const Settings& settings,

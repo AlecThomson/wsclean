@@ -506,3 +506,28 @@ class TestFacets:
                 image_data[idx0, idx1],
                 rtol=2e-2,
             )
+
+    def test_dd_psfs_with_faceting(self):
+        s = [
+            tcf.WSCLEAN,
+            "-name dd-psfs-with-faceting -dd-psf-grid 3 3 -parallel-gridding 5 -parallel-deconvolution 100 -channels-out 2 -join-channels -niter 100 -mgain 0.8 -gridder wgridder -apply-facet-beam -mwa-path .",
+            tcf.DIMS_SMALL,
+            f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.MWA_MOCK_MS}",
+        ]
+        validate_call(" ".join(s).split())
+        import os.path
+
+        basic_image_check("dd-psfs-with-faceting-MFS-image.fits")
+        for i in range(9):
+            assert os.path.isfile(
+                f"dd-psfs-with-faceting-d000{i}-0000-psf.fits"
+            )
+            assert os.path.isfile(
+                f"dd-psfs-with-faceting-d000{i}-0001-psf.fits"
+            )
+            assert os.path.isfile(
+                f"dd-psfs-with-faceting-d000{i}-MFS-psf.fits"
+            )
+        assert not os.path.isfile(f"dd-psfs-with-faceting-0000-psf.fits")
+        assert not os.path.isfile(f"dd-psfs-with-faceting-0001-psf.fits")
+        assert not os.path.isfile(f"dd-psfs-with-faceting-MFS-psf.fits")
