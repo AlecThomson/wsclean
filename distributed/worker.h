@@ -3,9 +3,9 @@
 
 #include "../main/settings.h"
 
-class Slave {
+class Worker {
  public:
-  Slave(const Settings& settings) : _settings(settings) {}
+  Worker(const Settings& settings) : _settings(settings) {}
 
   void Run();
 

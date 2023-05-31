@@ -423,7 +423,7 @@ add_executable(wsclean main/main.cpp)
 target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
-  add_executable(wsclean-mp distributed/wsclean-mp.cpp distributed/slave.cpp)
+  add_executable(wsclean-mp distributed/wsclean-mp.cpp distributed/worker.cpp)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 

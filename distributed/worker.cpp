@@ -1,4 +1,4 @@
-#include "slave.h"
+#include "worker.h"
 
 #include <aocommon/io/serialistream.h>
 #include <aocommon/io/serialostream.h>
@@ -14,7 +14,7 @@
 
 #include <cassert>
 
-void Slave::Run() {
+void Worker::Run() {
   TaskMessage message;
   do {
     MPI_Status status;
@@ -36,7 +36,7 @@ void Slave::Run() {
   aocommon::Logger::Info << "Worker node received exit message.\n";
 }
 
-void Slave::grid(size_t bodySize) {
+void Worker::grid(size_t bodySize) {
   MPI_Status status;
   aocommon::UVector<unsigned char> buffer(bodySize);
   MPI_Recv_Big(buffer.data(), bodySize, 0, 0, MPI_COMM_WORLD, &status);

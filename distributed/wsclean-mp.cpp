@@ -1,4 +1,4 @@
-#include "slave.h"
+#include "worker.h"
 
 #include "taskmessage.h"
 
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
   int world_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  bool master = (rank == 0);
+  bool main = (rank == 0);
 
   char hostname[256];
   gethostname(hostname, sizeof(hostname));
@@ -41,17 +41,17 @@ int main(int argc, char* argv[]) {
   bool shortException = false;
   try {
     bool parseResult = false;
-    shortException = !master;
+    shortException = !main;
     parseResult = CommandLine::ParseWithoutValidation(
-        wsclean, argc, const_cast<const char**>(argv), !master);
-    shortException = !master && !Logger::IsVerbose();
+        wsclean, argc, const_cast<const char**>(argv), !main);
+    shortException = !main && !Logger::IsVerbose();
     check_openblas_multithreading();
     if (parseResult) {
       Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
       CommandLine::Validate(wsclean);
       shortException = false;
-      if (master) {
+      if (main) {
         CommandLine::Run(wsclean);
         TaskMessage message;
         message.type = TaskMessage::Type::kFinish;
@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
                    MPI_COMM_WORLD);
         }
       } else {
-        Slave slave(settings);
-        slave.Run();
+        Worker worker(settings);
+        worker.Run();
       }
     }
     Logger::Error << "Process " << rank << " finished.\n";
