@@ -294,17 +294,11 @@ class TestFacets:
             f"mpirun -np 3 {tcf.WSCLEAN_MP}",
         ]
         for name, command in zip(names, wsclean_commands):
-            # -j 1 to ensure deterministic iteration over visibilities
-            s = f"{command} -j 1 -gridder wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+            s = f"{command} -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
             validate_call(s.split())
 
-        # Compare images, the threshold is chosen relatively large since the difference
-        # seems to fluctuate somewhat between runs.
-        # The value of the threshold was increased from 1e-6 to 1e-5 in
-        # https://gitlab.com/aroffringa/wsclean/-/merge_requests/522
-        # This needs to be further investigated in
-        # https://jira.skatelescope.org/browse/AST-1234
-        threshold = 1e-5
+        # Typical rms difference is about 1.0e-7
+        threshold = 3.0e-7
         compare_rms_fits(
             f"{names[0]}-YY-image.fits", f"{names[1]}-YY-image.fits", threshold
         )
