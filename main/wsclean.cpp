@@ -578,22 +578,24 @@ void WSClean::initializeMFImageWeights() {
         const ImagingTableEntry::MSInfo& entry_ms_info = entry.msData[msIndex];
         for (size_t dataDescId = 0;
              dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
-          MSSelection partSelection(_globalSelection);
-          const bool hasSelection = partSelection.SelectMsChannels(
-              _msBands[msIndex], dataDescId, entry);
-          if (hasSelection) {
-            const PolarizationEnum pol =
-                getProviderPolarization(entry.polarization);
-            PartitionedMS msProvider(_partitionedMSHandles[msIndex],
-                                     entry_ms_info.bands[dataDescId].partIndex,
-                                     pol, dataDescId);
-            aocommon::BandData selectedBand(_msBands[msIndex][dataDescId]);
-            if (partSelection.HasChannelRange()) {
-              selectedBand = aocommon::BandData(
-                  selectedBand, partSelection.ChannelRangeStart(),
-                  partSelection.ChannelRangeEnd());
+          if (DataDescIdIsUsed(msIndex, dataDescId)) {
+            MSSelection partSelection(_globalSelection);
+            const bool hasSelection = partSelection.SelectMsChannels(
+                _msBands[msIndex], dataDescId, entry);
+            if (hasSelection) {
+              const PolarizationEnum pol =
+                  getProviderPolarization(entry.polarization);
+              PartitionedMS msProvider(
+                  _partitionedMSHandles[msIndex],
+                  entry_ms_info.bands[dataDescId].partIndex, pol, dataDescId);
+              aocommon::BandData selectedBand(_msBands[msIndex][dataDescId]);
+              if (partSelection.HasChannelRange()) {
+                selectedBand = aocommon::BandData(
+                    selectedBand, partSelection.ChannelRangeStart(),
+                    partSelection.ChannelRangeEnd());
+              }
+              weights->Grid(msProvider, selectedBand);
             }
-            weights->Grid(msProvider, selectedBand);
           }
         }
       }
@@ -654,7 +656,8 @@ void WSClean::performReordering(bool isPredictMode) {
         const ImagingTableEntry& entry = facetGroup.Front();
         for (size_t d = 0; d != _msBands[msIndex].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selection.SelectMsChannels(_msBands[msIndex], d, entry)) {
+          if (DataDescIdIsUsed(msIndex, d) &&
+              selection.SelectMsChannels(_msBands[msIndex], d, entry)) {
             if (entry.polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
@@ -1451,7 +1454,8 @@ void WSClean::initializeMSList(
     for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();
          ++dataDescId) {
       MSSelection selection(_globalSelection);
-      if (selection.SelectMsChannels(_msBands[msIndex], dataDescId, entry)) {
+      if (DataDescIdIsUsed(msIndex, dataDescId) &&
+          selection.SelectMsChannels(_msBands[msIndex], dataDescId, entry)) {
         std::unique_ptr<MSDataDescription> dataDescription;
         if (_settings.doReorder)
           dataDescription = MSDataDescription::ForPartitioned(

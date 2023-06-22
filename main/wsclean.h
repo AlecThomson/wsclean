@@ -296,6 +296,14 @@ class WSClean {
     return entry_cache->second->correctionSum / entry.imageWeight;
   }
 
+  bool DataDescIdIsUsed(size_t ms_index, size_t data_desc_id) const {
+    const size_t band_index = _msBands[ms_index].GetBandIndex(data_desc_id);
+    // An empty selection means that all bands are selected
+    return _settings.spectralWindows.empty() ||
+           _settings.spectralWindows.find(band_index) !=
+               _settings.spectralWindows.end();
+  }
+
   MSSelection _globalSelection;
   std::string _commandLine;
 

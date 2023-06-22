@@ -173,10 +173,10 @@ class PartitionedMS final : public MSProvider {
            const std::set<aocommon::PolarizationEnum>& polarizations,
            const MSSelection& selection, const aocommon::MultiBandData& bands,
            size_t nAntennas)
-        : _data(new HandleData(msPath, dataColumnName, temporaryDirectory,
-                               channels, initialModelRequired,
-                               modelUpdateRequired, polarizations, selection,
-                               bands, nAntennas)) {}
+        : _data(std::make_shared<HandleData>(
+              msPath, dataColumnName, temporaryDirectory, channels,
+              initialModelRequired, modelUpdateRequired, polarizations,
+              selection, bands, nAntennas)) {}
   };
 
  private:

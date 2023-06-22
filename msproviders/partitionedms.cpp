@@ -68,6 +68,11 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
           aocommon::Polarization::GetVisibilityCount(_polarization)) {
   std::ifstream metaFile(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
+  if (!metaFile) {
+    throw std::runtime_error("Error opening meta file for ms " +
+                             handle._data->_msPath + ", dataDescId " +
+                             std::to_string(dataDescId));
+  }
 
   _metaHeader.Read(metaFile);
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
@@ -230,15 +235,11 @@ PartitionedMS::Handle PartitionedMS::Partition(
   }
   Logger::Debug << '\n';
 
-  // We need to enumerate the data desc ids, because each one needs a separate
-  // meta file because they can have different uvws and other info.
-  // This maps dataDescId to spw index.
-  const std::map<size_t, size_t> selectedDataDescIds =
-      getDataDescIdMap(channels);
-
   // Ordered as files[pol x channelpart]
   std::vector<PartitionFiles> files(channelParts * polsOut.size());
 
+  // Each data desc id needs a separate meta file because they can have
+  // different uvws and other info.
   size_t fileIndex = 0, maxChannels = 0;
   for (size_t part = 0; part != channelParts; ++part) {
     maxChannels =
@@ -256,6 +257,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
       ++fileIndex;
     }
   }
+
+  // This maps dataDescId to spw index.
+  const std::map<size_t, size_t> selectedDataDescIds =
+      getDataDescIdMap(channels);
 
   std::unique_ptr<MsRowProviderBase> rowProvider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
@@ -428,7 +433,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
   dataBuffer.assign(maxChannels * polarizationsPerFile, 0.0);
   std::unique_ptr<ProgressBar> progress2;
   if (includeModel && !initialModelRequired && settings.parallelReordering == 1)
-    progress2.reset(new ProgressBar("Initializing model visibilities"));
+    progress2 =
+        std::make_unique<ProgressBar>("Initializing model visibilities");
   for (size_t part = 0; part != channelParts; ++part) {
     header.channelStart = channels[part].start,
     header.channelCount = channels[part].end - header.channelStart;
@@ -516,7 +522,11 @@ void PartitionedMS::unpartition(
            p != pols.end(); ++p) {
         std::string partPrefix = getPartPrefix(
             handle._msPath, part, *p, dataDescId, handle._temporaryDirectory);
-        modelFiles[fileIndex].reset(new std::ifstream(partPrefix + "-m.tmp"));
+        modelFiles[fileIndex] =
+            std::make_unique<std::ifstream>(partPrefix + "-m.tmp");
+        if (!*modelFiles[fileIndex])
+          throw std::runtime_error("Error opening temporary model data file '" +
+                                   partPrefix + "-m.tmp' for reading");
         ++fileIndex;
       }
     }
@@ -563,9 +573,10 @@ void PartitionedMS::unpartition(
     size_t selectedRowCountForDebug = 0;
     for (size_t row = startRow; row != endRow; ++row) {
       progress.SetProgress(row - startRow, endRow - startRow);
-      const int a1 = antenna1Column(row), a2 = antenna2Column(row),
-                fieldId = fieldIdColumn(row),
-                dataDescId = dataDescIdColumn(row);
+      const int a1 = antenna1Column(row);
+      const int a2 = antenna2Column(row);
+      const int fieldId = fieldIdColumn(row);
+      const int dataDescId = dataDescIdColumn(row);
       casacore::Vector<double> uvw = uvwColumn(row);
 
       if (time != timeColumn(row)) {
@@ -579,10 +590,10 @@ void PartitionedMS::unpartition(
           modelColumn.get(row, modelDataArray);
           size_t fileIndex = 0;
           for (size_t part = 0; part != channelParts; ++part) {
-            const size_t dataDescId = handle._channels[part].dataDescId;
+            const size_t partDataDescId = handle._channels[part].dataDescId;
             const size_t partStartCh = handle._channels[part].start;
             const size_t partEndCh = handle._channels[part].end;
-            if (dataDescId == dataDescIdIter->second) {
+            if (static_cast<size_t>(dataDescId) == partDataDescId) {
               const std::vector<aocommon::PolarizationEnum>& msPolarizations =
                   msPolarizationsPerDataDescId.find(dataDescId)->second;
               for (std::set<aocommon::PolarizationEnum>::const_iterator p =
@@ -619,26 +630,41 @@ void PartitionedMS::unpartition(
 
 PartitionedMS::Handle::HandleData::~HandleData() {
   if (!_isCopy) {
-    if (_modelUpdateRequired) PartitionedMS::unpartition(*this);
-
-    Logger::Info << "Cleaning up temporary files...\n";
-
-    std::set<size_t> removedMetaFiles;
-    for (size_t part = 0; part != _channels.size(); ++part) {
-      for (aocommon::PolarizationEnum p : _polarizations) {
-        std::string prefix = getPartPrefix(
-            _msPath, part, p, _channels[part].dataDescId, _temporaryDirectory);
-        std::remove((prefix + ".tmp").c_str());
-        std::remove((prefix + "-w.tmp").c_str());
-        std::remove((prefix + "-m.tmp").c_str());
+    // We can't throw inside destructor, so catch potential exceptions that
+    // occur during writing the measurement sets.
+    try {
+      // Skip writing back data if we are in the middle of handling an exception
+      // (stack unwinding)
+      if (std::uncaught_exceptions()) {
+        Logger::Info << "An exception occurred, writing back will be skipped. "
+                        "Cleaning up...\n";
+      } else {
+        if (_modelUpdateRequired) PartitionedMS::unpartition(*this);
+        Logger::Info << "Cleaning up temporary files...\n";
       }
-      size_t dataDescId = _channels[part].dataDescId;
-      if (removedMetaFiles.count(dataDescId) == 0) {
-        removedMetaFiles.insert(dataDescId);
-        std::string metaFile =
-            getMetaFilename(_msPath, _temporaryDirectory, dataDescId);
-        std::remove(metaFile.c_str());
+
+      std::set<size_t> removedMetaFiles;
+      for (size_t part = 0; part != _channels.size(); ++part) {
+        for (aocommon::PolarizationEnum p : _polarizations) {
+          std::string prefix =
+              getPartPrefix(_msPath, part, p, _channels[part].dataDescId,
+                            _temporaryDirectory);
+          std::remove((prefix + ".tmp").c_str());
+          std::remove((prefix + "-w.tmp").c_str());
+          std::remove((prefix + "-m.tmp").c_str());
+        }
+        const size_t dataDescId = _channels[part].dataDescId;
+        if (removedMetaFiles.count(dataDescId) == 0) {
+          removedMetaFiles.insert(dataDescId);
+          std::string metaFile =
+              getMetaFilename(_msPath, _temporaryDirectory, dataDescId);
+          std::remove(metaFile.c_str());
+        }
       }
+    } catch (std::exception& exception) {
+      Logger::Error << "Error occurred while finishing IO task: "
+                    << exception.what()
+                    << "\nMeasurement set might not have been updated.\n";
     }
   }
 }
