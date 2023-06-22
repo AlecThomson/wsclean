@@ -27,11 +27,14 @@ After downloading the source code, one will need to compile WSClean. WSClean req
 
 * `Casacore <https://github.com/casacore/casacore>`_, for opening measurement sets. Version >=2.0 is required, not lower. Casacore is required even if you already have Casa installed. Casacore needs to be compiled with C++11 support, which is the default for the latest version.
 * `FFTW <http://www.fftw.org/>`_ version 3.3.5 or newer, used to perform Fourier transformations.
-* `Boost <http://www.boost.org/>`_, used for threading, date and time calculations and some other general functionalities.
+* `Boost <http://www.boost.org/>`_, used for date and time calculations and some other general functionalities.
 * `CFITSIO <http://heasarc.nasa.gov/fitsio/>`_, for reading and writing FITS files.
 * `GSL <https://www.gnu.org/software/gsl/>`_, the GNU Scientific Library, used for certain computations.
+* `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_, for reading solution files
+* Python 3 libraries
+* BLAS and LAPACK libraries
 
-WSClean uses C++11 features. Because of this, building WSClean with GCC requires at least GCC version 4.8.1.
+WSClean uses C++17 features. Because of this, building WSClean with GCC requires at least GCC version 8.
 
 To use the :doc:`image-domain gridder <image_domain_gridding>` (a fast GPU gridder), you will need to install the IDG libraries from https://gitlab.com/astron-idg/idg. To apply primary beams, the EveryBeam package is required from https://git.astron.nl/RD/EveryBeam. To use the distributed mode, `OpenMPI <https://www.open-mpi.org/>`_ is required.
 
