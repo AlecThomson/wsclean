@@ -226,10 +226,10 @@ class TimerHierarchy
       push_internal(name);
       }
 
-    void reset(const string &name="<root>")
+    void reset(string name="")
       {
       last_time=clock::now();
-      root = tstack_node(name, nullptr);
+      root = tstack_node(name=="" ? root.name : name, nullptr);
       curnode=&root;
       }
 
@@ -255,7 +255,7 @@ class TimerHierarchy
       {
       adjust_time();
       map<string, double> res;
-      root.add_timings("root", res);
+      root.add_timings(root.name, res);
       return res;
       }
     /// Writes a fancy timing report to \a os.
@@ -266,10 +266,26 @@ class TimerHierarchy
       { ostringstream oss; root.report(oss); return oss.str(); }
   };
 
+inline map<string,double> combine_timings(const map<string, double> &m1,
+                                   const map<string, double> &m2)
+  {
+  map<string, double> res = m1;
+  for (const auto &[k, v] : m2)
+    {
+    auto iter = res.find(k);
+    if (iter==res.end())
+      res[k] = v;
+    else
+      iter->second += v;
+    }
+  return res;
+  }
+
 }
 
 using detail_timers::SimpleTimer;
 using detail_timers::TimerHierarchy;
+using detail_timers::combine_timings;
 
 }
 

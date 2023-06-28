@@ -14,7 +14,7 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* Copyright (C) 2019-2022 Max-Planck-Society
+/* Copyright (C) 2019-2023 Max-Planck-Society
    Author: Martin Reinecke */
 
 #ifndef DUCC0_WGRIDDER_H
@@ -27,7 +27,6 @@
 #include <map>
 #include <type_traits>
 #include <utility>
-#include <mutex>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -167,13 +166,8 @@ template<typename T> void complex2hartley
     {
     for(auto u=lo, xu=(u==0) ? 0 : nu-u; u<hi; ++u, xu=nu-u)
       for (size_t v=0, xv=0; v<nv; ++v, xv=nv-v)
-#ifdef DUCC0_USE_PROPER_HARTLEY_CONVENTION
         grid2(u,v) = T(0.5)*(grid( u, v).real()-grid( u, v).imag()+
                              grid(xu,xv).real()+grid(xu,xv).imag());
-#else
-        grid2(u,v) = T(0.5)*(grid( u, v).real()+grid( u, v).imag()+
-                             grid(xu,xv).real()-grid(xu,xv).imag());
-#endif
     });
   }
 
@@ -187,13 +181,8 @@ template<typename T> void hartley2complex
     {
     for(size_t u=lo, xu=(u==0) ? 0 : nu-u; u<hi; ++u, xu=nu-u)
       for (size_t v=0, xv=0; v<nv; ++v, xv=nv-v)
-#ifdef DUCC0_USE_PROPER_HARTLEY_CONVENTION
         grid2(u,v) = complex<T>(T(.5)*(grid(u,v)+grid(xu,xv)),
                                 T(.5)*(grid(xu,xv)-grid(u,v)));
-#else
-        grid2(u,v) = complex<T>(T(.5)*(grid(u,v)+grid(xu,xv)),
-                                T(.5)*(grid(u,v)-grid(xu,xv)));
-#endif
     });
   }
 
@@ -205,16 +194,16 @@ template<typename T> void hartley2_2D(vmav<T,2> &arr, size_t vlim,
   if (2*vlim<nv)
     {
     if (!first_fast)
-      r2r_separable_hartley(farr, farr, {1}, T(1), nthreads);
+      r2r_separable_fht(farr, farr, {1}, T(1), nthreads);
     auto flo = subarray(farr, {{}, {0,vlim}});
-    r2r_separable_hartley(flo, flo, {0}, T(1), nthreads);
+    r2r_separable_fht(flo, flo, {0}, T(1), nthreads);
     auto fhi = subarray(farr, {{}, {farr.shape(1)-vlim, MAXIDX}});
-    r2r_separable_hartley(fhi, fhi, {0}, T(1), nthreads);
+    r2r_separable_fht(fhi, fhi, {0}, T(1), nthreads);
     if (first_fast)
-      r2r_separable_hartley(farr, farr, {1}, T(1), nthreads);
+      r2r_separable_fht(farr, farr, {1}, T(1), nthreads);
     }
   else
-    r2r_separable_hartley(farr, farr, {0,1}, T(1), nthreads);
+    r2r_separable_fht(farr, farr, {0,1}, T(1), nthreads);
 
   execParallel((nu+1)/2-1, nthreads, [&](size_t lo, size_t hi)
     {
@@ -339,10 +328,10 @@ class Baselines
   };
 
 
-template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Params
+template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Wgridder
   {
   private:
-    constexpr static int logsquare=is_same<Tacc,float>::value ? 5 : 4;
+    constexpr static int log2tile=is_same<Tacc,float>::value ? 5 : 4;
     bool gridding;
     TimerHierarchy timers;
     const cmav<complex<Tms>,2> &ms_in;
@@ -477,9 +466,9 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
         });
       timers.poppush("zeroing grid");
       // only zero the parts of the grid that have not been zeroed before
-      { auto a0 = subarray<2>(tmav, {{0,nxdirty/2}, {nydirty/2,nv-nydirty/2+1}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(tmav, {{nxdirty/2, nu-nxdirty/2+1}, {}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(tmav, {{nu-nxdirty/2+1,MAXIDX}, {nydirty/2, nv-nydirty/2+1}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(tmav, {{0,nxdirty/2}, {nydirty/2,nv-nydirty/2}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(tmav, {{nxdirty/2, nu-nxdirty/2}, {}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(tmav, {{nu-nxdirty/2,MAXIDX}, {nydirty/2, nv-nydirty/2}}); quickzero(a0, nthreads); }
       timers.pop();
       }
 
@@ -538,9 +527,9 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       timers.push("zeroing grid");
       checkShape(grid.shape(), {nu, nv});
       // only zero the parts of the grid that are not filled afterwards anyway
-      { auto a0 = subarray<2>(grid, {{0,nxdirty/2}, {nydirty/2,nv-nydirty/2+1}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(grid, {{nxdirty/2, nu-nxdirty/2+1}, {}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(grid, {{nu-nxdirty/2+1,MAXIDX}, {nydirty/2, nv-nydirty/2+1}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{0,nxdirty/2}, {nydirty/2,nv-nydirty/2}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{nxdirty/2, nu-nxdirty/2}, {}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{nu-nxdirty/2,MAXIDX}, {nydirty/2, nv-nydirty/2}}); quickzero(a0, nthreads); }
       timers.poppush("grid correction");
       checkShape(dirty.shape(), {nxdirty, nydirty});
       auto cfu = krn->corfunc(nxdirty/2+1, 1./nu, nthreads);
@@ -569,9 +558,9 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       checkShape(dirty.shape(), {nxdirty, nydirty});
       checkShape(grid.shape(), {nu, nv});
       // only zero the parts of the grid that are not filled afterwards anyway
-      { auto a0 = subarray<2>(grid, {{0,nxdirty/2}, {nydirty/2, nv-nydirty/2+1}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(grid, {{nxdirty/2,nu-nxdirty/2+1}, {}}); quickzero(a0, nthreads); }
-      { auto a0 = subarray<2>(grid, {{nu-nxdirty/2+1,MAXIDX}, {nydirty/2,nv-nydirty/2+1}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{0,nxdirty/2}, {nydirty/2, nv-nydirty/2}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{nxdirty/2,nu-nxdirty/2}, {}}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {{nu-nxdirty/2,MAXIDX}, {nydirty/2,nv-nydirty/2}}); quickzero(a0, nthreads); }
       timers.poppush("wscreen+grid correction");
       double x0 = lshift-0.5*nxdirty*pixsize_x,
              y0 = mshift-0.5*nydirty*pixsize_y;
@@ -675,8 +664,8 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       double udum, vdum;
       int iu0, iv0, iw;
       getpix(uvw.u, uvw.v, udum, vdum, iu0, iv0);
-      iu0 = (iu0+nsafe)>>logsquare;
-      iv0 = (iv0+nsafe)>>logsquare;
+      iu0 = (iu0+nsafe)>>log2tile;
+      iv0 = (iv0+nsafe)>>log2tile;
       iw = do_wgridding ? max(0,int((uvw.w+wshift)*xdw)) : 0;
       return Uvwidx(iu0, iv0, iw);
       }
@@ -707,11 +696,13 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       checkShape(ms_in.shape(), {nrow,nchan});
       checkShape(mask.shape(), {nrow,nchan});
 
-      size_t ntiles_u = (nu>>logsquare) + 3;
-      size_t ntiles_v = (nv>>logsquare) + 3;
+      size_t ntiles_u = (nu>>log2tile) + 3;
+      size_t ntiles_v = (nv>>log2tile) + 3;
       size_t nwmin = do_wgridding ? nplanes-supp+3 : 1;
 timers.push("counting");
-      vector<atomic<size_t>> buf(ntiles_u*ntiles_v*nwmin+1);
+      // align members with cache lines
+      struct alignas(64) spaced_size_t { atomic<size_t> v; }; 
+      vector<spaced_size_t> buf(ntiles_u*ntiles_v*nwmin+1);
       auto chunk = max<size_t>(1, nrow/(20*nthreads));
       execDynamic(nrow, nthreads, chunk, [&](Scheduler &sched)
         {
@@ -730,7 +721,7 @@ timers.push("counting");
             // now [ch0;ch1[ contains an active range or we are at end
             auto inc0 = [&](Uvwidx idx)
               {
-              ++buf[idx.tile_u*ntiles_v*nwmin + idx.tile_v*nwmin + idx.minplane];
+              ++buf[idx.tile_u*ntiles_v*nwmin + idx.tile_v*nwmin + idx.minplane].v;
               };
             auto inc = [&](Uvwidx idx, uint32_t ch)
               {
@@ -777,15 +768,15 @@ timers.poppush("allocation");
           for (size_t mp=0; mp<nwmin; ++mp)
             {
             size_t i = tu*ntiles_v*nwmin + tv*nwmin + mp;
-            size_t tmp = buf[i];
+            size_t tmp = buf[i].v;
             if (tmp>0) blockstart.push_back({Uvwidx(tu,tv,mp),acc});
-            buf[i] = acc;
+            buf[i].v = acc;
             acc += tmp;
             }
-      buf.back()=acc;
+      buf.back().v=acc;
       }
 timers.poppush("filling");
-      ranges.resize(buf.back());
+      ranges.resize(buf.back().v);
       execDynamic(nrow, nthreads, chunk, [&](Scheduler &sched)
         {
         vector<pair<uint16_t, uint16_t>> interbuf;
@@ -800,7 +791,7 @@ timers.poppush("filling");
             {
             if (interbuf.empty()) return;
             auto bufidx = uvwlast.tile_u*ntiles_v*nwmin + uvwlast.tile_v*nwmin + uvwlast.minplane;
-            auto bufpos = (buf[bufidx]+=interbuf.size()) - interbuf.size();
+            auto bufpos = (buf[bufidx].v+=interbuf.size()) - interbuf.size();
             for (size_t i=0; i<interbuf.size(); ++i)
               ranges[bufpos+i] = RowchanRange(irow,interbuf[i].first,interbuf[i].second);
             interbuf.clear();
@@ -879,8 +870,8 @@ timers.pop();
       if (do_wgridding)
         {
         timers.poppush("grid regions");
-        vmav<unsigned char, 2> tmpu({nplanes,(nu>>logsquare)+1}),
-                               tmpv({nplanes,(nv>>logsquare)+1});
+        vmav<unsigned char, 2> tmpu({nplanes,(nu>>log2tile)+1}),
+                               tmpv({nplanes,(nv>>log2tile)+1});
         for (const auto &rng: blockstart)
           for (size_t i=0; i<supp; ++i)
             {
@@ -889,7 +880,7 @@ timers.pop();
             }
         uranges.resize(nplanes);
         vranges.resize(nplanes);
-        constexpr int tilesize = 1<<logsquare;
+        constexpr int tilesize = 1<<log2tile;
         for (size_t i=0; i<nplanes; ++i)
           {
           auto &rsu(uranges[i]);
@@ -939,11 +930,11 @@ timers.pop();
 
       private:
         static constexpr int nsafe = (supp+1)/2;
-        static constexpr int su = 2*nsafe+(1<<logsquare);
-        static constexpr int sv = 2*nsafe+(1<<logsquare);
+        static constexpr int su = 2*nsafe+(1<<log2tile);
+        static constexpr int sv = 2*nsafe+(1<<log2tile);
         static constexpr int svvec = sv+vlen-1;
         static constexpr double xsupp=2./supp;
-        const Params *parent;
+        const Wgridder *parent;
         TemplateKernel<supp, mysimd<Tacc>> tkrn;
         vmav<complex<Tcalc>,2> &grid;
         int iu0, iv0; // start index of the current visibility
@@ -952,7 +943,7 @@ timers.pop();
         vmav<Tacc,2> bufr, bufi;
         Tacc *px0r, *px0i;
         double w0, xdw;
-        vector<mutex> &locks;
+        vector<Mutex> &locks;
 
         DUCC0_NOINLINE void dump()
           {
@@ -966,7 +957,7 @@ timers.pop();
             {
             int idxv = idxv0;
             {
-            lock_guard<mutex> lock(locks[idxu]);
+            LockGuard lock(locks[idxu]);
             for (int iv=0; iv<sv; ++iv)
               {
               grid(idxu,idxv) += complex<Tcalc>(Tcalc(bufr(iu,iv)), Tcalc(bufi(iu,iv)));
@@ -989,8 +980,8 @@ timers.pop();
           };
         kbuf buf;
 
-        HelperX2g2(const Params *parent_, vmav<complex<Tcalc>,2> &grid_,
-          vector<mutex> &locks_, double w0_=-1, double dw_=-1)
+        HelperX2g2(const Wgridder *parent_, vmav<complex<Tcalc>,2> &grid_,
+          vector<Mutex> &locks_, double w0_=-1, double dw_=-1)
           : parent(parent_), tkrn(*parent->krn), grid(grid_),
             iu0(-1000000), iv0(-1000000),
             bu0(-1000000), bv0(-1000000),
@@ -1005,7 +996,8 @@ timers.pop();
 
         constexpr int lineJump() const { return svvec; }
 
-        [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in, [[maybe_unused]] size_t nth=0)
+        [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in,
+          [[maybe_unused]] size_t nth=0)
           {
           double ufrac, vfrac;
           auto iu0old = iu0;
@@ -1021,8 +1013,8 @@ timers.pop();
           if ((iu0<bu0) || (iv0<bv0) || (iu0+int(supp)>bu0+su) || (iv0+int(supp)>bv0+sv))
             {
             dump();
-            bu0=((((iu0+nsafe)>>logsquare)<<logsquare))-nsafe;
-            bv0=((((iv0+nsafe)>>logsquare)<<logsquare))-nsafe;
+            bu0=((((iu0+nsafe)>>log2tile)<<log2tile))-nsafe;
+            bv0=((((iv0+nsafe)>>log2tile)<<log2tile))-nsafe;
             }
           auto ofs = (iu0-bu0)*svvec + iv0-bv0;
           p0r = px0r+ofs;
@@ -1039,11 +1031,11 @@ timers.pop();
 
       private:
         static constexpr int nsafe = (supp+1)/2;
-        static constexpr int su = 2*nsafe+(1<<logsquare);
-        static constexpr int sv = 2*nsafe+(1<<logsquare);
+        static constexpr int su = 2*nsafe+(1<<log2tile);
+        static constexpr int sv = 2*nsafe+(1<<log2tile);
         static constexpr int svvec = sv+vlen-1;
         static constexpr double xsupp=2./supp;
-        const Params *parent;
+        const Wgridder *parent;
 
         TemplateKernel<supp, mysimd<Tcalc>> tkrn;
         const cmav<complex<Tcalc>,2> &grid;
@@ -1084,7 +1076,7 @@ timers.pop();
           };
         kbuf buf;
 
-        HelperG2x2(const Params *parent_, const cmav<complex<Tcalc>,2> &grid_,
+        HelperG2x2(const Wgridder *parent_, const cmav<complex<Tcalc>,2> &grid_,
           double w0_=-1, double dw_=-1)
           : parent(parent_), tkrn(*parent->krn), grid(grid_),
             iu0(-1000000), iv0(-1000000),
@@ -1098,7 +1090,8 @@ timers.pop();
 
         constexpr int lineJump() const { return svvec; }
 
-        [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in, [[maybe_unused]] size_t nth=0)
+        [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in,
+          [[maybe_unused]] size_t nth=0)
           {
           double ufrac, vfrac;
           auto iu0old = iu0;
@@ -1113,8 +1106,8 @@ timers.pop();
           if ((iu0==iu0old) && (iv0==iv0old)) return;
           if ((iu0<bu0) || (iv0<bv0) || (iu0+int(supp)>bu0+su) || (iv0+int(supp)>bv0+sv))
             {
-            bu0=((((iu0+nsafe)>>logsquare)<<logsquare))-nsafe;
-            bv0=((((iv0+nsafe)>>logsquare)<<logsquare))-nsafe;
+            bu0=((((iu0+nsafe)>>log2tile)<<log2tile))-nsafe;
+            bv0=((((iv0+nsafe)>>log2tile)<<log2tile))-nsafe;
             load();
             }
           auto ofs = (iu0-bu0)*svvec + iv0-bv0;
@@ -1148,7 +1141,7 @@ timers.pop();
         if (supp<SUPP) return x2grid_c_helper<SUPP-1, wgrid>(supp, grid, p0, w0);
       MR_assert(supp==SUPP, "requested support out of range");
 
-      vector<mutex> locks(nu);
+      vector<Mutex> locks(nu);
 
       execDynamic(blockstart.size(), nthreads, wgrid ? SUPP : 1, [&](Scheduler &sched)
         {
@@ -1538,6 +1531,8 @@ timers.pop();
         auto ofactor = krn.ofactor;
         size_t nu=2*good_size_complex(size_t(nxdirty*ofactor*0.5)+1);
         size_t nv=2*good_size_complex(size_t(nydirty*ofactor*0.5)+1);
+        nu = max<size_t>(nu,16);
+        nv = max<size_t>(nv,16);
         double logterm = log(nu*nv)/log(nref_fft*nref_fft);
         double fftcost = nu/nref_fft*nv/nref_fft*logterm*costref_fft;
         double gridcost = 2.2e-10*nvis*(supp*nvec*vlen + ((2*nvec+1)*(supp+3)*vlen));
@@ -1587,7 +1582,7 @@ timers.pop();
       nvis=0;
       wmin_d=1e300;
       wmax_d=-1e300;
-      mutex mut;
+      Mutex mut;
       execParallel(nrow, nthreads, [&](size_t lo, size_t hi)
         {
         double lwmin_d=1e300, lwmax_d=-1e300;
@@ -1608,7 +1603,7 @@ timers.pop();
               if (!gridding) ms_out(irow, ichan)=0;
               }
         {
-        lock_guard<mutex> lock(mut);
+        LockGuard lock(mut);
         wmin_d = min(wmin_d, lwmin_d);
         wmax_d = max(wmax_d, lwmax_d);
         nvis += lnvis;
@@ -1618,7 +1613,7 @@ timers.pop();
       }
 
   public:
-    Params(const cmav<double,2> &uvw, const cmav<double,1> &freq,
+    Wgridder(const cmav<double,2> &uvw, const cmav<double,1> &freq,
            const cmav<complex<Tms>,2> &ms_in_, vmav<complex<Tms>,2> &ms_out_,
            const cmav<Timg,2> &dirty_in_, vmav<Timg,2> &dirty_out_,
            const cmav<Tms,2> &wgt_, const cmav<uint8_t,2> &mask_,
@@ -1657,8 +1652,8 @@ timers.pop();
         return;
         }
       auto kidx = getNuNv();
-      MR_assert((nu>>logsquare)<(size_t(1)<<16), "nu too large");
-      MR_assert((nv>>logsquare)<(size_t(1)<<16), "nv too large");
+      MR_assert((nu>>log2tile)<(size_t(1)<<16), "nu too large");
+      MR_assert((nv>>log2tile)<(size_t(1)<<16), "nv too large");
       ofactor = min(double(nu)/nxdirty, double(nv)/nydirty);
       krn = selectKernel(kidx);
       supp = krn->support();
@@ -1704,7 +1699,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void ms2dir
   auto dirty_in(vmav<Timg,2>::build_empty());
   auto wgt(wgt_.size()!=0 ? wgt_ : wgt_.build_uniform(ms.shape(), 1.));
   auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
-  Params<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x,
+  Wgridder<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x,
     pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
     divide_by_n, sigma_min, sigma_max, center_x, center_y, allow_nshift);
   }
@@ -1721,7 +1716,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void dirty2
   auto dirty_out(vmav<Timg,2>::build_empty());
   auto wgt(wgt_.size()!=0 ? wgt_ : wgt_.build_uniform(ms.shape(), 1.));
   auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
-  Params<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms_in, ms, dirty, dirty_out, wgt, mask, pixsize_x,
+  Wgridder<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms_in, ms, dirty, dirty_out, wgt, mask, pixsize_x,
     pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
     divide_by_n, sigma_min, sigma_max, center_x, center_y, allow_nshift);
   }
@@ -1760,7 +1755,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void dirty2
   size_t jstep = (npix_y+nfy-1) / nfy;
   jstep += jstep%2;  // make even
 
-  vmav<complex<Tms>,2> ms2(ms.shape());
+  vmav<complex<Tms>,2> ms2(ms.shape(), UNINITIALIZED);
   mav_apply([](complex<Tms> &v){v=complex<Tms>(0);},nthreads,ms);
   for (size_t i=0; i<nfx; ++i)
     for (size_t j=0; j<nfy; ++j)
@@ -1790,7 +1785,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void ms2dir
   bool xodd=npix_x&1, yodd=npix_y&1;
   if (xodd || yodd)  // odd image size
     {
-    vmav<Timg,2> tdirty({npix_x+xodd, npix_y+yodd});
+    vmav<Timg,2> tdirty({npix_x+xodd, npix_y+yodd}, UNINITIALIZED);
     ms2dirty_tuning<Tcalc,Tacc>(uvw, freq, ms, wgt_, mask_, pixsize_x, pixsize_y, epsilon,
                do_wgridding, nthreads, tdirty, verbosity, negate_v, divide_by_n,
                sigma_min, sigma_max, center_x+0.5*pixsize_x*xodd, center_y+0.5*pixsize_y*yodd);
@@ -1817,13 +1812,13 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void ms2dir
   else
     {
     auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
-    vmav<uint8_t,2> mask2({uvw.shape(0),freq.shape(0)});
+    vmav<uint8_t,2> mask2({uvw.shape(0),freq.shape(0)}, UNINITIALIZED);
     auto icut_local = icut; // FIXME: stupid hack to work around an oversight in the standard(?)
     mav_apply([&](uint8_t i1, uint8_t i2, uint8_t &out) { out = (i1!=0) && (i2>=icut_local); }, nthreads, mask, bin, mask2);
     ms2dirty_faceted<Tcalc,Tacc>(nfx, nfy, uvw, freq, ms, wgt_, mask2, pixsize_x, pixsize_y, epsilon,
              do_wgridding, nthreads, dirty, verbosity, negate_v, divide_by_n,
              sigma_min, sigma_max, center_x, center_y);
-    vmav<Timg,2> dirty2(dirty.shape());
+    vmav<Timg,2> dirty2(dirty.shape(), UNINITIALIZED);
     mav_apply([&](uint8_t i1, uint8_t i2, uint8_t &out) { out = (i1!=0) && (i2<icut_local); }, nthreads, mask, bin, mask2);
     ms2dirty<Tcalc,Tacc>(uvw, freq, ms, wgt_, mask2, pixsize_x, pixsize_y, epsilon,
                do_wgridding, nthreads, dirty2, verbosity, negate_v, divide_by_n,
@@ -1844,7 +1839,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void dirty2
   bool xodd=npix_x&1, yodd=npix_y&1;
   if (xodd || yodd)  // odd image size
     {
-    vmav<Timg,2> tdirty({npix_x+xodd, npix_y+yodd});
+    vmav<Timg,2> tdirty({npix_x+xodd, npix_y+yodd}, UNINITIALIZED);
     for (size_t i=0; i<npix_x+xodd; ++i)
       for (size_t j=0; j<npix_y+yodd; ++j)
         tdirty(i,j) = ((i<npix_x)&&(j<npix_y)) ? dirty(i,j) : Timg(0);
@@ -1865,12 +1860,12 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void dirty2
   else
     {
     auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
-    vmav<uint8_t,2> mask2({uvw.shape(0),freq.shape(0)});
+    vmav<uint8_t,2> mask2({uvw.shape(0),freq.shape(0)}, UNINITIALIZED);
     auto icut_local = icut; // FIXME: stupid hack to work around an oversight in the standard(?)
     mav_apply([&](uint8_t i1, uint8_t i2, uint8_t &out) { out = (i1!=0) && (i2>=icut_local); }, nthreads, mask, bin, mask2);
     dirty2ms_faceted<Tcalc,Tacc>(nfx, nfy, uvw, freq, dirty, wgt_, mask2, pixsize_x, pixsize_y, epsilon, do_wgridding, nthreads, ms, verbosity, negate_v, divide_by_n, sigma_min, sigma_max, center_x, center_y);
     mav_apply([&](uint8_t i1, uint8_t i2, uint8_t &out) { out = (i1!=0) && (i2<icut_local); }, nthreads, mask, bin, mask2);
-    vmav<complex<Tms>,2> tms(ms.shape());
+    vmav<complex<Tms>,2> tms(ms.shape(), UNINITIALIZED);
     dirty2ms<Tcalc,Tacc>(uvw, freq, dirty, wgt_, mask2, pixsize_x, pixsize_y, epsilon, do_wgridding, nthreads, tms, verbosity, negate_v, divide_by_n, sigma_min, sigma_max, center_x, center_y, true);
     mav_apply([&](complex<Tms> &v1, complex<Tms> v2) {v1+=v2;}, nthreads, ms, tms);
     }
