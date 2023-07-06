@@ -125,7 +125,9 @@ void ImageWeights::FinishGridding() {
           5.0 * std::exp((-M_LN10) * _weightMode.BriggsRobustness());
       double sSq = numeratorSqrt * numeratorSqrt / avgW;
       for (double& val : _grid) {
-        val = 1.0 / (1.0 + val * sSq);
+        // Values without coverage are left to zero, because they would
+        // otherwise affect the weight rank filter.
+        if (val != 0.0) val = 1.0 / (1.0 + val * sSq);
       }
     } break;
     case WeightMode::UniformWeighted: {
