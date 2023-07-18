@@ -545,13 +545,14 @@ double PrimaryBeam::MakeBeamForMS(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
           baseline_weights);
     } break;
-    case everybeam::TelescopeType::kVLATelescope:
     case everybeam::TelescopeType::kATCATelescope:
-    case everybeam::TelescopeType::kGMRTTelescope: {
+    case everybeam::TelescopeType::kGMRTTelescope:
+    case everybeam::TelescopeType::kMeerKATTelescope:
+    case everybeam::TelescopeType::kVLATelescope: {
       if (telescope_type == everybeam::TelescopeType::kATCATelescope ||
           telescope_type == everybeam::TelescopeType::kGMRTTelescope) {
         Logger::Warn << "Warning: ATCA and GMRT primary beam corrections have "
-                        "not yet been tested!\n";
+                        "not yet been tested extensively!\n";
       }
       // The dish response is time independent, so leaving zero is fine:
       std::vector<double> time_array(1, 0);
