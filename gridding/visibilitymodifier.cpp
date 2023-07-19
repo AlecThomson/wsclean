@@ -278,15 +278,21 @@ void VisibilityModifier::CacheParmResponse(
     setNonFiniteToZero(_cachedParmResponse[ms_index]);
   }
 
-  auto it = std::find(_cachedMSTimes[ms_index].begin() + _timeOffset[ms_index],
-                      _cachedMSTimes[ms_index].end(), time);
+  const auto it =
+      std::find(_cachedMSTimes[ms_index].begin() + _timeOffset[ms_index],
+                _cachedMSTimes[ms_index].end(), time);
   if (it != _cachedMSTimes[ms_index].end()) {
     // Update _timeOffset value with index
     _timeOffset[ms_index] = std::distance(_cachedMSTimes[ms_index].begin(), it);
   } else {
     throw std::runtime_error(
         "Time not found in cached times. A potential reason could be that the "
-        "time values in the provided MS are not in ascending order.");
+        "time values in the provided MS are not in ascending order. "
+        "Error occurred with ms index = " +
+        std::to_string(ms_index) +
+        ", cache "
+        "contained " +
+        std::to_string(_cachedMSTimes[ms_index].size()) + " elements.\n");
   }
 }
 
