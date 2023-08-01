@@ -19,10 +19,17 @@ Multi-scale deconvolution can be turned on by added ``-multiscale`` to the comma
     
 This is a simple cleaning run, using Cotton-Schwab iterations subtracting 80% of the flux in each major iteration. The output is a normal dirty, residual, etc. image, but the model will be composed of the combination of several scales.
 
+Scale kernel shape
+------------------
+
+WSClean supports two different kernel shapes for multi-scale cleaning: a tapered quadratic function and a Gaussian. The tapered quadratic function is the function that was originally introduced by `Cornwell (2008) <https://arxiv.org/abs/0806.2228>`_. It is smooth and goes to zero quite quickly, which can have advantages in some cases. A Gaussian function is preferred when the model needs to be described in analytical components. Almost all software supports Gaussians as sky model components, because it has a analytical Fourier transform. WSClean uses by default the tapered quadratic function, unless a :doc:`component list <component_list>` is requested, in which case Gaussians are used. The difference between these two is rarely noticeable.
+
+Be aware that WSClean lists scale sizes on the command line in terms of the quadratic kernel size :math:`\alpha` instead of the Gaussian FWHM. If Gaussians are requested, the Gaussian width parameter :math:`\sigma` is calculated using :math:`\sigma = \frac{3}{16}\alpha`, which approximately matches the width of the tapered quadratic function of size :math:`\alpha`. This implies that the full-width half-maximum (FWHM) of the Gaussian is given by :math:`\textrm{FWMH} = 2 \frac{3}{16} \alpha \sqrt{2 \ln 2} \approx 0.45 \alpha`. When a component list output is requested, the kernel scales are corrected for this factor, such that the output sky model describes the Gaussian FWHM size.
+
 Bias parameter
 --------------
 
-There's one specific multi-scale parameter to tweak the results: "``-multiscale-scale-bias``". This parameter balances between how sensitive the algorithm is towards large scales compared to smaller scales. Lower values will clean larger scales earlier and deeper. It's default is 0.6, which means something like "if a peak is 0.6 times larger at a 2x larger scale, select the larger scale". (Peaks are normalized by their scale size, so the actual selection is a bit more complex). This implies that a smaller value favours selection of larger scales. The value 0.6 seems to generally work well, and was also shown to have favourable properties (Offringa & Smirnov 2017). If you use Briggs or Natural weighting to accentuate larger scales, it might be necessary/better to increase the value. In a LOFAR imaging with Briggs weighting and robustness of 0.5 (somewhat towards natural), I noticed slightly better results with a value of 0.7. With 0.6, the delta scale was almost never used. The following command runs WSClean with a scale bias of 0.7:
+There's one specific multi-scale parameter to tweak the results: "``-multiscale-scale-bias``". This parameter balances between how sensitive the algorithm is towards large scales compared to smaller scales. Lower values will clean larger scales earlier and deeper. Its default is 0.6, which means something like "if a peak is 0.6 times larger at a 2x larger scale, select the larger scale". (Peaks are normalized by their scale size, so the actual selection is a bit more complex.) This implies that a smaller value favours selection of larger scales. The value 0.6 seems to generally work well, and was also shown to have favourable properties (`Offringa & Smirnov 2017 <https://arxiv.org/abs/1706.06786>`_). If you use Briggs or Natural weighting to accentuate larger scales, it might be necessary/better to increase the value. In LOFAR imaging with Briggs weighting and robustness of 0.5 (somewhat towards natural), I noticed slightly better results with a value of 0.7. With 0.6, the delta scale was almost never used. The following command runs WSClean with a scale bias of 0.7:
 
 .. code-block:: bash
 
@@ -43,7 +50,7 @@ The multi-scale algorithm works well in combination with the parameters "``-join
       -niter 50000 -auto-threshold 5 -size 2048 2048 -scale 0.8amin \
       vela.ms
 
-Multi-scale clean also works with :doc:`polarimetrc cleaning <polarimetric_deconvolution>` in a similar way. The combination of multi-frequency and multi-polarization imaging is also possible. For example, the following statement makes eight images; four images of both the xx and yy polarization, and cleaning is performed on the full integrated image:
+Multi-scale clean also works with :doc:`polarimetric cleaning <polarimetric_deconvolution>` in a similar way. The combination of multi-frequency and multi-polarization imaging is also possible. For example, the following statement makes eight images; four images of both the xx and yy polarization, and cleaning is performed on the full integrated image:
 
 .. code-block:: bash
 
@@ -70,7 +77,7 @@ For more info about masking, see the chapter on :doc:`masks and auto-masking <ma
 References
 ----------
 
-WSClean uses a multi-scale algorithm that is an optimized version of `Cornwell (2018) <http://ieeexplore.ieee.org/document/4703304/>`_. The full algorithm is described in `Offringa and Smirnov (2017) <https://arxiv.org/abs/1706.06786>`_.
+A first multi-scale algorithm was described by `Cornwell (2008) <https://arxiv.org/abs/0806.2228>`_. WSClean implements an alternative to this algorithm, that is significantly faster and has support for multi-frequency deconvolution. It is described in `Offringa and Smirnov (2017) <https://arxiv.org/abs/1706.06786>`_.
 
 History
 -------
