@@ -425,25 +425,14 @@ void PrimaryBeam::MakeImage(const ImageFilename& image_name,
   std::vector<aocommon::HMC4x4> result;
   double ms_weight_sum = 0;
   for (const MSProviderInfo& ms_provider_info : ms_providers_) {
-    // TODO: channelFrequency calculation might be telescope specific?
-    const ImagingTableEntry::MSInfo& ms_info =
-        entry.msData[ms_provider_info.ms_index];
     const MSSelection& selection = *ms_provider_info.selection;
-    aocommon::MultiBandData band;
+    double central_frequency;
     {
-      SynchronizedMS ms = ms_provider_info.provider->MS();
-      band =
-          aocommon::MultiBandData(ms->spectralWindow(), ms->dataDescription());
+      aocommon::BandData band(ms_provider_info.provider->Band(),
+                              selection.ChannelRangeStart(),
+                              selection.ChannelRangeEnd());
+      central_frequency = band.CentreFrequency();
     }
-    double central_frequency = 0.0;
-    for (size_t data_desc_id = 0; data_desc_id != band.DataDescCount();
-         ++data_desc_id) {
-      const aocommon::BandData sub_band(band[data_desc_id],
-                                        selection.ChannelRangeStart(),
-                                        selection.ChannelRangeEnd());
-      central_frequency += sub_band.CentreFrequency();
-    }
-    central_frequency /= ms_info.bands.size();
 
     std::vector<aocommon::HMC4x4> ms_beam;
     const double ms_weight =
