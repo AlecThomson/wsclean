@@ -195,19 +195,11 @@ void ApplyGain<4, GainMode::kFull>(std::complex<float>* visibilities,
  * should be taken into account in the product, only the diagonal, or the full
  * matrix? See also the documentation of GainMode.
  */
-template <GainMode GainEntry>
 aocommon::MC2x2F MultiplyGains(const aocommon::MC2x2F& gain_a,
                                const aocommon::MC2x2F& gain_b) {
   const aocommon::MC2x2F result(gain_a[0] * gain_b[0], 0, 0,
-                                gain_b[3] * gain_b[3]);
+                                gain_a[3] * gain_b[3]);
   return result;
-}
-
-template <>
-aocommon::MC2x2F MultiplyGains<GainMode::kFull>(
-    const aocommon::MC2x2F& gain_a, const aocommon::MC2x2F& gain_b) {
-  // All polarizations
-  return gain_a.Multiply(gain_b);
 }
 
 }  // namespace
@@ -684,9 +676,9 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
       // Combine H5parm and beam
 
       const aocommon::MC2x2F gain_combined_1 =
-          MultiplyGains<GainEntry>(gain_h5_1, gain_b_1);
+          MultiplyGains(gain_h5_1, gain_b_1);
       const aocommon::MC2x2F gain_combined_2 =
-          MultiplyGains<GainEntry>(gain_h5_2, gain_b_2);
+          MultiplyGains(gain_h5_2, gain_b_2);
 
       if (apply_forward) {
         ApplyGain<PolarizationCount, GainEntry>(data, gain_combined_1,
