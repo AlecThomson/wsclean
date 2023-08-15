@@ -1114,8 +1114,7 @@ void WSClean::saveRestoredImagesForGroup(
     Logger::Info << "DONE\n";
     restoredImage.Reset();
 
-    // H5 corrections will be applied on the beam images
-    const bool applyH5OnBeamImages =
+    const bool correct_beam_for_facet_gains =
         (_settings.applyFacetBeam && !_settings.facetSolutionFiles.empty());
     ImageFilename imageName =
         ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
@@ -1136,17 +1135,19 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+        if (correct_beam_for_facet_gains)
+          primaryBeam->CorrectBeamForFacetGain(imageName, table,
+                                               _msGridderMetaCache);
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
-                                   _msGridderMetaCache, applyH5OnBeamImages);
+                                   _msGridderMetaCache);
         if (_settings.savePsfPb)
           primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
-                                     _msGridderMetaCache, applyH5OnBeamImages);
+                                     _msGridderMetaCache);
         if (_settings.deconvolutionIterationCount != 0) {
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                     table, _msGridderMetaCache,
-                                     applyH5OnBeamImages);
+                                     table, _msGridderMetaCache);
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
-                                     _msGridderMetaCache, applyH5OnBeamImages);
+                                     _msGridderMetaCache);
         }
       }
     }
@@ -1155,7 +1156,8 @@ void WSClean::saveRestoredImagesForGroup(
     // provided, but no primary beam correction was applied.
     // This can be done on a per-polarization basis (as long as we do not
     // fully support a Full Jones correction).
-    if (!_settings.facetSolutionFiles.empty() && !applyH5OnBeamImages) {
+    if (!_settings.facetSolutionFiles.empty() &&
+        !correct_beam_for_facet_gains) {
       correctImagesH5(writer.Writer(), table, imageName, "image");
       if (_settings.savePsfPb)
         correctImagesH5(writer.Writer(), table, imageName, "psf");

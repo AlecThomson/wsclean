@@ -41,6 +41,13 @@ class PrimaryBeam {
     m_shift_ = m_shift;
   }
 
+  /**
+   * Read the beam images in and multiply facets with their gain corrections.
+   */
+  void CorrectBeamForFacetGain(
+      const ImageFilename& image_name, const ImagingTable& table,
+      const std::map<size_t, std::unique_ptr<MetaDataCache>>& meta_cache);
+
   void CorrectImages(const ImageFilename& image_name,
                      std::vector<float*>& images) {
     if (settings_.polarizations.size() == 1 &&
@@ -97,8 +104,7 @@ class PrimaryBeam {
   void CorrectImages(
       aocommon::FitsWriter& writer, const ImageFilename& image_name,
       const std::string& filename_kind, const ImagingTable& table,
-      const std::map<size_t, std::unique_ptr<MetaDataCache>>& meta_cache,
-      bool requires_gain_correction);
+      const std::map<size_t, std::unique_ptr<MetaDataCache>>& meta_cache);
 
   size_t GetUndersamplingFactor() const { return undersample_; };
   size_t GetBeamUpdateTime() const { return seconds_before_beam_update_; };
