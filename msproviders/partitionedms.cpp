@@ -54,6 +54,15 @@ GetMSPolarizationsPerDataDescId(
   return msPolarizationsPerDataDescId;
 }
 
+size_t GetMaxChannels(
+    const std::vector<PartitionedMS::ChannelRange>& channel_ranges) {
+  size_t max_channels = 0;
+  for (const PartitionedMS::ChannelRange& range : channel_ranges) {
+    max_channels = std::max(max_channels, range.end - range.start);
+  }
+  return max_channels;
+}
+
 }  // namespace
 
 PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
@@ -238,12 +247,12 @@ PartitionedMS::Handle PartitionedMS::Partition(
   // Ordered as files[pol x channelpart]
   std::vector<PartitionFiles> files(channelParts * polsOut.size());
 
+  const size_t max_channels = GetMaxChannels(channels);
+
   // Each data desc id needs a separate meta file because they can have
   // different uvws and other info.
-  size_t fileIndex = 0, maxChannels = 0;
+  size_t fileIndex = 0;
   for (size_t part = 0; part != channelParts; ++part) {
-    maxChannels =
-        std::max(maxChannels, channels[part].end - channels[part].start);
     for (aocommon::PolarizationEnum p : polsOut) {
       PartitionFiles& f = files[fileIndex];
       std::string partPrefix = getPartPrefix(
@@ -322,8 +331,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
   // Write actual data
   std::vector<std::complex<float>> dataBuffer(polarizationsPerFile *
-                                              maxChannels);
-  std::vector<float> weightBuffer(polarizationsPerFile * maxChannels);
+                                              max_channels);
+  std::vector<float> weightBuffer(polarizationsPerFile * max_channels);
 
   casacore::Array<std::complex<float>> dataArray;
   casacore::Array<std::complex<float>> modelArray;
@@ -430,7 +439,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   PartHeader header;
   header.hasModel = includeModel;
   fileIndex = 0;
-  dataBuffer.assign(maxChannels * polarizationsPerFile, 0.0);
+  dataBuffer.assign(max_channels * polarizationsPerFile, 0.0);
   std::unique_ptr<ProgressBar> progress2;
   if (includeModel && !initialModelRequired && settings.parallelReordering == 1)
     progress2 =
@@ -517,11 +526,9 @@ void PartitionedMS::unpartition(
     size_t fileIndex = 0;
     for (size_t part = 0; part != channelParts; ++part) {
       size_t dataDescId = handle._channels[part].dataDescId;
-      for (std::set<aocommon::PolarizationEnum>::const_iterator p =
-               pols.begin();
-           p != pols.end(); ++p) {
+      for (aocommon::PolarizationEnum p : pols) {
         std::string partPrefix = getPartPrefix(
-            handle._msPath, part, *p, dataDescId, handle._temporaryDirectory);
+            handle._msPath, part, p, dataDescId, handle._temporaryDirectory);
         modelFiles[fileIndex] =
             std::make_unique<std::ifstream>(partPrefix + "-m.tmp");
         if (!*modelFiles[fileIndex])
@@ -554,13 +561,12 @@ void PartitionedMS::unpartition(
         ms, ms.columnName(casacore::MSMainEnums::UVW));
 
     const casacore::IPosition shape(dataColumn.shape(0));
-    size_t channelCount = shape[1];
+    const size_t max_channels = GetMaxChannels(handle._channels);
 
     const size_t polarizationsPerFile =
         aocommon::Polarization::GetVisibilityCount(*pols.begin());
-    std::vector<std::complex<float>> modelDataBuffer(channelCount *
+    std::vector<std::complex<float>> modelDataBuffer(max_channels *
                                                      polarizationsPerFile);
-    std::vector<float> weightBuffer(channelCount * polarizationsPerFile);
     casacore::Array<std::complex<float>> modelDataArray(shape);
 
     ProgressBar progress(std::string("Writing changed model back to ") +
@@ -576,7 +582,7 @@ void PartitionedMS::unpartition(
       const int a1 = antenna1Column(row);
       const int a2 = antenna2Column(row);
       const int fieldId = fieldIdColumn(row);
-      const int dataDescId = dataDescIdColumn(row);
+      const size_t dataDescId = dataDescIdColumn(row);
       casacore::Vector<double> uvw = uvwColumn(row);
 
       if (time != timeColumn(row)) {
@@ -587,18 +593,16 @@ void PartitionedMS::unpartition(
         std::map<size_t, size_t>::const_iterator dataDescIdIter =
             dataDescIds.find(dataDescId);
         if (dataDescIdIter != dataDescIds.end()) {
-          modelColumn.get(row, modelDataArray);
+          modelColumn.get(row, modelDataArray, true);
           size_t fileIndex = 0;
           for (size_t part = 0; part != channelParts; ++part) {
             const size_t partDataDescId = handle._channels[part].dataDescId;
-            const size_t partStartCh = handle._channels[part].start;
-            const size_t partEndCh = handle._channels[part].end;
-            if (static_cast<size_t>(dataDescId) == partDataDescId) {
+            if (dataDescId == partDataDescId) {
+              const size_t partStartCh = handle._channels[part].start;
+              const size_t partEndCh = handle._channels[part].end;
               const std::vector<aocommon::PolarizationEnum>& msPolarizations =
                   msPolarizationsPerDataDescId.find(dataDescId)->second;
-              for (std::set<aocommon::PolarizationEnum>::const_iterator p =
-                       pols.begin();
-                   p != pols.end(); ++p) {
+              for (aocommon::PolarizationEnum p : pols) {
                 modelFiles[fileIndex]->read(
                     reinterpret_cast<char*>(modelDataBuffer.data()),
                     (partEndCh - partStartCh) * polarizationsPerFile *
@@ -608,7 +612,7 @@ void PartitionedMS::unpartition(
                       "Error reading from temporary model data file");
                 ReverseCopyData<false>(modelDataArray, partStartCh, partEndCh,
                                        msPolarizations, modelDataBuffer.data(),
-                                       *p);
+                                       p);
 
                 ++fileIndex;
               }
@@ -621,7 +625,7 @@ void PartitionedMS::unpartition(
         }
       }
     }
-    progress.SetProgress(ms.nrow(), ms.nrow());
+    progress.SetProgress(endRow - startRow, endRow - startRow);
 
     Logger::Debug << "Row count during unpartitioning: "
                   << selectedRowCountForDebug << '\n';

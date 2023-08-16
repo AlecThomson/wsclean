@@ -21,6 +21,16 @@ template <>
 void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
   *dest = source;
 }
+
+void FillModelColumn(const casacore::ArrayColumn<casacore::Complex>& dataColumn,
+                     casacore::ArrayColumn<casacore::Complex>& modelColumn) {
+  casacore::Array<casacore::Complex> zeroArray;
+  for (size_t row = 0; row != dataColumn.nrow(); ++row) {
+    zeroArray.resize(dataColumn.shape(row));
+    zeroArray = casacore::Complex(0.0, 0.0);
+    modelColumn.put(row, zeroArray);
+  }
+}
 }  // namespace
 
 MSProvider::~MSProvider() {}
@@ -806,40 +816,32 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms) {
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
-    casacore::IPosition dataShape = dataColumn.shape(0);
     bool isDefined = modelColumn.isDefined(0);
     bool isSameShape = false;
     if (isDefined) {
       casacore::IPosition modelShape = modelColumn.shape(0);
+      casacore::IPosition dataShape = dataColumn.shape(0);
       isSameShape = modelShape == dataShape;
     }
     if (!isDefined || !isSameShape) {
       Logger::Warn << "WARNING: Your model column does not have the same shape "
                       "as your data column: resetting MODEL column.\n";
-      const casacore::Array<casacore::Complex> zeroArray(
-          dataShape, casacore::Complex(0.0, 0.0));
-      for (size_t row = 0; row != ms.nrow(); ++row)
-        modelColumn.put(row, zeroArray);
+      FillModelColumn(dataColumn, modelColumn);
     }
   } else {  // No column named MODEL_DATA
     Logger::Info << "Adding model data column... ";
     Logger::Info.Flush();
-    casacore::IPosition shape = dataColumn.shape(0);
     casacore::ArrayColumnDesc<casacore::Complex> modelColumnDesc(
-        ms.columnName(casacore::MSMainEnums::MODEL_DATA), shape);
+        ms.columnName(casacore::MSMainEnums::MODEL_DATA));
     try {
       ms.addColumn(modelColumnDesc, "StandardStMan", true, true);
     } catch (std::exception& e) {
       ms.addColumn(modelColumnDesc, "StandardStMan", false, true);
     }
 
-    const casacore::Array<casacore::Complex> zeroArray(
-        shape, casacore::Complex(0.0, 0.0));
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
-
-    for (size_t row = 0; row != ms.nrow(); ++row)
-      modelColumn.put(row, zeroArray);
+    FillModelColumn(dataColumn, modelColumn);
 
     Logger::Info << "DONE\n";
   }
