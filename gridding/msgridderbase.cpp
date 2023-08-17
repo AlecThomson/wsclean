@@ -467,9 +467,9 @@ void MSGridderBase::WriteInstrumentalVisibilities(
     _visibilityModifier.CacheParmResponse(metaData.time, antennaNames, curBand,
                                           _msIndex);
 
-    _visibilityModifier.CorrectParmResponse<PolarizationCount, GainEntry>(
-        buffer, _msIndex, curBand, antennaNames.size(), metaData.antenna1,
-        metaData.antenna2);
+    _visibilityModifier.ApplyParmResponse<PolarizationCount, GainEntry>(
+        buffer, _msIndex, curBand.ChannelCount(), antennaNames.size(),
+        metaData.antenna1, metaData.antenna2);
   }
 
 #ifdef HAVE_EVERYBEAM
@@ -483,7 +483,7 @@ void MSGridderBase::WriteInstrumentalVisibilities(
                                           curBand);
 
     _visibilityModifier.ApplyBeamResponse<PolarizationCount, GainEntry>(
-        buffer, curBand, metaData.antenna1, metaData.antenna2);
+        buffer, curBand.ChannelCount(), metaData.antenna1, metaData.antenna2);
   }
 #endif
 
@@ -597,9 +597,9 @@ void MSGridderBase::GetInstrumentalVisibilities(
     msReader.WriteImagingWeights(_scratchImageWeights.data());
 
   if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
+    const bool apply_beam = _settings.applyFacetBeam || _settings.gridWithBeam;
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
-    if ((_settings.applyFacetBeam || _settings.gridWithBeam) &&
-        _visibilityModifier.HasH5Parm()) {
+    if (apply_beam && _visibilityModifier.HasH5Parm()) {
 #ifdef HAVE_EVERYBEAM
       // Load and apply (in conjugate) both the beam and the h5parm solutions
       _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
@@ -608,12 +608,12 @@ void MSGridderBase::GetInstrumentalVisibilities(
                                             curBand, _msIndex);
       const VisibilityModifier::DualResult result =
           _visibilityModifier.ApplyConjugatedDual<PolarizationCount, GainEntry>(
-              rowData.data, weightBuffer, _scratchImageWeights.data(), curBand,
-              antennaNames, metaData.antenna1, metaData.antenna2, _msIndex,
-              apply_forward);
+              rowData.data, weightBuffer, _scratchImageWeights.data(),
+              curBand.ChannelCount(), antennaNames.size(), metaData.antenna1,
+              metaData.antenna2, _msIndex, apply_forward);
       _metaDataCache->h5Sum += result.h5Sum;
       _metaDataCache->correctionSum += result.correctionSum;
-    } else if (_settings.applyFacetBeam || _settings.gridWithBeam) {
+    } else if (apply_beam) {
       // Load and apply only the conjugate beam
       _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
                                             curBand);
@@ -621,7 +621,9 @@ void MSGridderBase::GetInstrumentalVisibilities(
           _visibilityModifier
               .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
                   rowData.data, weightBuffer, _scratchImageWeights.data(),
-                  curBand, metaData.antenna1, metaData.antenna2, apply_forward);
+                  curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
+                  apply_forward);
+
 #endif  // HAVE_EVERYBEAM
     } else if (_visibilityModifier.HasH5Parm()) {
       _visibilityModifier.CacheParmResponse(metaData.time, antennaNames,
@@ -629,10 +631,10 @@ void MSGridderBase::GetInstrumentalVisibilities(
 
       _metaDataCache->correctionSum +=
           _visibilityModifier
-              .CorrectConjugatedParmResponse<PolarizationCount, GainEntry>(
+              .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
                   rowData.data, weightBuffer, _scratchImageWeights.data(),
-                  _msIndex, curBand, antennaNames.size(), metaData.antenna1,
-                  metaData.antenna2, apply_forward);
+                  _msIndex, curBand.ChannelCount(), antennaNames.size(),
+                  metaData.antenna1, metaData.antenna2, apply_forward);
     }
   }
 

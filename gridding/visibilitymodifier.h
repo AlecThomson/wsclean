@@ -72,6 +72,11 @@ inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
       std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
 }
 
+/**
+ * Applies beam and h5parm solutions to visibilities.
+ * See the documentation for function @ref ApplyConjugatedParmResponse()
+ * for an overview of parameters that hold for most of these functions.
+ */
 class VisibilityModifier {
  public:
   VisibilityModifier() = default;
@@ -82,6 +87,17 @@ class VisibilityModifier {
                                size_t n_channels,
                                const std::string& data_column,
                                const std::string& mwa_path);
+
+  /**
+   * A function that initializes this visibility modifier for testing. After
+   * calling this function, the Apply* functions can be called.
+   * @param beam_response vector of n_channels * n_stations * 4 gain elements.
+   * @param parm_response vector of n_channels * n_stations * 2
+   */
+  void InitializeMockResponse(
+      size_t n_channels, size_t n_stations,
+      const std::vector<std::complex<double>>& beam_response,
+      const std::vector<std::complex<float>>& parm_response);
 
   void SetNoPointResponse() {
 #ifdef HAVE_EVERYBEAM
@@ -102,7 +118,7 @@ class VisibilityModifier {
                   const std::vector<std::string>& solutionTables) {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
-    // object would be re-used for a multiple gridding tasks.
+    // object would be re-used for multiple gridding tasks.
     _cachedParmResponse.assign(n_measurement_sets, {});
     _cachedMSTimes.assign(n_measurement_sets, {});
     _timeOffset.assign(n_measurement_sets, 0u);
@@ -117,19 +133,35 @@ class VisibilityModifier {
                          const std::vector<std::string>& antennaNames,
                          const aocommon::BandData& band, size_t ms_index);
 
+  /**
+   * Applies the conjugate (is backward, or imaging direction) h5parm gain
+   * to given data.
+   * @tparam PolarizationCount Number of differently-polarized correlations in
+   * the data, e.g. 2 for XX/YY and 4 for full Jones matrices.
+   * @tparam GainEntry Gain application mode that defines how the gain is
+   * applied.
+   * @param [in,out] data Data array with n_channels x PolarizationCount
+   * elements.
+   * @param weights Array with for each data value the corresponding weight.
+   * @param image_weights Array of size n_channels (polarizations are assumed to
+   * have equal imaging weights) with the imaging weighting mode (e.g. from
+   * Briggs weighting).
+   * @param apply_forward If true, an additional (non-conjugate) forward gain is
+   * applied to the data. This is necessary for calculating direction-dependent
+   * PSFs.
+   */
   template <size_t PolarizationCount, GainMode GainEntry>
-  void CorrectParmResponse(std::complex<float>* data, size_t ms_index,
-                           const aocommon::BandData& band, size_t n_antennas,
-                           size_t antenna1, size_t antenna2);
+  float ApplyConjugatedParmResponse(std::complex<float>* data,
+                                    const float* weights,
+                                    const float* image_weights, size_t ms_index,
+                                    size_t n_channels, size_t n_antennas,
+                                    size_t antenna1, size_t antenna2,
+                                    bool apply_forward);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  float CorrectConjugatedParmResponse(std::complex<float>* data,
-                                      const float* weights,
-                                      const float* image_weights,
-                                      size_t ms_index,
-                                      const aocommon::BandData& band,
-                                      size_t n_antennas, size_t antenna1,
-                                      size_t antenna2, bool apply_forward);
+  void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
+                         size_t n_channels, size_t n_antennas, size_t antenna1,
+                         size_t antenna2);
 
   void SetMSTimes(size_t ms_index, std::vector<double>&& times) {
     _cachedMSTimes[ms_index] = std::move(times);
@@ -151,17 +183,15 @@ class VisibilityModifier {
                          const aocommon::BandData& band);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  void ApplyBeamResponse(std::complex<float>* data,
-                         const aocommon::BandData& band, size_t antenna1,
-                         size_t antenna2);
+  void ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
+                         size_t antenna1, size_t antenna2);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   float ApplyConjugatedBeamResponse(std::complex<float>* data,
                                     const float* weights,
                                     const float* image_weights,
-                                    const aocommon::BandData& band,
-                                    size_t antenna1, size_t antenna2,
-                                    bool apply_forward);
+                                    size_t n_channels, size_t antenna1,
+                                    size_t antenna2, bool apply_forward);
 
   /**
    * Correct the data for both the conjugated beam and the
@@ -170,11 +200,10 @@ class VisibilityModifier {
   template <size_t PolarizationCount, GainMode GainEntry>
   DualResult ApplyConjugatedDual(std::complex<float>* data,
                                  const float* weights,
-                                 const float* image_weights,
-                                 const aocommon::BandData& band,
-                                 const std::vector<std::string>& antennaNames,
-                                 size_t antenna1, size_t antenna2,
-                                 size_t ms_index, bool apply_forward);
+                                 const float* image_weights, size_t n_channels,
+                                 size_t n_stations, size_t antenna1,
+                                 size_t antenna2, size_t ms_index,
+                                 bool apply_forward);
 #endif
 
   void SetFacetDirection(double ra, double dec) {
@@ -193,19 +222,34 @@ class VisibilityModifier {
   // _telescope attribute needed to keep the telecope in _pointResponse alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
+  /**
+   * The beam response for the currently processed timestep.
+   * It's of size n_channels x _pointResponseBufferSize, which equals
+   * n_channels x n_stations x n_elements(=4), where n_elements is the fastest
+   * changing index.
+   */
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
   everybeam::BeamMode _beamMode = everybeam::BeamMode::kNone;
 #endif
   std::string _beamModeString;
   std::string _beamNormalisationMode;
+  /**
+   * _cachedParmResponse[ms_index] is a vector of complex gains of
+   * size n_times x n_channels x n_stations x n_parameters, where n_parameters
+   * is the fastest changing. n_parameters is 2 (for diagonal) or
+   * 4 (for full jones).
+   */
   std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
   std::vector<std::unique_ptr<schaapcommon::h5parm::H5Parm>> _h5parms;
   std::vector<
       std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>>
       _h5SolTabs;
-  std::vector<schaapcommon::h5parm::JonesParameters::CorrectType> _correctType;
+  /// The correction type for each measurement set (given ms_index)
+  std::vector<schaapcommon::h5parm::JonesParameters::CorrectType>
+      _h5correctType;
   std::vector<std::vector<double>> _cachedMSTimes;
   std::vector<size_t> _timeOffset;
+  size_t _pointResponseBufferSize = 0;
   double _facetDirectionRA = 0.0;
   double _facetDirectionDec = 0.0;
 };
