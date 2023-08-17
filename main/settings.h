@@ -2,6 +2,7 @@
 #define WSCLEAN_SETTINGS_H
 
 #include <cassert>
+#include <optional>
 
 #include "../gridding/wstackinggridder.h"
 

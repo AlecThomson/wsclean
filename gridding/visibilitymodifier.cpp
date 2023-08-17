@@ -265,10 +265,9 @@ void VisibilityModifier::InitializeMockResponse(
 #endif
   _cachedParmResponse.emplace_back(parm_response);
   if (parm_response.size() == n_channels * n_stations * 4)
-    _h5correctType = {
-        schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES};
+    _h5GainType = {schaapcommon::h5parm::GainType::kFullJones};
   else
-    _h5correctType = {schaapcommon::h5parm::JonesParameters::CorrectType::GAIN};
+    _h5GainType = {schaapcommon::h5parm::GainType::kDiagonalComplex};
   _timeOffset = {0};
 }
 
@@ -278,8 +277,7 @@ void VisibilityModifier::CacheParmResponse(
   // Only extract DD solutions if the corresponding cache entry is empty.
   if (_cachedParmResponse[ms_index].empty()) {
     const size_t nparms =
-        (_h5correctType[ms_index] ==
-         schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
+        (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones)
             ? 4
             : 2;
     const std::vector<double> freqs(band.begin(), band.end());
@@ -289,7 +287,7 @@ void VisibilityModifier::CacheParmResponse(
         _facetDirectionRA, _facetDirectionDec);
     const size_t dirIndex = _h5SolTabs[ms_index].first->GetDirIndex(dirName);
     schaapcommon::h5parm::JonesParameters jonesParameters(
-        freqs, _cachedMSTimes[ms_index], antennaNames, _h5correctType[ms_index],
+        freqs, _cachedMSTimes[ms_index], antennaNames, _h5GainType[ms_index],
         schaapcommon::h5parm::JonesParameters::InterpolationType::NEAREST,
         dirIndex, _h5SolTabs[ms_index].first, _h5SolTabs[ms_index].second,
         false, 0.0f, 0u,
@@ -429,7 +427,7 @@ void VisibilityModifier::SetH5Parms(
     const std::vector<std::string>& solutionTables) {
   _h5parms.resize(n_measurement_sets);
   _h5SolTabs.resize(n_measurement_sets);
-  _h5correctType.resize(n_measurement_sets);
+  _h5GainType.resize(n_measurement_sets);
 
   for (size_t i = 0; i < _h5parms.size(); ++i) {
     if (solutionFiles.size() > 1) {
@@ -441,8 +439,8 @@ void VisibilityModifier::SetH5Parms(
     if (solutionTables.size() == 1) {
       _h5SolTabs[i] =
           std::make_pair(&_h5parms[i]->GetSolTab(solutionTables[0]), nullptr);
-      _h5correctType[i] =
-          schaapcommon::h5parm::JonesParameters::StringToCorrectType(
+      _h5GainType[i] =
+          schaapcommon::h5parm::JonesParameters::H5ParmTypeStringToGainType(
               _h5SolTabs[i].first->GetType());
     } else if (solutionTables.size() == 2) {
       const std::array<std::string, 2> solTabTypes{
@@ -478,14 +476,11 @@ void VisibilityModifier::SetH5Parms(
                                      ? _h5SolTabs[i].second->GetAxis("pol").size
                                      : 1;
       if (n_amplitude_pol == 1 && n_phase_pol == 1) {
-        _h5correctType[i] =
-            schaapcommon::h5parm::JonesParameters::CorrectType::SCALARGAIN;
+        _h5GainType[i] = schaapcommon::h5parm::GainType::kScalarComplex;
       } else if (n_amplitude_pol == 2 && n_phase_pol == 2) {
-        _h5correctType[i] =
-            schaapcommon::h5parm::JonesParameters::CorrectType::GAIN;
+        _h5GainType[i] = schaapcommon::h5parm::GainType::kDiagonalComplex;
       } else if (n_amplitude_pol == 4 && n_phase_pol == 4) {
-        _h5correctType[i] =
-            schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES;
+        _h5GainType[i] = schaapcommon::h5parm::GainType::kFullJones;
       } else {
         throw std::runtime_error(
             "Incorrect or mismatching number of polarizations in the "
@@ -508,10 +503,8 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
                                            size_t n_antennas, size_t antenna1,
                                            size_t antenna2) {
   const size_t nparms =
-      (_h5correctType[ms_index] ==
-       schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
-          ? 4
-          : 2;
+      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
+                                                                            : 2;
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
@@ -567,10 +560,8 @@ float VisibilityModifier::ApplyConjugatedParmResponse(
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward) {
   const size_t nparms =
-      (_h5correctType[ms_index] ==
-       schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
-          ? 4
-          : 2;
+      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
+                                                                            : 2;
 
   float correctionSum = 0.0;
 
@@ -662,10 +653,8 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
     size_t ms_index, bool apply_forward) {
   DualResult result;
   const size_t nparms =
-      (_h5correctType[ms_index] ==
-       schaapcommon::h5parm::JonesParameters::CorrectType::FULLJONES)
-          ? 4
-          : 2;
+      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
+                                                                            : 2;
 
   // Conditional could be templated once C++ supports partial function
   // specialization

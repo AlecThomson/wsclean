@@ -244,9 +244,8 @@ class VisibilityModifier {
   std::vector<
       std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>>
       _h5SolTabs;
-  /// The correction type for each measurement set (given ms_index)
-  std::vector<schaapcommon::h5parm::JonesParameters::CorrectType>
-      _h5correctType;
+  /// The gain type for each measurement set (given ms_index)
+  std::vector<schaapcommon::h5parm::GainType> _h5GainType;
   std::vector<std::vector<double>> _cachedMSTimes;
   std::vector<size_t> _timeOffset;
   size_t _pointResponseBufferSize = 0;
