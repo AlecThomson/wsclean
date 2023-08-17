@@ -23,7 +23,7 @@ When WSClean is asked to use a local RMS without supplying an RMS image, WSClean
       -auto-threshold 3 -mgain 0.8 -niter 1000000 \
       [...] observation.ms
     
-The local RMS thresholding is typically to be used together with the ``-auto-threshold`` parameter. While it is possible to combine it with a normal ``-threshold`` parameter, which will scale the threshold relatively to the minimum in the RMS map, this is not recommended. Local RMS thresholding can also be used together with :doc:`automatic masking <masking>` using the ``-auto-mask`` parameter. A typical run to do this looks like this:
+The local RMS thresholding is typically to be used together with the ``-auto-threshold`` parameter. While it is possible to combine it with an absolute threshold using the ``-abs-threshold`` parameter that would scale the threshold relatively to the minimum in the RMS map, this is not recommended. Local RMS thresholding can also be used together with :doc:`automatic masking <masking>` using the ``-auto-mask`` parameter. A typical run to do this looks like this:
 
 .. code-block:: bash
 
@@ -31,8 +31,6 @@ The local RMS thresholding is typically to be used together with the ``-auto-thr
       -auto-threshold 0.3 -auto-mask 3 -mgain 0.8 -niter 1000000 \
       -multiscale [...] observation.ms
     
-Note that the ``-local-rms`` parameter was called ``-rms-background`` before :doc:`WSClean 2.4 <changelogs/v2.4>`.
-
 The default configuration is to calculate the RMS over a Gaussian kernel with dimensions of 25 times the PSF. This value can be changed with the ``-local-rms-window`` option, for example:
 
 .. code-block:: bash
@@ -54,6 +52,6 @@ A pre-existing RMS map can be supplied with the ``-rms-background-image`` parame
     wsclean -size 1024 1024 -scale 10asec -local-rms-image rmsmap.fits \
       -auto-threshold 3 -mgain 0.8 -niter 1000000 [...] observation.ms
       
-The input map (``rmsmap.fits`` in this case) will have to have the size of the (trimmed) output image.
+The input map (``rmsmap.fits`` in this case) will have to have the size of the output image.
 
-A typical use-case for this is to supply an RMS map created by a source detector. Generally, to use this method, it is required to image the field twice. Also, when an automatically-created RMS map is used instead of a fixed pre-made map, WSClean will adapt the RMS map each major iteration, and in most cases the automatic RMS map will therefore be more accurate compared to a partially cleaned RMS map created by (for example) a source detector. The pre-existing RMS map should therefore normally not be the first choice, but there are probably cases where it *is* useful.
+A typical use-case for this is to supply an RMS map created by a source detector. Generally, to use this method, it is required to image the field twice. When an automatically-created RMS map is used instead of a fixed pre-made map, WSClean will adapt the RMS map each major iteration, and in most cases the automatic RMS map will therefore be more accurate compared to a partially cleaned RMS map created by (for example) a source detector. The pre-existing RMS map should therefore normally not be the first choice, but there are probably cases where it *is* useful.

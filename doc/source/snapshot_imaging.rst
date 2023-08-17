@@ -11,7 +11,7 @@ This tells WSClean to split the measurement set in the given number of intervals
 
 .. code-block:: bash
 
-    wsclean -intervals-out 100 -scale 1asec -mgain 0.8 -threshold 1 \
+    wsclean -intervals-out 100 -scale 1asec -mgain 0.8 -auto-threshold 3 \
       -niter 10000 -name cyga MyCygASet.ms
     
 This will output images ``cyga-t0000-dirty.fits``, ``cyga-t0000-image.fits``, and all the other products for t0000, and so for t0001...t0099.

@@ -48,6 +48,13 @@ Combining auto-masking with a regular mask
 
 Auto-masking works in combination with normal masking, so that WSClean can be forced to to find components only in a certain area, and after reaching the auto-masking threshold it would continue with the automask. Since the automask will only contain components within the fitsmask, no components are found outside the fitsmask. Auto-masking and regular masking can be combined by specifying both ``-fits-mask <file>`` and ``auto-mask <threshold>`` on the command line.
 
+Specifying an absolute auto-masking threshold
+---------------------------------------------
+
+An absolute auto-masking threshold can be specified by specifying ``-abs-auto-mask <value>`` parameter. Like the ``-abs-threshold`` parameter (see :doc:`basic cleaning <basic_cleaning>`, this value is by default in Janskys, but also allows specifying its unit, e.g. ``-abs-auto-mask 12mJy``.
+
+When both ``-auto-mask`` and ``-abs-auto-mask`` are specified, the (highest) threshold that is reached first will stop the stage in which the auto-mask is generated.
+
 Availability
 ------------
 

@@ -123,11 +123,12 @@ class Settings {
   size_t parallelDeconvolutionGridWidth;   // derived setting
   size_t parallelDeconvolutionGridHeight;  // derived setting
   size_t parallelDeconvolutionMaxThreads;
-  double deconvolutionThreshold;
+  std::optional<double> autoDeconvolutionThresholdSigma;
+  std::optional<double> absoluteDeconvolutionThreshold;
+  std::optional<double> autoMaskSigma;
+  std::optional<double> absoluteAutoMaskThreshold;
   double deconvolutionGain;
   double deconvolutionMGain;
-  bool autoDeconvolutionThreshold, autoMask;
-  double autoDeconvolutionThresholdSigma, autoMaskSigma;
   double localRMSWindow;
   radler::LocalRmsMethod localRMSMethod;
   bool saveSourceList;
@@ -333,13 +334,8 @@ inline Settings::Settings()
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
       parallelDeconvolutionMaxThreads(0),
-      deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),
       deconvolutionMGain(1.0),
-      autoDeconvolutionThreshold(false),
-      autoMask(false),
-      autoDeconvolutionThresholdSigma(0.0),
-      autoMaskSigma(0.0),
       localRMSWindow(25.0),
       localRMSMethod(radler::LocalRmsMethod::kNone),
       saveSourceList(false),

@@ -53,7 +53,7 @@ The following sequence of statements would do this:
 
     # Run with uniform weighting to subtract point sources:
     wsclean -size 2048 2048 -scale 1amin      \
-      -niter 10000 -threshold 0.1 -mgain 0.8  \
+      -niter 10000 -auto-threshold 5 -mgain 0.8  \
       -weight uniform                         \
       -name diffuse-field observation.ms
 

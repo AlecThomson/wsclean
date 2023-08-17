@@ -9,7 +9,7 @@ Assume we have a measurement set 'myobservation.ms' with 100 channels. To image 
 
 .. code-block:: bash
 
-    wsclean -scale 1amin -size 3072 3072 -niter 1000 -threshold 1 \
+    wsclean -scale 1amin -size 3072 3072 -niter 1000 -auto-threshold 5 \
       -channels-out 100 myobservation.ms
 
 This will output 100 images, named wsclean-0000-image.fits, wsclean-0001-image.fits, ..., wsclean-0099-image.fits (and similarly for the PSF, residual and dirty). Additionally, images named like wsclean-MFS-image.fits will be outputted, which are the weighted sum over all 100 images.
@@ -20,7 +20,7 @@ When you are interested in only a partial range of channels, the '``-channel-ran
 
 .. code-block:: bash
 
-    wsclean -scale 1amin -size 3072 3072 -niter 1000 -threshold 1 \
+    wsclean -scale 1amin -size 3072 3072 -niter 1000 -auto-threshold 5 \
       -channel-range 60 70 -channels-out 10 myobservation.ms
 
 This would image channels 60 to 70 and output separate images for each channel.
@@ -31,7 +31,7 @@ Example:
 
 .. code-block:: bash
 
-    wsclean -channels-out 3 -niter 10000 -mgain 0.8 -threshold 0.01 \
+    wsclean -channels-out 3 -niter 10000 -mgain 0.8 -auto-threshold 5 \
       band-100-MHz.ms band-110-MHz.ms band-145-MHz.ms \
       band-155-MHz band-190-MHz.ms band-200-MHz
 

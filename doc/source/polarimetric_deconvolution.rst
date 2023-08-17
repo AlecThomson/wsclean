@@ -9,11 +9,11 @@ Here are two examples for using joined polarization cleaning:
 
 .. code-block:: bash
 
-    wsclean -pol xx,yy -join-polarizations -threshold 1 -mgain 0.8 -niter 10000 \
+    wsclean -pol xx,yy -join-polarizations -auto-threshold 5 -mgain 0.8 -niter 10000 \
     -scale 15amin -size 1024 1024 -weight briggs 0 galaxy.ms
 
     wsclean -pol iquv -join-polarizations -channels-out 8 -join-channels \
-    -fits-mask 3c196-mask.fits -threshold 1 -mgain 0.8 -niter 10000 \
+    -fits-mask 3c196-mask.fits -auto-threshold 5 -mgain 0.8 -niter 10000 \
     -scale 5asec -size 6000 6000 3c196.ms
 
 Joined-polarization cleaning works in combination with :doc:`multi-scale cleaning <multiscale_cleaning>`, :doc:`multi-frequency deconvolution <wideband_deconvolution>` and :doc:`masked cleaning <masking>`.

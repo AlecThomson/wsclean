@@ -362,8 +362,8 @@ void Settings::checkPolarizations() const {
           "joining on (add -join-channels).");
   }
 
-  if (autoDeconvolutionThreshold && autoMask) {
-    if (autoDeconvolutionThresholdSigma >= autoMaskSigma)
+  if (autoDeconvolutionThresholdSigma && autoMaskSigma) {
+    if (*autoDeconvolutionThresholdSigma >= *autoMaskSigma)
       throw std::runtime_error(
           "The auto-masking threshold was smaller or equal to the "
           "auto-threshold. This does not make sense. Did you accidentally "
@@ -453,15 +453,13 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.parallel.grid_width = parallelDeconvolutionGridWidth;
   radler_settings.parallel.grid_height = parallelDeconvolutionGridHeight;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
-  radler_settings.threshold = deconvolutionThreshold;
+  radler_settings.auto_threshold_sigma = autoDeconvolutionThresholdSigma;
+  radler_settings.absolute_threshold =
+      absoluteDeconvolutionThreshold.value_or(0.0);
+  radler_settings.auto_mask_sigma = autoMaskSigma;
+  radler_settings.absolute_auto_mask_threshold = absoluteAutoMaskThreshold;
   radler_settings.minor_loop_gain = deconvolutionGain;
   radler_settings.major_loop_gain = deconvolutionMGain;
-  if (autoDeconvolutionThreshold) {
-    radler_settings.auto_threshold_sigma = autoDeconvolutionThresholdSigma;
-  }
-  if (autoMask) {
-    radler_settings.auto_mask_sigma = autoMaskSigma;
-  }
   radler_settings.local_rms.method = localRMSMethod;
   radler_settings.local_rms.window = localRMSWindow;
   radler_settings.local_rms.image = localRMSImage;

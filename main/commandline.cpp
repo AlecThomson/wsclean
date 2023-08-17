@@ -347,13 +347,16 @@ Options can be:
    Maximum number of clean iterations to perform. Default: 0 (=no cleaning)
 -nmiter <nmiter>
    Maximum number of major clean (inversion/prediction) iterations. Default: 20.   A value of 0 means no limit.
--threshold <threshold>
-   Stopping clean thresholding in Jy. Default: 0.0
 -auto-threshold <sigma>
-   Estimate noise level using a robust estimator and stop at sigma x stddev.
+   Relative clean threshold. Estimate noise level using a robust estimator and stop at sigma x stddev.
+-abs-threshold <threshold>
+   Absolute stopping clean thresholding in Jy. The auto-threshold parameter should normally be preferred over
+   -abs-threshold.
 -auto-mask <sigma>
-   Construct a mask from found components and when a threshold of sigma is reached, continue
-   cleaning with the mask down to the normal threshold.
+   Relative stopping threshold for the mask generation stage. Construct a mask from found components and when
+   the threshold is reached, continue cleaning with the mask down to the normal threshold.
+-abs-auto-mask <abs-threshold>
+   Absolute stopping threshold for the mask generation stage. See -auto-mask.
 -local-rms
    Instead of using a single RMS for auto thresholding/masking, use a spatially varying
    RMS image.
@@ -655,19 +658,22 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "nmiter") {
       IncArgi(argi, argc);
       settings.majorIterationCount = ParseSizeT(argv[argi], "nmiter");
-    } else if (param == "threshold") {
+    } else if (param == "threshold" || param == "abs-threshold") {
+      if (param == "threshold") Deprecated(isSlave, param, "abs-threshold");
       IncArgi(argi, argc);
-      settings.deconvolutionThreshold = FluxDensity::Parse(
-          argv[argi], "threshold parameter", FluxDensity::kJansky);
+      settings.absoluteDeconvolutionThreshold = FluxDensity::Parse(
+          argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
     } else if (param == "auto-threshold") {
       IncArgi(argi, argc);
-      settings.autoDeconvolutionThreshold = true;
       settings.autoDeconvolutionThresholdSigma =
           ParseDouble(argv[argi], 0.0, "auto-threshold");
     } else if (param == "auto-mask") {
       IncArgi(argi, argc);
-      settings.autoMask = true;
       settings.autoMaskSigma = ParseDouble(argv[argi], 0.0, "auto-mask");
+    } else if (param == "abs-auto-mask") {
+      IncArgi(argi, argc);
+      settings.absoluteAutoMaskThreshold = FluxDensity::Parse(
+          argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
     } else if (param == "local-rms") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
     } else if (param == "local-rms-window") {

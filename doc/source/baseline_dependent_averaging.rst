@@ -43,7 +43,7 @@ This is a simple command to show the syntax of baseline-dependent averaging:
 .. code-block:: bash
 
     wsclean -size 1024 1024 -scale 5asec -mgain 0.8 \
-       -niter 10000 -threshold 0.002 \
+       -niter 10000 -auto-threshold 3 \
        -baseline-averaging 16 -no-update-model-required \
        -maxuvw-m 100000 observation.ms
 

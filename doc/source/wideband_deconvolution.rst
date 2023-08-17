@@ -32,7 +32,7 @@ Example:
 .. code-block:: bash
 
     wsclean -join-channels -channels-out 3 -niter 10000 \
-      -mgain 0.8 -threshold 0.01 \
+      -mgain 0.8 -auto-threshold 3 \
       band-100-MHz.ms band-110-MHz.ms \
       band-145-MHz.ms band-155-MHz.ms \
       band-190-MHz.ms band-200-MHz.ms

@@ -104,7 +104,9 @@ void WSCFitsWriter::setGridderConfiguration(
 
 void WSCFitsWriter::setDeconvolutionKeywords(const Settings& settings) {
   _writer.SetExtraKeyword("WSCNITER", settings.deconvolutionIterationCount);
-  _writer.SetExtraKeyword("WSCTHRES", settings.deconvolutionThreshold);
+  if (settings.absoluteDeconvolutionThreshold)
+    _writer.SetExtraKeyword("WSCTHRES",
+                            *settings.absoluteDeconvolutionThreshold);
   _writer.SetExtraKeyword("WSCGAIN", settings.deconvolutionGain);
   _writer.SetExtraKeyword("WSCMGAIN", settings.deconvolutionMGain);
   _writer.SetExtraKeyword("WSCNEGCM", settings.allowNegativeComponents);
