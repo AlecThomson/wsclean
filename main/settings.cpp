@@ -111,7 +111,8 @@ void Settings::Validate() const {
       }
       // This condition might become a bit more specific once xx,yy polarization
       // correction for h5 AND beam are implemented
-      if (applyFacetBeam && !facetSolutionFiles.empty()) {
+      if (applyFacetBeam && !facetSolutionFiles.empty() &&
+          !aocommon::Polarization::HasFullStokesPolarization(polarizations)) {
         throw std::runtime_error(
             "Applying h5parm solutions AND beam correction on multiple "
             "polarizations is not yet supported.");
