@@ -45,10 +45,8 @@ void Worker::grid(size_t bodySize) {
 
   GriddingTask task;
   task.Unserialize(stream);
-  std::unique_ptr<GriddingTaskManager> scheduler =
-      GriddingTaskManager::Make(_settings);
   aocommon::Logger::Info << "Worker node is starting gridding.\n";
-  GriddingResult result = scheduler->RunDirect(std::move(task));
+  GriddingResult result = scheduler_->RunDirect(std::move(task));
   aocommon::Logger::Info << "Worker node is done gridding.\n";
 
   aocommon::SerialOStream resStream;
