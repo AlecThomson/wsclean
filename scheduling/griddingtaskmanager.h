@@ -25,15 +25,9 @@ class Settings;
 
 class GriddingTaskManager : protected WriterLockManager {
  public:
-  virtual ~GriddingTaskManager();
+  GriddingTaskManager(const Settings& settings);
 
-  /**
-   * Initialize writer groups. Call this function before scheduling Predict
-   * tasks in order to initialize the writer locks.
-   *
-   * @param nWriterGroups The number of writer groups.
-   */
-  virtual void Start([[maybe_unused]] size_t nWriterGroups) {}
+  virtual ~GriddingTaskManager();
 
   LockGuard GetLock([[maybe_unused]] size_t writerGroupIndex) override {
     static DummyWriterLock dummy;
@@ -67,10 +61,9 @@ class GriddingTaskManager : protected WriterLockManager {
    * Make the gridding task manager according to the settings.
    */
   static std::unique_ptr<GriddingTaskManager> Make(
-      const class Settings& settings);
+      const class Settings& settings, size_t nWriterGroups);
 
  protected:
-  GriddingTaskManager(const Settings& settings);
   Resources GetResources() const;
 
   const Settings& _settings;

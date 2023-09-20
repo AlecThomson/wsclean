@@ -14,15 +14,13 @@
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
-  MPIScheduler(const class Settings& settings);
+  MPIScheduler(const class Settings& settings, const size_t nWriterGroups);
   ~MPIScheduler();
 
   void Run(GriddingTask&& task,
            std::function<void(GriddingResult&)> finishCallback) override;
 
   void Finish() override;
-
-  void Start(size_t nWriterGroups) override;
 
   LockGuard GetLock(size_t writerGroupIndex) override;
 
