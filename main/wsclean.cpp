@@ -741,9 +741,16 @@ void WSClean::RunClean() {
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
+  makeImagingTable(0);
+
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
-    makeImagingTable(intervalIndex);
+    if (intervalIndex > 0) {
+      for (ImagingTableEntry& entry : _imagingTable) {
+        entry.outputIntervalIndex = intervalIndex;
+      }
+    }
+
     if (!facets.empty()) updateFacetsInImagingTable(facets, false);
     if (!dd_psfs.empty()) updateFacetsInImagingTable(dd_psfs, true);
 
@@ -927,9 +934,15 @@ void WSClean::RunPredict() {
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
+  makeImagingTable(0);
+
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
-    makeImagingTable(intervalIndex);
+    if (intervalIndex > 0) {
+      for (ImagingTableEntry& entry : _imagingTable) {
+        entry.outputIntervalIndex = intervalIndex;
+      }
+    }
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
     _msGridderMetaCache.clear();
