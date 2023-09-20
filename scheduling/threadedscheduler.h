@@ -10,14 +10,13 @@
 
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
-  ThreadedScheduler(const class Settings& settings);
+  ThreadedScheduler(const class Settings& settings, size_t nWriterGroups);
   ~ThreadedScheduler();
 
   void Run(GriddingTask&& task,
            std::function<void(GriddingResult&)> finishCallback) override;
-  void Finish() override;
 
-  void Start(size_t nWriterGroups) override;
+  void Finish() override;
 
   LockGuard GetLock(size_t writerGroupIndex) override;
 

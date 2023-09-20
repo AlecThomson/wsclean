@@ -253,7 +253,7 @@ class WSClean {
   /**
    * @brief Compute the total amount of MSProviders that will be generated.
    * This number is needed to initialize the writer locks in the prediction
-   * tasks, which are set via a call to _griddingTaskManager->Start(). The
+   * tasks, which are set via a call to GriddingTaskManager::Make(). The
    * number of @p MSProviders is the acummulated number of bands per MS.
    *
    * @return size_t Number of MSProviders

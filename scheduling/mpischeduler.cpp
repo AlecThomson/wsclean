@@ -18,7 +18,7 @@
 
 using aocommon::Logger;
 
-MPIScheduler::MPIScheduler(const Settings &settings)
+MPIScheduler::MPIScheduler(const Settings &settings, size_t nWriterGroups)
     : GriddingTaskManager(settings),
       _masterDoesWork(settings.masterDoesWork),
       _isRunning(false),
@@ -29,7 +29,7 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       _readyList(),
       _nodes(),
       _writerLock(),
-      _writerLockQueues() {
+      _writerLockQueues(nWriterGroups) {
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
@@ -94,11 +94,6 @@ void MPIScheduler::Finish() {
     // A lock is no longer required, because all threads have stopped.
     processReadyList_UNSYNCHRONIZED();
   }
-}
-
-void MPIScheduler::Start(size_t nWriterGroups) {
-  GriddingTaskManager::Start(nWriterGroups);
-  _writerLockQueues.resize(nWriterGroups);
 }
 
 WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {

@@ -22,19 +22,17 @@ GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings) {
+    const class Settings& settings, size_t nWriterGroups) {
   if (settings.useMPI) {
 #ifdef HAVE_MPI
-    return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
+    return std::make_unique<MPIScheduler>(settings, nWriterGroups);
 #else
     throw std::runtime_error("MPI not available");
 #endif
   } else if (settings.parallelGridding == 1) {
-    return std::unique_ptr<GriddingTaskManager>(
-        new GriddingTaskManager(settings));
+    return std::make_unique<GriddingTaskManager>(settings);
   } else {
-    return std::unique_ptr<GriddingTaskManager>(
-        new ThreadedScheduler(settings));
+    return std::make_unique<ThreadedScheduler>(settings, nWriterGroups);
   }
 }
 

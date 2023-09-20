@@ -687,7 +687,6 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  _griddingTaskManager = GriddingTaskManager::Make(_settings);
   _observationInfo = getObservationInfo();
   std::tie(_l_shift, _m_shift) = getLMShift();
 
@@ -741,9 +740,19 @@ void WSClean::RunClean() {
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
+  makeImagingTable(0);
+  const size_t n_writer_groups =
+      getMaxNrMSProviders() * (_imagingTable.MaxFacetGroupIndex() + 1);
+  _griddingTaskManager = GriddingTaskManager::Make(_settings, n_writer_groups);
+
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
-    makeImagingTable(intervalIndex);
+    if (intervalIndex > 0) {
+      for (ImagingTableEntry& entry : _imagingTable) {
+        entry.outputIntervalIndex = intervalIndex;
+      }
+    }
+
     if (!facets.empty()) updateFacetsInImagingTable(facets, false);
     if (!dd_psfs.empty()) updateFacetsInImagingTable(dd_psfs, true);
 
@@ -917,7 +926,6 @@ void WSClean::RunPredict() {
   //    using the existing facet index in the entries.
 
   assert(!_deconvolution.has_value());
-  _griddingTaskManager = GriddingTaskManager::Make(_settings);
   _observationInfo = getObservationInfo();
   std::tie(_l_shift, _m_shift) = getLMShift();
 
@@ -927,9 +935,18 @@ void WSClean::RunPredict() {
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
+  makeImagingTable(0);
+  const size_t nWriterGroups =
+      getMaxNrMSProviders() * (_imagingTable.MaxFacetGroupIndex() + 1);
+  _griddingTaskManager = GriddingTaskManager::Make(_settings, nWriterGroups);
+
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
-    makeImagingTable(intervalIndex);
+    if (intervalIndex > 0) {
+      for (ImagingTableEntry& entry : _imagingTable) {
+        entry.outputIntervalIndex = intervalIndex;
+      }
+    }
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
     _msGridderMetaCache.clear();
@@ -1392,8 +1409,6 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
   resetModelColumns(groupTable);
   _predictingWatch.Start();
-  _griddingTaskManager->Start(getMaxNrMSProviders() *
-                              (groupTable.MaxFacetGroupIndex() + 1));
 
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
@@ -1584,9 +1599,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   _deconvolution.emplace(_settings.GetRadlerSettings(),
                          std::move(deconvolution_table),
                          minTheoreticalBeamSize(tableWithoutDdPsf));
-
-  _griddingTaskManager->Start(getMaxNrMSProviders() *
-                              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop

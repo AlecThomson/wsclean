@@ -7,7 +7,7 @@
 class Worker {
  public:
   Worker(const Settings& settings)
-      : scheduler_(GriddingTaskManager::Make(settings)) {}
+      : scheduler_(GriddingTaskManager::Make(settings, 0)) {}
 
   void Run();
 

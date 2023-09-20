@@ -7,9 +7,11 @@
 
 #include <string>
 
-ThreadedScheduler::ThreadedScheduler(const Settings& settings)
+ThreadedScheduler::ThreadedScheduler(const Settings& settings,
+                                     size_t nWriterGroups)
     : GriddingTaskManager(settings),
       task_list_(settings.parallelGridding),
+      writer_group_locks_(nWriterGroups),
       resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {}
 
 ThreadedScheduler::~ThreadedScheduler() {
@@ -67,15 +69,9 @@ void ThreadedScheduler::ProcessQueue() {
   }
 }
 
-void ThreadedScheduler::Start(size_t nWriterGroups) {
-  GriddingTaskManager::Start(nWriterGroups);
-
-  if (writer_group_locks_.size() < nWriterGroups)
-    writer_group_locks_ = std::vector<ThreadedWriterLock>(nWriterGroups);
-}
-
 WriterLockManager::LockGuard ThreadedScheduler::GetLock(
     size_t writerGroupIndex) {
+  assert(writerGroupIndex < writer_group_locks_.size());
   return LockGuard(writer_group_locks_[writerGroupIndex]);
 }
 
