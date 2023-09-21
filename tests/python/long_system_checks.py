@@ -119,7 +119,7 @@ class TestLongSystem:
         # Linear joined polarizations with 4 joined channels
         s = f"{tcf.WSCLEAN} -name {name('linearpol')} -niter 1000000 -auto-threshold 3.0 \
              -pol XX,YY,XY,YX -join-polarizations -join-channels -mgain 0.85 \
-                 -channels-out 4 -parallel-gridding 16 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+                 -channels-out 4 -parallel-gridding 16 -gridder wstacking {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_two_timesteps(self):
@@ -515,7 +515,7 @@ class TestLongSystem:
             validate_call(chmod.split())
 
     def test_rr_polarization(self):
-        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-rr')} -mgain 0.8 -niter 1 -size 512 512 -scale 10asec {tcf.GMRT_MS}"
+        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-rr')} -mgain 0.8 -niter 1 -size 512 512 -scale 10asec -gridder wstacking {tcf.GMRT_MS}"
         validate_call(s.split())
         rms_dirty = compute_rms(f"{name('gmrt-rr')}-dirty.fits")
         rms_image = compute_rms(f"{name('gmrt-rr')}-image.fits")
@@ -524,7 +524,7 @@ class TestLongSystem:
         assert rms_dirty > rms_image
 
     def test_gmrt_beam(self):
-        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-beam')} -apply-primary-beam -mgain 0.8 -size 512 512 -scale 10asec {tcf.GMRT_MS}"
+        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-beam')} -apply-primary-beam -mgain 0.8 -size 512 512 -scale 10asec -gridder wstacking {tcf.GMRT_MS}"
         validate_call(s.split())
         rms_beam = compute_rms(f"{name('gmrt-beam')}-beam-0.fits")
         # This was measured at 0.6306

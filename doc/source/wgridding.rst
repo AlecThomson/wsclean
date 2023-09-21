@@ -10,8 +10,10 @@ The theoretical foundations of the algorithm are described in
 description of the implementation is given in
 `Arras, Reinecke, Westermann & Enßlin (2020) <https://arxiv.org/abs/2010.10122>`_.
 
-W-gridding is enabled by the command-line flag ``-gridder wgridder``,
-and its accuracy can be controlled via the parameter ``-wgridder-accuracy``,
+Starting in :doc:`WSClean version 3.4 <changelogs/v3.4>`, the w-gridder is
+the default gridder. It can be explicitly enabled with the command-line flag
+``-gridder wgridder``.
+Its accuracy can be controlled via the parameter ``-wgridder-accuracy``,
 which is set to ``1e-4`` by default and can be varied in the range from ``1e-2``
 (very coarse, but fast gridding) down to ``1e-12``.
 This value specifies the maximum acceptable rms error of the result when compared

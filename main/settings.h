@@ -36,7 +36,7 @@ class Settings {
 
   std::vector<std::string> filenames;
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
-  GridderType gridderType = GridderType::WStacking;
+  GridderType gridderType = GridderType::WGridder;
   size_t paddedImageWidth, paddedImageHeight;
   size_t trimmedImageWidth, trimmedImageHeight;
   bool hasShift;

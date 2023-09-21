@@ -32,14 +32,21 @@ void IncArgi(int& argi, int argc) {
     throw std::runtime_error("Unexpected end of command line arguments");
 }
 
-void Deprecated(bool isSlave, const std::string& param,
+void Deprecated(bool is_slave, const std::string& param,
                 const std::string& replacement) {
-  if (!isSlave)
+  if (!is_slave)
     Logger::Warn << "!!! WARNING: Parameter \'-" << param
                  << "\' is deprecated and will be removed in a future version "
                     "of WSClean.\n"
                  << "!!!          Use parameter \'-" << replacement
                  << "\' instead.\n";
+}
+
+void CheckDeprecated(bool is_slave, const std::string& param,
+                     const std::string& replacement) {
+  if (param != replacement) {
+    Deprecated(is_slave, param, replacement);
+  }
 }
 
 void PrintHeader() {
@@ -220,7 +227,7 @@ Options can be:
    Subtract the model from the data column in the first iteration. This can be used to reimage
    an already cleaned image, e.g. at a different resolution.
 -gridder <type>
-   Set gridder type: direct-ft, idg, wgridder, tuned-wgridder, or wstacking.
+   Set gridder type: direct-ft, idg, wgridder, tuned-wgridder, or wstacking. Default: wgridder.
 -channels-out <count>
    Splits the bandwidth and makes count nr. of images. Default: 1.
 -shift <ra> <dec>
@@ -238,25 +245,10 @@ Options can be:
    Split the bandwidth at the specified frequencies (in Hz) before the normal bandwidth
    division is performed. This can e.g. be useful for imaging multiple bands with irregular
    number of channels.
--nwlayers <nwlayers>
-   Number of w-layers to use. Default: minimum suggested #w-layers for first MS.
--nwlayers-factor <factor>
-   Use automatic calculation of the number of w-layers, but multiple that number by
-   the given factor. This can e.g. be useful for increasing w-accuracy.
--nwlayers-for-size <width> <height>
-   Use the minimum suggested w-layers for an image of the given size. Can e.g. be used to increase
-   accuracy when predicting small part of full image.
 -no-small-inversion and -small-inversion
    Perform inversion at the Nyquist resolution and upscale the image to the requested image size afterwards.
    This speeds up inversion considerably, but makes aliasing slightly worse. This effect is
    in most cases <1%. Default: on.
--grid-mode <"nn", "kb" or "rect">
-   Kernel and mode used for gridding: kb = Kaiser-Bessel (default with 7 pixels), nn = nearest
-   neighbour (no kernel), more options: rect, kb-no-sinc, gaus, bn. Default: kb.
--kernel-size <size>
-   Gridding antialiasing kernel size. Default: 7.
--oversampling <factor>
-   Oversampling factor used during gridding. Default: 63.
 -make-psf
    Always make the psf, even when no cleaning is performed.
 -make-psf-only
@@ -274,6 +266,23 @@ Options can be:
    with antenna1 and antenna2 indices and the stddev per line, separated by spaces, e.g. "0 1 3.14".
 -idg-mode [cpu/gpu/hybrid]
    Sets the IDG mode. Default: cpu. Hybrid is recommended when a GPU is available.
+   
+  ** GRIDDER-SPECIFIC SETTINGS **
+-wstack-nwlayers <nwlayers>
+   Number of w-layers to use. Default: minimum suggested #w-layers for first MS.
+-wstack-nwlayers-factor <factor>
+   Use automatic calculation of the number of w-layers, but multiple that number by
+   the given factor. This can e.g. be useful for increasing w-accuracy.
+-wstack-nwlayers-for-size <width> <height>
+   Use the minimum suggested w-layers for an image of the given size. Can e.g. be used to increase
+   accuracy when predicting small part of full image.
+-wstack-grid-mode <"nn", "kb" or "rect">
+   Kernel and mode used for gridding: kb = Kaiser-Bessel (default with 7 pixels), nn = nearest
+   neighbour (no kernel), more options: rect, kb-no-sinc, gaus, bn. Default: kb.
+-wstack-kernel-size <size>
+   Gridding antialiasing kernel size. Default: 7.
+-wstack-oversampling <factor>
+   Oversampling factor used during gridding. Default: 63.
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
@@ -524,6 +533,10 @@ size_t ParseSizeT(const char* param, const char* name) {
   return v;
 }
 
+size_t ParseSizeT(const char* param, const std::string& name) {
+  return ParseSizeT(param, name.c_str());
+}
+
 double ParseDouble(const char* param, const char* name) {
   char* endptr;
   const double v = std::strtod(param, &endptr);
@@ -633,20 +646,60 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.pixelScaleX =
           Angle::Parse(argv[argi], "scale parameter", Angle::kDegrees);
       settings.pixelScaleY = settings.pixelScaleX;
-    } else if (param == "nwlayers") {
+    }
+    // == w-stacking-specific parameters ==
+    else if (param == "nwlayers" || param == "wstack-nwlayers") {
+      CheckDeprecated(isSlave, param, "wstack-nwlayers");
       IncArgi(argi, argc);
-      settings.nWLayers = ParseSizeT(argv[argi], "nwlayers");
-    } else if (param == "nwlayers-factor") {
+      settings.nWLayers = ParseSizeT(argv[argi], param);
+    } else if (param == "nwlayers-factor" ||
+               param == "wstack-nwlayers-factor") {
+      CheckDeprecated(isSlave, param, "wstack-nwlayers-factor");
       IncArgi(argi, argc);
       settings.nWLayersFactor =
           ParseDouble(argv[argi], 0.0, "nwlayers-factor", false);
-    } else if (param == "nwlayers-for-size") {
-      settings.widthForNWCalculation =
-          ParseSizeT(argv[argi + 1], "nwlayers-for-size");
-      settings.heightForNWCalculation =
-          ParseSizeT(argv[argi + 2], "nwlayers-for-size");
+    } else if (param == "nwlayers-for-size" ||
+               param == "wstack-nwlayers-for-size") {
+      CheckDeprecated(isSlave, param, "wstack-nwlayers-for-size");
+      settings.widthForNWCalculation = ParseSizeT(argv[argi + 1], param);
+      settings.heightForNWCalculation = ParseSizeT(argv[argi + 2], param);
       argi += 2;
-    } else if (param == "gain") {
+    } else if (param == "grid-mode" || param == "wstack-grid-mode") {
+      CheckDeprecated(isSlave, param, "wstack-grid-mode");
+      IncArgi(argi, argc);
+      std::string gridModeStr = argv[argi];
+      boost::to_lower(gridModeStr);
+      if (gridModeStr == "kb" || gridModeStr == "kaiserbessel" ||
+          gridModeStr == "kaiser-bessel")
+        settings.gridMode = GriddingKernelMode::KaiserBessel;
+      else if (gridModeStr == "bn")
+        settings.gridMode = GriddingKernelMode::BlackmanNuttall;
+      else if (gridModeStr == "bh")
+        settings.gridMode = GriddingKernelMode::BlackmanHarris;
+      else if (gridModeStr == "gaus")
+        settings.gridMode = GriddingKernelMode::Gaussian;
+      else if (gridModeStr == "rect")
+        settings.gridMode = GriddingKernelMode::Rectangular;
+      else if (gridModeStr == "kb-no-sinc")
+        settings.gridMode = GriddingKernelMode::KaiserBesselWithoutSinc;
+      else if (gridModeStr == "nn" || gridModeStr == "nearestneighbour")
+        settings.gridMode = GriddingKernelMode::NearestNeighbour;
+      else
+        throw std::runtime_error(
+            "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
+            "(NearestNeighbour), bn, bh, gaus, kb-no-sinc or rect");
+    } else if (param == "kernel-size" || param == "wstack-kernel-size") {
+      CheckDeprecated(isSlave, param, "wstack-kernel-size");
+      IncArgi(argi, argc);
+      settings.antialiasingKernelSize =
+          ParseSizeT(argv[argi], "wstack-kernel-size");
+    } else if (param == "oversampling" || param == "wstack-oversampling") {
+      CheckDeprecated(isSlave, param, "wstack-oversampling");
+      IncArgi(argi, argc);
+      settings.overSamplingFactor = ParseSizeT(argv[argi], param);
+    }
+    // == End of gridder specific settings ==
+    else if (param == "gain") {
       IncArgi(argi, argc);
       settings.deconvolutionGain = ParseDouble(argv[argi], 0.0, "gain", false);
     } else if (param == "mgain") {
@@ -659,7 +712,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.majorIterationCount = ParseSizeT(argv[argi], "nmiter");
     } else if (param == "threshold" || param == "abs-threshold") {
-      if (param == "threshold") Deprecated(isSlave, param, "abs-threshold");
+      CheckDeprecated(isSlave, param, "abs-threshold");
       IncArgi(argi, argc);
       settings.absoluteDeconvolutionThreshold = FluxDensity::Parse(
           argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
@@ -805,29 +858,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "name") {
       IncArgi(argi, argc);
       settings.prefixName = argv[argi];
-    } else if (param == "grid-mode") {
-      IncArgi(argi, argc);
-      std::string gridModeStr = argv[argi];
-      boost::to_lower(gridModeStr);
-      if (gridModeStr == "kb" || gridModeStr == "kaiserbessel" ||
-          gridModeStr == "kaiser-bessel")
-        settings.gridMode = GriddingKernelMode::KaiserBessel;
-      else if (gridModeStr == "bn")
-        settings.gridMode = GriddingKernelMode::BlackmanNuttall;
-      else if (gridModeStr == "bh")
-        settings.gridMode = GriddingKernelMode::BlackmanHarris;
-      else if (gridModeStr == "gaus")
-        settings.gridMode = GriddingKernelMode::Gaussian;
-      else if (gridModeStr == "rect")
-        settings.gridMode = GriddingKernelMode::Rectangular;
-      else if (gridModeStr == "kb-no-sinc")
-        settings.gridMode = GriddingKernelMode::KaiserBesselWithoutSinc;
-      else if (gridModeStr == "nn" || gridModeStr == "nearestneighbour")
-        settings.gridMode = GriddingKernelMode::NearestNeighbour;
-      else
-        throw std::runtime_error(
-            "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
-            "(NearestNeighbour), bn, bh, gaus, kb-no-sinc or rect");
     } else if (param == "small-inversion") {
       settings.smallInversion = true;
     } else if (param == "no-small-inversion") {
@@ -879,12 +909,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "mf-weighting" || param == "mfs-weighting") {
       mfWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
-      if (param != "mf-weighting") Deprecated(isSlave, param, "mf-weighting");
+      CheckDeprecated(isSlave, param, "mf-weighting");
     } else if (param == "no-mf-weighting" || param == "no-mfs-weighting") {
       noMFWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
-      if (param != "no-mf-weighting")
-        Deprecated(isSlave, param, "no-mf-weighting");
+      CheckDeprecated(isSlave, param, "no-mf-weighting");
     } else if (param == "spectral-correction") {
       settings.spectralCorrectionFrequency =
           ParseDouble(argv[argi + 1], 0.0, "spectral-correction", false);
@@ -1077,12 +1106,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.circularBeam = true;
     } else if (param == "elliptical-beam") {
       settings.circularBeam = false;
-    } else if (param == "kernel-size") {
-      IncArgi(argi, argc);
-      settings.antialiasingKernelSize = ParseSizeT(argv[argi], "kernel-size");
-    } else if (param == "oversampling") {
-      IncArgi(argi, argc);
-      settings.overSamplingFactor = ParseSizeT(argv[argi], "oversampling");
     } else if (param == "reorder") {
       settings.forceReorder = true;
       settings.forceNoReorder = false;

@@ -294,7 +294,7 @@ class TestFacets:
             f"mpirun -np 3 {tcf.WSCLEAN_MP}",
         ]
         for name, command in zip(names, wsclean_commands):
-            s = f"{command} -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+            s = f"{command} -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 -gridder wstacking {tcf.MWA_MOCK_MS}"
             validate_call(s.split())
 
         # Typical rms difference is about 1.0e-7
