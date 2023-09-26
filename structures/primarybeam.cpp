@@ -293,8 +293,8 @@ void PrimaryBeam::CorrectImages(
           aocommon::Polarization::IndexToStokes(pol_index);
       ImageFilename name(image_name);
       name.SetPolarization(pol);
-      reader.reset(new aocommon::FitsReader(name.GetPrefix(settings_) + "-" +
-                                            filename_kind + ".fits"));
+      reader = std::make_unique<aocommon::FitsReader>(
+          name.GetPrefix(settings_) + "-" + filename_kind + ".fits");
       images[pol_index] = Image(reader->ImageWidth(), reader->ImageHeight());
       reader->Read(images[pol_index].Data());
     }
@@ -302,7 +302,7 @@ void PrimaryBeam::CorrectImages(
     float* image_ptrs[4] = {images[0].Data(), images[1].Data(),
                             images[2].Data(), images[3].Data()};
     beam_images.ApplyFullStokes(image_ptrs, settings_.primaryBeamLimit);
-    for (size_t pol_index = 0; pol_index != 2; ++pol_index) {
+    for (size_t pol_index = 0; pol_index != 4; ++pol_index) {
       aocommon::PolarizationEnum pol =
           aocommon::Polarization::IndexToStokes(pol_index);
       ImageFilename name(image_name);

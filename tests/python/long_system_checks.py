@@ -532,3 +532,29 @@ class TestLongSystem:
         rms_corrected = compute_rms(f"{name('gmrt-beam')}-image-pb.fits")
         # Measured at 0.45849
         assert rms_corrected > 0.42 and rms_corrected < 0.49
+
+    def test_mf_full_polarization_beam_correction(self):
+        prefix = name("mf-full-pol-beam")
+        s = f"{tcf.WSCLEAN} -name {prefix} {tcf.DIMS_LARGE} -interval 10 12 -mwa-path . -channels-out 2 -apply-primary-beam -pol iquv -link-polarizations i -mgain 0.8 -niter 1000 -auto-threshold 6 -size 512 512 -scale 2amin {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        assert os.path.isfile(prefix + "-0000-psf.fits")
+        assert os.path.isfile(prefix + "-0001-psf.fits")
+        assert os.path.isfile(prefix + "-MFS-psf.fits")
+        for image_type in [
+            "dirty",
+            "image",
+            "image-pb",
+            "model",
+            "model-pb",
+            "residual",
+            "residual-pb",
+        ]:
+            for pol_type in ["I", "Q", "U", "V"]:
+                postfix = pol_type + "-" + image_type + ".fits"
+                image_name = prefix + "-0000-" + postfix
+                assert os.path.isfile(image_name)
+                image_name = prefix + "-0001-" + postfix
+                assert os.path.isfile(image_name)
+                image_name = prefix + "-MFS-" + postfix
+                assert os.path.isfile(image_name)
