@@ -33,7 +33,7 @@ Manual threshold
 
 The auto-threshold sets a value that is relative to the noise. This is generally preferred over specifying an absolute threshold flux-density, because it avoids having to know the level of the noise before running the clean. An automated procedure for chosing the threshold also avoids bias and improves reproducability. 
 
-Nevertheless, in some situations it might be desirable to use a manual absolute threshold. For this, the ``-abs-threshold <value>`` parameter can be used. If no unit is specified, the value is specified in units of Janskys. Specifying ``-abs-threshold 0.7`` results thus in a 700 mJy absolute threshold. The unit can also me explicitly specified, e.g. ``-abs-threshold 700mJy``. 
+Nevertheless, in some situations it might be desirable to use a manual absolute threshold. For this, the ``-abs-threshold <value>`` parameter can be used. If no unit is specified, the value is specified in units of Janskys. Specifying ``-abs-threshold 0.7`` results thus in a 700 mJy absolute threshold. The unit can also be explicitly specified, e.g. ``-abs-threshold 700mJy``. 
 
 It is possible to specify both an automatic threshold and a manual threshold. In this case, whenever one of the thresholds is reached, cleaning stops.
 

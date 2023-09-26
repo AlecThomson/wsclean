@@ -51,14 +51,14 @@ Auto-masking works in combination with normal masking, so that WSClean can be fo
 Specifying an absolute auto-masking threshold
 ---------------------------------------------
 
-An absolute auto-masking threshold can be specified by specifying ``-abs-auto-mask <value>`` parameter. Like the ``-abs-threshold`` parameter (see :doc:`basic cleaning <basic_cleaning>`, this value is by default in Janskys, but also allows specifying its unit, e.g. ``-abs-auto-mask 12mJy``.
+An absolute auto-masking threshold can be specified with ``-abs-auto-mask <value>``. Like the ``-abs-threshold`` parameter (see :doc:`basic cleaning <basic_cleaning>`), this value is by default in Janskys, but also allows specifying its unit, e.g. ``-abs-auto-mask 12mJy``.
 
 When both ``-auto-mask`` and ``-abs-auto-mask`` are specified, the (highest) threshold that is reached first will stop the stage in which the auto-mask is generated.
 
 Availability
 ------------
 
-Auto-masking is available in multi-scale since :doc:`WSClean version 2.1 <changelogs/v2.1>`, and is available in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`.
+Auto-masking is available in multi-scale since :doc:`WSClean version 2.1 <changelogs/v2.1>`, and is available in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The absolute auto-mask threshold is available since :doc:`WSClean version 3.4 <changelogs/v3.4>`.
 
 References
 ----------
