@@ -8,10 +8,10 @@ The latest version of WSClean can be found at
 If you use WSClean for scientific work, please cite :doc:`the appropriate paper(s) <citing_wsclean>`.
 
 Contents:
- 
+
 .. toctree::
    :maxdepth: 2
- 
+
    getting_started
    weighting
    imaging
@@ -31,4 +31,3 @@ Navigate
 
 * :ref:`genindex`
 * :ref:`search`
-

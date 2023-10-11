@@ -16,6 +16,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <algorithm>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -82,7 +83,8 @@ Options can be:
    Will execute multiple gridders simultaneously. This can make things faster in certain cases,
    but will increase memory usage.
 -parallel-reordering <n>
-   Process the reordering with multipliple threads.
+   Process the reordering with multiple threads.
+   Default: Use 4 threads.
 -no-work-on-master
    In MPI runs, do not use the master for gridding. This may be useful if the
    resources such as memory of the master are limited.
@@ -1314,6 +1316,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   }
 
   for (int i = argi; i != argc; ++i) settings.filenames.push_back(argv[i]);
+
+  settings.parallelReordering =
+      std::min(settings.parallelReordering, settings.filenames.size());
 
   std::ostringstream commandLineStr;
   commandLineStr << "wsclean";

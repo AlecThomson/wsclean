@@ -263,7 +263,7 @@ inline Settings::Settings()
       antialiasingKernelSize(7),
       overSamplingFactor(1023),
       threadCount(aocommon::system::ProcessorCount()),
-      parallelReordering(1),
+      parallelReordering(4),
       parallelGridding(1),
       useMPI(false),
       masterDoesWork(true),
