@@ -1,0 +1,38 @@
+WSClean version 3.4
+===================
+
+Released 2023-10-11
+
+Summary: 
+
+Version 3.4 contains a few major new features and important bugfixes. An important change is that the default gridder has been changed to the :doc:`wgridder <../wgridding>`: in *most* cases this gridder is fast and more accurate (thanks to Martin Reinecke) compared to the wstacking gridder -- the previous default gridder. Furthermore, there are quite some changes that improve complex imaging runs (e.g. faceting, DD psfs, IQUV imaging, etc.), memory & computational efficiency was further improved and various bugs have been solved.
+
+To make use of EveryBeam, WSClean 3.4 requires EveryBeam `version 0.5.2 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.5.2>`_ or newer.
+
+Full change list
+----------------
+
+* The :doc:`wgridder <../wgridding>` is now the default gridder.
+* Add an absolute :doc:`auto mask <../masking>` threshold.
+* Facet feathering.
+* Support for the MeerKAT and ALMA beams.
+* Compression of auto-masks to reduce memory requirements.
+* Improve efficiency of data & meta-data reading.
+* Allow output of a psuedo-Stokes-I source list.
+* Support applying independent xx/yy solutions when imaging Stokes I.
+* Support for diagonal and full Stokes solution correction and IQUV imaging with beam.
+
+Bug fixes
+---------
+
+* Solve flux-scale issues when using facet imaging with diagonal solutions and beam correction.
+* Solve a crash when the model column needs to be created for measurement sets with heterogeneous spws.
+* Fix a crash when ``n_spws > 1`` and pb correction is used.
+* Improve :doc:`rank filter <../weight_rank_filter>` when using Briggs weighting (issue reported by A. Kutkin and T. Oosterloo).
+* Fix :doc:`DD PSF imaging <../direction_dependent_psfs>` with facets and multiple channels.
+* Fix possible corruption of start time (as written to FITS file).
+* Fix crash in multi-frequency imaging with iquv polarizations and beam correction.
+* Allow full Stokes facet imaging with beam and diagonal solutions. 
+* Fix a few compilation issues and warnings on specific platforms.
+* Documentation improvements.
+
