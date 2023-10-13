@@ -1,14 +1,11 @@
 Facet-based imaging
 ===================
 
-WSClean provides experimental support for facet-based imaging, and applying direction-dependent effects (DDEs) per facet.
-A facet should be understood as a (polygonal shaped) subdomain of the full image, where both convex and concave polygons are supported.
-A first advantage of facet-based imaging is that DDEs can be applied per facet. Parallelization and reduction of the memory footprint
-can be other other advantages of facet-based imaging, because visibility gridding and predicting can largely be done for each facet independently, rather than requiring the full image.
+WSClean supports facet-based imaging with correction of direction-dependent effects.
+A facet is a (polygonal-shaped) subsection of the full image. WSClean supports both convex and concave polygons.
 
-Availability
-------------
-Facetting is available in WSClean :doc:`version 3.0 <changelogs/v3.0>` and later.
+Facet-based imaging supports the correction of each facet with a previously found (direction-dependent) gain solution. 
+In some cases, facet-based imaging can also speed up imaging or reduce the memory footprint.
 
 Command-line options
 --------------------
@@ -36,19 +33,27 @@ The facet beam update interval (in seconds) can be defined by specifying:
 
 The default value for the update interval is 120s.
 
-Direction-dependent corrections per facet can also be read and applied from an H5Parm file - which in essence is a HDF5 file with some prescribed lay-out.
-This is done via the command-line option:
+Direction-dependent corrections per facet can be read and applied from an ``h5parm`` file, which is a HDF5 file with gain solutions in a particular format. This format is for example supported by tools like `DP3 <https://dp3.readthedocs.io/>`_ and `losoto <https://github.com/revoltek/losoto>`_.
+
+The ``h5parm`` file is specified via the command-line option:
 
 .. code-block:: text
 
     -apply-facet-solutions <path-to-h5parm> <name1[,name2]>
 
-where :code:`<path-to-h5parm>` is the path to the H5Parm solution file and :code:`<name1[,name2]>`
-is a comma-separated list of strings specifying which "soltabs" from the provided H5Parm solution file are used.
+where :code:`<path-to-h5parm>` is the path to the ``h5parm`` solution file and :code:`<name1[,name2]>`
+is a comma-separated list of strings specifying which "soltabs" from the provided ``h5parm`` solution file are used.
 Acceptable names are :code:`ampl000` and/or :code:`phase000`.
 
-In case WSClean uses multiple measurement sets as input, either one H5Parm solution file or a distinct H5Parm solution file per seasurement set can be specified.
-The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is assumed to be identical for all H5Parm solution files.
+WSClean supports application of ``h5parm`` with various polarizations:
+
+- The simplest way is to apply "scalar" solutions. For example, if the solution file specifies ``X`` or ``R`` solutions, a scalar correction can be applied to create corrected ``XX`` or ``RR`` images, respectively. If the solution file specifies multiple polarizations, it is possible to image and correct multiple polarization at once (e.g. ``-pol xx,yy``). This way, diagonal solutions can be applied, but it requires imaging the ``xx`` and ``yy`` images separately, which is not always desired.
+- Stokes I images with diagonal solutions can be made without imaging ``xx`` and ``yy`` separately by using the option ``-diagonal-solutions``. This makes WSClean read the ``xx`` and ``yy`` visibilities (or ``rr`` and ``ll``), apply the corresponding solutions to them and average them together before gridding.
+- Full-polarization IQUV imaging with diagonal or full-Jones solutions is still a work in progress.
+
+In case multiple measurement sets are specified, it is possible to either specify one ``h5parm`` solution file, or a separate ``h5parm`` solution
+file per seasurement set.
+The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is required to be identical for all ``h5parm`` solution files.
 As an illustration, assume that :code:`N` measurement sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a
 scalar amplitude correction.
 The syntax for applying the facet solution files on its corresponding measurement set thus becomes:
@@ -64,9 +69,9 @@ The syntax for applying the facet solution files on its corresponding measuremen
     For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9_facet_file`.
 
 
-Example command
----------------
-An example facet-based imaging command in WSClean, applying both a facet-based beam correction as well as a gain correction from an H5Parm file could be:
+Examples
+--------
+This is an example facet-based imaging command that applies both a facet-based beam correction and a scalar gain correction from an ``h5parm`` file:
 
 .. code-block:: bash
 
@@ -79,13 +84,12 @@ An example facet-based imaging command in WSClean, applying both a facet-based b
     -size 1024 1024 -scale 1amin \
     ${ms}
 
+In case the solution files contains separate ``x`` and ``y`` solutions, option ``-diagional-solutions`` should be added.
+    
+Availability
+------------
+Initial support for facetting is made available in WSClean :doc:`version 3.0 <changelogs/v3.0>`. In subsequent versions,
+several bugs were fixed and support for different solution types was added. WSClean :doc:`version 3.4 <changelogs/v3.4>`
+has support for scalar and diagonal solutions, and is considered stable.
 
-Caveats
--------
-
-Facet-based imaging is currently an experimental feature, and therefore should be used with care.
-A (probably non-exhaustive) list of caveats is presented below:
-
-- Parallel processing can be enabled with the :code:`-parallel-gridding` option (multi-threaded) or the :code:`wsclean-mp` (using MPI). Parallelization over facets is however barely tested, and may return unexpected errors or results, in particular when applying DDEs.
-- Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is only possible without applying DDEs.
-- When applying solutions in WSClean for facetted imaging, only scalar solutions are currently applicable.
+Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is only possible without applying DDEs.
