@@ -35,5 +35,9 @@ Other resources:
 * `Offringa et al. (2019) <https://arxiv.org/abs/1908.11232>`_
   
   Assessment of gridding accuracy for 21-cm Epoch of Reionization experiments.
+  
+* `Ceccotti et al. (2023) <https://doi.org/10.1093/mnras/stad2465>`_
+
+  Introduces the forced-spectrum deconvolution method
 
 See also: :doc:`citing_wsclean`

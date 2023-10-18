@@ -139,7 +139,7 @@ To force the spectral index to a spectral index map, the option ``-fit-log-pol 2
 
 This resulting map can be used in wsclean with parameters ``-fit-log-pol 3 -force-spectrum forced-spectrum-map.fits``. Remember that the ``-fit-log-pol`` option takes as parameter the number of terms being fitted, and not the order of the polynomial.
     
-A description and further testing of the forced spectrum method can be found in Ceccotti et al. (2023; submitted). Basic spectral index forcing is available since :doc:`WSClean version 3.0 <changelogs/v3.0>`. In :doc:`version 3.3 <changelogs/v3.3>` this was generalized to constraining any number of terms.
+A description and further testing of the forced spectrum method can be found in `Ceccotti et al. (2023) <https://doi.org/10.1093/mnras/stad2465>`_. Basic spectral index forcing is available since :doc:`WSClean version 3.0 <changelogs/v3.0>`. In :doc:`version 3.3 <changelogs/v3.3>` this was generalized to constraining any number of terms.
 
 Fit normal or logarithmic polynomials?
 --------------------------------------
