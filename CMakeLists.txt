@@ -31,6 +31,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(PORTABLE "Generate portable code" OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
 
+set(RADLER_CXX_FLAGS
+    " "
+    CACHE STRING "Extra C++ flags used for compiling Radler")
+
 include(CheckCXXCompilerFlag)
 if(PORTABLE)
   if(DEFINED TARGET_CPU)
@@ -261,7 +265,8 @@ ExternalProject_Add(
     -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    ${RADLER_TARGET_CPU})
+    ${RADLER_TARGET_CPU}
+    -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
 
 set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
 include_directories(${RADLER_INCLUDE_DIR})
