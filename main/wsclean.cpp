@@ -243,6 +243,8 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
       entry.facet->Contains(schaapcommon::facets::PixelPosition(
           _settings.trimmedImageWidth / 2, _settings.trimmedImageHeight / 2))) {
     _infoPerChannel[channelIndex] = channel_info;
+    _infoPerChannel[channelIndex].centralPsfIndex = entry.facetIndex;
+    _infoForMFS.centralPsfIndex = entry.facetIndex;
   }
 
   Logger::Info << "Writing psf image... ";
@@ -774,16 +776,22 @@ void WSClean::RunClean() {
 
         if (psfWasMade) {
           const size_t n_directions = _ddPsfCount ? _ddPsfCount : 1;
+          Logger::Debug << "Using PSF index " << _infoForMFS.centralPsfIndex
+                        << " for MF restoring beam fitting.\n";
           for (size_t direction = 0; direction != n_directions; ++direction) {
             std::optional<size_t> dd_psf_dir =
                 _ddPsfCount ? std::optional<size_t>(direction) : std::nullopt;
-            ImageOperations::MakeMFSImage(
-                _settings, _infoPerChannel, _infoForMFS, "psf", intervalIndex,
-                pol, ImageFilenameType::Psf, dd_psf_dir);
+            OutputChannelInfo mfs_info = _infoForMFS;
+            ImageOperations::MakeMFSImage(_settings, _infoPerChannel, mfs_info,
+                                          "psf", intervalIndex, pol,
+                                          ImageFilenameType::Psf, dd_psf_dir);
             if (_settings.savePsfPb)
               ImageOperations::MakeMFSImage(
-                  _settings, _infoPerChannel, _infoForMFS, "psf-pb",
-                  intervalIndex, pol, ImageFilenameType::Psf, dd_psf_dir);
+                  _settings, _infoPerChannel, mfs_info, "psf-pb", intervalIndex,
+                  pol, ImageFilenameType::Psf, dd_psf_dir);
+            if (direction == _infoForMFS.centralPsfIndex || _ddPsfCount == 0) {
+              _infoForMFS = mfs_info;
+            }
           }
         }
         if (griddingUsesATerms()) {

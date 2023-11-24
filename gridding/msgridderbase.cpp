@@ -474,7 +474,6 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam) {
-    assert(!_settings.facetRegionFilename.empty());
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
     _predictReader->NextInputRow();

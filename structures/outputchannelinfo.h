@@ -18,7 +18,8 @@ struct OutputChannelInfo {
         beamPA(0.0),
         beamSizeEstimate(0.0),
         theoreticBeamSize(0.0),
-        psfNormalizationFactor(1.0) {}
+        psfNormalizationFactor(1.0),
+        centralPsfIndex(0) {}
   double weight, normalizationFactor;
   std::size_t wGridSize, visibilityCount;
   double effectiveVisibilityCount, visibilityWeightSum;
@@ -27,6 +28,9 @@ struct OutputChannelInfo {
   // as initial value when fitting the (accurate) beam
   double beamSizeEstimate;
   double theoreticBeamSize, psfNormalizationFactor;
+  // For dd psf mode, this is the facet index that holds the central
+  // psf.
+  std::size_t centralPsfIndex;
 };
 
 /**
