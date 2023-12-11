@@ -139,23 +139,14 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
 
-  GriddingTask task;
+  GriddingTask task = createGriddingTask(entry);
   task.operation = GriddingTask::Invert;
   task.imagePSF = true;
   task.polarization = entry.polarization;
   task.subtractModel = false;
   task.verbose = _isFirstInversion;
-  task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
-  task.observationInfo = _observationInfo;
-  task.facet = entry.facet;
-  task.facetIndex = entry.facetIndex;
-  task.facetGroupIndex = entry.facetGroupIndex;
-  task.l_shift = _l_shift;
-  task.m_shift = _m_shift;
-  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
-  initializeMSList(entry, task.msList);
-  task.imageWeights = initializeImageWeights(entry, task.msList);
+
   // during PSF imaging, the average beam will never exist, so it is not
   // necessary to set task.averageBeam
 
@@ -275,7 +266,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   Logger::Info.Flush();
   Logger::Info << " == Constructing image ==\n";
 
-  GriddingTask task;
+  GriddingTask task = createGriddingTask(entry);
   task.operation = GriddingTask::Invert;
   task.imagePSF = false;
   if (_settings.gridderType == GridderType::IDG &&
@@ -286,22 +277,13 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.subtractModel =
       !isFirstInversion || _settings.subtractModel || _settings.continuedRun;
   task.verbose = isFirstInversion && _isFirstInversion;
-  task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights =
       isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
-  initializeMSList(entry, task.msList);
-  task.imageWeights = initializeImageWeights(entry, task.msList);
-  task.observationInfo = _observationInfo;
-  task.facet = entry.facet;
-  task.facetIndex = entry.facetIndex;
-  task.facetGroupIndex = entry.facetGroupIndex;
+
   if (!isFirstInversion && griddingUsesATerms()) {
     task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
                                          entry.outputChannelIndex);
   }
-  task.l_shift = _l_shift;
-  task.m_shift = _m_shift;
-  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -500,25 +482,15 @@ void WSClean::predict(const ImagingTableEntry& entry) {
       }
     }
   }
-  GriddingTask task;
+  GriddingTask task = createGriddingTask(entry);
   task.operation = GriddingTask::Predict;
   task.polarization =
       isFullStokes ? Polarization::FullStokes : entry.polarization;
-  task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.verbose = false;
   task.storeImagingWeights = false;
   task.modelImages = std::move(modelImages);
-  initializeMSList(entry, task.msList);
-  task.imageWeights = initializeImageWeights(entry, task.msList);
-  task.observationInfo = _observationInfo;
-  task.facet = entry.facet;
-  task.facetIndex = entry.facetIndex;
-  task.facetGroupIndex = entry.facetGroupIndex;
   task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
                                        entry.outputChannelIndex);
-  task.l_shift = _l_shift;
-  task.m_shift = _m_shift;
-  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -543,12 +515,33 @@ std::pair<double, double> WSClean::getLMShift() const {
   return std::make_pair(l_shift, m_shift);
 }
 
-void WSClean::applyFacetPhaseShift(const ImagingTableEntry& entry,
-                                   double& l_shift, double& m_shift) const {
+// Common code for initializing a task from an entry.
+// After this function, the remaining task fields should be initialized.
+GriddingTask WSClean::createGriddingTask(const ImagingTableEntry& entry) {
+  GriddingTask task;
+
+  task.observationInfo = _observationInfo;
+
   if (entry.facet) {
-    l_shift -= entry.centreShiftX * _settings.pixelScaleX;
-    m_shift += entry.centreShiftY * _settings.pixelScaleY;
+    const double l_shift =
+        _l_shift - entry.centreShiftX * _settings.pixelScaleX;
+    const double m_shift =
+        _m_shift + entry.centreShiftY * _settings.pixelScaleY;
+    task.facets.emplace_back(entry.facetIndex, l_shift, m_shift,
+                             std::move(_msGridderMetaCache[entry.index]),
+                             entry.facet);
+  } else {
+    assert(entry.facetIndex == 0);
+    task.facets.emplace_back(0, _l_shift, _m_shift,
+                             std::move(_msGridderMetaCache[entry.index]),
+                             nullptr);
   }
+  task.facetGroupIndex = entry.facetGroupIndex;
+
+  initializeMSList(entry, task.msList);
+  task.imageWeights = initializeImageWeights(entry, task.msList);
+
+  return task;
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(

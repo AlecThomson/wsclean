@@ -112,8 +112,7 @@ class WSClean {
 
   std::pair<double, double> getLMShift() const;
 
-  void applyFacetPhaseShift(const ImagingTableEntry& entry, double& l_shift,
-                            double& m_shift) const;
+  GriddingTask createGriddingTask(const ImagingTableEntry& entry);
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);

@@ -71,25 +71,30 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   }
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  gridder.SetIsFacet(task.facet != nullptr);
-  if (task.facet != nullptr) {
-    gridder.SetFacetIndex(task.facetIndex);
-    gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
-    gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
-    gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),
-                        task.facet->GetTrimmedBoundingBox().Height());
-    gridder.SetFacetDirection(task.facet->RA(), task.facet->Dec());
+  const schaapcommon::facets::Facet* facet = task.facets.front().facet.get();
+  gridder.SetIsFacet(facet != nullptr);
+  if (facet) {
+    gridder.SetFacetIndex(task.facets.front().index);
+    gridder.SetImageWidth(facet->GetUntrimmedBoundingBox().Width());
+    gridder.SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
+    gridder.SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
+                        facet->GetTrimmedBoundingBox().Height());
+    gridder.SetFacetDirection(facet->RA(), facet->Dec());
   } else {
     gridder.SetImageWidth(_settings.paddedImageWidth);
     gridder.SetImageHeight(_settings.paddedImageHeight);
     gridder.SetTrimSize(_settings.trimmedImageWidth,
                         _settings.trimmedImageHeight);
   }
+  gridder.SetLShift(task.facets.front().l_shift);
+  gridder.SetMShift(task.facets.front().m_shift);
+  std::unique_ptr<MetaDataCache> cache = std::move(task.facets.front().cache);
+  if (!cache) cache = std::make_unique<MetaDataCache>();
+  gridder.SetMetaDataCache(std::move(cache));
+
   gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
-  gridder.SetLShift(task.l_shift);
-  gridder.SetMShift(task.m_shift);
 
   if (_settings.hasShift) {
     double main_image_dl = 0.0;
@@ -106,11 +111,6 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
   gridder.SetIsFirstIteration(task.verbose);
-  if (task.cache)
-    gridder.SetMetaDataCache(std::move(task.cache));
-  else
-    gridder.SetMetaDataCache(
-        std::unique_ptr<MetaDataCache>(new MetaDataCache()));
   gridder.SetImageWeights(task.imageWeights.get());
   if (task.operation == GriddingTask::Invert) {
     if (task.imagePSF) {
