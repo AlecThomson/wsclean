@@ -38,8 +38,7 @@ class ImageWeights {
     uvToXY(u, v, x, y);
 
     if (isWithinLimits(x, y)) {
-      size_t index = (size_t)x + (size_t)y * _imageWidth;
-      _grid[index] += weight;
+      _grid[size_t(x) + size_t(y) * _imageWidth] += weight;
       _totalSum += weight;
     }
   }
@@ -80,7 +79,7 @@ class ImageWeights {
   }
 
   void xyToUV(int x, int y, double& u, double& v) const {
-    if (y < 0.0) {
+    if (y < 0) {
       x = -x;
       y = -y;
     }
@@ -90,6 +89,7 @@ class ImageWeights {
   }
 
   bool isWithinLimits(int x, int y) const {
+    assert(y >= 0);  // uvToXY never returns negative y values.
     return x >= 0 && x < int(_imageWidth) && y < int(_imageHeight / 2);
   }
 
@@ -97,7 +97,7 @@ class ImageWeights {
     int x, y;
     uvToXY(u, v, x, y);
     if (isWithinLimits(x, y))
-      return _grid[(size_t)x + (size_t)y * _imageWidth];
+      return _grid[size_t(x) + size_t(y) * _imageWidth];
     else {
       return 0.0;
     }
