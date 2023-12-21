@@ -1,6 +1,7 @@
 #ifndef IMAGE_WEIGHTS_H
 #define IMAGE_WEIGHTS_H
 
+#include <cassert>
 #include <cstddef>
 #include <complex>
 
