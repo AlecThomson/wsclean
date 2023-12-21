@@ -34,17 +34,11 @@ class GriddingTask {
   bool subtractModel;
   aocommon::PolarizationEnum polarization;
   bool verbose;
-  std::unique_ptr<AverageBeam> averageBeam;
   bool storeImagingWeights;
 
   std::shared_ptr<ImageWeights> imageWeights;
   std::vector<std::unique_ptr<MSDataDescription>> msList;
 
-  /**
-   * Images for prediction. See the documentation of
-   * @ref GriddingResult::images for an explanation of why this is a vector.
-   */
-  std::vector<aocommon::Image> modelImages;
   ObservationInfo observationInfo;
 
   struct FacetData {
@@ -55,20 +49,20 @@ class GriddingTask {
     explicit FacetData(
         size_t _index, double _l_shift, double _m_shift,
         std::unique_ptr<MetaDataCache> _cache,
-        const std::shared_ptr<schaapcommon::facets::Facet>& _facet)
-        : index(_index),
-          l_shift(_l_shift),
-          m_shift(_m_shift),
-          cache(std::move(_cache)),
-          facet(_facet) {}
+        const std::shared_ptr<schaapcommon::facets::Facet>& _facet);
 
     void Serialize(aocommon::SerialOStream& stream) const;
     void Unserialize(aocommon::SerialIStream& stream);
+
+    /// Images for prediction. The documentation of
+    /// @ref GriddingResult::FacetData::images explains why it is a vector.
+    std::vector<aocommon::Image> modelImages;
 
     size_t index;    ///< Index of the facet, between zero and n_facets.
     double l_shift;  ///< l_shift, adjusted to the center of the facet.
     double m_shift;  ///< m_shift, adjusted to the center of the facet.
     std::unique_ptr<MetaDataCache> cache;
+    std::unique_ptr<AverageBeam> averageBeam;
     /// The facet itself. If null, faceting is disabled.
     std::shared_ptr<schaapcommon::facets::Facet> facet;
   };

@@ -57,24 +57,27 @@ GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
 
 GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
                                               MSGridderBase& gridder) {
+  GriddingTask::FacetData& facet_task = task.facets.front();
+
   gridder.ClearMeasurementSetList();
   std::vector<std::unique_ptr<MSProvider>> msProviders;
   for (auto& p : task.msList) {
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
-  const bool has_input_average_beam(task.averageBeam);
+
+  const bool has_input_average_beam(facet_task.averageBeam);
   if (has_input_average_beam) {
     assert(dynamic_cast<IdgMsGridder*>(&gridder));
     IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(gridder);
-    idgGridder.SetAverageBeam(std::move(task.averageBeam));
+    idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
   }
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  const schaapcommon::facets::Facet* facet = task.facets.front().facet.get();
+  const schaapcommon::facets::Facet* facet = facet_task.facet.get();
   gridder.SetIsFacet(facet != nullptr);
   if (facet) {
-    gridder.SetFacetIndex(task.facets.front().index);
+    gridder.SetFacetIndex(facet_task.index);
     gridder.SetImageWidth(facet->GetUntrimmedBoundingBox().Width());
     gridder.SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
@@ -86,9 +89,9 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetTrimSize(_settings.trimmedImageWidth,
                         _settings.trimmedImageHeight);
   }
-  gridder.SetLShift(task.facets.front().l_shift);
-  gridder.SetMShift(task.facets.front().m_shift);
-  std::unique_ptr<MetaDataCache> cache = std::move(task.facets.front().cache);
+  gridder.SetLShift(facet_task.l_shift);
+  gridder.SetMShift(facet_task.m_shift);
+  std::unique_ptr<MetaDataCache> cache = std::move(facet_task.cache);
   if (!cache) cache = std::make_unique<MetaDataCache>();
   gridder.SetMetaDataCache(std::move(cache));
 
@@ -127,27 +130,28 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.Invert();
   } else {
     gridder.SetWriterLockManager(this);
-    gridder.Predict(std::move(task.modelImages));
+    gridder.Predict(std::move(facet_task.modelImages));
   }
 
   GriddingResult result;
-  result.images = gridder.ResultImages();
+  GriddingResult::FacetData& facet_result = result.facets.front();
+  facet_result.images = gridder.ResultImages();
   result.startTime = gridder.StartTime();
   result.beamSize = gridder.BeamSize();
-  result.imageWeight = gridder.ImageWeight();
-  result.normalizationFactor = gridder.NormalizationFactor();
-  result.actualWGridSize = gridder.ActualWGridSize();
+  facet_result.imageWeight = gridder.ImageWeight();
+  facet_result.normalizationFactor = gridder.NormalizationFactor();
+  facet_result.actualWGridSize = gridder.ActualWGridSize();
   result.griddedVisibilityCount = gridder.GriddedVisibilityCount();
-  result.effectiveGriddedVisibilityCount =
+  facet_result.effectiveGriddedVisibilityCount =
       gridder.EffectiveGriddedVisibilityCount();
   result.visibilityWeightSum = gridder.VisibilityWeightSum();
-  result.cache = gridder.AcquireMetaDataCache();
+  facet_result.cache = gridder.AcquireMetaDataCache();
 
   // If the average beam already exists on input, IDG will not recompute it, so
   // in that case there is no need to return the unchanged average beam.
   IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(&gridder);
   if (idgGridder && !has_input_average_beam) {
-    result.averageBeam = idgGridder->ReleaseAverageBeam();
+    facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
   }
   return result;
 }

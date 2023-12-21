@@ -235,6 +235,14 @@ class MSGridderBase {
     return _l_shift != 0.0 || _m_shift != 0.0;
   }
   double ImageWeight() const { return _totalWeight; }
+  /**
+   * @return The normalization factor, which is always equal to
+   * the image weight in the current implementation.
+   *
+   * This interface has separate ImageWeight and NormalizationFactor functions
+   * since they are conceptually different and the implementation of
+   * NormalizationFactor may change in the future.
+   */
   double NormalizationFactor() const { return _totalWeight; }
   double BeamSize() const { return _theoreticalBeamSize; }
 

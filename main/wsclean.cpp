@@ -100,14 +100,15 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
   reader.Read(psfImage.Data());
 
   GriddingResult result;
-  result.images = {std::move(psfImage)};
-  result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
+  GriddingResult::FacetData& facet_result = result.facets.front();
+  facet_result.images = {std::move(psfImage)};
+  facet_result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
   double nVis = 0.0;
   reader.ReadDoubleKeyIfExists("WSCNVIS", nVis);
   result.griddedVisibilityCount = nVis;
   reader.ReadDoubleKeyIfExists("WSCENVIS",
-                               result.effectiveGriddedVisibilityCount);
+                               facet_result.effectiveGriddedVisibilityCount);
   return result;
 }
 
@@ -158,29 +159,32 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
 
 void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                                GriddingResult& result) {
+  GriddingResult::FacetData& facet_result = result.facets.front();
+
   const size_t channelIndex = entry.outputChannelIndex;
-  entry.imageWeight = result.imageWeight;
-  entry.normalizationFactor = result.normalizationFactor;
+  entry.imageWeight = facet_result.imageWeight;
+  entry.normalizationFactor = facet_result.normalizationFactor;
   _infoPerChannel[channelIndex].beamSizeEstimate = result.beamSize;
   _infoPerChannel[channelIndex].weight = entry.imageWeight;
   _infoPerChannel[channelIndex].normalizationFactor = entry.normalizationFactor;
-  _infoPerChannel[channelIndex].wGridSize = result.actualWGridSize;
+  _infoPerChannel[channelIndex].wGridSize = facet_result.actualWGridSize;
   _infoPerChannel[channelIndex].visibilityCount = result.griddedVisibilityCount;
   _infoPerChannel[channelIndex].effectiveVisibilityCount =
-      result.effectiveGriddedVisibilityCount;
+      facet_result.effectiveGriddedVisibilityCount;
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
-  _msGridderMetaCache[entry.index] = std::move(result.cache);
+  _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
 
   if (entry.isDdPsf || _facetCount == 0)
-    processFullPSF(result.images[0], entry);
+    processFullPSF(facet_result.images[0], entry);
 
   _lastStartTime = result.startTime;
 
   _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
-  _psfImages.StoreFacet(result.images[0], *_settings.polarizations.begin(),
-                        channelIndex, entry.facetIndex, entry.facet, false);
+  _psfImages.StoreFacet(facet_result.images[0],
+                        *_settings.polarizations.begin(), channelIndex,
+                        entry.facetIndex, entry.facet, false);
 
   _isFirstInversion = false;
 }
@@ -267,6 +271,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   Logger::Info << " == Constructing image ==\n";
 
   GriddingTask task = createGriddingTask(entry);
+  GriddingTask::FacetData& facet_task = task.facets.front();
   task.operation = GriddingTask::Invert;
   task.imagePSF = false;
   if (_settings.gridderType == GridderType::IDG &&
@@ -281,8 +286,8 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
       isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
 
   if (!isFirstInversion && griddingUsesATerms()) {
-    task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                         entry.outputChannelIndex);
+    facet_task.averageBeam = AverageBeam::Load(
+        _scalarBeamImages, _matrixBeamImages, entry.outputChannelIndex);
   }
 
   _griddingTaskManager->Run(
@@ -295,14 +300,15 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
 void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 GriddingResult& result, bool updateBeamInfo,
                                 bool isInitialInversion) {
+  GriddingResult::FacetData& facet_result = result.facets.front();
   size_t joinedChannelIndex = entry.outputChannelIndex;
 
-  _msGridderMetaCache[entry.index] = std::move(result.cache);
-  entry.imageWeight = result.imageWeight;
-  entry.normalizationFactor = result.normalizationFactor;
-  _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
+  _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
+  entry.imageWeight = facet_result.imageWeight;
+  entry.normalizationFactor = facet_result.normalizationFactor;
+  _infoPerChannel[entry.outputChannelIndex].weight = facet_result.imageWeight;
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
-      result.normalizationFactor;
+      facet_result.normalizationFactor;
 
   _lastStartTime = result.startTime;
 
@@ -336,14 +342,15 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   if (_settings.gridderType == GridderType::IDG &&
       _settings.polarizations.size() != 1) {
     assert(result.images.size() == _settings.polarizations.size());
-    imageList.reserve(result.images.size());
+    imageList.reserve(facet_result.images.size());
     auto polIter = _settings.polarizations.begin();
-    for (size_t polIndex = 0; polIndex != result.images.size();
+    for (size_t polIndex = 0; polIndex != facet_result.images.size();
          ++polIndex, ++polIter)
       imageList.emplace_back(
-          *polIter, std::vector<Image>{std::move(result.images[polIndex])});
+          *polIter,
+          std::vector<Image>{std::move(facet_result.images[polIndex])});
   } else {
-    imageList.emplace_back(entry.polarization, std::move(result.images));
+    imageList.emplace_back(entry.polarization, std::move(facet_result.images));
   }
 
   for (PolImagesPair& polImagePair : imageList) {
@@ -387,13 +394,13 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
     }
   }
 
-  storeAverageBeam(entry, result.averageBeam);
+  storeAverageBeam(entry, facet_result.averageBeam);
 
   if (isInitialInversion && griddingUsesATerms()) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
-    if (!result.averageBeam || result.averageBeam->Empty()) {
+    if (!facet_result.averageBeam || facet_result.averageBeam->Empty()) {
       throw std::runtime_error(
           "Trying to write the IDG beam while the beam has not been computed "
           "yet.");
@@ -401,7 +408,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
     IdgMsGridder::SaveBeamImage(entry, imageName, _settings,
                                 _observationInfo.phaseCentreRA,
                                 _observationInfo.phaseCentreDec, _l_shift,
-                                _m_shift, *result.averageBeam);
+                                _m_shift, *facet_result.averageBeam);
   }
 }
 
@@ -483,17 +490,19 @@ void WSClean::predict(const ImagingTableEntry& entry) {
     }
   }
   GriddingTask task = createGriddingTask(entry);
+  GriddingTask::FacetData& facet_task = task.facets.front();
   task.operation = GriddingTask::Predict;
   task.polarization =
       isFullStokes ? Polarization::FullStokes : entry.polarization;
   task.verbose = false;
   task.storeImagingWeights = false;
-  task.modelImages = std::move(modelImages);
-  task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                       entry.outputChannelIndex);
+  facet_task.modelImages = std::move(modelImages);
+  facet_task.averageBeam = AverageBeam::Load(
+      _scalarBeamImages, _matrixBeamImages, entry.outputChannelIndex);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
-        _msGridderMetaCache[entry.index] = std::move(result.cache);
+        GriddingResult::FacetData& facet_result = result.facets.front();
+        _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
       });
 }
 

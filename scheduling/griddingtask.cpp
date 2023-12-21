@@ -19,9 +19,9 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
       .Bool(subtractModel)
       .UInt32(polarization)
       .Bool(verbose)
-      .Ptr(averageBeam)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
+      .Object(observationInfo)
       .ObjectVector(facets)
       .UInt64(facetGroupIndex);
 
@@ -29,8 +29,6 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt64(msList.size());
   for (const std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc->Serialize(stream);
-
-  stream.ObjectVector(modelImages).Object(observationInfo);
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
@@ -38,9 +36,9 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   stream.Bool(imagePSF).Bool(subtractModel);
   polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());
   stream.Bool(verbose)
-      .Ptr(averageBeam)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
+      .Object(observationInfo)
       .ObjectVector(facets)
       .UInt64(facetGroupIndex);
 
@@ -50,14 +48,34 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   msList.resize(stream.UInt64());
   for (std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc = MSDataDescription::Unserialize(stream);
-
-  stream.ObjectVector(modelImages).Object(observationInfo);
 }
 
+GriddingTask::FacetData::FacetData(
+    size_t _index, double _l_shift, double _m_shift,
+    std::unique_ptr<MetaDataCache> _cache,
+    const std::shared_ptr<schaapcommon::facets::Facet>& _facet)
+    : index(_index),
+      l_shift(_l_shift),
+      m_shift(_m_shift),
+      cache(std::move(_cache)),
+      facet(_facet) {}
+
 void GriddingTask::FacetData::Serialize(aocommon::SerialOStream& stream) const {
-  stream.UInt64(index).Double(l_shift).Double(m_shift).Ptr(cache).Ptr(facet);
+  stream.ObjectVector(modelImages)
+      .UInt64(index)
+      .Double(l_shift)
+      .Double(m_shift)
+      .Ptr(cache)
+      .Ptr(averageBeam)
+      .Ptr(facet);
 }
 
 void GriddingTask::FacetData::Unserialize(aocommon::SerialIStream& stream) {
-  stream.UInt64(index).Double(l_shift).Double(m_shift).Ptr(cache).Ptr(facet);
+  stream.ObjectVector(modelImages)
+      .UInt64(index)
+      .Double(l_shift)
+      .Double(m_shift)
+      .Ptr(cache)
+      .Ptr(averageBeam)
+      .Ptr(facet);
 }
