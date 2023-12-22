@@ -239,7 +239,7 @@ add_definitions(-DHAVE_GSL)
 # Radler
 set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
 set(RADLER_LIB
-    ${RADLER_INSTALL_PREFIX}/lib/libradler${CMAKE_SHARED_LIBRARY_SUFFIX})
+    ${RADLER_INSTALL_PREFIX}/lib/libradler${CMAKE_STATIC_LIBRARY_SUFFIX})
 ExternalProject_Add(
   radler-module
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
@@ -414,16 +414,17 @@ set(ALL_LIBRARIES
 include("${CMAKE_CURRENT_LIST_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
 check_blas(LIBRARIES ${ALL_LIBRARIES})
 # Radler lib cannot be checked on BLAS consistenty as it doesn't exist
-# at cmake time.
-list(APPEND ALL_LIBRARIES ${RADLER_LIB})
+# at cmake time. It needs to be first in the link order because Radler
+# itself also depends on some of the libraries in the ALL_LIBRARIES list.
+list(PREPEND ALL_LIBRARIES ${RADLER_LIB})
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
-target_link_libraries(wsclean-lib PRIVATE pybind11::embed ${ALL_LIBRARIES})
+target_link_libraries(wsclean-lib PRIVATE ${ALL_LIBRARIES} pybind11::embed)
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED ${WSCLEANFILES})
-target_link_libraries(wsclean-shared PRIVATE pybind11::embed ${ALL_LIBRARIES})
+target_link_libraries(wsclean-shared PRIVATE ${ALL_LIBRARIES} pybind11::embed)
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_executable(wsclean main/main.cpp)
@@ -450,9 +451,6 @@ install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
 install(TARGETS chgcentre DESTINATION bin)
 install(FILES interface/wscleaninterface.h DESTINATION include)
-# Installing the radler library to ${CMAKE_INSTALL_FULL_LIBDIR}
-# ensures that users do not manually have to set the LD_LIBRARY_PATH
-install(FILES ${RADLER_LIB} DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
 
 if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)

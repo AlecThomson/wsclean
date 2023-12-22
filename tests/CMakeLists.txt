@@ -89,7 +89,7 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
-set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
+set(TEST_LIBRARIES ${ALL_LIBRARIES} pybind11::embed
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
