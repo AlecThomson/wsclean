@@ -13,7 +13,7 @@
 #include <limits>
 #include <stdexcept>
 
-//#define EXTRA_ASSERTIONS 1
+// #define EXTRA_ASSERTIONS 1
 
 class SpectralEnergyDistribution {
  public:

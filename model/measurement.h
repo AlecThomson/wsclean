@@ -1,7 +1,7 @@
 #ifndef MODEL_MEASUREMENT_H
 #define MODEL_MEASUREMENT_H
 
-//#define EXTRA_ASSERTIONS 1
+// #define EXTRA_ASSERTIONS 1
 
 #include <cstring>
 #include <array>

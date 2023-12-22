@@ -54,7 +54,6 @@ class ImageWeights {
   void SetEdgeTaper(double sizeInLambda);
   void SetEdgeTukeyTaper(double transitionSizeInLambda,
                          double edgeSizeInLambda);
-  void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
   void SetAllValues(double newValue) { _grid.assign(_grid.size(), newValue); }
   void GetGrid(double* image) const;
@@ -126,7 +125,6 @@ class ImageWeights {
   std::vector<double> _grid;
   double _totalSum;
   bool _isGriddingFinished, _weightsAsTaper;
-  size_t _threadCount;
 };
 
 #endif

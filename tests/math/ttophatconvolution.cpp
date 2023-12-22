@@ -1,5 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
+#include <aocommon/threadpool.h>
+
 #include "../../math/tophatconvolution.h"
 
 using aocommon::Image;
@@ -74,7 +76,8 @@ BOOST_AUTO_TEST_CASE(convolve_single_pixel) {
   constexpr double kRadius = 3.01;
   Image image(kWidth, kHeight, 0.0);
   image[kWidth * ((kHeight - 1) / 2) + (kWidth - 1) / 2] = 3.0;
-  tophat_convolution::Convolve(image, kRadius, 2);
+  aocommon::ThreadPool::GetInstance().SetNThreads(2);
+  tophat_convolution::Convolve(image, kRadius);
   for (size_t i = 0; i != kWidth * kHeight; ++i) {
     // BOOST_CHECK_CLOSE_FRACTION doesn't work when comparing zeros to tiny
     // non-zero values
@@ -97,7 +100,8 @@ BOOST_AUTO_TEST_CASE(convolve_multi_pixel) {
   image[(mid_y + 1) * kWidth + mid_x + 1] = 1.0;
   image[(mid_y + 2) * kWidth + mid_x + 1] = -2.0;
 
-  tophat_convolution::Convolve(image, kRadius, 2);
+  aocommon::ThreadPool::GetInstance().SetNThreads(2);
+  tophat_convolution::Convolve(image, kRadius);
   for (ssize_t y = 0; y != kHeight; ++y) {
     for (ssize_t x = 0; x != kWidth; ++x) {
       const float value_a =

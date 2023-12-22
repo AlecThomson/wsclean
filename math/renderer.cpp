@@ -167,18 +167,20 @@ void RenderModel(aocommon::Image& image,
 
 }  // namespace
 
-void RestoreWithEllipticalBeam(
-    aocommon::Image& image, const ImageCoordinateSettings& image_settings,
-    const Model& model, long double beam_major_axis,
-    long double beam_minor_axis, long double beam_position_angle,
-    long double start_frequency, long double end_frequency,
-    aocommon::PolarizationEnum polarization, size_t thread_count) {
+void RestoreWithEllipticalBeam(aocommon::Image& image,
+                               const ImageCoordinateSettings& image_settings,
+                               const Model& model, long double beam_major_axis,
+                               long double beam_minor_axis,
+                               long double beam_position_angle,
+                               long double start_frequency,
+                               long double end_frequency,
+                               aocommon::PolarizationEnum polarization) {
   aocommon::Image rendered_without_beam(image.Width(), image.Height(), 0.0);
   RenderModel(rendered_without_beam, image_settings, model, start_frequency,
               end_frequency, polarization);
   schaapcommon::fft::RestoreImage(
       image.Data(), rendered_without_beam.Data(), image.Width(), image.Height(),
       beam_major_axis, beam_minor_axis, beam_position_angle,
-      image_settings.pixel_scale_l, image_settings.pixel_scale_m, thread_count);
+      image_settings.pixel_scale_l, image_settings.pixel_scale_m);
 }
 }  // namespace renderer

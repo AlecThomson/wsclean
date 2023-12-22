@@ -8,6 +8,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
 #include <aocommon/radeccoord.h>
+#include <aocommon/threadpool.h>
 #include <aocommon/units/angle.h>
 #include <aocommon/units/fluxdensity.h>
 
@@ -585,7 +586,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
   std::optional<double> atermKernelSize;
-  Logger::SetVerbosity(Logger::kNormalVerbosity);
+  Logger::SetVerbosity(aocommon::LogVerbosityLevel::kNormal);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
@@ -608,9 +609,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       }
       return false;
     } else if (param == "quiet") {
-      Logger::SetVerbosity(Logger::kQuietVerbosity);
+      Logger::SetVerbosity(aocommon::LogVerbosityLevel::kQuiet);
     } else if (param == "v" || param == "verbose") {
-      Logger::SetVerbosity(Logger::kVerboseVerbosity);
+      Logger::SetVerbosity(aocommon::LogVerbosityLevel::kVerbose);
     } else if (param == "log-time") {
       Logger::SetLogTime(true);
     } else if (param == "temp-dir") {
@@ -1342,6 +1343,7 @@ void CommandLine::Validate(WSClean& wsclean) {
 
 void CommandLine::Run(class WSClean& wsclean) {
   const Settings& settings = wsclean.GetSettings();
+  aocommon::ThreadPool::GetInstance().SetNThreads(settings.threadCount);
   switch (settings.mode) {
     case Settings::RestoreMode:
       WSCFitsWriter::Restore(settings);

@@ -17,7 +17,7 @@ class ImageWeightCache {
                    size_t imageHeight, double pixelScaleX, double pixelScaleY,
                    double minUVInLambda, double maxUVInLambda,
                    double rankFilterLevel, size_t rankFilterSize,
-                   bool weightsAsTaper, size_t threadCount)
+                   bool weightsAsTaper)
       : _weightMode(weightMode),
         _imageWidth(imageWidth),
         _imageHeight(imageHeight),
@@ -33,7 +33,6 @@ class ImageWeightCache {
         _edgeTaperInLambda(0),
         _edgeTukeyTaperInLambda(0),
         _weightsAsTaper(weightsAsTaper),
-        _threadCount(threadCount),
         _currentWeightChannel(std::numeric_limits<size_t>::max()),
         _currentWeightInterval(std::numeric_limits<size_t>::max()) {}
 
@@ -46,8 +45,6 @@ class ImageWeightCache {
     _edgeTaperInLambda = edgeTaperInLambda;
     _edgeTukeyTaperInLambda = edgeTukeyTaperInLambda;
   }
-
-  void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
   std::shared_ptr<ImageWeights> Get(
       const std::vector<std::unique_ptr<MSDataDescription>>& msList,
@@ -69,7 +66,6 @@ class ImageWeightCache {
     std::unique_ptr<ImageWeights> weights(new ImageWeights(
         _weightMode, _imageWidth, _imageHeight, _pixelScaleX, _pixelScaleY,
         _weightsAsTaper, _weightMode.SuperWeight()));
-    weights->SetThreadCount(_threadCount);
     return weights;
   };
 
@@ -143,7 +139,6 @@ class ImageWeightCache {
   double _edgeTukeyTaperInLambda;
   bool _weightsAsTaper;
   std::mutex _mutex;
-  size_t _threadCount;
 
   size_t _currentWeightChannel, _currentWeightInterval;
 };

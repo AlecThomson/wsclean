@@ -8,7 +8,7 @@ namespace tophat_convolution {
 /**
  * Perform a convolution with a radial tophat with a given radius (in pixels).
  */
-void Convolve(aocommon::Image& input, double radius, size_t n_threads);
+void Convolve(aocommon::Image& input, double radius);
 
 /**
  * Produce an image with a radial tophat function. This means that

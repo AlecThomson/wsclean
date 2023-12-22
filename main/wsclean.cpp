@@ -34,11 +34,12 @@
 
 #include "progressbar.h"
 
+#include <aocommon/counting_semaphore.h>
+#include <aocommon/dynamicfor.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 #include <aocommon/uvector.h>
-#include <aocommon/parallelfor.h>
 #include <aocommon/units/angle.h>
 
 #include <schaapcommon/facets/facetimage.h>
@@ -644,8 +645,10 @@ void WSClean::performReordering(bool isPredictMode) {
 
   if (_settings.parallelReordering != 1) Logger::Info << "Reordering...\n";
 
-  aocommon::ParallelFor<size_t> loop(_settings.parallelReordering);
+  aocommon::CountingSemaphore semaphore(_settings.parallelReordering);
+  aocommon::DynamicFor<size_t> loop;
   loop.Run(0, _settings.filenames.size(), [&](size_t msIndex) {
+    aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<PartitionedMS::ChannelRange> channels;
     // The partIndex needs to increase per data desc ids and channel ranges
     std::map<PolarizationEnum, size_t> nextIndex;
@@ -901,7 +904,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
       _settings.paddedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY,
       _settings.minUVInLambda, _settings.maxUVInLambda,
       _settings.rankFilterLevel, _settings.rankFilterSize,
-      _settings.useWeightsAsTaper, _settings.threadCount));
+      _settings.useWeightsAsTaper));
   cache->SetTaperInfo(
       _settings.gaussianTaperBeamSize, _settings.tukeyTaperInLambda,
       _settings.tukeyInnerTaperInLambda, _settings.edgeTaperInLambda,
@@ -1114,7 +1117,7 @@ void WSClean::saveRestoredImagesForGroup(
     schaapcommon::fft::RestoreImage(
         restoredImage.Data(), modelImage.Data(), _settings.trimmedImageWidth,
         _settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
-        _settings.pixelScaleX, _settings.pixelScaleY, _settings.threadCount);
+        _settings.pixelScaleX, _settings.pixelScaleY);
     Logger::Info << "DONE\n";
     modelImage.Reset();
 
@@ -1898,7 +1901,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                              facet.GetTrimmedBoundingBox().Max().y);
         mask = mask.Pad(left, top, right, bottom);
       }
-      tophat_convolution::Convolve(mask, feather_size, _settings.threadCount);
+      tophat_convolution::Convolve(mask, feather_size);
       if (needs_padding) {
         mask = mask.TrimBox(left, top, facet.GetTrimmedBoundingBox().Width(),
                             facet.GetTrimmedBoundingBox().Height());

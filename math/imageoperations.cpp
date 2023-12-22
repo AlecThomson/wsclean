@@ -217,7 +217,7 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
   schaapcommon::fft::RestoreImage(
       image.data(), modelImage.data(), settings.trimmedImageWidth,
       settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
-      settings.pixelScaleX, settings.pixelScaleY, settings.threadCount);
+      settings.pixelScaleX, settings.pixelScaleY);
   Logger::Info << "DONE\n";
 
   Logger::Info << "Writing " << mfs_prefix << "-image" << postfix << "...\n";

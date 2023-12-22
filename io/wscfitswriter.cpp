@@ -258,7 +258,7 @@ void WSCFitsWriter::Restore(const Settings& settings) {
   schaapcommon::fft::RestoreImage(
       image.data(), model.data(), imgReader.ImageWidth(),
       imgReader.ImageHeight(), beamMaj, beamMin, beamPA, imgReader.PixelSizeX(),
-      imgReader.PixelSizeY(), settings.threadCount);
+      imgReader.PixelSizeY());
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
@@ -289,7 +289,7 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   renderer::RestoreWithEllipticalBeam(
       image, imageSettings, model, beamMaj, beamMin, beamPA,
       frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
-      aocommon::Polarization::StokesI, settings.threadCount);
+      aocommon::Polarization::StokesI);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);

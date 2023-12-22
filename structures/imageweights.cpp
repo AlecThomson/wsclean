@@ -27,8 +27,7 @@ ImageWeights::ImageWeights()
       _pixelScaleY(0),
       _totalSum(0.0),
       _isGriddingFinished(false),
-      _weightsAsTaper(false),
-      _threadCount(aocommon::system::ProcessorCount()) {}
+      _weightsAsTaper(false) {}
 
 ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
                            size_t imageHeight, double pixelScaleX,
@@ -41,8 +40,7 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
       _pixelScaleY(pixelScaleY),
       _totalSum(0.0),
       _isGriddingFinished(false),
-      _weightsAsTaper(weightsAsTaper),
-      _threadCount(aocommon::system::ProcessorCount()) {
+      _weightsAsTaper(weightsAsTaper) {
   if (_imageWidth % 2 != 0) ++_imageWidth;
   if (_imageHeight % 2 != 0) ++_imageHeight;
   _grid.assign(_imageWidth * _imageHeight / 2, 0.0);
@@ -149,7 +147,7 @@ void ImageWeights::FinishGridding() {
 void ImageWeights::SetMinUVRange(double minUVInLambda) {
   const double minSq = minUVInLambda * minUVInLambda;
   int halfWidth = _imageWidth / 2;
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -167,7 +165,7 @@ void ImageWeights::SetMinUVRange(double minUVInLambda) {
 void ImageWeights::SetMaxUVRange(double maxUVInLambda) {
   const double maxSq = maxUVInLambda * maxUVInLambda;
   int halfWidth = _imageWidth / 2;
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -187,7 +185,7 @@ void ImageWeights::SetTukeyTaper(double transitionSizeInLambda,
   const double maxUVSq = maxUVInLambda * maxUVInLambda;
   const double transitionDistSq = (maxUVInLambda - transitionSizeInLambda) *
                                   (maxUVInLambda - transitionSizeInLambda);
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -212,7 +210,7 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda,
   const double minUVSq = minUVInLambda * minUVInLambda;
   const double totalSizeSq = (minUVInLambda + transitionSizeInLambda) *
                              (minUVInLambda + transitionSizeInLambda);
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -235,7 +233,7 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda,
 void ImageWeights::SetEdgeTaper(double sizeInLambda) {
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -256,7 +254,7 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda,
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
   double totalSize = transitionSizeInLambda + edgeSizeInLambda;
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -282,7 +280,7 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda,
 }
 
 void ImageWeights::GetGrid(double* image) const {
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     const double* srcPtr = _grid.data() + (yStart * _imageWidth);
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -309,7 +307,7 @@ void ImageWeights::Save(const string& filename) const {
 
 void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
   std::vector<double> newGrid(_grid);
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     for (size_t y = yStart; y != yEnd; ++y) {
       for (size_t x = 0; x != _imageWidth; ++x) {
@@ -334,7 +332,7 @@ void ImageWeights::SetGaussianTaper(double beamSize) {
   double minusTwoSigmaSq = halfPowerUV * sigmaToHP;
   aocommon::Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
   minusTwoSigmaSq *= -2.0 * minusTwoSigmaSq;
-  aocommon::StaticFor<size_t> loop(_threadCount);
+  aocommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     for (size_t y = yStart; y != yEnd; ++y) {
       for (size_t x = 0; x != _imageWidth; ++x) {
