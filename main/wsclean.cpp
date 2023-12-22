@@ -611,7 +611,7 @@ void WSClean::initializeMFImageWeights() {
             getProviderPolarization(*_settings.polarizations.begin());
         ContiguousMS msProvider(_settings.filenames[i],
                                 _settings.dataColumnName, _globalSelection, pol,
-                                d, _settings.useMPI);
+                                d, _settings.UseMpi());
         aocommon::BandData selectedBand = _msBands[i][d];
         if (_globalSelection.HasChannelRange())
           selectedBand = aocommon::BandData(
@@ -1473,11 +1473,11 @@ void WSClean::initializeMSList(
           dataDescription = MSDataDescription::ForPartitioned(
               _partitionedMSHandles[msIndex], selection,
               entry.msData[msIndex].bands[dataDescId].partIndex, pol,
-              dataDescId, _settings.useMPI);
+              dataDescId, _settings.UseMpi());
         else
           dataDescription = MSDataDescription::ForContiguous(
               _settings.filenames[msIndex], _settings.dataColumnName, selection,
-              pol, dataDescId, _settings.useMPI);
+              pol, dataDescId, _settings.UseMpi());
         msList.emplace_back(std::move(dataDescription));
       }
     }

@@ -208,12 +208,33 @@ void Settings::Validate() const {
     }
   }
 
-  if (useMPI && parallelGridding > 1) {
-    throw std::runtime_error(
-        "MPI can not be combined with the parallel gridding option. When using "
-        "MPI, it is MPI that decides how many tasks to run on each node. "
-        "Multiple gridders can run on a single node by telling MPI (e.g. using "
-        "a hostfile) to run multiple tasks on that node.");
+  if (UseMpi()) {
+    if (parallelGridding > 1) {
+      throw std::runtime_error(
+          "MPI can not be combined with the parallel gridding option. "
+          "When using MPI, it is MPI that decides how many tasks to run on "
+          "each node. "
+          "Multiple gridders can run on a single node by telling MPI (e.g. "
+          "using a hostfile) to run multiple tasks on that node.");
+    }
+    if (!masterDoesWork && nMpiNodes <= 1) {
+      throw std::runtime_error(
+          "Master was told not to work, but no other workers available.");
+    }
+    if (channelToNode.size() != channelsOut) {
+      throw std::runtime_error(
+          "Channel-to-node map should have exactly channels-out entries.");
+    }
+    for (size_t node : channelToNode) {
+      if (!masterDoesWork && node == 0) {
+        throw std::runtime_error(
+            "Master was told not to work, but the channel-to-node map assigned "
+            "a channel to node 0.");
+      }
+      if (node >= nMpiNodes) {
+        throw std::runtime_error("Invalid node number in channel-to-node map.");
+      }
+    }
   }
 
   if (gridWithBeam && gridderType != GridderType::IDG)

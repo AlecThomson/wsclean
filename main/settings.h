@@ -54,17 +54,21 @@ class Settings {
   double beamFittingBoxSize;
   bool continuedRun;
   double memFraction, absMemLimit;
-  double minUVWInMeters, maxUVWInMeters, minUVInLambda, maxUVInLambda, wLimit,
-      rankFilterLevel;
+  double minUVWInMeters, maxUVWInMeters, minUVInLambda, maxUVInLambda;
+  double wLimit;
+  double rankFilterLevel;
   size_t rankFilterSize;
   double gaussianTaperBeamSize, tukeyTaperInLambda, tukeyInnerTaperInLambda,
       edgeTaperInLambda, edgeTukeyTaperInLambda;
   bool useWeightsAsTaper;
   size_t nWLayers;
   double nWLayersFactor;
-  size_t antialiasingKernelSize, overSamplingFactor, threadCount,
-      parallelReordering, parallelGridding;
-  bool useMPI, masterDoesWork;
+  size_t antialiasingKernelSize, overSamplingFactor;
+  size_t threadCount, parallelReordering, parallelGridding;
+  size_t nMpiNodes;  // 0 if MPI is disabled.
+  bool masterDoesWork;
+  /// Maps output channel indices to node indices, when using MPI.
+  std::vector<size_t> channelToNode;
   std::vector<size_t> fieldIds;
   size_t startTimestep, endTimestep;
   size_t startChannel, endChannel;
@@ -86,11 +90,8 @@ class Settings {
   bool forceReorder, forceNoReorder, doReorder;
   bool subtractModel, modelUpdateRequired, mfWeighting;
   size_t fullResOffset, fullResWidth, fullResPad;
-  std::string beamModel;
-  std::string beamMode;
-  std::string beamNormalisationMode;
-  bool applyPrimaryBeam;
-  bool reusePrimaryBeam;
+  std::string beamModel, beamMode, beamNormalisationMode;
+  bool applyPrimaryBeam, reusePrimaryBeam;
   bool savePsfPb;
   double primaryBeamLimit;
   std::string mwaPath;
@@ -128,8 +129,7 @@ class Settings {
   std::optional<double> absoluteDeconvolutionThreshold;
   std::optional<double> autoMaskSigma;
   std::optional<double> absoluteAutoMaskThreshold;
-  double deconvolutionGain;
-  double deconvolutionMGain;
+  double deconvolutionGain, deconvolutionMGain;
   double localRMSWindow;
   radler::LocalRmsMethod localRMSMethod;
   bool saveSourceList;
@@ -205,6 +205,8 @@ class Settings {
     }
   }
 
+  bool UseMpi() const { return nMpiNodes > 0; }
+
  private:
   void checkPolarizations() const;
   bool determineReorder() const;
@@ -265,8 +267,9 @@ inline Settings::Settings()
       threadCount(aocommon::system::ProcessorCount()),
       parallelReordering(4),
       parallelGridding(1),
-      useMPI(false),
+      nMpiNodes{0},
       masterDoesWork(true),
+      channelToNode(),
       fieldIds{0},
       startTimestep(0),
       endTimestep(0),

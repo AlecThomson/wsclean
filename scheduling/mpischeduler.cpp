@@ -38,9 +38,6 @@ MPIScheduler::MPIScheduler(const Settings &settings)
     _nodes.assign(world_size,
                   std::make_pair(NodeState::kAvailable,
                                  std::function<void(GriddingResult &)>()));
-    if (!settings.masterDoesWork && world_size <= 1)
-      throw std::runtime_error(
-          "Master was told not to work, but no other workers available");
     if (settings.masterDoesWork) {
       _writerLock = std::make_unique<MasterWriterLock>(*this);
     }

@@ -23,7 +23,7 @@ GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
     const class Settings& settings) {
-  if (settings.useMPI) {
+  if (settings.UseMpi()) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
 #else

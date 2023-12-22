@@ -85,3 +85,28 @@ When using a single compute node, using MPI is discouraged, since multi-threaded
 gridding using the ``-parallel-gridding`` is more efficient. When using multiple
 nodes, the best performance is normally achieved using one MPI process per node
 and a number of threads equal to the number of cores per node.
+
+Processing related facets on one node (Work in progress!)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When faceting is enabled, WSClean normally schedules gridding tasks for
+different facets at different compute nodes.
+It then uses a global writer lock for synchronizing updating the visibilities.
+
+For improving scalability, WSClean will soon support scheduling the tasks
+for all facets for a single output channel at a fixed compute node.
+The ``-parallel-gridding`` argument then specifies how many facets each node
+should process in parallel, using multiple threads. Instead of the global
+writer lock, WSClean then uses a local writer lock on each node.
+
+The ``-channel-to-node`` argument specifies the mapping of output channels to
+node. For example, ``-channel-to-node 0,0,1,2`` schedules the tasks for
+output channel indices 0, 1, 2, 3 at compute nodes 0, 0, 1, 2, respectively.
+The length of the list must equal the number of output channels
+(``-channels-out`` argument).
+If ``-no-work-on-master`` is specified, the list may not contain ``0``.
+
+By default, WSClean uses a round-robin distribution of output channels to nodes,
+because later channels are more expensive to grid.
+For example, with 10 output channels, 4 nodes, and an active main node, the
+mapping is 0,1,2,3,0,1,2,3,0,1.

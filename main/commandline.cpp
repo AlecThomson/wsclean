@@ -88,6 +88,9 @@ Options can be:
 -no-work-on-master
    In MPI runs, do not use the master for gridding. This may be useful if the
    resources such as memory of the master are limited.
+-channel-to-node <list>
+   In MPI runs, override the default channel-to-node assignment. The
+   comma-separated list must contain a node index for each output channel.
 -mem <percentage>
    Limit memory usage to the given fraction of the total system memory. This is an approximate value.
    Default: 100.
@@ -268,7 +271,7 @@ Options can be:
    with antenna1 and antenna2 indices and the stddev per line, separated by spaces, e.g. "0 1 3.14".
 -idg-mode [cpu/gpu/hybrid]
    Sets the IDG mode. Default: cpu. Hybrid is recommended when a GPU is available.
-   
+
   ** GRIDDER-SPECIFIC SETTINGS **
 -wstack-nwlayers <nwlayers>
    Number of w-layers to use. Default: minimum suggested #w-layers for first MS.
@@ -1130,6 +1133,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.parallelGridding = ParseSizeT(argv[argi], "parallel-gridding");
     } else if (param == "no-work-on-master") {
       settings.masterDoesWork = false;
+    } else if (param == "channel-to-node") {
+      IncArgi(argi, argc);
+      const aocommon::UVector<int> list = NumberList::ParseIntList(argv[argi]);
+      settings.channelToNode.assign(list.begin(), list.end());
     } else if (param == "mem") {
       IncArgi(argi, argc);
       settings.memFraction = ParseDouble(argv[argi], 0.0, "mem", false) / 100.0;
