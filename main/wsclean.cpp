@@ -694,6 +694,7 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
+  _griddingTaskManager = GriddingTaskManager::Make(_settings);
   _observationInfo = getObservationInfo();
   std::tie(_l_shift, _m_shift) = getLMShift();
 
@@ -763,15 +764,12 @@ void WSClean::RunClean() {
     _imageWeightCache = createWeightCache();
 
     if (_settings.mfWeighting) initializeMFImageWeights();
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
          groupIndex != _imagingTable.IndependentGroupCount(); ++groupIndex) {
       ImagingTable group = _imagingTable.GetIndependentGroup(groupIndex);
       runIndependentGroup(group, primaryBeam);
     }
-
-    _griddingTaskManager.reset();
 
     if (_settings.channelsOut > 1) {
       for (PolarizationEnum pol : _settings.polarizations) {
@@ -932,10 +930,12 @@ void WSClean::RunPredict() {
   //    using the existing facet index in the entries.
 
   assert(!_deconvolution.has_value());
+  _griddingTaskManager = GriddingTaskManager::Make(_settings);
   _observationInfo = getObservationInfo();
+  std::tie(_l_shift, _m_shift) = getLMShift();
+
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets;
   _facetCount = FacetReader::CountFacets(_settings.facetRegionFilename);
-  std::tie(_l_shift, _m_shift) = getLMShift();
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -963,6 +963,8 @@ void WSClean::RunPredict() {
       aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
       if (intervalIndex == 0) {
+        // Delay reading facets since overrideImageSettings may have changed the
+        // image size.
         facets = FacetReader::ReadFacets(
             _settings.facetRegionFilename, _settings.trimmedImageWidth,
             _settings.trimmedImageHeight, _settings.pixelScaleX,
@@ -978,9 +980,7 @@ void WSClean::RunPredict() {
       updateFacetsInImagingTable(facets, false);
     }
 
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
     predictGroup(_imagingTable);
-    _griddingTaskManager.reset();
   }
 }
 
@@ -1318,9 +1318,6 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
       if (!_settings.continuedRun) {
         resetModelColumns(entry);
       }
-      _griddingTaskManager = GriddingTaskManager::Make(_settings);
-      _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                  (maxFacetGroupIndex + 1));
     }
 
     if (!_imageWeightCache) {
@@ -1593,13 +1590,16 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                           _psfImages, _modelImages,
                                           _residualImages);
 
-  ImagingTable tableWithoutDdPsf(
+  const ImagingTable tableWithoutDdPsf(
       groupTable,
       [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
 
   _deconvolution.emplace(_settings.GetRadlerSettings(),
                          std::move(deconvolution_table),
                          minTheoreticalBeamSize(tableWithoutDdPsf));
+
+  _griddingTaskManager->Start(getMaxNrMSProviders() *
+                              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop
@@ -1623,9 +1623,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
         if (requestPolarizationsAtOnce) {
           resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           // Iterate over polarizations, channels & facets
           for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
             // Only request one polarization for each facet/channel. The
@@ -1647,9 +1644,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
         } else if (parallelizePolarizations) {
           resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           for (const ImagingTable::Group& sqGroup :
                tableWithoutDdPsf.SquaredGroups()) {
             for (const ImagingTable::EntryPtr& entry : sqGroup) {
@@ -1671,9 +1665,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
         } else {  // only parallelize channels
           resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           bool hasMore;
           size_t sqIndex = 0;
           do {
