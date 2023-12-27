@@ -491,11 +491,13 @@ double PrimaryBeam::MakeBeamForMS(
   std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =
       telescope->GetGriddedResponse(coordinateSystem);
 
-  // Time array and baseline weights only relevant for LOFAR, MWA (and probably
-  // SKA-LOW). MWA beam needs scrutiny, this telescope might be amenable to a
+  // Time array and baseline weights only relevant for LOFAR, MWA and SKA.
+  // MWA beam needs scrutiny, this telescope might be amenable to a
   // more efficient implementation
   double ms_weight = 0;
   switch (telescope_type) {
+    // These are the telescopes that require time information OR are
+    // heterogenous (not all antennas have the same response)
     case everybeam::TelescopeType::kLofarTelescope:
     case everybeam::TelescopeType::kAARTFAAC:
     case everybeam::TelescopeType::kMWATelescope:
@@ -537,10 +539,8 @@ double PrimaryBeam::MakeBeamForMS(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
           baseline_weights);
     } break;
-    case everybeam::TelescopeType::kATCATelescope:
-    case everybeam::TelescopeType::kGMRTTelescope:
-    case everybeam::TelescopeType::kMeerKATTelescope:
-    case everybeam::TelescopeType::kVLATelescope: {
+    // // Using 'default:' gives compatibility with different EveryBeam versions
+    default: {
       if (telescope_type == everybeam::TelescopeType::kATCATelescope ||
           telescope_type == everybeam::TelescopeType::kGMRTTelescope) {
         Logger::Warn << "Warning: ATCA and GMRT primary beam corrections have "
@@ -564,7 +564,9 @@ double PrimaryBeam::MakeBeamForMS(
           baseline_weights);
     } break;
     case everybeam::TelescopeType::kUnknownTelescope:
-      throw std::runtime_error("Warning: Unknown telescope type!");
+      throw std::runtime_error(
+          "Unknown telescope type! If your telescope is supposed to be "
+          "supported, try upgrading EveryBeam.");
   }
 
   return ms_weight;
