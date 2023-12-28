@@ -16,6 +16,9 @@ BOOST_AUTO_TEST_CASE(empty_gridding_task) {
   GriddingTask a, b;
   a.subtractModel = true;
   b.subtractModel = false;
+  // A task must have at least one facet.
+  a.facets.emplace_back();
+  b.facets.emplace_back();
 
   SerialOStream ostr;
   a.Serialize(ostr);

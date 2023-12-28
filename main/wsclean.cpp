@@ -342,7 +342,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   std::vector<PolImagesPair> imageList;
   if (_settings.gridderType == GridderType::IDG &&
       _settings.polarizations.size() != 1) {
-    assert(result.images.size() == _settings.polarizations.size());
+    assert(facet_result.images.size() == _settings.polarizations.size());
     imageList.reserve(facet_result.images.size());
     auto polIter = _settings.polarizations.begin();
     for (size_t polIndex = 0; polIndex != facet_result.images.size();
