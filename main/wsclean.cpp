@@ -63,7 +63,7 @@ WSClean::WSClean()
       _inversionWatch(false),
       _predictingWatch(false),
       _deconvolutionWatch(false),
-      _isFirstInversion(true),
+      _isFirstInversionTask(true),
       _majorIterationNr(0),
       _psfImages(),
       _modelImages(),
@@ -146,7 +146,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.imagePSF = true;
   task.polarization = entry.polarization;
   task.subtractModel = false;
-  task.verbose = _isFirstInversion;
+  task.isFirstTask = _isFirstInversionTask;
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
 
   // during PSF imaging, the average beam will never exist, so it is not
@@ -186,8 +186,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.StoreFacet(facet_result.images[0],
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
-
-  _isFirstInversion = false;
 }
 
 void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
@@ -280,9 +278,12 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
     task.polarization = Polarization::FullStokes;
   else
     task.polarization = entry.polarization;
+
+  // isFirstInversion is true for all tasks from run(Single)FirstInversion.
+  // _isFirstInversionTask is only true for the first inversion task.
   task.subtractModel =
       !isFirstInversion || _settings.subtractModel || _settings.continuedRun;
-  task.verbose = isFirstInversion && _isFirstInversion;
+  task.isFirstTask = _isFirstInversionTask;
   task.storeImagingWeights =
       isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
 
@@ -296,11 +297,13 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
       [this, &entry, updateBeamInfo, isFirstInversion](GriddingResult& result) {
         imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
       });
+
+  _isFirstInversionTask = false;
 }
 
 void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 GriddingResult& result, bool updateBeamInfo,
-                                bool isInitialInversion) {
+                                bool isFirstInversion) {
   GriddingResult::FacetData& facet_result = result.facets.front();
   size_t joinedChannelIndex = entry.outputChannelIndex;
 
@@ -371,7 +374,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
     }
 
     // If facets are used, stitchFacets() performs these actions.
-    if (isInitialInversion && 0 == _facetCount) {
+    if (isFirstInversion && 0 == _facetCount) {
       // maxFacetGroupIndex is always 1
       const size_t maxFacetGroupIndex = 1;
       initializeModelImages(entry, polarization, maxFacetGroupIndex);
@@ -397,7 +400,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
   storeAverageBeam(entry, facet_result.averageBeam);
 
-  if (isInitialInversion && griddingUsesATerms()) {
+  if (isFirstInversion && griddingUsesATerms()) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
@@ -495,7 +498,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.operation = GriddingTask::Predict;
   task.polarization =
       isFullStokes ? Polarization::FullStokes : entry.polarization;
-  task.verbose = false;
+  task.isFirstTask = false;
   task.storeImagingWeights = false;
   facet_task.modelImages = std::move(modelImages);
   facet_task.averageBeam = AverageBeam::Load(
@@ -1047,6 +1050,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         } else {
           imagePSF(entry);
         }
+        _isFirstInversionTask = false;
       }
     }
     _griddingTaskManager->Finish();
@@ -1580,8 +1584,6 @@ void WSClean::runSingleFirstInversion(
     loadExistingDirty(entry, !doMakePSF);
   else
     imageMain(entry, true, !doMakePSF);
-
-  _isFirstInversion = false;
 }
 
 void WSClean::runMajorIterations(ImagingTable& groupTable,

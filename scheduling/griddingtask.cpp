@@ -18,7 +18,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
       .Bool(imagePSF)
       .Bool(subtractModel)
       .UInt32(polarization)
-      .Bool(verbose)
+      .Bool(isFirstTask)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
       .Object(observationInfo)
@@ -35,7 +35,7 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   operation = static_cast<Operation>(stream.UInt32());
   stream.Bool(imagePSF).Bool(subtractModel);
   polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());
-  stream.Bool(verbose)
+  stream.Bool(isFirstTask)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
       .Object(observationInfo)

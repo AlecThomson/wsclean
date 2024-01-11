@@ -171,7 +171,7 @@ class WSClean {
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                  bool updateBeamInfo);
   void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
-                         bool updateBeamInfo, bool isInitialInversion);
+                         bool updateBeamInfo, bool isFirstInversion);
 
   void predict(const ImagingTableEntry& entry);
 
@@ -315,7 +315,7 @@ class WSClean {
   std::unique_ptr<GriddingTaskManager> _griddingTaskManager;
   std::unique_ptr<ImageWeightCache> _imageWeightCache;
   Stopwatch _inversionWatch, _predictingWatch, _deconvolutionWatch;
-  bool _isFirstInversion;
+  bool _isFirstInversionTask;  // Becomes false after the first inversion task.
   size_t _majorIterationNr;
   CachedImageSet _psfImages;
   CachedImageSet _modelImages;

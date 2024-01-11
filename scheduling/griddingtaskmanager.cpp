@@ -113,7 +113,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
-  gridder.SetIsFirstIteration(task.verbose);
+  gridder.SetIsFirstTask(task.isFirstTask);
   gridder.SetImageWeights(task.imageWeights.get());
   if (task.operation == GriddingTask::Invert) {
     if (task.imagePSF) {

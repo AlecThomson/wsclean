@@ -121,7 +121,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
                       "Not all cores can be used efficiently.\n";
     }
   }
-  if (IsFirstIteration())
+  if (IsFirstTask())
     Logger::Info << "Suggested number of w-layers: " << ceil(suggestedGridSize)
                  << '\n';
   return suggestedGridSize;
@@ -219,7 +219,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
     for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
       buflane.write_end();
 
-    if (IsFirstIteration())
+    if (IsFirstTask())
       Logger::Info << "Rows that were required: " << rowsRead << '/'
                    << msData.matchingRows << '\n';
     msData.totalRowsProcessed += rowsRead;
@@ -312,7 +312,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData, GainMode gain_mode) {
 
     bufferedCalcLane.write(std::move(newItem));
   }
-  if (IsFirstIteration())
+  if (IsFirstTask())
     Logger::Info << "Rows that were required: " << rowsProcessed << '/'
                  << msData.matchingRows << '\n';
   msData.totalRowsProcessed += rowsProcessed;
@@ -390,13 +390,13 @@ void WSMSGridder::Invert() {
   _gridder->PrepareWLayers(ActualWGridSize(),
                            double(_resources.Memory()) * (6.0 / 10.0), _minW,
                            _maxW);
-  if (IsFirstIteration()) {
+  if (IsFirstTask()) {
     Logger::Info << "Will process "
                  << (_gridder->NWLayers() / _gridder->NPasses()) << "/"
                  << _gridder->NWLayers() << " w-layers per pass.\n";
   }
 
-  if (IsFirstIteration() && Logger::IsVerbose()) {
+  if (IsFirstTask() && Logger::IsVerbose()) {
     for (size_t i = 0; i != MeasurementSetCount(); ++i)
       countSamplesPerLayer(msDataVector[i]);
   }
@@ -404,7 +404,7 @@ void WSMSGridder::Invert() {
   resetVisibilityCounters();
   for (size_t pass = 0; pass != _gridder->NPasses(); ++pass) {
     Logger::Info << "Gridding pass " << pass << "... ";
-    if (IsFirstIteration())
+    if (IsFirstTask())
       Logger::Info << '\n';
     else
       Logger::Info.Flush();
@@ -425,7 +425,7 @@ void WSMSGridder::Invert() {
     _gridder->FinishInversionPass();
   }
 
-  if (IsFirstIteration()) {
+  if (IsFirstTask()) {
     size_t totalRowsRead = 0, totalMatchingRows = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
       totalRowsRead += msDataVector[i].totalRowsProcessed;
@@ -443,7 +443,7 @@ void WSMSGridder::Invert() {
   }
 
   _gridder->FinalizeImage(1.0 / totalWeight());
-  if (IsFirstIteration()) {
+  if (IsFirstTask()) {
     Logger::Info << "Gridded visibility count: "
                  << double(GriddedVisibilityCount());
     if (Weighting().IsNatural())
@@ -517,7 +517,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
                            double(_resources.Memory()) * (6.0 / 10.0), _minW,
                            _maxW);
 
-  if (IsFirstIteration()) {
+  if (IsFirstTask()) {
     for (size_t i = 0; i != MeasurementSetCount(); ++i)
       countSamplesPerLayer(msDataVector[i]);
   }
@@ -565,7 +565,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->InitializePrediction(images[0], images[1]);
   for (size_t pass = 0; pass != _gridder->NPasses(); ++pass) {
     Logger::Info << "Fourier transforms for pass " << pass << "... ";
-    if (IsFirstIteration())
+    if (IsFirstTask())
       Logger::Info << '\n';
     else
       Logger::Info.Flush();

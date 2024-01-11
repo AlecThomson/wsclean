@@ -161,13 +161,11 @@ class MSGridderBase {
   }
 
   /**
-   * If this is the first gridder iteration, the gridder may output more
+   * When processing the first gridder task, the gridder may output more
    * information.
    */
-  bool IsFirstIteration() const { return _isFirstIteration; }
-  void SetIsFirstIteration(bool isFirstIteration) {
-    _isFirstIteration = isFirstIteration;
-  }
+  bool IsFirstTask() const { return _isFirstTask; }
+  void SetIsFirstTask(bool isFirstTask) { _isFirstTask = isFirstTask; }
 
   void SetStoreImagingWeights(bool storeImagingWeights) {
     _storeImagingWeights = storeImagingWeights;
@@ -711,7 +709,7 @@ class MSGridderBase {
   GainMode _gainMode;
   bool _isComplex;
   WeightMode _weighting;
-  bool _isFirstIteration;
+  bool _isFirstTask;
   std::vector<MSSelection> _selections;
   VisibilityWeightingMode _visibilityWeightingMode;
   GriddingKernelMode _gridMode;

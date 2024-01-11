@@ -33,7 +33,7 @@ class GriddingTask {
   bool imagePSF;
   bool subtractModel;
   aocommon::PolarizationEnum polarization;
-  bool verbose;
+  bool isFirstTask;
   bool storeImagingWeights;
 
   std::shared_ptr<ImageWeights> imageWeights;

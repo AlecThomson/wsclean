@@ -104,7 +104,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _nVisPolarizations(1),
       _isComplex(false),
       _weighting(settings.weightMode),
-      _isFirstIteration(false),
+      _isFirstTask(false),
       _visibilityWeightingMode(settings.visibilityWeightingMode),
       _gridMode(GriddingKernelMode::KaiserBessel),
       _storeImagingWeights(false),
@@ -392,7 +392,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   }
 
   _theoreticalBeamSize = 1.0 / maxBaseline;
-  if (IsFirstIteration()) {
+  if (IsFirstTask()) {
     Logger::Info << "Theoretic beam = "
                  << aocommon::units::Angle::ToNiceString(_theoreticalBeamSize)
                  << "\n";
@@ -421,7 +421,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
           std::max(std::min(optWidth, _actualInversionWidth), size_t(32));
       const size_t newHeight =
           std::max(std::min(optHeight, _actualInversionHeight), size_t(32));
-      if (IsFirstIteration()) {
+      if (IsFirstTask()) {
         Logger::Info << "Minimal inversion size: " << minWidth << " x "
                      << minHeight << ", using optimal: " << newWidth << " x "
                      << newHeight << "\n";
@@ -433,7 +433,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
       _actualInversionWidth = newWidth;
       _actualInversionHeight = newHeight;
     } else {
-      if (IsFirstIteration()) {
+      if (IsFirstTask()) {
         Logger::Info
             << "Small inversion enabled, but inversion resolution already "
                "smaller than beam size: not using optimization.\n";
@@ -444,7 +444,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   // Always call getSuggestedWGridSize in the first iteration, since it then
   // logs the suggested wgrid size.
   const size_t suggestedGridSize =
-      (IsFirstIteration() || !hasWGridSize()) ? getSuggestedWGridSize() : 0;
+      (IsFirstTask() || !hasWGridSize()) ? getSuggestedWGridSize() : 0;
   _actualWGridSize = hasWGridSize() ? _wGridSize : suggestedGridSize;
 }
 
