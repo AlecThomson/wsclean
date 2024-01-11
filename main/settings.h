@@ -207,6 +207,19 @@ class Settings {
 
   bool UseMpi() const { return nMpiNodes > 0; }
 
+  bool IsBandSelected(size_t band_index) const {
+    // An empty selection means that all bands are selected
+    return spectralWindows.empty() ||
+           spectralWindows.find(band_index) != spectralWindows.end();
+  }
+
+  /**
+   * Determines if the gridder uses diagonal instrumental or full instrumental
+   * polarizations.
+   */
+  aocommon::PolarizationEnum GetProviderPolarization(
+      aocommon::PolarizationEnum entry_polarization) const;
+
  private:
   void checkPolarizations() const;
   bool determineReorder() const;

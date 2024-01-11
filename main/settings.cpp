@@ -542,6 +542,26 @@ radler::Settings Settings::GetRadlerSettings() const {
   return radler_settings;
 }
 
+aocommon::PolarizationEnum Settings::GetProviderPolarization(
+    aocommon::PolarizationEnum entry_polarization) const {
+  if (gridderType == GridderType::IDG) {
+    if (polarizations.size() == 1 &&
+        *polarizations.begin() == aocommon::Polarization::StokesI) {
+      if ((ddPsfGridWidth > 1 || ddPsfGridHeight > 1) && gridWithBeam) {
+        return aocommon::Polarization::StokesI;
+      } else {
+        return aocommon::Polarization::DiagonalInstrumental;
+      }
+    } else {
+      return aocommon::Polarization::Instrumental;
+    }
+  } else if (diagonalSolutions) {
+    return aocommon::Polarization::DiagonalInstrumental;
+  } else {
+    return entry_polarization;
+  }
+}
+
 bool Settings::determineReorder() const {
   return ((channelsOut != 1) || (polarizations.size() >= 4) ||
           (deconvolutionMGain != 1.0) ||

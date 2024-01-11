@@ -110,7 +110,7 @@ void WriteBeamImages(const ImageFilename& image_name,
 void ApplyFacetCorrections(
     const ImageFilename& imageName, const Settings& settings,
     const CoordinateSystem& coordinates, const ImagingTable& table,
-    const std::map<size_t, std::unique_ptr<MetaDataCache>>& metaCache) {
+    const std::vector<std::unique_ptr<MetaDataCache>>& metaCache) {
   if (settings.polarizations ==
       std::set<PolarizationEnum>{Polarization::XX, Polarization::YY}) {
     // FIXME: to be implemented
@@ -141,7 +141,7 @@ void ApplyFacetCorrections(
           // we are scaling the beam images, we need to apply the inverse of
           // that.
           const float factor =
-              std::sqrt(metaCache.at(entry.index)->h5Sum / entry.imageWeight);
+              std::sqrt(metaCache[entry.index]->h5Sum / entry.imageWeight);
           facet_image.SetFacet(*entry.facet, true);
           facet_image.MultiplyImageInsideFacet(imagePtr, factor);
         }
@@ -206,7 +206,7 @@ void PrimaryBeam::AddMS(std::unique_ptr<MSDataDescription> description) {
 
 void PrimaryBeam::CorrectBeamForFacetGain(
     const ImageFilename& image_name, const ImagingTable& table,
-    const std::map<size_t, std::unique_ptr<MetaDataCache>>& meta_cache) {
+    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
   const CoordinateSystem coordinates{settings_.trimmedImageWidth,
                                      settings_.trimmedImageHeight,
                                      phase_centre_ra_,
@@ -221,7 +221,7 @@ void PrimaryBeam::CorrectBeamForFacetGain(
 void PrimaryBeam::CorrectImages(
     aocommon::FitsWriter& writer, const ImageFilename& image_name,
     const std::string& filename_kind, const ImagingTable& table,
-    const std::map<size_t, std::unique_ptr<MetaDataCache>>& meta_cache) {
+    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
   if (settings_.polarizations.size() == 1 || filename_kind == "psf") {
     const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);
     PolarizationEnum pol = *settings_.polarizations.begin();

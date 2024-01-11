@@ -105,7 +105,7 @@ class PartitionedMS final : public MSProvider {
 
   static Handle Partition(const string& msPath,
                           const std::vector<ChannelRange>& channels,
-                          class MSSelection& selection,
+                          const class MSSelection& selection,
                           const string& dataColumnName, bool includeModel,
                           bool initialModelRequired,
                           const class Settings& settings);

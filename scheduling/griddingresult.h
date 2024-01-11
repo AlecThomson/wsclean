@@ -1,12 +1,12 @@
 #ifndef GRIDDING_RESULT_H
 #define GRIDDING_RESULT_H
 
-#include "../scheduling/metadatacache.h"
-
 #include <aocommon/image.h>
 #include <aocommon/io/serialstreamfwd.h>
 
 #include <string>
+
+#include "metadatacache.h"
 
 class AverageBeam;
 

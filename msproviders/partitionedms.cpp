@@ -183,9 +183,9 @@ std::string PartitionedMS::getPartPrefix(const std::string& msPathStr,
   return partPrefix.str();
 }
 
-string PartitionedMS::getMetaFilename(const string& msPathStr,
-                                      const std::string& tempDir,
-                                      size_t dataDescId) {
+std::string PartitionedMS::getMetaFilename(const std::string& msPathStr,
+                                           const std::string& tempDir,
+                                           size_t dataDescId) {
   std::string prefix = getFilenamePrefix(msPathStr, tempDir);
 
   std::ostringstream s;
@@ -210,8 +210,8 @@ string PartitionedMS::getMetaFilename(const string& msPathStr,
  */
 PartitionedMS::Handle PartitionedMS::Partition(
     const string& msPath, const std::vector<ChannelRange>& channels,
-    MSSelection& selection, const string& dataColumnName, bool includeModel,
-    bool initialModelRequired, const Settings& settings) {
+    const MSSelection& selection, const string& dataColumnName,
+    bool includeModel, bool initialModelRequired, const Settings& settings) {
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
   if (settings.gridderType == GridderType::IDG) {

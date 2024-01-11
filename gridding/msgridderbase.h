@@ -19,7 +19,6 @@
 
 #include "../main/settings.h"
 
-#include "../scheduling/metadatacache.h"
 #include "../scheduling/griddingtaskmanager.h"
 
 #include <aocommon/uvector.h>

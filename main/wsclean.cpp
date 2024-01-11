@@ -141,13 +141,8 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
 
-  GriddingTask task = createGriddingTask(entry);
-  task.operation = GriddingTask::Invert;
-  task.imagePSF = true;
-  task.polarization = entry.polarization;
-  task.subtractModel = false;
-  task.isFirstTask = _isFirstInversionTask;
-  task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
+  GriddingTask task = _griddingTaskFactory->CreatePsfTask(
+      entry, *_imageWeightCache, _isFirstInversionTask);
 
   // during PSF imaging, the average beam will never exist, so it is not
   // necessary to set task.averageBeam
@@ -175,7 +170,8 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
 
-  _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
+  _griddingTaskFactory->SetMetaDataCacheEntry(entry,
+                                              std::move(facet_result.cache));
 
   if (entry.isDdPsf || _facetCount == 0)
     processFullPSF(facet_result.images[0], entry);
@@ -201,7 +197,7 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   // multiplication.
   if (entry.isDdPsf &&
       (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-    const double factor = GetFacetCorrectionFactor(entry);
+    const double factor = _griddingTaskFactory->GetFacetCorrectionFactor(entry);
     image *= 1.0 / factor;
   }
 
@@ -269,28 +265,15 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   Logger::Info.Flush();
   Logger::Info << " == Constructing image ==\n";
 
-  GriddingTask task = createGriddingTask(entry);
-  GriddingTask::FacetData& facet_task = task.facets.front();
-  task.operation = GriddingTask::Invert;
-  task.imagePSF = false;
-  if (_settings.gridderType == GridderType::IDG &&
-      _settings.polarizations.size() != 1)
-    task.polarization = Polarization::FullStokes;
-  else
-    task.polarization = entry.polarization;
-
-  // isFirstInversion is true for all tasks from run(Single)FirstInversion.
-  // _isFirstInversionTask is only true for the first inversion task.
-  task.subtractModel =
-      !isFirstInversion || _settings.subtractModel || _settings.continuedRun;
-  task.isFirstTask = _isFirstInversionTask;
-  task.storeImagingWeights =
-      isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
-
+  std::unique_ptr<AverageBeam> average_beam;
   if (!isFirstInversion && griddingUsesATerms()) {
-    facet_task.averageBeam = AverageBeam::Load(
-        _scalarBeamImages, _matrixBeamImages, entry.outputChannelIndex);
+    average_beam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
+                                     entry.outputChannelIndex);
   }
+
+  GriddingTask task = _griddingTaskFactory->CreateInvertTask(
+      entry, *_imageWeightCache, _isFirstInversionTask, isFirstInversion,
+      std::move(average_beam));
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -307,7 +290,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   GriddingResult::FacetData& facet_result = result.facets.front();
   size_t joinedChannelIndex = entry.outputChannelIndex;
 
-  _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
+  _griddingTaskFactory->SetMetaDataCacheEntry(entry,
+                                              std::move(facet_result.cache));
   entry.imageWeight = facet_result.imageWeight;
   entry.normalizationFactor = facet_result.normalizationFactor;
   _infoPerChannel[entry.outputChannelIndex].weight = facet_result.imageWeight;
@@ -493,20 +477,17 @@ void WSClean::predict(const ImagingTableEntry& entry) {
       }
     }
   }
-  GriddingTask task = createGriddingTask(entry);
-  GriddingTask::FacetData& facet_task = task.facets.front();
-  task.operation = GriddingTask::Predict;
-  task.polarization =
-      isFullStokes ? Polarization::FullStokes : entry.polarization;
-  task.isFirstTask = false;
-  task.storeImagingWeights = false;
-  facet_task.modelImages = std::move(modelImages);
-  facet_task.averageBeam = AverageBeam::Load(
-      _scalarBeamImages, _matrixBeamImages, entry.outputChannelIndex);
+
+  GriddingTask task = _griddingTaskFactory->CreatePredictTask(
+      entry, *_imageWeightCache, std::move(modelImages),
+      AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
+                        entry.outputChannelIndex));
+
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         GriddingResult::FacetData& facet_result = result.facets.front();
-        _msGridderMetaCache[entry.index] = std::move(facet_result.cache);
+        _griddingTaskFactory->SetMetaDataCacheEntry(
+            entry, std::move(facet_result.cache));
       });
 }
 
@@ -526,112 +507,6 @@ std::pair<double, double> WSClean::getLMShift() const {
         _observationInfo.phaseCentreDec, l_shift, m_shift);
   }
   return std::make_pair(l_shift, m_shift);
-}
-
-// Common code for initializing a task from an entry.
-// After this function, the remaining task fields should be initialized.
-GriddingTask WSClean::createGriddingTask(const ImagingTableEntry& entry) {
-  GriddingTask task;
-
-  task.observationInfo = _observationInfo;
-
-  if (entry.facet) {
-    const double l_shift =
-        _l_shift - entry.centreShiftX * _settings.pixelScaleX;
-    const double m_shift =
-        _m_shift + entry.centreShiftY * _settings.pixelScaleY;
-    task.facets.emplace_back(entry.facetIndex, l_shift, m_shift,
-                             std::move(_msGridderMetaCache[entry.index]),
-                             entry.facet);
-  } else {
-    assert(entry.facetIndex == 0);
-    task.facets.emplace_back(0, _l_shift, _m_shift,
-                             std::move(_msGridderMetaCache[entry.index]),
-                             nullptr);
-  }
-  task.facetGroupIndex = entry.facetGroupIndex;
-
-  initializeMSList(entry, task.msList);
-  task.imageWeights = initializeImageWeights(entry, task.msList);
-
-  return task;
-}
-
-std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
-    const ImagingTableEntry& entry,
-    std::vector<std::unique_ptr<MSDataDescription>>& msList) {
-  if (_settings.mfWeighting) {
-    return _imageWeightCache->GetMFWeights();
-  } else {
-    std::shared_ptr<ImageWeights> weights = _imageWeightCache->Get(
-        msList, entry.outputChannelIndex, entry.outputIntervalIndex);
-    if (_settings.isWeightImageSaved) {
-      std::string prefix = ImageFilename::GetPSFPrefix(
-          _settings, entry.outputChannelIndex, entry.outputIntervalIndex);
-      weights->Save(prefix + "-weights.fits");
-    }
-    return weights;
-  }
-}
-
-void WSClean::initializeMFImageWeights() {
-  Logger::Info << "Precalculating MF weights for "
-               << _settings.weightMode.ToString() << " weighting...\n";
-  std::unique_ptr<ImageWeights> weights = _imageWeightCache->MakeEmptyWeights();
-  if (_settings.doReorder) {
-    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
-      const ImagingTableEntry& entry = *sqGroup.front();
-      for (size_t msIndex = 0; msIndex != _settings.filenames.size();
-           ++msIndex) {
-        const ImagingTableEntry::MSInfo& entry_ms_info = entry.msData[msIndex];
-        for (size_t dataDescId = 0;
-             dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
-          if (DataDescIdIsUsed(msIndex, dataDescId)) {
-            MSSelection partSelection(_globalSelection);
-            const bool hasSelection = partSelection.SelectMsChannels(
-                _msBands[msIndex], dataDescId, entry);
-            if (hasSelection) {
-              const PolarizationEnum pol =
-                  getProviderPolarization(entry.polarization);
-              PartitionedMS msProvider(
-                  _partitionedMSHandles[msIndex],
-                  entry_ms_info.bands[dataDescId].partIndex, pol, dataDescId);
-              aocommon::BandData selectedBand(_msBands[msIndex][dataDescId]);
-              if (partSelection.HasChannelRange()) {
-                selectedBand = aocommon::BandData(
-                    selectedBand, partSelection.ChannelRangeStart(),
-                    partSelection.ChannelRangeEnd());
-              }
-              weights->Grid(msProvider, selectedBand);
-            }
-          }
-        }
-      }
-    }
-  } else {
-    for (size_t i = 0; i != _settings.filenames.size(); ++i) {
-      for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
-        const PolarizationEnum pol =
-            getProviderPolarization(*_settings.polarizations.begin());
-        ContiguousMS msProvider(_settings.filenames[i],
-                                _settings.dataColumnName, _globalSelection, pol,
-                                d, _settings.UseMpi());
-        aocommon::BandData selectedBand = _msBands[i][d];
-        if (_globalSelection.HasChannelRange())
-          selectedBand = aocommon::BandData(
-              selectedBand, _globalSelection.ChannelRangeStart(),
-              _globalSelection.ChannelRangeEnd());
-        weights->Grid(msProvider, selectedBand);
-        Logger::Info << '.';
-        Logger::Info.Flush();
-      }
-    }
-  }
-  weights->FinishGridding();
-  _imageWeightCache->SetMFWeights(std::move(weights));
-  if (_settings.isWeightImageSaved)
-    _imageWeightCache->GetMFWeights()->Save(_settings.prefixName +
-                                            "-weights.fits");
 }
 
 void WSClean::performReordering(bool isPredictMode) {
@@ -747,8 +622,7 @@ void WSClean::RunClean() {
         "pixel of the main image.");
   }
 
-  _globalSelection = _settings.GetMSSelection();
-  MSSelection fullSelection = _globalSelection;
+  MSSelection fullSelection = _settings.GetMSSelection();
 
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
@@ -762,10 +636,18 @@ void WSClean::RunClean() {
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
 
-    _msGridderMetaCache.clear();
     _imageWeightCache = createWeightCache();
 
-    if (_settings.mfWeighting) initializeMFImageWeights();
+    _msHelper = std::make_unique<MsHelper>(_settings, _globalSelection,
+                                           _msBands, _partitionedMSHandles);
+    _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
+        _settings, _globalSelection, _msBands, _partitionedMSHandles);
+    if (_settings.mfWeighting)
+      _image_weight_initializer->InitializeMf(_imagingTable,
+                                              *_imageWeightCache);
+    _griddingTaskFactory = std::make_unique<GriddingTaskFactory>(
+        *_msHelper, *_image_weight_initializer, _observationInfo, _l_shift,
+        _m_shift, _imagingTable.EntryCount());
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
@@ -775,6 +657,9 @@ void WSClean::RunClean() {
     }
 
     _griddingTaskManager.reset();
+    _griddingTaskFactory.reset();
+    _image_weight_initializer.reset();
+    _msHelper.reset();
 
     if (_settings.channelsOut > 1) {
       for (PolarizationEnum pol : _settings.polarizations) {
@@ -940,17 +825,21 @@ void WSClean::RunPredict() {
   _facetCount = FacetReader::CountFacets(_settings.facetRegionFilename);
   std::tie(_l_shift, _m_shift) = getLMShift();
 
-  _globalSelection = _settings.GetMSSelection();
-  MSSelection fullSelection = _globalSelection;
+  MSSelection fullSelection = _settings.GetMSSelection();
 
   for (size_t intervalIndex = 0; intervalIndex != _settings.intervalsOut;
        ++intervalIndex) {
     makeImagingTable(intervalIndex);
+    _globalSelection = selectInterval(fullSelection, intervalIndex);
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
-    _msGridderMetaCache.clear();
-
-    _globalSelection = selectInterval(fullSelection, intervalIndex);
+    _msHelper = std::make_unique<MsHelper>(_settings, _globalSelection,
+                                           _msBands, _partitionedMSHandles);
+    _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
+        _settings, _globalSelection, _msBands, _partitionedMSHandles);
+    _griddingTaskFactory = std::make_unique<GriddingTaskFactory>(
+        *_msHelper, *_image_weight_initializer, _observationInfo, _l_shift,
+        _m_shift, _imagingTable.EntryCount());
 
     if (_settings.doReorder) performReordering(true);
 
@@ -1152,19 +1041,21 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+        const std::vector<std::unique_ptr<MetaDataCache>>& meta_data_cache =
+            _griddingTaskFactory->GetMetaDataCache();
         if (correct_beam_for_facet_gains)
           primaryBeam->CorrectBeamForFacetGain(imageName, table,
-                                               _msGridderMetaCache);
+                                               meta_data_cache);
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
-                                   _msGridderMetaCache);
+                                   meta_data_cache);
         if (_settings.savePsfPb)
           primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
-                                     _msGridderMetaCache);
+                                     meta_data_cache);
         if (_settings.deconvolutionIterationCount != 0) {
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                     table, _msGridderMetaCache);
+                                     table, meta_data_cache);
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
-                                     _msGridderMetaCache);
+                                     meta_data_cache);
         }
       }
     }
@@ -1260,7 +1151,8 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     facetImage.CopyToFacet({fullImage.Data()});
     if (!isPredictOnly) {
       if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
-        const double factor = GetFacetCorrectionFactor(facetEntry);
+        const double factor =
+            _griddingTaskFactory->GetFacetCorrectionFactor(facetEntry);
         facetImage *= 1.0 / std::sqrt(factor);
       }
     }
@@ -1331,7 +1223,9 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
       // The construction of the weight cache is delayed in prediction mode,
       // because only now the image size and scale is known.
       _imageWeightCache = createWeightCache();
-      if (_settings.mfWeighting) initializeMFImageWeights();
+      if (_settings.mfWeighting)
+        _image_weight_initializer->InitializeMf(_imagingTable,
+                                                *_imageWeightCache);
     }
 
     WSCFitsWriter writer(reader);
@@ -1464,33 +1358,6 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
                << ", cleaning: " << _deconvolutionWatch.ToString() << '\n';
 }
 
-void WSClean::initializeMSList(
-    const ImagingTableEntry& entry,
-    std::vector<std::unique_ptr<MSDataDescription>>& msList) {
-  const PolarizationEnum pol = getProviderPolarization(entry.polarization);
-  msList.clear();
-  for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
-    for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();
-         ++dataDescId) {
-      MSSelection selection(_globalSelection);
-      if (DataDescIdIsUsed(msIndex, dataDescId) &&
-          selection.SelectMsChannels(_msBands[msIndex], dataDescId, entry)) {
-        std::unique_ptr<MSDataDescription> dataDescription;
-        if (_settings.doReorder)
-          dataDescription = MSDataDescription::ForPartitioned(
-              _partitionedMSHandles[msIndex], selection,
-              entry.msData[msIndex].bands[dataDescId].partIndex, pol,
-              dataDescId, _settings.UseMpi());
-        else
-          dataDescription = MSDataDescription::ForContiguous(
-              _settings.filenames[msIndex], _settings.dataColumnName, selection,
-              pol, dataDescId, _settings.UseMpi());
-        msList.emplace_back(std::move(dataDescription));
-      }
-    }
-  }
-}
-
 void WSClean::resetModelColumns(const ImagingTable& groupTable) {
   if (groupTable.FacetCount() > 1) {
     const ImagingTable::Groups facet_groups = groupTable.FacetGroups(false);
@@ -1501,9 +1368,9 @@ void WSClean::resetModelColumns(const ImagingTable& groupTable) {
 }
 
 void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
-  std::vector<std::unique_ptr<MSDataDescription>> msList;
-  initializeMSList(entry, msList);
-  for (auto& ms : msList) {
+  std::vector<std::unique_ptr<MSDataDescription>> ms_list =
+      _msHelper->InitializeMsList(entry);
+  for (auto& ms : ms_list) {
     ms->GetProvider()->ResetModelColumn();
   }
 }
@@ -1562,11 +1429,12 @@ void WSClean::runSingleFirstInversion(
     ImageFilename imageName =
         ImageFilename(entry.outputChannelIndex, entry.outputIntervalIndex);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-      std::vector<std::unique_ptr<MSDataDescription>> msList;
-      initializeMSList(entry, msList);
+      std::vector<std::unique_ptr<MSDataDescription>> msList =
+          _msHelper->InitializeMsList(entry);
       std::shared_ptr<ImageWeights> weights =
-          initializeImageWeights(entry, msList);
-      primaryBeam.reset(new PrimaryBeam(_settings));
+          _image_weight_initializer->Initialize(entry, msList,
+                                                *_imageWeightCache);
+      primaryBeam = std::make_unique<PrimaryBeam>(_settings);
       for (std::unique_ptr<MSDataDescription>& description : msList)
         primaryBeam->AddMS(std::move(description));
       primaryBeam->SetPhaseCentre(_observationInfo.phaseCentreRA,
@@ -1875,7 +1743,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-      const double factor = GetFacetCorrectionFactor(facetEntry);
+      const double factor =
+          _griddingTaskFactory->GetFacetCorrectionFactor(facetEntry);
       facetImage *= 1.0 / std::sqrt(factor);
     }
 
@@ -2272,7 +2141,8 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     std::vector<float*> imagePtr{image.Data()};
     for (const ImagingTableEntry& entry : table) {
       facetImage.SetFacet(*entry.facet, true);
-      const double factor = GetFacetCorrectionFactor(entry);
+      const double factor =
+          _griddingTaskFactory->GetFacetCorrectionFactor(entry);
       facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
     }
 

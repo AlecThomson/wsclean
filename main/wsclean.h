@@ -1,6 +1,9 @@
 #ifndef WSCLEAN_H
 #define WSCLEAN_H
 
+#include <optional>
+#include <set>
+
 #include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
@@ -12,6 +15,7 @@
 #include <radler/radler.h>
 
 #include "../scheduling/griddingresult.h"
+#include "../scheduling/griddingtaskfactory.h"
 
 #include "../io/cachedimageset.h"
 #include "../io/wscfitswriter.h"
@@ -26,11 +30,10 @@
 
 #include "../msproviders/partitionedms.h"
 
+#include "imageweightinitializer.h"
+#include "mshelper.h"
 #include "stopwatch.h"
 #include "settings.h"
-
-#include <optional>
-#include <set>
 
 class ImageWeightCache;
 class PrimaryBeam;
@@ -103,23 +106,8 @@ class WSClean {
   }
 
   ObservationInfo getObservationInfo() const;
-  /**
-   * Add the phase shift of a facet
-   * @param entry entry. If its facet is null, nothing happens.
-   * @param l_shift is updated.
-   * @param m_shift is updated.
-   */
-
   std::pair<double, double> getLMShift() const;
 
-  GriddingTask createGriddingTask(const ImagingTableEntry& entry);
-  std::shared_ptr<ImageWeights> initializeImageWeights(
-      const ImagingTableEntry& entry,
-      std::vector<std::unique_ptr<MSDataDescription>>& msList);
-  void initializeMFImageWeights();
-  void initializeMSList(
-      const ImagingTableEntry& entry,
-      std::vector<std::unique_ptr<MSDataDescription>>& msList);
   void resetModelColumns(const ImagingTable& groupTable);
   void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
@@ -263,44 +251,9 @@ class WSClean {
     return msCount;
   }
 
-  /**
-   * Determines if IDG uses diagonal instrumental or full instrumental
-   * polarizations.
-   */
-  aocommon::PolarizationEnum getProviderPolarization(
-      aocommon::PolarizationEnum entry_polarization) const {
-    if (_settings.gridderType == GridderType::IDG) {
-      if (_settings.polarizations.size() == 1 &&
-          *_settings.polarizations.begin() == aocommon::Polarization::StokesI) {
-        if ((_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) &&
-            _settings.gridWithBeam) {
-          return aocommon::Polarization::StokesI;
-        } else {
-          return aocommon::Polarization::DiagonalInstrumental;
-        }
-      } else {
-        return aocommon::Polarization::Instrumental;
-      }
-    } else if (_settings.diagonalSolutions) {
-      return aocommon::Polarization::DiagonalInstrumental;
-    } else {
-      return entry_polarization;
-    }
-  }
-
-  long double GetFacetCorrectionFactor(const ImagingTableEntry& entry) const {
-    const std::map<size_t, std::unique_ptr<MetaDataCache>>::const_iterator
-        entry_cache = _msGridderMetaCache.find(entry.index);
-    assert(entry_cache != _msGridderMetaCache.end());
-    return entry_cache->second->correctionSum / entry.imageWeight;
-  }
-
   bool DataDescIdIsUsed(size_t ms_index, size_t data_desc_id) const {
     const size_t band_index = _msBands[ms_index].GetBandIndex(data_desc_id);
-    // An empty selection means that all bands are selected
-    return _settings.spectralWindows.empty() ||
-           _settings.spectralWindows.find(band_index) !=
-               _settings.spectralWindows.end();
+    return _settings.IsBandSelected(band_index);
   }
 
   MSSelection _globalSelection;
@@ -310,8 +263,10 @@ class WSClean {
 
   std::vector<OutputChannelInfo> _infoPerChannel;
   OutputChannelInfo _infoForMFS;
-  std::map<size_t, std::unique_ptr<MetaDataCache>> _msGridderMetaCache;
 
+  std::unique_ptr<MsHelper> _msHelper;
+  std::unique_ptr<ImageWeightInitializer> _image_weight_initializer;
+  std::unique_ptr<GriddingTaskFactory> _griddingTaskFactory;
   std::unique_ptr<GriddingTaskManager> _griddingTaskManager;
   std::unique_ptr<ImageWeightCache> _imageWeightCache;
   Stopwatch _inversionWatch, _predictingWatch, _deconvolutionWatch;

@@ -314,10 +314,12 @@ endif()
 add_library(
   wsclean-object OBJECT
   main/commandline.cpp
+  main/imageweightinitializer.cpp
+  main/mshelper.cpp
   main/progressbar.cpp
+  main/settings.cpp
   main/stopwatch.cpp
   main/wsclean.cpp
-  main/settings.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
   gridding/visibilitymodifier.cpp
@@ -350,9 +352,10 @@ add_library(
   msproviders/msreaders/partitionedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
   msproviders/msweightcolumn.cpp
+  scheduling/griddingtask.cpp
+  scheduling/griddingtaskfactory.cpp
   scheduling/griddingtaskmanager.cpp
   scheduling/griddingresult.cpp
-  scheduling/griddingtask.cpp
   scheduling/metadatacache.cpp
   scheduling/threadedscheduler.cpp
   structures/facetutil.cpp
