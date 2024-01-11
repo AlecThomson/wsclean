@@ -82,10 +82,9 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   StartMeasurementSet(msData, false);
 
   const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
-  aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.ChannelCount() * n_vis_polarizations);
-  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
-                                        n_vis_polarizations);
+  const size_t dataSize = selectedBand.ChannelCount() * n_vis_polarizations;
+  aocommon::UVector<std::complex<float>> modelBuffer(dataSize);
+  aocommon::UVector<float> weightBuffer(dataSize);
   aocommon::UVector<bool> isSelected(selectedBand.ChannelCount(), true);
 
   size_t totalNRows = 0;
@@ -100,8 +99,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
-  aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.ChannelCount() * n_vis_polarizations);
+  aocommon::UVector<std::complex<float>> newItemData(dataSize);
   InversionRow newRowData;
   newRowData.data = newItemData.data();
 

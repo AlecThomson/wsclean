@@ -308,7 +308,6 @@ class MSGridderBase {
 
   struct InversionRow {
     double uvw[3];
-    size_t rowId;
     std::complex<float>* data;
   };
 
@@ -321,14 +320,15 @@ class MSGridderBase {
   void StartMeasurementSet(const MSGridderBase::MSData& msData, bool isPredict);
 
   /**
-   * Read the visibilities from the msprovider, and apply weights, flags and
-   * a-terms.
+   * Read a row of visibilities from the msprovider, and apply weights, flags
+   * and a-terms.
    *
    * This function applies both the selected method of visibility weighting
    * (i.e. the weights that are normally stored in the WEIGHT_SPECTRUM column)
-   * and the imaging weight (coming from uniform or Briggs weighting, etc). To
-   * read the data, this function requires scratch weight and model buffers to
-   * store intermediate values in. Even if the caller does not need these
+   * and the imaging weight (coming from uniform or Briggs weighting, etc).
+   *
+   * To read the data, this function requires scratch weight and model buffers
+   * for storing intermediate values. Even if the caller does not need these
    * values, they still need to provide an already allocated buffer. This is to
    * avoid having to allocate memory within this method.
    *
@@ -342,7 +342,11 @@ class MSGridderBase {
    * polarization. It may be set to 2 or 4 for IDG as it images multiple
    * polarizations at once, and it may be set to 2 or 4 when applying
    * solulutions.
-   * @param msProvider The measurement set provider
+   * @tparam GainMode Selects which entry or entries in the gain matrix
+   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
+   * the visibilities.
+   * @param msReader The measurement set provider from which data will be read
+   * @param antennaNames The antenna names
    * @param rowData The resulting weighted data
    * @param curBand The spectral band currently being imaged
    * @param weightBuffer An allocated buffer of size n_chan x n_pol to store
@@ -354,34 +358,21 @@ class MSGridderBase {
    * this pass. When the visibility is not gridded, its weight will not be added
    * to the relevant sums (visibility count, weight sum, etc.). This buffer is
    * of size n_chan; i.e. it is not specified per polarization.
-   * @param gain_mode Selects which entry or entries in the gain matrix
-   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
-   * the visibilities.
+   * @param metaData Metadata that has previously been read from a measurement
+   * set provider
    */
-  void GetCollapsedVisibilities(
+  inline void GetCollapsedVisibilities(
       MSReader& msReader, const std::vector<std::string>& antennaNames,
       InversionRow& rowData, const aocommon::BandData& curBand,
       float* weightBuffer, std::complex<float>* modelBuffer,
       const bool* isSelected, const MSProvider::MetaData& metaData) {
-    switch (_nVisPolarizations) {
-      case 1:
-        GetInstrumentalVisibilities<1>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected,
-                                       metaData);
-        break;
-      case 2:
-        GetInstrumentalVisibilities<2>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected,
-                                       metaData);
-        internal::CollapseData<2>(curBand.ChannelCount(), rowData.data);
-        break;
-      case 4:
-        GetInstrumentalVisibilities<4>(msReader, antennaNames, rowData, curBand,
-                                       weightBuffer, modelBuffer, isSelected,
-                                       metaData);
-        internal::CollapseData<4>(curBand.ChannelCount(), rowData.data);
-        break;
-    }
+    ReadVisibilities(msReader, rowData, weightBuffer, modelBuffer);
+
+    CollapseVisibilities(antennaNames, rowData, curBand, weightBuffer,
+                         modelBuffer, isSelected, metaData);
+
+    if (StoreImagingWeights())
+      msReader.WriteImagingWeights(_scratchImageWeights.data());
   }
 
   /**
@@ -390,11 +381,129 @@ class MSGridderBase {
    * the rowData structure will contain n_channel x n_polarization elements.
    */
   template <size_t PolarizationCount>
-  void GetInstrumentalVisibilities(
+  inline void GetInstrumentalVisibilities(
       MSReader& msReader, const std::vector<std::string>& antennaNames,
       InversionRow& rowData, const aocommon::BandData& curBand,
       float* weightBuffer, std::complex<float>* modelBuffer,
-      const bool* isSelected, const MSProvider::MetaData& metaData);
+      const bool* isSelected, const MSProvider::MetaData& metaData) {
+    ReadVisibilities(msReader, rowData, weightBuffer, modelBuffer);
+
+    ApplyWeightsAndCorrections<PolarizationCount>(
+        antennaNames, rowData, curBand, weightBuffer, modelBuffer, isSelected,
+        metaData);
+
+    if (StoreImagingWeights())
+      msReader.WriteImagingWeights(_scratchImageWeights.data());
+  }
+
+  template <size_t PolarizationCount>
+  void ApplyWeightsAndCorrections(const std::vector<std::string>& antennaNames,
+                                  InversionRow& rowData,
+                                  const aocommon::BandData& curBand,
+                                  float* weightBuffer,
+                                  std::complex<float>* modelBuffer,
+                                  const bool* isSelected,
+                                  const MSProvider::MetaData& metaData);
+
+  /**
+   * Read a row of visibility and weights from the msprovider
+   *
+   * Use this function to correctly populate an InversionRow structure and an
+   * accompanying weightBuffer and modelBuffer before calling @ref
+   * CollapseVisibilities() or @ref ApplyWeightsAndCorrections()
+   *
+   * @param msReader The measurement set provider from which data will be read
+   * @param rowData The caller must set this object up to point at the desired
+   * portion of an allocated buffer into which the visibilities will be read.
+   * After returning from this call the uvw paramater of this object will be
+   * populated with the (u/v/w)InM values of `metaData`
+   * @param metaData Metadata is read from the provider into this object
+   * @param weightBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate weights in. After returning from the call, these values will
+   * hold the weights from `msReader`
+   * @param modelBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate model data in.
+   */
+  inline void ReadVisibilities(MSReader& msReader, InversionRow& rowData,
+                               float* weightBuffer,
+                               std::complex<float>* modelBuffer) {
+    if (GetPsfMode() == PsfMode::kNone) {
+      msReader.ReadData(rowData.data);
+    }
+    if (DoSubtractModel()) {
+      msReader.ReadModel(modelBuffer);
+    }
+    msReader.ReadWeights(weightBuffer);
+  }
+
+  /**
+   * Apply weights, flags and a-terms to a row of visibility data that has been
+   * read by @ref ReadVisibilities() and collapse in the polarization direction
+   *
+   * This function applies both the selected method of visibility weighting
+   * (i.e. the weights that are normally stored in the WEIGHT_SPECTRUM column)
+   * and the imaging weight (coming from uniform or Briggs weighting, etc).
+   *
+   * To read the data, this function requires scratch weight and model buffers
+   * for storing intermediate values. Even if the caller does not need these
+   * values, they still need to provide an already allocated buffer. This is to
+   * avoid having to allocate memory within this method.
+   *
+   * This function collapses the visibilities in the polarization direction.
+   * Gridders that grid a single polarization should use this method instead of
+   * @ref ApplyWeightsAndCorrections(). The output is stored in the first
+   * n_channel elements of the visibility data buffer in @c rowData.
+   *
+   * Normally set to one when imaging a single
+   * polarization. It may be set to 2 or 4 for IDG as it images multiple
+   * polarizations at once, and it may be set to 2 or 4 when applying
+   * solulutions.
+   * @tparam GainMode Selects which entry or entries in the gain matrix
+   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
+   * the visibilities.
+   * @param msReader The measurement set provider from which data will be read
+   * @param antennaNames The antenna names
+   * @param rowData The resulting weighted data
+   * @param curBand The spectral band currently being imaged
+   * @param weightBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate weights in. After returning from the call, these values will
+   * hold the full applied weight (i.e. visibility weight * imaging weight).
+   * @param modelBuffer An allocated buffer of size n_chan x n_pol to store
+   * intermediate model data in.
+   * @param isSelected Per visibility whether that visibility will be gridded in
+   * this pass. When the visibility is not gridded, its weight will not be added
+   * to the relevant sums (visibility count, weight sum, etc.). This buffer is
+   * of size n_chan; i.e. it is not specified per polarization.
+   * @param metaData Metadata that has previously been read from a measurement
+   * set provider
+   */
+  inline void CollapseVisibilities(const std::vector<std::string>& antennaNames,
+                                   InversionRow& rowData,
+                                   const aocommon::BandData& curBand,
+                                   float* weightBuffer,
+                                   std::complex<float>* modelBuffer,
+                                   const bool* isSelected,
+                                   const MSProvider::MetaData& metaData) {
+    switch (_nVisPolarizations) {
+      case 1:
+        ApplyWeightsAndCorrections<1>(antennaNames, rowData, curBand,
+                                      weightBuffer, modelBuffer, isSelected,
+                                      metaData);
+        break;
+      case 2:
+        ApplyWeightsAndCorrections<2>(antennaNames, rowData, curBand,
+                                      weightBuffer, modelBuffer, isSelected,
+                                      metaData);
+        internal::CollapseData<2>(curBand.ChannelCount(), rowData.data);
+        break;
+      case 4:
+        ApplyWeightsAndCorrections<4>(antennaNames, rowData, curBand,
+                                      weightBuffer, modelBuffer, isSelected,
+                                      metaData);
+        internal::CollapseData<4>(curBand.ChannelCount(), rowData.data);
+        break;
+    }
+  }
 
   /**
    * Write (modelled) visibilities to MS, provides an interface to
@@ -503,11 +612,13 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  void GetInstrumentalVisibilities(
-      MSReader& msReader, const std::vector<std::string>& antennaNames,
-      InversionRow& rowData, const aocommon::BandData& curBand,
-      float* weightBuffer, std::complex<float>* modelBuffer,
-      const bool* isSelected, const MSProvider::MetaData& metaData);
+  void ApplyWeightsAndCorrections(const std::vector<std::string>& antennaNames,
+                                  InversionRow& rowData,
+                                  const aocommon::BandData& curBand,
+                                  float* weightBuffer,
+                                  std::complex<float>* modelBuffer,
+                                  const bool* isSelected,
+                                  const MSProvider::MetaData& metaData);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   void WriteInstrumentalVisibilities(
@@ -629,37 +740,37 @@ class MSGridderBase {
 };
 
 template <size_t PolarizationCount>
-inline void MSGridderBase::GetInstrumentalVisibilities(
-    MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& rowData, const aocommon::BandData& curBand,
-    float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected, const MSProvider::MetaData& metaData) {
+inline void MSGridderBase::ApplyWeightsAndCorrections(
+    const std::vector<std::string>& antennaNames, InversionRow& rowData,
+    const aocommon::BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected,
+    const MSProvider::MetaData& metaData) {
   switch (_gainMode) {
     case GainMode::kXX:
       if constexpr (PolarizationCount == 1) {
-        GetInstrumentalVisibilities<PolarizationCount, GainMode::kXX>(
-            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+        ApplyWeightsAndCorrections<PolarizationCount, GainMode::kXX>(
+            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
             isSelected, metaData);
       }
       break;
     case GainMode::kYY:
       if constexpr (PolarizationCount == 1) {
-        GetInstrumentalVisibilities<PolarizationCount, GainMode::kYY>(
-            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+        ApplyWeightsAndCorrections<PolarizationCount, GainMode::kYY>(
+            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
             isSelected, metaData);
       }
       break;
     case GainMode::kDiagonal:
       if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
-        GetInstrumentalVisibilities<PolarizationCount, GainMode::kDiagonal>(
-            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+        ApplyWeightsAndCorrections<PolarizationCount, GainMode::kDiagonal>(
+            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
             isSelected, metaData);
       }
       break;
     case GainMode::kFull:
       if constexpr (PolarizationCount == 4) {
-        GetInstrumentalVisibilities<PolarizationCount, GainMode::kFull>(
-            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+        ApplyWeightsAndCorrections<PolarizationCount, GainMode::kFull>(
+            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
             isSelected, metaData);
       } else {
         throw std::runtime_error(
