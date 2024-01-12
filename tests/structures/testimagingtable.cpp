@@ -17,7 +17,7 @@ void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount,
                      size_t facetGroupCount, size_t facetCount,
                      size_t squaredGroupCount) {
   BOOST_TEST(table.IndependentGroupCount() == indepentGroupCount);
-  BOOST_TEST(table.FacetGroups(false).size() == facetGroupCount);
+  BOOST_TEST(table.FacetGroups().size() == facetGroupCount);
   BOOST_TEST(table.FacetCount() == facetCount);
   BOOST_TEST(table.Facets().size() == facetCount);
   BOOST_TEST(table.SquaredGroupCount() == squaredGroupCount);
@@ -120,6 +120,8 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   test::UniquePtr<ImagingTableEntry> entry1_0;
   entry0_0->facetGroupIndex = 43;
   entry0_1->facetGroupIndex = 43;
+  // The default selection function should skip this entry:
+  entry0_1->isDdPsf = true;
   entry0_2->facetGroupIndex = 43;
   entry1_0->facetGroupIndex = 42;
   table.AddEntry(entry0_0.take());
@@ -128,31 +130,25 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   table.AddEntry(entry1_0.take());
 
   table.Update();
-  BOOST_TEST_REQUIRE(table.FacetGroups(false).size() == 2u);
   TestGroupCounts(table, 1, 2, 1, 1);
 
-  // Test GetFacetGroup. The ImagingTable orders the groups by group index.
-  ImagingTable group0 = ImagingTable(table.FacetGroups(false)[0]);
-  ImagingTable group1 = ImagingTable(table.FacetGroups(false)[1]);
-  BOOST_TEST_REQUIRE(group1.EntryCount() == 3u);
-  BOOST_TEST_REQUIRE(group0.EntryCount() == 1u);
-  BOOST_TEST(&group1[0] == entry0_0.get());
-  BOOST_TEST(&group1[1] == entry0_1.get());
-  BOOST_TEST(&group1[2] == entry0_2.get());
-  BOOST_TEST(&group0[0] == entry1_0.get());
-  // Test that Update() was called on group0 and group1.
-  TestGroupCounts(group0, 1, 1, 1, 1);
-  TestGroupCounts(group1, 1, 1, 1, 1);
-
   // Test FacetGroups. The ImagingTable orders the groups by group index.
-  const ImagingTable::Groups groups = table.FacetGroups(false);
+  const ImagingTable::Groups groups = table.FacetGroups();
   BOOST_TEST_REQUIRE(groups.size() == 2u);
-  BOOST_TEST_REQUIRE(groups[1].size() == 3u);
+  BOOST_TEST_REQUIRE(groups[1].size() == 2u);  // entry0_1 is skipped.
   BOOST_TEST_REQUIRE(groups[0].size() == 1u);
   BOOST_TEST(groups[1][0].get() == entry0_0.get());
-  BOOST_TEST(groups[1][1].get() == entry0_1.get());
-  BOOST_TEST(groups[1][2].get() == entry0_2.get());
+  BOOST_TEST(groups[1][1].get() == entry0_2.get());
   BOOST_TEST(groups[0][0].get() == entry1_0.get());
+
+  // Test FacetGroups with a custom selection function.
+  for (size_t index = 0; index < table.EntryCount(); ++index) {
+    const ImagingTable::Groups selected_groups = table.FacetGroups(
+        [index](const ImagingTableEntry& e) { return e.index == index; });
+    BOOST_TEST_REQUIRE(selected_groups.size() == 1u);
+    BOOST_TEST_REQUIRE(selected_groups[0].size() == 1u);
+    BOOST_TEST(selected_groups[0][0]->index == index);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(facets) {

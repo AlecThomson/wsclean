@@ -76,8 +76,8 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
   Logger::Info << "J-" << str.str() << '\n';
 }
 
-void ImagingTable::updateGroups(
-    Groups& groups, std::function<size_t(const ImagingTableEntry&)> getIndex,
+ImagingTable::Groups ImagingTable::CreateGroups(
+    std::function<size_t(const ImagingTableEntry&)> getIndex,
     std::function<bool(const ImagingTableEntry&)> isSelected) const {
   std::map<size_t, Group> groupMap;
 
@@ -87,10 +87,12 @@ void ImagingTable::updateGroups(
     }
   }
 
-  groups.clear();
+  Groups groups;
+  groups.reserve(groupMap.size());
   for (auto& item : groupMap) {
     groups.emplace_back(std::move(item.second));
   }
+  return groups;
 }
 
 void ImagingTable::AssignGridDataFromPolarization(

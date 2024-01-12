@@ -82,15 +82,19 @@ class ImagingTable {
   // determining the number of scheduler locks.
   size_t MaxFacetGroupIndex() const { return _entries.back()->facetGroupIndex; }
 
-  const Groups FacetGroups(bool include_dd_psf) const {
-    Groups facet_groups;
-    updateGroups(
-        facet_groups,
+  /**
+   * Groups the entries per facet group.
+   * Each group holds all entries for one image.
+   * @param is_selected Selection function. The default selection
+   * function omits direction dependent PSF entries from the result.
+   */
+  Groups FacetGroups(std::function<bool(const ImagingTableEntry&)> is_selected =
+                         [](const ImagingTableEntry& e) {
+                           return !e.isDdPsf;
+                         }) const {
+    return CreateGroups(
         [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
-        [include_dd_psf](const ImagingTableEntry& e) {
-          return include_dd_psf || !e.isDdPsf;
-        });
-    return facet_groups;
+        is_selected);
   }
 
   size_t FacetCount() const { return _facets.size(); }
@@ -116,7 +120,9 @@ class ImagingTable {
 
   void Clear() {
     _entries.clear();
-    Update();
+    _independentGroups.clear();
+    _facets.clear();
+    _squaredGroups.clear();
   }
 
   void AddEntry(std::unique_ptr<ImagingTableEntry> entry) {
@@ -125,14 +131,13 @@ class ImagingTable {
   }
 
   void Update() {
-    updateGroups(_independentGroups,
-                 [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
-    updateGroups(
-        _facets, [](const ImagingTableEntry& e) { return e.facetIndex; },
-        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
-    updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
-      return e.squaredDeconvolutionIndex;
-    });
+    _independentGroups = CreateGroups(
+        [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
+    _facets =
+        CreateGroups([](const ImagingTableEntry& e) { return e.facetIndex; },
+                     [](const ImagingTableEntry& e) { return !e.isDdPsf; });
+    _squaredGroups = CreateGroups(
+        [](const ImagingTableEntry& e) { return e.squaredDeconvolutionIndex; });
   }
 
   void Print() const;
@@ -152,8 +157,9 @@ class ImagingTable {
 
  private:
   static void PrintEntry(const ImagingTableEntry& entry);
-  void updateGroups(
-      Groups& groups, std::function<size_t(const ImagingTableEntry&)> getIndex,
+
+  Groups CreateGroups(
+      std::function<size_t(const ImagingTableEntry&)> getIndex,
       std::function<bool(const ImagingTableEntry&)> isSelected =
           [](const ImagingTableEntry&) { return true; }) const;
 

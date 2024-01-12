@@ -32,13 +32,14 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     std::map<aocommon::PolarizationEnum, size_t> next_index;
     for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
          ++sq_index) {
-      ImagingTable squared_group = imaging_table.GetSquaredGroup(sq_index);
-      ImagingTable::Groups facet_groups = squared_group.FacetGroups(true);
-      for (size_t fg_index = 0; fg_index != facet_groups.size(); ++fg_index) {
-        ImagingTable facet_group = ImagingTable(facet_groups[fg_index]);
+      const ImagingTable::Groups facet_groups =
+          imaging_table.FacetGroups([sq_index](const ImagingTableEntry& e) {
+            return e.squaredDeconvolutionIndex == sq_index;
+          });
+      for (const ImagingTable::Group& facet_group : facet_groups) {
         // The band information is determined from the first facet in the group.
         // After this, all facet entries inside the group are updated.
-        const ImagingTableEntry& entry = facet_group.Front();
+        const ImagingTableEntry& entry = *facet_group.front();
         for (size_t d = 0; d != band_data.DataDescCount(); ++d) {
           MSSelection selection{global_selection_};
           const size_t band_index = band_data.GetBandIndex(d);
@@ -52,8 +53,9 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
               r.end = selection.ChannelRangeEnd();
               channels.push_back(r);
             }
-            for (ImagingTableEntry& facet_entry : facet_group) {
-              facet_entry.msData[ms_index].bands[d].partIndex =
+            for (const std::shared_ptr<ImagingTableEntry>& facet_entry :
+                 facet_group) {
+              facet_entry->msData[ms_index].bands[d].partIndex =
                   next_index[entry.polarization];
             }
             ++next_index[entry.polarization];

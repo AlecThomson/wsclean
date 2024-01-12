@@ -1063,7 +1063,7 @@ void WSClean::partitionModelIntoFacets(const ImagingTable& table,
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
-    ImagingTable::Groups facet_groups = table.FacetGroups(false);
+    ImagingTable::Groups facet_groups = table.FacetGroups();
     for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
          ++facetGroupIndex) {
       const ImagingTable clipGroup =
@@ -1257,7 +1257,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
     // Initialize the model images before entering the gridding loop. This is
     // necessary because in IDG mode, predicting Stokes I will require all
     // model images to have been initialized.
-    ImagingTable::Groups facet_groups = independentGroup.FacetGroups(false);
+    ImagingTable::Groups facet_groups = independentGroup.FacetGroups();
     for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
          ++facetGroupIndex) {
       const ImagingTable facetGroup =
@@ -1300,7 +1300,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
 void WSClean::resetModelColumns(const ImagingTable& groupTable) {
   if (groupTable.FacetCount() > 1) {
-    const ImagingTable::Groups facet_groups = groupTable.FacetGroups(false);
+    const ImagingTable::Groups facet_groups = groupTable.FacetGroups();
     for (const ImagingTable::Group& facetGroup : facet_groups) {
       resetModelColumns(*facetGroup.front());
     }
@@ -1526,8 +1526,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     Logger::Info << _majorIterationNr << " major iterations were performed.\n";
   }
 
-  const ImagingTable::Groups facet_groups =
-      tableWithoutDdPsf.FacetGroups(false);
+  const ImagingTable::Groups facet_groups = tableWithoutDdPsf.FacetGroups();
   for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
        ++facetGroupIndex) {
     const ImagingTable facetGroup = ImagingTable(facet_groups[facetGroupIndex]);
@@ -1640,7 +1639,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     std::unique_ptr<Image> weight_image;
-    const ImagingTable::Groups facet_groups = table.FacetGroups(false);
+    const ImagingTable::Groups facet_groups = table.FacetGroups();
     for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
          ++facetGroupIndex) {
       const ImagingTable stitchGroup =
