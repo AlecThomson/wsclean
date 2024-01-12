@@ -84,8 +84,6 @@ class WSClean {
                           bool requestPolarizationsAtOnce,
                           bool parallelizePolarizations);
 
-  void performReordering(bool isPredictMode);
-
   /**
    * Returns true when gridding is done with a-terms. This can either
    * be enabled by setting the gridWithBeam setting to true or by providing
@@ -251,11 +249,6 @@ class WSClean {
     return msCount;
   }
 
-  bool DataDescIdIsUsed(size_t ms_index, size_t data_desc_id) const {
-    const size_t band_index = _msBands[ms_index].GetBandIndex(data_desc_id);
-    return _settings.IsBandSelected(band_index);
-  }
-
   MSSelection _globalSelection;
   std::string _commandLine;
 
@@ -277,7 +270,6 @@ class WSClean {
   CachedImageSet _residualImages;
   CachedImageSet _scalarBeamImages;
   CachedImageSet _matrixBeamImages;
-  std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
   // Radler object only needed in RunClean runs.
   std::optional<radler::Radler> _deconvolution;

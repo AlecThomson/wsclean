@@ -24,11 +24,11 @@ class ImageWeightInitializer {
   explicit ImageWeightInitializer(
       const Settings& settings, const MSSelection& global_selection,
       const std::vector<aocommon::MultiBandData>& ms_bands,
-      const std::vector<PartitionedMS::Handle>& partitioned_ms_handles)
+      const std::vector<PartitionedMS::Handle>& reordered_ms_handles)
       : settings_(settings),
         global_selection_(global_selection),
         ms_bands_(ms_bands),
-        partitioned_ms_handles_(partitioned_ms_handles) {}
+        reordered_ms_handles_(reordered_ms_handles) {}
 
   const Settings& GetSettings() const { return settings_; }
 
@@ -43,7 +43,7 @@ class ImageWeightInitializer {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  const std::vector<PartitionedMS::Handle>& partitioned_ms_handles_;
+  const std::vector<PartitionedMS::Handle>& reordered_ms_handles_;
 };
 
 #endif

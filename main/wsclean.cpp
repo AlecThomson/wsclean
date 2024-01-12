@@ -34,8 +34,6 @@
 
 #include "progressbar.h"
 
-#include <aocommon/counting_semaphore.h>
-#include <aocommon/dynamicfor.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
@@ -509,68 +507,6 @@ std::pair<double, double> WSClean::getLMShift() const {
   return std::make_pair(l_shift, m_shift);
 }
 
-void WSClean::performReordering(bool isPredictMode) {
-  std::mutex mutex;
-
-  // If there are reordered measurement sets on disk, we have to clean them
-  // before writing new ones:
-  _partitionedMSHandles.clear();
-
-  _partitionedMSHandles.resize(_settings.filenames.size());
-  bool useModel = _settings.deconvolutionMGain != 1.0 || isPredictMode ||
-                  _settings.subtractModel || _settings.continuedRun;
-  bool initialModelRequired = _settings.subtractModel || _settings.continuedRun;
-
-  if (_settings.parallelReordering != 1) Logger::Info << "Reordering...\n";
-
-  aocommon::CountingSemaphore semaphore(_settings.parallelReordering);
-  aocommon::DynamicFor<size_t> loop;
-  loop.Run(0, _settings.filenames.size(), [&](size_t msIndex) {
-    aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
-    std::vector<PartitionedMS::ChannelRange> channels;
-    // The partIndex needs to increase per data desc ids and channel ranges
-    std::map<PolarizationEnum, size_t> nextIndex;
-    for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
-         ++sqIndex) {
-      ImagingTable sqGroup = _imagingTable.GetSquaredGroup(sqIndex);
-      ImagingTable::Groups facet_groups = sqGroup.FacetGroups(true);
-      for (size_t fgIndex = 0; fgIndex != facet_groups.size(); ++fgIndex) {
-        ImagingTable facetGroup = ImagingTable(facet_groups[fgIndex]);
-        // The band information is determined from the first facet in the group.
-        // After this, all facet entries inside the group are updated.
-        const ImagingTableEntry& entry = facetGroup.Front();
-        for (size_t d = 0; d != _msBands[msIndex].DataDescCount(); ++d) {
-          MSSelection selection(_globalSelection);
-          if (DataDescIdIsUsed(msIndex, d) &&
-              selection.SelectMsChannels(_msBands[msIndex], d, entry)) {
-            if (entry.polarization == *_settings.polarizations.begin()) {
-              PartitionedMS::ChannelRange r;
-              r.dataDescId = d;
-              r.start = selection.ChannelRangeStart();
-              r.end = selection.ChannelRangeEnd();
-              channels.push_back(r);
-            }
-            for (ImagingTableEntry& facetEntry : facetGroup) {
-              facetEntry.msData[msIndex].bands[d].partIndex =
-                  nextIndex[entry.polarization];
-            }
-            ++nextIndex[entry.polarization];
-          }
-        }
-      }
-    }
-
-    PartitionedMS::Handle partMS = PartitionedMS::Partition(
-        _settings.filenames[msIndex], channels, _globalSelection,
-        _settings.dataColumnName, useModel, initialModelRequired, _settings);
-    std::lock_guard<std::mutex> lock(mutex);
-    _partitionedMSHandles[msIndex] = std::move(partMS);
-    if (_settings.parallelReordering != 1)
-      Logger::Info << "Finished reordering " << _settings.filenames[msIndex]
-                   << " [" << msIndex << "]\n";
-  });
-}
-
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   std::tie(_l_shift, _m_shift) = getLMShift();
@@ -632,16 +568,18 @@ void WSClean::RunClean() {
 
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 
-    if (_settings.doReorder) performReordering(false);
+    _msHelper =
+        std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
+
+    if (_settings.doReorder) _msHelper->PerformReordering(_imagingTable, false);
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
 
     _imageWeightCache = createWeightCache();
 
-    _msHelper = std::make_unique<MsHelper>(_settings, _globalSelection,
-                                           _msBands, _partitionedMSHandles);
     _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
-        _settings, _globalSelection, _msBands, _partitionedMSHandles);
+        _settings, _globalSelection, _msBands,
+        _msHelper->GetReorderedMsHandles());
     if (_settings.mfWeighting)
       _image_weight_initializer->InitializeMf(_imagingTable,
                                               *_imageWeightCache);
@@ -659,6 +597,8 @@ void WSClean::RunClean() {
     _griddingTaskManager.reset();
     _griddingTaskFactory.reset();
     _image_weight_initializer.reset();
+    // Resetting the MsHelper will destroy its partitioned ms handles and
+    // thereby clear the temporary files.
     _msHelper.reset();
 
     if (_settings.channelsOut > 1) {
@@ -780,9 +720,6 @@ void WSClean::RunClean() {
         }
       }
     }
-
-    // This will erase the temporary files
-    _partitionedMSHandles.clear();
   }
 }
 
@@ -833,15 +770,18 @@ void WSClean::RunPredict() {
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
-    _msHelper = std::make_unique<MsHelper>(_settings, _globalSelection,
-                                           _msBands, _partitionedMSHandles);
+
+    _msHelper =
+        std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
+    if (_settings.doReorder) _msHelper->PerformReordering(_imagingTable, true);
+
     _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
-        _settings, _globalSelection, _msBands, _partitionedMSHandles);
+        _settings, _globalSelection, _msBands,
+        _msHelper->GetReorderedMsHandles());
+
     _griddingTaskFactory = std::make_unique<GriddingTaskFactory>(
         *_msHelper, *_image_weight_initializer, _observationInfo, _l_shift,
         _m_shift, _imagingTable.EntryCount());
-
-    if (_settings.doReorder) performReordering(true);
 
     if (_facetCount != 0) {
       std::string prefix =

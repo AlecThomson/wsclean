@@ -52,7 +52,7 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
               const aocommon::PolarizationEnum pol =
                   settings_.GetProviderPolarization(entry.polarization);
               PartitionedMS msProvider(
-                  partitioned_ms_handles_[ms_index],
+                  reordered_ms_handles_[ms_index],
                   entry_ms_info.bands[data_description_id].partIndex, pol,
                   data_description_id);
               aocommon::BandData selected_band(band_data[data_description_id]);

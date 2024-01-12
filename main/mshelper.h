@@ -8,7 +8,7 @@
 
 #include "../msproviders/msdatadescription.h"
 #include "../msproviders/partitionedms.h"
-#include "../structures/imagingtableentry.h"
+#include "../structures/imagingtable.h"
 #include "../structures/msselection.h"
 
 #include "settings.h"
@@ -18,14 +18,20 @@
  */
 class MsHelper {
  public:
-  explicit MsHelper(
-      const Settings& settings, const MSSelection& global_selection,
-      const std::vector<aocommon::MultiBandData>& ms_bands,
-      const std::vector<PartitionedMS::Handle>& partitioned_ms_handles)
-      : settings_(settings),
-        global_selection_(global_selection),
-        ms_bands_(ms_bands),
-        partitioned_ms_handles_(partitioned_ms_handles) {}
+  explicit MsHelper(const Settings& settings,
+                    const MSSelection& global_selection,
+                    const std::vector<aocommon::MultiBandData>& ms_bands)
+      : settings_{settings},
+        global_selection_{global_selection},
+        ms_bands_{ms_bands},
+        reordered_ms_handles_{} {}
+
+  const std::vector<PartitionedMS::Handle>& GetReorderedMsHandles() const {
+    return reordered_ms_handles_;
+  }
+
+  void PerformReordering(const ImagingTable& imaging_table,
+                         bool is_predict_mode);
 
   std::vector<std::unique_ptr<MSDataDescription>> InitializeMsList(
       const ImagingTableEntry& entry) const;
@@ -34,7 +40,7 @@ class MsHelper {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  const std::vector<PartitionedMS::Handle>& partitioned_ms_handles_;
+  std::vector<PartitionedMS::Handle> reordered_ms_handles_;
 };
 
 #endif
