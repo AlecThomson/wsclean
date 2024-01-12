@@ -441,17 +441,22 @@ void PrimaryBeam::MakeImage(const ImageFilename& image_name,
     const double ms_weight =
         MakeBeamForMS(ms_beam, *ms_provider_info.provider, selection,
                       *image_weights, coordinates, central_frequency, field_id);
-    if (ms_weight > 0.0) {
-      if (result.empty()) {
-        result = std::move(ms_beam);
+    if (result.empty()) {
+      result = std::move(ms_beam);
+      if (ms_weight > 0.0) {
         for (aocommon::HMC4x4& m : result) {
           m *= ms_weight;
         }
+        ms_weight_sum += ms_weight;
       } else {
-        assert(ms_beam.size() == result.size());
-        for (size_t i = 0; i != result.size(); ++i) {
-          result[i] += ms_beam[i] * ms_weight;
-        }
+        // In case of a zero weight beam, the beam might contain NaNs or be
+        // otherwise bad, so explicitly set it to zero.
+        result.assign(result.size(), aocommon::HMC4x4::Zero());
+      }
+    } else if (ms_weight > 0.0) {
+      assert(ms_beam.size() == result.size());
+      for (size_t i = 0; i != result.size(); ++i) {
+        result[i] += ms_beam[i] * ms_weight;
       }
       ms_weight_sum += ms_weight;
     }
@@ -539,7 +544,7 @@ double PrimaryBeam::MakeBeamForMS(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
           baseline_weights);
     } break;
-    // // Using 'default:' gives compatibility with different EveryBeam versions
+    // Using 'default:' gives compatibility with different EveryBeam versions
     default: {
       if (telescope_type == everybeam::TelescopeType::kATCATelescope ||
           telescope_type == everybeam::TelescopeType::kGMRTTelescope) {
