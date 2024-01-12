@@ -30,22 +30,34 @@ class GriddingTaskFactory {
         m_shift_{m_shift},
         meta_data_cache_{imaging_table_size} {}
 
-  GriddingTask CreatePsfTask(const ImagingTableEntry& entry,
-                             ImageWeightCache& image_weight_cache,
-                             bool is_first_task);
+  /**
+   * Creates gridding / inversion tasks for PSF images.
+   * @param facet_group Group with all imaging table entries (facets) for a
+   * single PSF image.
+   * When faceting is disabled, the group contains only one entry.
+   * @param combine_facets True: Create a single task for all facets.
+   * False: Create an individual task for each facet.
+   */
+  std::vector<GriddingTask> CreatePsfTasks(
+      const ImagingTable::Group& facet_group,
+      ImageWeightCache& image_weight_cache, bool combine_facets,
+      bool is_first_task);
 
   /**
-   * Creates a degridding / inversion task.
+   * Creates a gridding / inversion task.
    * @param is_first_task True for the first gridding task. WSClean produces
    * more verbose logging output for the first task.
    * @param is_first_inversion True if the task is part of the first set of
-   * degridding / inversion tasks.
+   * gridding / inversion tasks.
    */
   GriddingTask CreateInvertTask(const ImagingTableEntry& entry,
                                 ImageWeightCache& image_weight_cache,
                                 bool is_first_task, bool is_first_inversion,
                                 std::unique_ptr<AverageBeam> average_beam);
 
+  /**
+   * Creates a degridding / predict task.
+   */
   GriddingTask CreatePredictTask(const ImagingTableEntry& entry,
                                  ImageWeightCache& image_weight_cache,
                                  std::vector<aocommon::Image>&& model_images,
@@ -61,12 +73,15 @@ class GriddingTaskFactory {
   }
 
   long double GetFacetCorrectionFactor(const ImagingTableEntry& entry) const {
-    const std::unique_ptr<MetaDataCache>& cache_entry =
-        meta_data_cache_[entry.index];
-    return cache_entry->correctionSum / entry.imageWeight;
+    return meta_data_cache_[entry.index]->correctionSum / entry.imageWeight;
   }
 
  private:
+  /// Add a facet structure to an existing task.
+  /// @param task An existing task, which may not have FacetData yet.
+  /// @param entry ImagingTableEntry with facet-specific data.
+  void AddFacet(GriddingTask& task, const ImagingTableEntry& entry);
+
   /// Common code for initializing a task.
   /// After this function, the remaining task fields should be initialized.
   GriddingTask CreateBase(const ImagingTableEntry& entry,

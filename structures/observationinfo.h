@@ -14,6 +14,14 @@ struct ObservationInfo {
   std::string observer;
   std::string fieldName;
 
+  /// Comparison operator, for use in tests.
+  bool operator==(const ObservationInfo& other) const {
+    return phaseCentreRA == other.phaseCentreRA &&
+           phaseCentreDec == other.phaseCentreDec &&
+           telescopeName == other.telescopeName && observer == other.observer &&
+           fieldName == other.fieldName;
+  }
+
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
 };

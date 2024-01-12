@@ -151,7 +151,7 @@ class WSClean {
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
-  void imagePSF(ImagingTableEntry& entry);
+  void imagePSF(ImagingTable::Group& facet_group);
   void imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result);
 
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,

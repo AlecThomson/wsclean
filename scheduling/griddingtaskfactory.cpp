@@ -3,14 +3,8 @@
 #include "../idg/averagebeam.h"
 #include "../io/imagefilename.h"
 
-GriddingTask GriddingTaskFactory::CreateBase(
-    const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
-    bool is_first_task) {
-  GriddingTask task;
-
-  task.observationInfo = observation_info_;
-  task.isFirstTask = is_first_task;
-
+void GriddingTaskFactory::AddFacet(GriddingTask& task,
+                                   const ImagingTableEntry& entry) {
   double l_shift = l_shift_;
   double m_shift = m_shift_;
 
@@ -24,6 +18,17 @@ GriddingTask GriddingTaskFactory::CreateBase(
   task.facets.emplace_back(entry.facetIndex, l_shift, m_shift,
                            std::move(meta_data_cache_[entry.index]),
                            entry.facet);
+}
+
+GriddingTask GriddingTaskFactory::CreateBase(
+    const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
+    bool is_first_task) {
+  GriddingTask task;
+
+  task.observationInfo = observation_info_;
+  task.isFirstTask = is_first_task;
+
+  AddFacet(task, entry);
   task.facetGroupIndex = entry.facetGroupIndex;
 
   task.msList = ms_helper_.InitializeMsList(entry);
@@ -33,17 +38,39 @@ GriddingTask GriddingTaskFactory::CreateBase(
   return task;
 }
 
-GriddingTask GriddingTaskFactory::CreatePsfTask(
-    const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
+std::vector<GriddingTask> GriddingTaskFactory::CreatePsfTasks(
+    const ImagingTable::Group& facet_group,
+    ImageWeightCache& image_weight_cache, bool combine_facets,
     bool is_first_task) {
-  GriddingTask task = CreateBase(entry, image_weight_cache, is_first_task);
-  task.operation = GriddingTask::Invert;
-  task.imagePSF = true;
-  task.polarization = entry.polarization;
-  task.subtractModel = false;
-  task.storeImagingWeights =
+  const bool store_imaging_weights =
       image_weight_initializer_.GetSettings().writeImagingWeightSpectrumColumn;
-  return task;
+
+  std::vector<GriddingTask> tasks;
+  tasks.reserve(combine_facets ? 1 : facet_group.size());
+
+  for (const std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
+    // During PSF imaging, the average beam will never exist, so it is not
+    // necessary to set the average beam in the task.
+
+    if (combine_facets && !tasks.empty()) {
+      assert(!tasks.front().facets.empty());
+      assert(tasks.front().facets.front().facet);
+      assert(entry->facet);
+      assert(tasks.front().facetGroupIndex == entry->facetGroupIndex);
+      AddFacet(tasks.front(), *entry);
+    } else {  // Create a new task.
+      tasks.push_back(CreateBase(*entry, image_weight_cache, is_first_task));
+      tasks.back().operation = GriddingTask::Invert;
+      tasks.back().imagePSF = true;
+      tasks.back().polarization = entry->polarization;
+      tasks.back().subtractModel = false;
+      tasks.back().storeImagingWeights = store_imaging_weights;
+    }
+
+    is_first_task = false;
+  }
+
+  return tasks;
 }
 
 GriddingTask GriddingTaskFactory::CreateInvertTask(

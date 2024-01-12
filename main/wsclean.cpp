@@ -135,20 +135,23 @@ void WSClean::storeAverageBeam(const ImagingTableEntry& entry,
   }
 }
 
-void WSClean::imagePSF(ImagingTableEntry& entry) {
-  Logger::Info.Flush();
-  Logger::Info << " == Constructing PSF ==\n";
+void WSClean::imagePSF(ImagingTable::Group& facet_group) {
+  const bool kCombineFacets = false;
 
-  GriddingTask task = _griddingTaskFactory->CreatePsfTask(
-      entry, *_imageWeightCache, _isFirstInversionTask);
+  std::vector<GriddingTask> tasks = _griddingTaskFactory->CreatePsfTasks(
+      facet_group, *_imageWeightCache, kCombineFacets, _isFirstInversionTask);
 
-  // during PSF imaging, the average beam will never exist, so it is not
-  // necessary to set task.averageBeam
+  for (size_t i = 0; i < facet_group.size(); ++i) {
+    ImagingTableEntry& entry = *facet_group[i];
 
-  _griddingTaskManager->Run(std::move(task),
-                            [this, &entry](GriddingResult& result) {
-                              imagePSFCallback(entry, result);
-                            });
+    Logger::Info.Flush();
+    Logger::Info << " == Constructing PSF ==\n";
+
+    _griddingTaskManager->Run(std::move(tasks[i]),
+                              [this, &entry](GriddingResult& result) {
+                                imagePSFCallback(entry, result);
+                              });
+  }
 }
 
 void WSClean::imagePSFCallback(ImagingTableEntry& entry,
@@ -870,19 +873,25 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                                          _settings.ddPsfGridWidth > 1);
 
   if (doMakePSF) {
-    for (ImagingTableEntry& entry : groupTable) {
-      const bool isFirstPol =
-          entry.polarization == *_settings.polarizations.begin();
-      if ((entry.isDdPsf == doMakeDdPsf) && isFirstPol) {
-        if (_settings.reusePsf) {
-          loadExistingPSF(entry);
-        } else {
-          imagePSF(entry);
+    ImagingTable::Groups facet_groups =
+        groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
+          const bool is_first_polarization =
+              entry.polarization == *_settings.polarizations.begin();
+          return (entry.isDdPsf == doMakeDdPsf) && is_first_polarization;
+        });
+    for (ImagingTable::Group& facet_group : facet_groups) {
+      if (_settings.reusePsf) {
+        for (std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
+          loadExistingPSF(*entry);
         }
-        _isFirstInversionTask = false;
+      } else {
+        imagePSF(facet_group);
       }
+      _isFirstInversionTask = false;
     }
+
     _griddingTaskManager->Finish();
+
     if (!doMakeDdPsf) stitchFacets(groupTable, _psfImages, false, true);
   }
 
