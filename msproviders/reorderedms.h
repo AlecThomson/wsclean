@@ -1,5 +1,5 @@
-#ifndef PARTITIONED_MS
-#define PARTITIONED_MS
+#ifndef MSPROVIDERS_REORDERED_MS_
+#define MSPROVIDERS_REORDERED_MS_
 
 #include "msprovider.h"
 
@@ -18,7 +18,7 @@
 #include <string>
 #include <map>
 
-class PartitionedMSReader;
+class ReorderedMsReader;
 
 // We will create some efficiently packed structs to fetch data with 1 read.
 // This will reduce the count of file-reads that are made.
@@ -47,8 +47,8 @@ struct MetaHeaderBuffer {
 };
 #pragma pack(pop)
 
-class PartitionedMS final : public MSProvider {
-  friend class PartitionedMSReader;
+class ReorderedMs final : public MSProvider {
+  friend class ReorderedMsReader;
 
  public:
   class Handle;
@@ -65,13 +65,13 @@ class PartitionedMS final : public MSProvider {
     }
   };
 
-  PartitionedMS(const Handle& handle, size_t partIndex,
-                aocommon::PolarizationEnum polarization, size_t dataDescId);
+  ReorderedMs(const Handle& handle, size_t partIndex,
+              aocommon::PolarizationEnum polarization, size_t dataDescId);
 
-  virtual ~PartitionedMS();
+  virtual ~ReorderedMs();
 
-  PartitionedMS(const PartitionedMS&) = delete;
-  PartitionedMS& operator=(const PartitionedMS&) = delete;
+  ReorderedMs(const ReorderedMs&) = delete;
+  ReorderedMs& operator=(const ReorderedMs&) = delete;
 
   std::unique_ptr<MSReader> MakeReader() override;
 
@@ -115,9 +115,9 @@ class PartitionedMS final : public MSProvider {
   }
 
   class Handle {
-    // PartitionedMSReader is a friend of Handle
+    // ReorderedMsReader is a friend of Handle
     // in order to access the _data member.
-    friend class PartitionedMSReader;
+    friend class ReorderedMsReader;
 
    public:
     Handle() = default;
@@ -125,7 +125,7 @@ class PartitionedMS final : public MSProvider {
     void Serialize(aocommon::SerialOStream& stream) const;
     void Unserialize(aocommon::SerialIStream& stream);
 
-    friend class PartitionedMS;
+    friend class ReorderedMs;
 
    private:
     struct HandleData {

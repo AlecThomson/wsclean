@@ -11,7 +11,7 @@
  *
  * This class maintains a reading position, that goes sequentially through the
  * data. The interface of this class is implemented in @ref ContiguousMSReader
- * and @ref PartitionedMSReader.
+ * and @ref ReorderedMsReader.
  */
 class MSReader {
  public:

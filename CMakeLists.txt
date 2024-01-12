@@ -345,11 +345,11 @@ add_library(
   msproviders/msrowprovider.cpp
   msproviders/msrowproviderbase.cpp
   msproviders/noisemsrowprovider.cpp
-  msproviders/partitionedms.cpp
-  msproviders/timestepbuffer.cpp
+  msproviders/reorderedms.cpp
   msproviders/synchronizedms.cpp
+  msproviders/timestepbuffer.cpp
   msproviders/msreaders/contiguousmsreader.cpp
-  msproviders/msreaders/partitionedmsreader.cpp
+  msproviders/msreaders/reorderedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
   msproviders/msweightcolumn.cpp
   scheduling/griddingtask.cpp

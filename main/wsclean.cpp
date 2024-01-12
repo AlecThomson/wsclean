@@ -597,7 +597,7 @@ void WSClean::RunClean() {
     _griddingTaskManager.reset();
     _griddingTaskFactory.reset();
     _image_weight_initializer.reset();
-    // Resetting the MsHelper will destroy its partitioned ms handles and
+    // Resetting the MsHelper will destroy its reordered ms handles and
     // thereby clear the temporary files.
     _msHelper.reset();
 

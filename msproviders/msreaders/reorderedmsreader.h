@@ -1,5 +1,5 @@
-#ifndef MSPROVIDERS_MSREADERS_PARTITIONEDMSREADER_H
-#define MSPROVIDERS_MSREADERS_PARTITIONEDMSREADER_H
+#ifndef MSPROVIDERS_MSREADERS_REORDEREDMSREADER_H_
+#define MSPROVIDERS_MSREADERS_REORDEREDMSREADER_H_
 
 #include "msreader.h"
 
@@ -7,12 +7,12 @@
 
 #include <fstream>
 
-class PartitionedMS;
+class ReorderedMs;
 
-class PartitionedMSReader final : public MSReader {
+class ReorderedMsReader final : public MSReader {
  public:
-  PartitionedMSReader(PartitionedMS* partitionedMS);
-  virtual ~PartitionedMSReader(){};
+  ReorderedMsReader(ReorderedMs* reordered_ms);
+  virtual ~ReorderedMsReader(){};
 
   size_t RowId() const override { return _currentInputRow; }
 

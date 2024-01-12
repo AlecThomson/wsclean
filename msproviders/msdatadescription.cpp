@@ -11,9 +11,9 @@
 #include <memory>
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
-  if (_isPartitioned)
-    return std::make_unique<PartitionedMS>(_partitionHandle, _partIndex,
-                                           _polarization, _dataDescId);
+  if (_isReordered)
+    return std::make_unique<ReorderedMs>(_partitionHandle, _partIndex,
+                                         _polarization, _dataDescId);
   else
     return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
                                           _selection, _polarization,
@@ -23,7 +23,7 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
 void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
   // Serialization is only used with MPI.
   assert(_useMPI);
-  stream.Bool(_isPartitioned)
+  stream.Bool(_isReordered)
       .UInt16(_polarization)
       .UInt32(_dataDescId)
       .Object(_selection)
@@ -36,7 +36,7 @@ void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
 std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
     aocommon::SerialIStream& stream) {
   std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
-  stream.Bool(mdd->_isPartitioned)
+  stream.Bool(mdd->_isReordered)
       .UInt16(mdd->_polarization)
       .UInt32(mdd->_dataDescId)
       .Object(mdd->_selection)

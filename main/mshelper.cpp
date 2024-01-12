@@ -27,7 +27,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
     const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
-    std::vector<PartitionedMS::ChannelRange> channels;
+    std::vector<ReorderedMs::ChannelRange> channels;
     // The partIndex needs to increase per data desc ids and channel ranges
     std::map<aocommon::PolarizationEnum, size_t> next_index;
     for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
@@ -46,7 +46,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
           if (settings_.IsBandSelected(band_index) &&
               selection.SelectMsChannels(band_data, d, entry)) {
             if (entry.polarization == *settings_.polarizations.begin()) {
-              PartitionedMS::ChannelRange r;
+              ReorderedMs::ChannelRange r;
               r.dataDescId = d;
               r.start = selection.ChannelRangeStart();
               r.end = selection.ChannelRangeEnd();
@@ -62,7 +62,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
       }
     }
 
-    PartitionedMS::Handle part_ms = PartitionedMS::Partition(
+    ReorderedMs::Handle part_ms = ReorderedMs::Partition(
         settings_.filenames[ms_index], channels, global_selection_,
         settings_.dataColumnName, use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);
@@ -94,7 +94,7 @@ std::vector<std::unique_ptr<MSDataDescription>> MsHelper::InitializeMsList(
           selection.SelectMsChannels(band_data, data_description_id, entry)) {
         std::unique_ptr<MSDataDescription> data_description;
         if (settings_.doReorder)
-          data_description = MSDataDescription::ForPartitioned(
+          data_description = MSDataDescription::ForReordered(
               reordered_ms_handles_[ms_index], selection,
               entry.msData[ms_index].bands[data_description_id].partIndex,
               polarization, data_description_id, settings_.UseMpi());

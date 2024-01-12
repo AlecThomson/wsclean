@@ -1,5 +1,5 @@
-#include "partitionedms.h"
-#include "msreaders/partitionedmsreader.h"
+#include "reorderedms.h"
+#include "msreaders/reorderedmsreader.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -42,22 +42,22 @@ struct PartitionFiles {
 
 std::map<size_t, std::vector<aocommon::PolarizationEnum>>
 GetMSPolarizationsPerDataDescId(
-    const std::vector<PartitionedMS::ChannelRange>& ranges,
+    const std::vector<ReorderedMs::ChannelRange>& ranges,
     casacore::MeasurementSet& ms) {
   std::map<size_t, std::vector<aocommon::PolarizationEnum>>
       msPolarizationsPerDataDescId;
-  for (const PartitionedMS::ChannelRange& range : ranges) {
+  for (const ReorderedMs::ChannelRange& range : ranges) {
     msPolarizationsPerDataDescId.emplace(
         range.dataDescId,
-        PartitionedMS::GetMSPolarizations(range.dataDescId, ms));
+        ReorderedMs::GetMSPolarizations(range.dataDescId, ms));
   }
   return msPolarizationsPerDataDescId;
 }
 
 size_t GetMaxChannels(
-    const std::vector<PartitionedMS::ChannelRange>& channel_ranges) {
+    const std::vector<ReorderedMs::ChannelRange>& channel_ranges) {
   size_t max_channels = 0;
-  for (const PartitionedMS::ChannelRange& range : channel_ranges) {
+  for (const ReorderedMs::ChannelRange& range : channel_ranges) {
     max_channels = std::max(max_channels, range.end - range.start);
   }
   return max_channels;
@@ -65,9 +65,9 @@ size_t GetMaxChannels(
 
 }  // namespace
 
-PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
-                             aocommon::PolarizationEnum polarization,
-                             size_t dataDescId)
+ReorderedMs::ReorderedMs(const Handle& handle, size_t partIndex,
+                         aocommon::PolarizationEnum polarization,
+                         size_t dataDescId)
     : _handle(handle),
       _partIndex(partIndex),
       _dataDescId(dataDescId),
@@ -111,20 +111,19 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   dataFile.close();
 }
 
-PartitionedMS::~PartitionedMS() {}
+ReorderedMs::~ReorderedMs() {}
 
-std::unique_ptr<MSReader> PartitionedMS::MakeReader() {
-  std::unique_ptr<MSReader> reader(new PartitionedMSReader(this));
+std::unique_ptr<MSReader> ReorderedMs::MakeReader() {
+  std::unique_ptr<MSReader> reader(new ReorderedMsReader(this));
   return reader;
 }
 
-void PartitionedMS::NextOutputRow() { ++_currentOutputRow; }
+void ReorderedMs::NextOutputRow() { ++_currentOutputRow; }
 
-void PartitionedMS::WriteModel(const std::complex<float>* buffer,
-                               bool addToMS) {
+void ReorderedMs::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 #ifndef NDEBUG
   if (!_partHeader.hasModel)
-    throw std::runtime_error("Partitioned MS initialized without model");
+    throw std::runtime_error("Reordered MS initialized without model");
 #endif
   size_t rowLength = _partHeader.channelCount * _polarizationCountInFile *
                      sizeof(std::complex<float>);
@@ -146,8 +145,8 @@ void PartitionedMS::WriteModel(const std::complex<float>* buffer,
   }
 }
 
-std::string PartitionedMS::getFilenamePrefix(const std::string& msPathStr,
-                                             const std::string& tempDir) {
+std::string ReorderedMs::getFilenamePrefix(const std::string& msPathStr,
+                                           const std::string& tempDir) {
   boost::filesystem::path prefixPath;
   if (tempDir.empty())
     prefixPath = msPathStr;
@@ -164,11 +163,11 @@ std::string PartitionedMS::getFilenamePrefix(const std::string& msPathStr,
   return prefix;
 }
 
-std::string PartitionedMS::getPartPrefix(const std::string& msPathStr,
-                                         size_t partIndex,
-                                         aocommon::PolarizationEnum pol,
-                                         size_t dataDescId,
-                                         const std::string& tempDir) {
+std::string ReorderedMs::getPartPrefix(const std::string& msPathStr,
+                                       size_t partIndex,
+                                       aocommon::PolarizationEnum pol,
+                                       size_t dataDescId,
+                                       const std::string& tempDir) {
   std::string prefix = getFilenamePrefix(msPathStr, tempDir);
 
   std::ostringstream partPrefix;
@@ -183,9 +182,9 @@ std::string PartitionedMS::getPartPrefix(const std::string& msPathStr,
   return partPrefix.str();
 }
 
-std::string PartitionedMS::getMetaFilename(const std::string& msPathStr,
-                                           const std::string& tempDir,
-                                           size_t dataDescId) {
+std::string ReorderedMs::getMetaFilename(const std::string& msPathStr,
+                                         const std::string& tempDir,
+                                         size_t dataDescId) {
   std::string prefix = getFilenamePrefix(msPathStr, tempDir);
 
   std::ostringstream s;
@@ -194,7 +193,7 @@ std::string PartitionedMS::getMetaFilename(const std::string& msPathStr,
 }
 
 /*
- * When partitioned:
+ * When reordered:
  * One global file stores:
  * - Metadata:
  *   * Number of selected rows
@@ -208,7 +207,7 @@ std::string PartitionedMS::getMetaFilename(const std::string& msPathStr,
  * - Weights (single)
  * - Model, optionally
  */
-PartitionedMS::Handle PartitionedMS::Partition(
+ReorderedMs::Handle ReorderedMs::Partition(
     const string& msPath, const std::vector<ChannelRange>& channels,
     const MSSelection& selection, const string& dataColumnName,
     bool includeModel, bool initialModelRequired, const Settings& settings) {
@@ -487,8 +486,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
                 bands, nAntennas);
 }
 
-void PartitionedMS::unpartition(
-    const PartitionedMS::Handle::HandleData& handle) {
+void ReorderedMs::unpartition(const ReorderedMs::Handle::HandleData& handle) {
   const std::set<aocommon::PolarizationEnum> pols = handle._polarizations;
 
   const std::map<size_t, size_t> dataDescIds =
@@ -632,7 +630,7 @@ void PartitionedMS::unpartition(
   }
 }
 
-PartitionedMS::Handle::HandleData::~HandleData() {
+ReorderedMs::Handle::HandleData::~HandleData() {
   if (!_isCopy) {
     // We can't throw inside destructor, so catch potential exceptions that
     // occur during writing the measurement sets.
@@ -643,7 +641,7 @@ PartitionedMS::Handle::HandleData::~HandleData() {
         Logger::Info << "An exception occurred, writing back will be skipped. "
                         "Cleaning up...\n";
       } else {
-        if (_modelUpdateRequired) PartitionedMS::unpartition(*this);
+        if (_modelUpdateRequired) ReorderedMs::unpartition(*this);
         Logger::Info << "Cleaning up temporary files...\n";
       }
 
@@ -673,7 +671,7 @@ PartitionedMS::Handle::HandleData::~HandleData() {
   }
 }
 
-void PartitionedMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
+void ReorderedMs::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
   const MSSelection& selection = _handle._data->_selection;
   const std::map<size_t, size_t> dataDescIds =
       getDataDescIdMap(_handle._data->_channels);
@@ -687,11 +685,11 @@ void PartitionedMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
                       idToMSRow);
 }
 
-std::map<size_t, size_t> PartitionedMS::getDataDescIdMap(
-    const std::vector<PartitionedMS::ChannelRange>& channels) {
+std::map<size_t, size_t> ReorderedMs::getDataDescIdMap(
+    const std::vector<ReorderedMs::ChannelRange>& channels) {
   std::map<size_t, size_t> dataDescIds;
   size_t spwIndex = 0;
-  for (const PartitionedMS::ChannelRange& range : channels) {
+  for (const ReorderedMs::ChannelRange& range : channels) {
     if (dataDescIds.count(range.dataDescId) == 0) {
       dataDescIds.emplace(range.dataDescId, spwIndex);
       ++spwIndex;
@@ -700,15 +698,15 @@ std::map<size_t, size_t> PartitionedMS::getDataDescIdMap(
   return dataDescIds;
 }
 
-void PartitionedMS::Handle::Serialize(aocommon::SerialOStream& stream) const {
+void ReorderedMs::Handle::Serialize(aocommon::SerialOStream& stream) const {
   stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::Unserialize(aocommon::SerialIStream& stream) {
+void ReorderedMs::Handle::Unserialize(aocommon::SerialIStream& stream) {
   stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::HandleData::Serialize(
+void ReorderedMs::Handle::HandleData::Serialize(
     aocommon::SerialOStream& stream) const {
   stream.String(_msPath)
       .String(_dataColumnName)
@@ -725,7 +723,7 @@ void PartitionedMS::Handle::HandleData::Serialize(
   stream.UInt64(_nAntennas);
 }
 
-void PartitionedMS::Handle::HandleData::Unserialize(
+void ReorderedMs::Handle::HandleData::Unserialize(
     aocommon::SerialIStream& stream) {
   _isCopy = true;
   stream.String(_msPath).String(_dataColumnName).String(_temporaryDirectory);

@@ -1,5 +1,5 @@
-#ifndef WSCLEAN_INITIALIZER_H_
-#define WSCLEAN_INITIALIZER_H_
+#ifndef WSCLEAN_IMAGE_WEIGHT_INITIALIZER_H_
+#define WSCLEAN_IMAGE_WEIGHT_INITIALIZER_H_
 
 #include <memory>
 #include <vector>
@@ -9,7 +9,7 @@
 
 #include "../io/imageweightcache.h"
 #include "../msproviders/msdatadescription.h"
-#include "../msproviders/partitionedms.h"
+#include "../msproviders/reorderedms.h"
 #include "../structures/imageweights.h"
 #include "../structures/imagingtable.h"
 #include "../structures/msselection.h"
@@ -24,7 +24,7 @@ class ImageWeightInitializer {
   explicit ImageWeightInitializer(
       const Settings& settings, const MSSelection& global_selection,
       const std::vector<aocommon::MultiBandData>& ms_bands,
-      const std::vector<PartitionedMS::Handle>& reordered_ms_handles)
+      const std::vector<ReorderedMs::Handle>& reordered_ms_handles)
       : settings_(settings),
         global_selection_(global_selection),
         ms_bands_(ms_bands),
@@ -43,7 +43,7 @@ class ImageWeightInitializer {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  const std::vector<PartitionedMS::Handle>& reordered_ms_handles_;
+  const std::vector<ReorderedMs::Handle>& reordered_ms_handles_;
 };
 
 #endif

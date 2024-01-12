@@ -2,7 +2,7 @@
 #define MS_DATA_DESCRIPTION_H
 
 #include "msprovider.h"
-#include "partitionedms.h"
+#include "reorderedms.h"
 
 #include <aocommon/io/serialstreamfwd.h>
 
@@ -24,7 +24,7 @@ class MSDataDescription {
       const MSSelection& selection, aocommon::PolarizationEnum polarization,
       size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
-    mdd->_isPartitioned = false;
+    mdd->_isReordered = false;
     mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
     mdd->_dataDescId = dataDescId;
@@ -34,12 +34,12 @@ class MSDataDescription {
     return mdd;
   }
 
-  static std::unique_ptr<MSDataDescription> ForPartitioned(
-      PartitionedMS::Handle partitionHandle, const MSSelection& selection,
+  static std::unique_ptr<MSDataDescription> ForReordered(
+      ReorderedMs::Handle partitionHandle, const MSSelection& selection,
       size_t partIndex, aocommon::PolarizationEnum polarization,
       size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
-    mdd->_isPartitioned = true;
+    mdd->_isReordered = true;
     mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
     mdd->_dataDescId = dataDescId;
@@ -68,7 +68,7 @@ class MSDataDescription {
   MSDataDescription(){};
 
   // Common
-  bool _isPartitioned;
+  bool _isReordered;
   bool _useMPI;
   aocommon::PolarizationEnum _polarization;
   size_t _dataDescId;
@@ -78,8 +78,8 @@ class MSDataDescription {
   std::string _filename;
   std::string _dataColumnName;
 
-  // Partitioned
-  PartitionedMS::Handle _partitionHandle;
+  // Reordered
+  ReorderedMs::Handle _partitionHandle;
   size_t _partIndex;
 };
 

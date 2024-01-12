@@ -28,7 +28,7 @@
 
 #include "../gridding/msgridderbase.h"
 
-#include "../msproviders/partitionedms.h"
+#include "../msproviders/reorderedms.h"
 
 #include "imageweightinitializer.h"
 #include "mshelper.h"

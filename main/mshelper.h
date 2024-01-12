@@ -7,7 +7,7 @@
 #include <aocommon/multibanddata.h>
 
 #include "../msproviders/msdatadescription.h"
-#include "../msproviders/partitionedms.h"
+#include "../msproviders/reorderedms.h"
 #include "../structures/imagingtable.h"
 #include "../structures/msselection.h"
 
@@ -26,7 +26,7 @@ class MsHelper {
         ms_bands_{ms_bands},
         reordered_ms_handles_{} {}
 
-  const std::vector<PartitionedMS::Handle>& GetReorderedMsHandles() const {
+  const std::vector<ReorderedMs::Handle>& GetReorderedMsHandles() const {
     return reordered_ms_handles_;
   }
 
@@ -40,7 +40,7 @@ class MsHelper {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  std::vector<PartitionedMS::Handle> reordered_ms_handles_;
+  std::vector<ReorderedMs::Handle> reordered_ms_handles_;
 };
 
 #endif

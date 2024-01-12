@@ -30,7 +30,7 @@ class MSReader;
  * passed to the @ref MSReader. MSProvider provides the visibilities weighted
  * with the visibility weight and converts the visibilities to a requested
  * polarization. The @ref ContiguousMS and
- * @ref PartitionedMS classes implement the MSProvider interface.
+ * @ref ReorderedMs classes implement the MSProvider interface.
  *
  * The class maintains an index for the write position. The index for the
  * reading position is maintained by the closely connected @ref MSReader class.
