@@ -1328,36 +1328,29 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
                                  std::unique_ptr<PrimaryBeam>& primaryBeam,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
-  const size_t facetCount = groupTable.FacetCount();
-  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
-    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
-
+  for (const ImagingTable::Group& group : groupTable.Facets()) {
     if (requestPolarizationsAtOnce) {
-      for (ImagingTableEntry& entry : facetTable) {
-        if (entry.polarization == *_settings.polarizations.begin())
-          runSingleFirstInversion(entry, primaryBeam);
+      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+        if (entry->polarization == *_settings.polarizations.begin())
+          runSingleFirstInversion(*entry, primaryBeam);
       }
     } else if (parallelizePolarizations) {
-      for (ImagingTableEntry& entry : facetTable) {
-        runSingleFirstInversion(entry, primaryBeam);
+      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+        runSingleFirstInversion(*entry, primaryBeam);
       }
     } else {
-      bool hasMore;
-      size_t sqIndex = 0;
-      do {
-        hasMore = false;
-        // Run the inversion for one entry out of each squared group
-        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
-          if (sqIndex < sqGroup.size()) {
-            hasMore = true;
-            runSingleFirstInversion(*sqGroup[sqIndex], primaryBeam);
+      // Only use parallelism for entries with the same polarization.
+      for (aocommon::PolarizationEnum polarization : _settings.polarizations) {
+        for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+          if (entry->polarization == polarization) {
+            runSingleFirstInversion(*entry, primaryBeam);
           }
         }
-        ++sqIndex;
         _griddingTaskManager->Finish();
-      } while (hasMore);
+      }
     }
   }
+
   if (requestPolarizationsAtOnce) {
     _griddingTaskManager->Finish();
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
@@ -1439,12 +1432,13 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
       if (_settings.deconvolutionMGain != 1.0) {
         partitionModelIntoFacets(tableWithoutDdPsf, false);
+        resetModelColumns(tableWithoutDdPsf);
+        _griddingTaskManager->Start(
+            getMaxNrMSProviders() *
+            (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
+
         if (requestPolarizationsAtOnce) {
-          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
           // Iterate over polarizations, channels & facets
           for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
             // Only request one polarization for each facet/channel. The
@@ -1453,10 +1447,9 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
               predict(entry);
           }
           _griddingTaskManager->Finish();
-
           _predictingWatch.Pause();
-          _inversionWatch.Start();
 
+          _inversionWatch.Start();
           for (ImagingTableEntry& entry : tableWithoutDdPsf) {
             if (entry.polarization == *_settings.polarizations.begin())
               imageMain(entry, false, false);
@@ -1464,65 +1457,42 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
         } else if (parallelizePolarizations) {
-          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
-          for (const ImagingTable::Group& sqGroup :
-               tableWithoutDdPsf.SquaredGroups()) {
-            for (const ImagingTable::EntryPtr& entry : sqGroup) {
-              predict(*entry);
-            }
+          for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
+            predict(entry);
           }
           _griddingTaskManager->Finish();
           _predictingWatch.Pause();
 
           _inversionWatch.Start();
-          for (const ImagingTable::Group& sqGroup :
-               tableWithoutDdPsf.SquaredGroups()) {
-            for (const ImagingTable::EntryPtr& entry : sqGroup) {
-              imageMain(*entry, false, false);
-            }  // end of polarization & facets loop
-          }    // end of joined channels loop
+          for (ImagingTableEntry& entry : tableWithoutDdPsf) {
+            imageMain(entry, false, false);
+          }
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
         } else {  // only parallelize channels
-          resetModelColumns(tableWithoutDdPsf);
           _predictingWatch.Start();
-          _griddingTaskManager->Start(
-              getMaxNrMSProviders() *
-              (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
-          bool hasMore;
-          size_t sqIndex = 0;
-          do {
-            hasMore = false;
-            for (const ImagingTable::Group& sqGroup :
-                 tableWithoutDdPsf.SquaredGroups()) {
-              if (sqIndex < sqGroup.size()) {
-                hasMore = true;
-                predict(*sqGroup[sqIndex]);
+          for (aocommon::PolarizationEnum polarization :
+               _settings.polarizations) {
+            for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
+              if (entry.polarization == polarization) {
+                predict(entry);
               }
             }
-            ++sqIndex;
             _griddingTaskManager->Finish();
-          } while (hasMore);
+          }
           _predictingWatch.Pause();
 
           _inversionWatch.Start();
-          sqIndex = 0;
-          do {
-            hasMore = false;
-            for (const ImagingTable::Group& sqGroup :
-                 tableWithoutDdPsf.SquaredGroups()) {
-              if (sqIndex < sqGroup.size()) {
-                hasMore = true;
-                imageMain(*sqGroup[sqIndex], false, false);
+          for (aocommon::PolarizationEnum polarization :
+               _settings.polarizations) {
+            for (ImagingTableEntry& entry : tableWithoutDdPsf) {
+              if (entry.polarization == polarization) {
+                imageMain(entry, false, false);
               }
             }
-            ++sqIndex;
             _griddingTaskManager->Finish();
-          } while (hasMore);
+          }
           _inversionWatch.Pause();
         }
         stitchFacets(tableWithoutDdPsf, _residualImages, false, false);
