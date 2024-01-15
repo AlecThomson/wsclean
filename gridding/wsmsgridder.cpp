@@ -363,8 +363,10 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (!queue.empty() && queue.top().rowId == nextRowId) {
+      MSProvider::MetaData metaData;
+      ReadPredictMetaData(metaData);
       WriteCollapsedVisibilities(*msData->msProvider, msData->antennaNames,
-                                 *bandData, queue.top().data.get());
+                                 *bandData, queue.top().data.get(), metaData);
 
       queue.pop();
       ++nextRowId;

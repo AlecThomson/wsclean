@@ -515,23 +515,24 @@ class MSGridderBase {
   void WriteCollapsedVisibilities(MSProvider& msProvider,
                                   const std::vector<std::string>& antennaNames,
                                   const aocommon::BandData& curBand,
-                                  std::complex<float>* buffer) {
+                                  std::complex<float>* buffer,
+                                  MSProvider::MetaData& metaData) {
     switch (_nVisPolarizations) {
       case 1:
         WriteInstrumentalVisibilities<1>(msProvider, antennaNames, curBand,
-                                         buffer);
+                                         buffer, metaData);
         break;
       case 2:
         internal::ExpandData<2>(curBand.ChannelCount(), buffer,
                                 _scratchModelData.data());
         WriteInstrumentalVisibilities<2>(msProvider, antennaNames, curBand,
-                                         _scratchModelData.data());
+                                         _scratchModelData.data(), metaData);
         break;
       case 4:
         internal::ExpandData<4>(curBand.ChannelCount(), buffer,
                                 _scratchModelData.data());
         WriteInstrumentalVisibilities<4>(msProvider, antennaNames, curBand,
-                                         _scratchModelData.data());
+                                         _scratchModelData.data(), metaData);
         break;
     }
   }
@@ -545,7 +546,8 @@ class MSGridderBase {
   template <size_t PolarizationCount>
   void WriteInstrumentalVisibilities(
       MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-      const aocommon::BandData& curBand, std::complex<float>* buffer);
+      const aocommon::BandData& curBand, std::complex<float>* buffer,
+      MSProvider::MetaData& metaData);
 
   double _maxW, _minW;
 
@@ -570,6 +572,7 @@ class MSGridderBase {
                                  std::complex<float>* dataIter);
 
   const Settings& _settings;
+  void ReadPredictMetaData(MSProvider::MetaData& metaData);
 
  private:
   static std::vector<std::string> getAntennaNames(
@@ -620,7 +623,8 @@ class MSGridderBase {
   template <size_t PolarizationCount, GainMode GainEntry>
   void WriteInstrumentalVisibilities(
       MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-      const aocommon::BandData& curBand, std::complex<float>* buffer);
+      const aocommon::BandData& curBand, std::complex<float>* buffer,
+      MSProvider::MetaData& metaData);
 
   /**
    * @brief Applies both the conjugated h5 parm
@@ -780,30 +784,31 @@ inline void MSGridderBase::ApplyWeightsAndCorrections(
 template <size_t PolarizationCount>
 inline void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer) {
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData) {
   switch (_gainMode) {
     case GainMode::kXX:
       if constexpr (PolarizationCount == 1) {
         WriteInstrumentalVisibilities<PolarizationCount, GainMode::kXX>(
-            msProvider, antennaNames, curBand, buffer);
+            msProvider, antennaNames, curBand, buffer, metaData);
       }
       break;
     case GainMode::kYY:
       if constexpr (PolarizationCount == 1) {
         WriteInstrumentalVisibilities<PolarizationCount, GainMode::kYY>(
-            msProvider, antennaNames, curBand, buffer);
+            msProvider, antennaNames, curBand, buffer, metaData);
       }
       break;
     case GainMode::kDiagonal:
       if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
         WriteInstrumentalVisibilities<PolarizationCount, GainMode::kDiagonal>(
-            msProvider, antennaNames, curBand, buffer);
+            msProvider, antennaNames, curBand, buffer, metaData);
       }
       break;
     case GainMode::kFull:
       if constexpr (PolarizationCount == 4)
         WriteInstrumentalVisibilities<PolarizationCount, GainMode::kFull>(
-            msProvider, antennaNames, curBand, buffer);
+            msProvider, antennaNames, curBand, buffer, metaData);
       else
         throw std::runtime_error(
             "Invalid combination of visibility polarizations and gain mode");

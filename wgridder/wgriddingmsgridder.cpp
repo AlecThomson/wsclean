@@ -160,11 +160,19 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     size_t nRows = 0;
+
     // Read / fill the chunk
+    Logger::Info << "Loading metadata...\n";
+    // Read from metadata buffer
+    std::vector<MSProvider::MetaData> metaDataBuffer;
     while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
-      msReader->ReadMeta(uvwBuffer[nRows * 3], uvwBuffer[nRows * 3 + 1],
-                         uvwBuffer[nRows * 3 + 2]);
-      ++nRows;
+      metaDataBuffer.emplace_back();
+      ReadPredictMetaData(metaDataBuffer[nRows]);
+      uvwBuffer[nRows * 3] = metaDataBuffer[nRows].uInM;
+      uvwBuffer[nRows * 3 + 1] = metaDataBuffer[nRows].vInM;
+      uvwBuffer[nRows * 3 + 2] = metaDataBuffer[nRows].wInM;
+      nRows++;
+
       msReader->NextInputRow();
     }
 
@@ -177,9 +185,9 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != nRows; ++row) {
-      WriteCollapsedVisibilities(*msData.msProvider, msData.antennaNames,
-                                 selectedBand,
-                                 &visBuffer[row * selectedBand.ChannelCount()]);
+      WriteCollapsedVisibilities(
+          *msData.msProvider, msData.antennaNames, selectedBand,
+          &visBuffer[row * selectedBand.ChannelCount()], metaDataBuffer[row]);
     }
     totalNRows += nRows;
   }  // end of chunk

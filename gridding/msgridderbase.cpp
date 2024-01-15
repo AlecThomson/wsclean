@@ -448,22 +448,20 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   _actualWGridSize = hasWGridSize() ? _wGridSize : suggestedGridSize;
 }
 
+void MSGridderBase::ReadPredictMetaData(MSProvider::MetaData& metaData) {
+  _predictReader->ReadMeta(metaData);
+  _predictReader->NextInputRow();
+}
+
 template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer) {
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
   if (_visibilityModifier.HasH5Parm()) {
     assert(!_settings.facetRegionFilename.empty());
-    MSProvider::MetaData metaData;
-    _predictReader->ReadMeta(metaData);
-    // When the facet beam is applied, the row will be incremented later in this
-    // function
-    if (!_settings.applyFacetBeam) {
-      _predictReader->NextInputRow();
-    }
-
     _visibilityModifier.CacheParmResponse(metaData.time, antennaNames, curBand,
                                           _msIndex);
 
@@ -474,10 +472,6 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam) {
-    MSProvider::MetaData metaData;
-    _predictReader->ReadMeta(metaData);
-    _predictReader->NextInputRow();
-
     _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
                                           curBand);
 
@@ -496,25 +490,30 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
 template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kXX>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kYY>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kDiagonal>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::WriteInstrumentalVisibilities<2, GainMode::kDiagonal>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::ApplyWeightsAndCorrections(
