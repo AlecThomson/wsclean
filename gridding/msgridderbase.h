@@ -385,9 +385,11 @@ class MSGridderBase {
       const bool* isSelected, const MSProvider::MetaData& metaData) {
     ReadVisibilities(msReader, rowData, weightBuffer, modelBuffer);
 
+    CalculateWeights<PolarizationCount>(rowData, curBand, weightBuffer,
+                                        modelBuffer, isSelected);
+
     ApplyWeightsAndCorrections<PolarizationCount>(
-        antennaNames, rowData, curBand, weightBuffer, modelBuffer, isSelected,
-        metaData);
+        antennaNames, rowData, curBand, weightBuffer, metaData);
 
     if (StoreImagingWeights())
       msReader.WriteImagingWeights(_scratchImageWeights.data());
@@ -398,8 +400,6 @@ class MSGridderBase {
                                   InversionRow& rowData,
                                   const aocommon::BandData& curBand,
                                   float* weightBuffer,
-                                  std::complex<float>* modelBuffer,
-                                  const bool* isSelected,
                                   const MSProvider::MetaData& metaData);
 
   /**
@@ -483,20 +483,23 @@ class MSGridderBase {
                                    const MSProvider::MetaData& metaData) {
     switch (_nVisPolarizations) {
       case 1:
+        CalculateWeights<1>(rowData, curBand, weightBuffer, modelBuffer,
+                            isSelected);
         ApplyWeightsAndCorrections<1>(antennaNames, rowData, curBand,
-                                      weightBuffer, modelBuffer, isSelected,
-                                      metaData);
+                                      weightBuffer, metaData);
         break;
       case 2:
+        CalculateWeights<2>(rowData, curBand, weightBuffer, modelBuffer,
+                            isSelected);
         ApplyWeightsAndCorrections<2>(antennaNames, rowData, curBand,
-                                      weightBuffer, modelBuffer, isSelected,
-                                      metaData);
+                                      weightBuffer, metaData);
         internal::CollapseData<2>(curBand.ChannelCount(), rowData.data);
         break;
       case 4:
+        CalculateWeights<4>(rowData, curBand, weightBuffer, modelBuffer,
+                            isSelected);
         ApplyWeightsAndCorrections<4>(antennaNames, rowData, curBand,
-                                      weightBuffer, modelBuffer, isSelected,
-                                      metaData);
+                                      weightBuffer, metaData);
         internal::CollapseData<4>(curBand.ChannelCount(), rowData.data);
         break;
     }
@@ -611,13 +614,17 @@ class MSGridderBase {
                           MSGridderBase::MSData& msData);
   void initializePointResponse(const MSGridderBase::MSData& msData);
 
+  template <size_t PolarizationCount>
+  void CalculateWeights(InversionRow& rowData,
+                        const aocommon::BandData& curBand, float* weightBuffer,
+                        std::complex<float>* modelBuffer,
+                        const bool* isSelected);
+
   template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyWeightsAndCorrections(const std::vector<std::string>& antennaNames,
                                   InversionRow& rowData,
                                   const aocommon::BandData& curBand,
                                   float* weightBuffer,
-                                  std::complex<float>* modelBuffer,
-                                  const bool* isSelected,
                                   const MSProvider::MetaData& metaData);
 
   template <size_t PolarizationCount, GainMode GainEntry>
@@ -744,35 +751,30 @@ template <size_t PolarizationCount>
 inline void MSGridderBase::ApplyWeightsAndCorrections(
     const std::vector<std::string>& antennaNames, InversionRow& rowData,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData) {
   switch (_gainMode) {
     case GainMode::kXX:
       if constexpr (PolarizationCount == 1) {
         ApplyWeightsAndCorrections<PolarizationCount, GainMode::kXX>(
-            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected, metaData);
+            antennaNames, rowData, curBand, weightBuffer, metaData);
       }
       break;
     case GainMode::kYY:
       if constexpr (PolarizationCount == 1) {
         ApplyWeightsAndCorrections<PolarizationCount, GainMode::kYY>(
-            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected, metaData);
+            antennaNames, rowData, curBand, weightBuffer, metaData);
       }
       break;
     case GainMode::kDiagonal:
       if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
         ApplyWeightsAndCorrections<PolarizationCount, GainMode::kDiagonal>(
-            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected, metaData);
+            antennaNames, rowData, curBand, weightBuffer, metaData);
       }
       break;
     case GainMode::kFull:
       if constexpr (PolarizationCount == 4) {
         ApplyWeightsAndCorrections<PolarizationCount, GainMode::kFull>(
-            antennaNames, rowData, curBand, weightBuffer, modelBuffer,
-            isSelected, metaData);
+            antennaNames, rowData, curBand, weightBuffer, metaData);
       } else {
         throw std::runtime_error(
             "Invalid combination of visibility polarizations and gain mode");

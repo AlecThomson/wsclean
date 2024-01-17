@@ -515,12 +515,12 @@ template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
-template <size_t PolarizationCount, GainMode GainEntry>
-void MSGridderBase::ApplyWeightsAndCorrections(
-    const std::vector<std::string>& antennaNames, InversionRow& rowData,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
-    const MSProvider::MetaData& metaData) {
+template <size_t PolarizationCount>
+void MSGridderBase::CalculateWeights(InversionRow& rowData,
+                                     const aocommon::BandData& curBand,
+                                     float* weightBuffer,
+                                     std::complex<float>* modelBuffer,
+                                     const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (GetPsfMode() != PsfMode::kNone) {
     // Visibilities for a point source at the phase centre are all ones
@@ -585,7 +585,13 @@ void MSGridderBase::ApplyWeightsAndCorrections(
     const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
     _scratchImageWeights[ch] = GetImageWeights()->GetWeight(u, v);
   }
+}
 
+template <size_t PolarizationCount, GainMode GainEntry>
+void MSGridderBase::ApplyWeightsAndCorrections(
+    const std::vector<std::string>& antennaNames, InversionRow& rowData,
+    const aocommon::BandData& curBand, float* weightBuffer,
+    const MSProvider::MetaData& metaData) {
   if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
     const bool apply_beam = _settings.applyFacetBeam || _settings.gridWithBeam;
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
@@ -650,34 +656,46 @@ void MSGridderBase::ApplyWeightsAndCorrections(
   }
 }
 
+template void MSGridderBase::CalculateWeights<1>(
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+template void MSGridderBase::CalculateWeights<2>(
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+template void MSGridderBase::CalculateWeights<3>(
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+template void MSGridderBase::CalculateWeights<4>(
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kXX>(
     const std::vector<std::string>& antennaNames, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kYY>(
     const std::vector<std::string>& antennaNames, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kDiagonal>(
     const std::vector<std::string>& antennaNames, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<2, GainMode::kDiagonal>(
     const std::vector<std::string>& antennaNames, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<4, GainMode::kFull>(
     const std::vector<std::string>& antennaNames, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected,
     const MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount>
