@@ -261,26 +261,34 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   Logger::Info << "DONE\n";
 }
 
-void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
+void WSClean::imageMain(ImagingTable::Group& facet_group, bool isFirstInversion,
                         bool updateBeamInfo) {
-  Logger::Info.Flush();
-  Logger::Info << " == Constructing image ==\n";
-
-  std::unique_ptr<AverageBeam> average_beam;
+  std::vector<std::unique_ptr<AverageBeam>> average_beams;
   if (!isFirstInversion && griddingUsesATerms()) {
-    average_beam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                     entry.outputChannelIndex);
+    average_beams.reserve(facet_group.size());
+    for (const std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
+      average_beams.push_back(AverageBeam::Load(
+          _scalarBeamImages, _matrixBeamImages, entry->outputChannelIndex));
+    }
   }
 
-  GriddingTask task = _griddingTaskFactory->CreateInvertTask(
-      entry, *_imageWeightCache, _isFirstInversionTask, isFirstInversion,
-      std::move(average_beam));
+  const bool kCombineFacets = false;
+  std::vector<GriddingTask> tasks = _griddingTaskFactory->CreateInvertTasks(
+      facet_group, *_imageWeightCache, kCombineFacets, _isFirstInversionTask,
+      isFirstInversion, std::move(average_beams));
 
-  _griddingTaskManager->Run(
-      std::move(task),
-      [this, &entry, updateBeamInfo, isFirstInversion](GriddingResult& result) {
-        imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
-      });
+  for (size_t i = 0; i < facet_group.size(); ++i) {
+    ImagingTableEntry& entry = *facet_group[i];
+
+    Logger::Info.Flush();
+    Logger::Info << " == Constructing image ==\n";
+
+    _griddingTaskManager->Run(
+        std::move(tasks[i]), [this, &entry, updateBeamInfo,
+                              isFirstInversion](GriddingResult& result) {
+          imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
+        });
+  }
 
   _isFirstInversionTask = false;
 }
@@ -1332,25 +1340,24 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
     if (requestPolarizationsAtOnce) {
       for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
         if (entry->polarization == *_settings.polarizations.begin())
-          runSingleFirstInversion(*entry, primaryBeam);
+          runSingleFirstInversion(entry, primaryBeam);
       }
     } else if (parallelizePolarizations) {
       for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-        runSingleFirstInversion(*entry, primaryBeam);
+        runSingleFirstInversion(entry, primaryBeam);
       }
     } else {
       // Only use parallelism for entries with the same polarization.
       for (aocommon::PolarizationEnum polarization : _settings.polarizations) {
         for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
           if (entry->polarization == polarization) {
-            runSingleFirstInversion(*entry, primaryBeam);
+            runSingleFirstInversion(entry, primaryBeam);
           }
         }
         _griddingTaskManager->Finish();
       }
     }
   }
-
   if (requestPolarizationsAtOnce) {
     _griddingTaskManager->Finish();
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
@@ -1361,20 +1368,21 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
 }
 
 void WSClean::runSingleFirstInversion(
-    ImagingTableEntry& entry, std::unique_ptr<PrimaryBeam>& primaryBeam) {
+    std::shared_ptr<ImagingTableEntry> entry,
+    std::unique_ptr<PrimaryBeam>& primaryBeam) {
   const bool isLastPol =
-      entry.polarization == *_settings.polarizations.rbegin();
+      entry->polarization == *_settings.polarizations.rbegin();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
 
   if (isLastPol) {
     ImageFilename imageName =
-        ImageFilename(entry.outputChannelIndex, entry.outputIntervalIndex);
+        ImageFilename(entry->outputChannelIndex, entry->outputIntervalIndex);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList =
-          _msHelper->InitializeMsList(entry);
+          _msHelper->InitializeMsList(*entry);
       std::shared_ptr<ImageWeights> weights =
-          _image_weight_initializer->Initialize(entry, msList,
+          _image_weight_initializer->Initialize(*entry, msList,
                                                 *_imageWeightCache);
       primaryBeam = std::make_unique<PrimaryBeam>(_settings);
       for (std::unique_ptr<MSDataDescription>& description : msList)
@@ -1383,17 +1391,19 @@ void WSClean::runSingleFirstInversion(
                                   _observationInfo.phaseCentreDec, _l_shift,
                                   _m_shift);
       // Only generate beam images for facetIndex == 0 in facet group
-      if (entry.facetIndex == 0) {
-        primaryBeam->MakeOrReuse(imageName, entry, std::move(weights),
+      if (entry->facetIndex == 0) {
+        primaryBeam->MakeOrReuse(imageName, *entry, std::move(weights),
                                  _settings.fieldIds[0]);
       }
     }
   }
 
-  if (_settings.reuseDirty)
-    loadExistingDirty(entry, !doMakePSF);
-  else
-    imageMain(entry, true, !doMakePSF);
+  if (_settings.reuseDirty) {
+    loadExistingDirty(*entry, !doMakePSF);
+  } else {
+    ImagingTable::Group group{std::move(entry)};
+    imageMain(group, true, !doMakePSF);
+  }
 }
 
 void WSClean::runMajorIterations(ImagingTable& groupTable,
@@ -1408,6 +1418,19 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   ImagingTable tableWithoutDdPsf(
       groupTable,
       [](const ImagingTableEntry& entry) { return !entry.isDdPsf; });
+
+  ImagingTable::Groups facetGroups;
+  if (requestPolarizationsAtOnce) {
+    const aocommon::PolarizationEnum first_polarization =
+        *_settings.polarizations.begin();
+    facetGroups = tableWithoutDdPsf.FacetGroups(
+        [first_polarization](const ImagingTableEntry& entry) {
+          return entry.polarization == first_polarization;
+        });
+  } else if (parallelizePolarizations) {
+    facetGroups = tableWithoutDdPsf.FacetGroups(
+        [](const ImagingTableEntry& entry) { return true; });
+  }  // else the loop below creates facetGroups for each polarization.
 
   _deconvolution.emplace(_settings.GetRadlerSettings(),
                          std::move(deconvolution_table),
@@ -1448,11 +1471,9 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           }
           _griddingTaskManager->Finish();
           _predictingWatch.Pause();
-
           _inversionWatch.Start();
-          for (ImagingTableEntry& entry : tableWithoutDdPsf) {
-            if (entry.polarization == *_settings.polarizations.begin())
-              imageMain(entry, false, false);
+          for (ImagingTable::Group& facetGroup : facetGroups) {
+            imageMain(facetGroup, false, false);
           }
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
@@ -1465,8 +1486,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _predictingWatch.Pause();
 
           _inversionWatch.Start();
-          for (ImagingTableEntry& entry : tableWithoutDdPsf) {
-            imageMain(entry, false, false);
+          for (ImagingTable::Group& facetGroup : facetGroups) {
+            imageMain(facetGroup, false, false);
           }
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
@@ -1486,10 +1507,12 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _inversionWatch.Start();
           for (aocommon::PolarizationEnum polarization :
                _settings.polarizations) {
-            for (ImagingTableEntry& entry : tableWithoutDdPsf) {
-              if (entry.polarization == polarization) {
-                imageMain(entry, false, false);
-              }
+            facetGroups = tableWithoutDdPsf.FacetGroups(
+                [polarization](const ImagingTableEntry& entry) {
+                  return entry.polarization == polarization;
+                });
+            for (ImagingTable::Group& facetGroup : facetGroups) {
+              imageMain(facetGroup, false, false);
             }
             _griddingTaskManager->Finish();
           }
@@ -1505,11 +1528,12 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     Logger::Info << _majorIterationNr << " major iterations were performed.\n";
   }
 
-  const ImagingTable::Groups facet_groups = tableWithoutDdPsf.FacetGroups();
-  for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
-       ++facetGroupIndex) {
-    const ImagingTable facetGroup = ImagingTable(facet_groups[facetGroupIndex]);
-    saveRestoredImagesForGroup(facetGroup, primaryBeam);
+  if (requestPolarizationsAtOnce || !parallelizePolarizations) {
+    facetGroups = tableWithoutDdPsf.FacetGroups(
+        [](const ImagingTableEntry& entry) { return true; });
+  }
+  for (const ImagingTable::Group& facetGroup : facetGroups) {
+    saveRestoredImagesForGroup(ImagingTable(facetGroup), primaryBeam);
   }
 
   if (_settings.saveSourceList) {

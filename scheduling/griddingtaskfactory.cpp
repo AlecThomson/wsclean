@@ -4,7 +4,8 @@
 #include "../io/imagefilename.h"
 
 void GriddingTaskFactory::AddFacet(GriddingTask& task,
-                                   const ImagingTableEntry& entry) {
+                                   const ImagingTableEntry& entry,
+                                   std::unique_ptr<AverageBeam> average_beam) {
   double l_shift = l_shift_;
   double m_shift = m_shift_;
 
@@ -17,7 +18,17 @@ void GriddingTaskFactory::AddFacet(GriddingTask& task,
   }
   task.facets.emplace_back(entry.facetIndex, l_shift, m_shift,
                            std::move(meta_data_cache_[entry.index]),
-                           entry.facet);
+                           std::move(average_beam), entry.facet);
+}
+
+aocommon::PolarizationEnum GriddingTaskFactory::DeterminePolarization(
+    const ImagingTableEntry& entry) const {
+  const Settings& settings = image_weight_initializer_.GetSettings();
+  if (settings.gridderType == GridderType::IDG &&
+      settings.polarizations.size() != 1)
+    return aocommon::Polarization::FullStokes;
+  else
+    return entry.polarization;
 }
 
 GriddingTask GriddingTaskFactory::CreateBase(
@@ -73,47 +84,59 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePsfTasks(
   return tasks;
 }
 
-GriddingTask GriddingTaskFactory::CreateInvertTask(
-    const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
+std::vector<GriddingTask> GriddingTaskFactory::CreateInvertTasks(
+    const ImagingTable::Group& facet_group,
+    ImageWeightCache& image_weight_cache, bool combine_facets,
     bool is_first_task, bool is_first_inversion,
-    std::unique_ptr<AverageBeam> average_beam) {
+    std::vector<std::unique_ptr<AverageBeam>>&& average_beams) {
+  assert(average_beams.empty() || average_beams.size() == facet_group.size());
+
   const Settings& settings = image_weight_initializer_.GetSettings();
 
-  GriddingTask task = CreateBase(entry, image_weight_cache, is_first_task);
+  std::vector<GriddingTask> tasks;
+  tasks.reserve(combine_facets ? 1 : facet_group.size());
 
-  task.operation = GriddingTask::Invert;
-  task.imagePSF = false;
-  if (settings.gridderType == GridderType::IDG &&
-      settings.polarizations.size() != 1)
-    task.polarization = aocommon::Polarization::FullStokes;
-  else
-    task.polarization = entry.polarization;
-  task.subtractModel =
-      !is_first_inversion || settings.subtractModel || settings.continuedRun;
-  task.storeImagingWeights =
-      is_first_inversion && settings.writeImagingWeightSpectrumColumn;
+  for (std::size_t i = 0; i < facet_group.size(); ++i) {
+    const ImagingTableEntry& entry = *facet_group[i];
 
-  GriddingTask::FacetData& facet_task = task.facets.front();
-  facet_task.averageBeam = std::move(average_beam);
+    std::unique_ptr<AverageBeam> average_beam;
+    if (!average_beams.empty()) average_beam = std::move(average_beams[i]);
 
-  return task;
+    if (combine_facets && !tasks.empty()) {
+      assert(!tasks.front().facets.empty());
+      assert(tasks.front().facets.front().facet);
+      assert(entry.facet);
+      assert(tasks.front().facetGroupIndex == entry.facetGroupIndex);
+      AddFacet(tasks.back(), entry, std::move(average_beam));
+    } else {  // Create a new task.
+      tasks.push_back(CreateBase(entry, image_weight_cache, is_first_task));
+
+      tasks.back().operation = GriddingTask::Invert;
+      tasks.back().imagePSF = false;
+      tasks.back().polarization = DeterminePolarization(entry);
+      tasks.back().subtractModel = !is_first_inversion ||
+                                   settings.subtractModel ||
+                                   settings.continuedRun;
+      tasks.back().storeImagingWeights =
+          is_first_inversion && settings.writeImagingWeightSpectrumColumn;
+
+      GriddingTask::FacetData& facet_task = tasks.back().facets.front();
+      facet_task.averageBeam = std::move(average_beam);
+    }
+
+    is_first_task = false;
+  }
+
+  return tasks;
 }
 
 GriddingTask GriddingTaskFactory::CreatePredictTask(
     const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
     std::vector<aocommon::Image>&& model_images,
     std::unique_ptr<AverageBeam> average_beam) {
-  const Settings& settings = image_weight_initializer_.GetSettings();
-
   GriddingTask task = CreateBase(entry, image_weight_cache, false);
   task.operation = GriddingTask::Predict;
-
-  if (settings.gridderType == GridderType::IDG &&
-      settings.polarizations.size() != 1)
-    task.polarization = aocommon::Polarization::FullStokes;
-  else
-    task.polarization = entry.polarization;
-
+  task.polarization = DeterminePolarization(entry);
   task.storeImagingWeights = false;
 
   GriddingTask::FacetData& facet_task = task.facets.front();

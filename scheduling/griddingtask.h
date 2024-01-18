@@ -49,6 +49,7 @@ class GriddingTask {
     explicit FacetData(
         size_t _index, double _l_shift, double _m_shift,
         std::unique_ptr<MetaDataCache> _cache,
+        std::unique_ptr<AverageBeam> _average_beam,
         const std::shared_ptr<schaapcommon::facets::Facet>& _facet);
 
     void Serialize(aocommon::SerialOStream& stream) const;

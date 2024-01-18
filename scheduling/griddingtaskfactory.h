@@ -44,16 +44,22 @@ class GriddingTaskFactory {
       bool is_first_task);
 
   /**
-   * Creates a gridding / inversion task.
+   * Creates gridding / inversion tasks.
+   * @param facet_group Group with all imaging table entries (facets) for a
+   * single PSF image.
+   * When faceting is disabled, the group contains only one entry.
    * @param is_first_task True for the first gridding task. WSClean produces
    * more verbose logging output for the first task.
    * @param is_first_inversion True if the task is part of the first set of
    * gridding / inversion tasks.
+   * @param combine_facets True: Create a single task for all facets.
+   * False: Create an individual task for each facet.
    */
-  GriddingTask CreateInvertTask(const ImagingTableEntry& entry,
-                                ImageWeightCache& image_weight_cache,
-                                bool is_first_task, bool is_first_inversion,
-                                std::unique_ptr<AverageBeam> average_beam);
+  std::vector<GriddingTask> CreateInvertTasks(
+      const ImagingTable::Group& facet_group,
+      ImageWeightCache& image_weight_cache, bool combine_facets,
+      bool is_first_task, bool is_first_inversion,
+      std::vector<std::unique_ptr<AverageBeam>>&& average_beams);
 
   /**
    * Creates a degridding / predict task.
@@ -69,6 +75,7 @@ class GriddingTaskFactory {
 
   void SetMetaDataCacheEntry(const ImagingTableEntry& entry,
                              std::unique_ptr<MetaDataCache> cache) {
+    assert(entry.index < meta_data_cache_.size());
     meta_data_cache_[entry.index] = std::move(cache);
   }
 
@@ -80,7 +87,13 @@ class GriddingTaskFactory {
   /// Add a facet structure to an existing task.
   /// @param task An existing task, which may not have FacetData yet.
   /// @param entry ImagingTableEntry with facet-specific data.
-  void AddFacet(GriddingTask& task, const ImagingTableEntry& entry);
+  /// @param average_beam Average beam value for the facet. May be empty.
+  void AddFacet(GriddingTask& task, const ImagingTableEntry& entry,
+                std::unique_ptr<AverageBeam> average_beam = nullptr);
+
+  /// Determine the polarization value for an invert or predict task.
+  aocommon::PolarizationEnum DeterminePolarization(
+      const ImagingTableEntry& entry) const;
 
   /// Common code for initializing a task.
   /// After this function, the remaining task fields should be initialized.

@@ -77,7 +77,7 @@ class WSClean {
                           std::unique_ptr<PrimaryBeam>& primaryBeam,
                           bool requestPolarizationsAtOnce,
                           bool parallelizePolarizations);
-  void runSingleFirstInversion(ImagingTableEntry& entry,
+  void runSingleFirstInversion(std::shared_ptr<ImagingTableEntry> entry,
                                std::unique_ptr<PrimaryBeam>& primaryBeam);
   void runMajorIterations(ImagingTable& groupTable,
                           std::unique_ptr<PrimaryBeam>& primaryBeam,
@@ -154,7 +154,7 @@ class WSClean {
   void imagePSF(ImagingTable::Group& facet_group);
   void imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result);
 
-  void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
+  void imageMain(ImagingTable::Group& facet_group, bool isFirstInversion,
                  bool updateBeamInfo);
   void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
                          bool updateBeamInfo, bool isFirstInversion);

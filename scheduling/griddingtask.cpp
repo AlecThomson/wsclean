@@ -53,11 +53,13 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
 GriddingTask::FacetData::FacetData(
     size_t _index, double _l_shift, double _m_shift,
     std::unique_ptr<MetaDataCache> _cache,
+    std::unique_ptr<AverageBeam> _average_beam,
     const std::shared_ptr<schaapcommon::facets::Facet>& _facet)
     : index(_index),
       l_shift(_l_shift),
       m_shift(_m_shift),
       cache(std::move(_cache)),
+      averageBeam(std::move(_average_beam)),
       facet(_facet) {}
 
 void GriddingTask::FacetData::Serialize(aocommon::SerialOStream& stream) const {
