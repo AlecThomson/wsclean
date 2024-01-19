@@ -108,9 +108,9 @@ void WriteBeamImages(const ImageFilename& image_name,
 #endif
 
 void ApplyFacetCorrections(
-    const ImageFilename& imageName, const Settings& settings,
-    const CoordinateSystem& coordinates, const ImagingTable& table,
-    const std::vector<std::unique_ptr<MetaDataCache>>& metaCache) {
+    const ImageFilename& image_name, const Settings& settings,
+    const CoordinateSystem& coordinates, const ImagingTable::Group& group,
+    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
   if (settings.polarizations ==
       std::set<PolarizationEnum>{Polarization::XX, Polarization::YY}) {
     // FIXME: to be implemented
@@ -126,27 +126,27 @@ void ApplyFacetCorrections(
     schaapcommon::facets::FacetImage facet_image(coordinates.width,
                                                  coordinates.height, 1);
 
-    // table.Front() can be used, because the central frequency and start/end
+    // group.front() can be used, because the central frequency and start/end
     // frequency are equal inside a FacetGroup
-    const aocommon::FitsWriter writer = MakeWriter(coordinates, table.Front());
+    const aocommon::FitsWriter writer = MakeWriter(coordinates, *group.front());
 
     // Process the images one by one to avoid loading all of them in memory
     // at the same time.
     for (size_t i = 0; i != 16; ++i) {
-      Image beam_image = Load(settings, imageName, i);
+      Image beam_image = Load(settings, image_name, i);
       if (!beam_image.Empty()) {
-        std::vector<float*> imagePtr{beam_image.Data()};
-        for (const ImagingTableEntry& entry : table) {
+        std::vector<float*> image_pointer = {beam_image.Data()};
+        for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
           // The final image needs to be corrected by 1/sqrt(..). However, since
           // we are scaling the beam images, we need to apply the inverse of
           // that.
           const float factor =
-              std::sqrt(metaCache[entry.index]->h5Sum / entry.imageWeight);
-          facet_image.SetFacet(*entry.facet, true);
-          facet_image.MultiplyImageInsideFacet(imagePtr, factor);
+              std::sqrt(meta_cache[entry->index]->h5Sum / entry->imageWeight);
+          facet_image.SetFacet(*entry->facet, true);
+          facet_image.MultiplyImageInsideFacet(image_pointer, factor);
         }
 
-        WriteBeamElement(imageName, beam_image, settings, i, writer);
+        WriteBeamElement(image_name, beam_image, settings, i, writer);
       }
     }
   }
@@ -205,7 +205,7 @@ void PrimaryBeam::AddMS(std::unique_ptr<MSDataDescription> description) {
 }
 
 void PrimaryBeam::CorrectBeamForFacetGain(
-    const ImageFilename& image_name, const ImagingTable& table,
+    const ImageFilename& image_name, const ImagingTable::Group& group,
     const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
   const CoordinateSystem coordinates{settings_.trimmedImageWidth,
                                      settings_.trimmedImageHeight,
@@ -215,12 +215,12 @@ void PrimaryBeam::CorrectBeamForFacetGain(
                                      settings_.pixelScaleY,
                                      l_shift_,
                                      m_shift_};
-  ApplyFacetCorrections(image_name, settings_, coordinates, table, meta_cache);
+  ApplyFacetCorrections(image_name, settings_, coordinates, group, meta_cache);
 }
 
 void PrimaryBeam::CorrectImages(
     aocommon::FitsWriter& writer, const ImageFilename& image_name,
-    const std::string& filename_kind, const ImagingTable& table,
+    const std::string& filename_kind,
     const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
   if (settings_.polarizations.size() == 1 || filename_kind == "psf") {
     const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);

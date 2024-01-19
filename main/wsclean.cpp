@@ -921,9 +921,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 }
 
 void WSClean::saveRestoredImagesForGroup(
-    const ImagingTable& table,
+    const ImagingTable::Group& group,
     std::unique_ptr<PrimaryBeam>& primaryBeam) const {
-  const ImagingTableEntry tableEntry = table.Front();
+  const ImagingTableEntry& tableEntry = *group.front();
   assert(tableEntry.facetIndex == 0);
 
   // Restore model to residual and save image
@@ -1001,17 +1001,17 @@ void WSClean::saveRestoredImagesForGroup(
         const std::vector<std::unique_ptr<MetaDataCache>>& meta_data_cache =
             _griddingTaskFactory->GetMetaDataCache();
         if (correct_beam_for_facet_gains)
-          primaryBeam->CorrectBeamForFacetGain(imageName, table,
+          primaryBeam->CorrectBeamForFacetGain(imageName, group,
                                                meta_data_cache);
-        primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
+        primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
                                    meta_data_cache);
         if (_settings.savePsfPb)
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
                                      meta_data_cache);
         if (_settings.deconvolutionIterationCount != 0) {
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                     table, meta_data_cache);
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
+                                     meta_data_cache);
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
                                      meta_data_cache);
         }
       }
@@ -1023,12 +1023,12 @@ void WSClean::saveRestoredImagesForGroup(
     // fully support a Full Jones correction).
     if (!_settings.facetSolutionFiles.empty() &&
         !correct_beam_for_facet_gains) {
-      correctImagesH5(writer.Writer(), table, imageName, "image");
+      correctImagesH5(writer.Writer(), group, imageName, "image");
       if (_settings.savePsfPb)
-        correctImagesH5(writer.Writer(), table, imageName, "psf");
+        correctImagesH5(writer.Writer(), group, imageName, "psf");
       if (_settings.deconvolutionIterationCount != 0) {
-        correctImagesH5(writer.Writer(), table, imageName, "residual");
-        correctImagesH5(writer.Writer(), table, imageName, "model");
+        correctImagesH5(writer.Writer(), group, imageName, "residual");
+        correctImagesH5(writer.Writer(), group, imageName, "model");
       }
     }
   }
@@ -1517,7 +1517,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   }
 
   for (const ImagingTable::Group& facetGroup : facetGroups) {
-    saveRestoredImagesForGroup(ImagingTable(facetGroup), primaryBeam);
+    saveRestoredImagesForGroup(facetGroup, primaryBeam);
   }
 
   if (_settings.saveSourceList) {
@@ -2039,10 +2039,10 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
 }
 
 void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
-                              const ImagingTable& table,
+                              const ImagingTable::Group& group,
                               const ImageFilename& imageName,
                               const std::string& filenameKind) const {
-  const PolarizationEnum pol = table.Front().polarization;
+  const PolarizationEnum pol = group.front()->polarization;
 
   if (pol == Polarization::StokesI || pol == Polarization::XX ||
       pol == Polarization::YY) {
@@ -2061,10 +2061,10 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     std::vector<float*> imagePtr{image.Data()};
-    for (const ImagingTableEntry& entry : table) {
-      facetImage.SetFacet(*entry.facet, true);
+    for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+      facetImage.SetFacet(*entry->facet, true);
       const double factor =
-          _griddingTaskFactory->GetFacetCorrectionFactor(entry);
+          _griddingTaskFactory->GetFacetCorrectionFactor(*entry);
       facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
     }
 

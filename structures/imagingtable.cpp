@@ -11,7 +11,7 @@
 
 using aocommon::Logger;
 
-ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
+ImagingTable::ImagingTable(const ImagingTable::Group& entries)
     : _entries(entries), _independentGroups(), _facets(), _squaredGroups() {
   Update();
 }

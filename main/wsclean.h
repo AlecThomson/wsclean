@@ -69,7 +69,7 @@ class WSClean {
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<PrimaryBeam>& primaryBeam);
   void saveRestoredImagesForGroup(
-      const ImagingTable& table,
+      const ImagingTable::Group& group,
       std::unique_ptr<PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 
@@ -230,7 +230,8 @@ class WSClean {
    * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
    * file. Method is only invoked in case no beam corrections are applied.
    */
-  void correctImagesH5(aocommon::FitsWriter& writer, const ImagingTable& table,
+  void correctImagesH5(aocommon::FitsWriter& writer,
+                       const ImagingTable::Group& group,
                        const ImageFilename& imageName,
                        const std::string& filenameKind) const;
 

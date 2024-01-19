@@ -45,7 +45,7 @@ class PrimaryBeam {
    * Read the beam images in and multiply facets with their gain corrections.
    */
   void CorrectBeamForFacetGain(
-      const ImageFilename& image_name, const ImagingTable& table,
+      const ImageFilename& image_name, const ImagingTable::Group& group,
       const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache);
 
   void CorrectImages(const ImageFilename& image_name,
@@ -95,7 +95,6 @@ class PrimaryBeam {
    * @param image_name Image name object from which prefixes or polarization can
    * be derived.
    * @param filename_kind string specifying which image will be corrected
-   * @param table Imaging table of a single FacetGroup
    * @param meta_cache MSGridder meta data cache, containing image weights an
    * (summed) H5 facet solutions.
    * @param requires_gain_correction Correct beam images for piecewise constant
@@ -103,7 +102,7 @@ class PrimaryBeam {
    */
   void CorrectImages(
       aocommon::FitsWriter& writer, const ImageFilename& image_name,
-      const std::string& filename_kind, const ImagingTable& table,
+      const std::string& filename_kind,
       const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache);
 
   size_t GetUndersamplingFactor() const { return undersample_; };
