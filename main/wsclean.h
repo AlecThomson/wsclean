@@ -187,12 +187,13 @@ class WSClean {
    * or should be an image with the right size. This can be used to reuse
    * the same weight image over multiple calls and prevent re-allocation.
    */
-  void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
-                         CachedImageSet& imageCache, bool writeDirty,
-                         bool isPSF, aocommon::Image& fullImage,
+  void stitchSingleGroup(const ImagingTable::Group& facetGroup,
+                         size_t imageIndex, CachedImageSet& imageCache,
+                         bool writeDirty, bool isPSF,
+                         aocommon::Image& fullImage,
                          std::unique_ptr<aocommon::Image>& weight_image,
                          schaapcommon::facets::FacetImage& facetImage,
-                         size_t nFacetGroups);
+                         size_t maxFacetGroupIndex);
   /**
    * Partition model image into facets and save them into fits files
    */

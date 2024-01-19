@@ -1614,31 +1614,27 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
 }
 
 void WSClean::stitchFacets(const ImagingTable& table,
-                           CachedImageSet& imageCache, bool writeDirty,
-                           bool isPSF) {
+                           CachedImageSet& image_cache, bool write_dirty,
+                           bool is_psf) {
   if (_facetCount != 0) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
-    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    Image full_image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
 
     // Initialize FacetImage with properties of stitched image.
     // There's only one image, because WSClean uses only 1 spectral term.
-    schaapcommon::facets::FacetImage facetImage(
+    schaapcommon::facets::FacetImage facet_image(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     std::unique_ptr<Image> weight_image;
-    const ImagingTable::Groups facet_groups = table.FacetGroups();
-    for (size_t facetGroupIndex = 0; facetGroupIndex != facet_groups.size();
-         ++facetGroupIndex) {
-      const ImagingTable stitchGroup =
-          ImagingTable(facet_groups[facetGroupIndex]);
-
+    for (const ImagingTable::Group& facet_group : table.FacetGroups()) {
       // The PSF is only once imaged for all polarizations
-      if (!isPSF || stitchGroup.Front().polarization ==
-                        *_settings.polarizations.begin()) {
-        const size_t imageCount = stitchGroup.Front().imageCount;
-        for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
-          stitchSingleGroup(stitchGroup, imageIndex, imageCache, writeDirty,
-                            isPSF, fullImage, weight_image, facetImage,
+      if (!is_psf || facet_group.front()->polarization ==
+                         *_settings.polarizations.begin()) {
+        const size_t image_count = facet_group.front()->imageCount;
+        for (size_t image_index = 0; image_index != image_count;
+             ++image_index) {
+          stitchSingleGroup(facet_group, image_index, image_cache, write_dirty,
+                            is_psf, full_image, weight_image, facet_image,
                             table.MaxFacetGroupIndex());
         }
       }
@@ -1646,7 +1642,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
   }
 }
 
-void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
+void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
                                 bool writeDirty, bool isPSF, Image& fullImage,
                                 std::unique_ptr<Image>& weight_image,
@@ -1661,23 +1657,23 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
       weight_image = std::make_unique<Image>(
           _settings.trimmedImageWidth, _settings.trimmedImageHeight, 0.0f);
   }
-  for (const ImagingTableEntry& facetEntry : facetGroup) {
-    facetImage.SetFacet(*facetEntry.facet, true);
-    imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
-                         facetEntry.outputChannelIndex, facetEntry.facetIndex,
-                         facetEntry.facet, isImaginary);
+  for (const std::shared_ptr<ImagingTableEntry> facetEntry : facetGroup) {
+    facetImage.SetFacet(*facetEntry->facet, true);
+    imageCache.LoadFacet(facetImage.Data(0), facetEntry->polarization,
+                         facetEntry->outputChannelIndex, facetEntry->facetIndex,
+                         facetEntry->facet, isImaginary);
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
       const double factor =
-          _griddingTaskFactory->GetFacetCorrectionFactor(facetEntry);
+          _griddingTaskFactory->GetFacetCorrectionFactor(*facetEntry);
       facetImage *= 1.0 / std::sqrt(factor);
     }
 
     const size_t feather_size = _settings.GetFeatherSize();
     if (feather_size != 0) {
       aocommon::Image mask = facetImage.MakeMask();
-      const schaapcommon::facets::Facet& facet = *facetEntry.facet;
+      const schaapcommon::facets::Facet& facet = *facetEntry->facet;
       const bool needs_padding =
           facet.GetConvolutionBox() != facet.GetTrimmedBoundingBox();
       size_t left = 0;
@@ -1717,23 +1713,23 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     }
   }
   if (writeDirty) {
-    initializeModelImages(facetGroup.Front(), facetGroup.Front().polarization,
+    initializeModelImages(*facetGroup.front(), facetGroup.front()->polarization,
                           maxFacetGroupIndex);
     _residualImages.SetWSCFitsWriter(
-        createWSCFitsWriter(facetGroup.Front(), false, false));
+        createWSCFitsWriter(*facetGroup.front(), false, false));
     WSCFitsWriter writer(
-        createWSCFitsWriter(facetGroup.Front(), isImaginary, false));
+        createWSCFitsWriter(*facetGroup.front(), isImaginary, false));
     Logger::Info << "Writing dirty image...\n";
     writer.WriteImage("dirty.fits", fullImage);
   }
 
   if (isPSF) {
-    const ImagingTableEntry& entry = facetGroup.Front();
+    const ImagingTableEntry& entry = *facetGroup.front();
     processFullPSF(fullImage, entry);
   }
 
-  const size_t channelIndex = facetGroup.Front().outputChannelIndex;
-  const PolarizationEnum polarization = facetGroup.Front().polarization;
+  const size_t channelIndex = facetGroup.front()->outputChannelIndex;
+  const PolarizationEnum polarization = facetGroup.front()->polarization;
   imageCache.Store(fullImage, polarization, channelIndex, isImaginary);
 }
 
