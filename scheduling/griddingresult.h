@@ -18,6 +18,8 @@ struct GriddingResult {
   GriddingResult& operator=(const GriddingResult& rhs) = delete;
   GriddingResult& operator=(GriddingResult&& rhs) noexcept;
 
+  // The unique_id of the GriddingTask that produced the result.
+  uint32_t unique_id = 0;
   // These values are equal for all facets.
   double startTime = 0.0;
   // There could be reasons to make the beam size facet specific. In the

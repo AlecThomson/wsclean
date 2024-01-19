@@ -136,6 +136,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   GriddingResult result;
   GriddingResult::FacetData& facet_result = result.facets.front();
   facet_result.images = gridder.ResultImages();
+  result.unique_id = task.unique_id;
   result.startTime = gridder.StartTime();
   result.beamSize = gridder.BeamSize();
   facet_result.imageWeight = gridder.ImageWeight();

@@ -14,7 +14,8 @@ GriddingTask::~GriddingTask() noexcept = default;
 GriddingTask& GriddingTask::operator=(GriddingTask&& source) noexcept = default;
 
 void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
-  stream.UInt32(operation)
+  stream.UInt32(unique_id)
+      .UInt32(operation)
       .Bool(imagePSF)
       .Bool(subtractModel)
       .UInt32(polarization)
@@ -32,6 +33,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
+  stream.UInt32(unique_id);
   operation = static_cast<Operation>(stream.UInt32());
   stream.Bool(imagePSF).Bool(subtractModel);
   polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());

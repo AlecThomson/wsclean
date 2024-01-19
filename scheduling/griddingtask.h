@@ -29,6 +29,7 @@ class GriddingTask {
   GriddingTask& operator=(const GriddingTask& source) = delete;
   GriddingTask& operator=(GriddingTask&& source) noexcept;
 
+  uint32_t unique_id;
   enum Operation { Invert, Predict } operation;
   bool imagePSF;
   bool subtractModel;

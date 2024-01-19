@@ -12,7 +12,8 @@ GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept =
     default;
 
 void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
-  stream.Double(startTime)
+  stream.UInt32(unique_id)
+      .Double(startTime)
       .Double(beamSize)
       .UInt64(griddedVisibilityCount)
       .Double(visibilityWeightSum)
@@ -20,7 +21,8 @@ void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
 }
 
 void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
-  stream.Double(startTime)
+  stream.UInt32(unique_id)
+      .Double(startTime)
       .Double(beamSize)
       .UInt64(griddedVisibilityCount)
       .Double(visibilityWeightSum)

@@ -1,5 +1,7 @@
 #include "griddingtaskfactory.h"
 
+#include <limits>
+
 #include "../idg/averagebeam.h"
 #include "../io/imagefilename.h"
 
@@ -36,6 +38,8 @@ GriddingTask GriddingTaskFactory::CreateBase(
     bool is_first_task) {
   GriddingTask task;
 
+  assert(entry.index <= std::numeric_limits<decltype(task.unique_id)>::max());
+  task.unique_id = entry.index;
   task.observationInfo = observation_info_;
   task.isFirstTask = is_first_task;
 
