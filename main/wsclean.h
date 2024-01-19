@@ -106,7 +106,7 @@ class WSClean {
   ObservationInfo getObservationInfo() const;
   std::pair<double, double> getLMShift() const;
 
-  void resetModelColumns(const ImagingTable& groupTable);
+  void resetModelColumns(const ImagingTable::Groups& facet_groups);
   void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
@@ -151,10 +151,10 @@ class WSClean {
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
-  void imagePSF(ImagingTable::Group& facet_group);
+  void imagePSF(ImagingTable::Group& facetGroup);
   void imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result);
 
-  void imageMain(ImagingTable::Group& facet_group, bool isFirstInversion,
+  void imageMain(ImagingTable::Group& facetGroup, bool isFirstInversion,
                  bool updateBeamInfo);
   void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
                          bool updateBeamInfo, bool isFirstInversion);
@@ -196,13 +196,14 @@ class WSClean {
   /**
    * Partition model image into facets and save them into fits files
    */
-  void partitionModelIntoFacets(const ImagingTable& table, bool isPredictOnly);
+  void partitionModelIntoFacets(const ImagingTable::Groups& facetGroups,
+                                bool isPredictOnly);
 
   /**
    * Partition image into facets for a single (Facet)Group
    */
-  void partitionSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
-                            CachedImageSet& imageCache,
+  void partitionSingleGroup(const ImagingTable::Group& facetGroup,
+                            size_t imageIndex, CachedImageSet& imageCache,
                             const aocommon::Image& fullImage,
                             schaapcommon::facets::FacetImage& facetImage,
                             bool isPredictOnly);
