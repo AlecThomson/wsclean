@@ -159,7 +159,7 @@ class WSClean {
   void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
                          bool updateBeamInfo, bool isFirstInversion);
 
-  void predict(const ImagingTableEntry& entry);
+  void predict(const ImagingTable::Group& facetGroup);
 
   void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;

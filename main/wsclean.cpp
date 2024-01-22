@@ -445,59 +445,76 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
   }
 }
 
-void WSClean::predict(const ImagingTableEntry& entry) {
-  Logger::Info.Flush();
-  Logger::Info << " == Converting model image to visibilities ==\n";
-  size_t width;
-  size_t height;
-  if (entry.facet) {
-    width = entry.facet->GetTrimmedBoundingBox().Width();
-    height = entry.facet->GetTrimmedBoundingBox().Height();
-  } else {
-    width = _settings.trimmedImageWidth;
-    height = _settings.trimmedImageHeight;
-  }
-  const bool isFullStokes = _settings.gridderType == GridderType::IDG &&
-                            _settings.polarizations.size() != 1;
-  std::vector<PolarizationEnum> polarizations;
-  if (isFullStokes)
-    polarizations.assign(_settings.polarizations.begin(),
-                         _settings.polarizations.end());
-  else
-    polarizations = {entry.polarization};
+void WSClean::predict(const ImagingTable::Group& facetGroup) {
+  const bool isFullStokes{_settings.gridderType == GridderType::IDG &&
+                          _settings.polarizations.size() != 1};
+  std::vector<std::vector<Image>> model_images;
+  std::vector<std::unique_ptr<AverageBeam>> average_beams;
+  model_images.reserve(facetGroup.size());
+  average_beams.reserve(facetGroup.size());
 
-  std::vector<Image> modelImages;
-  modelImages.reserve(polarizations.size());
-  for (PolarizationEnum& polarization : polarizations) {
-    modelImages.emplace_back(width, height);
-    bool isYX = polarization == Polarization::YX;
-    const PolarizationEnum loadPol = isYX ? Polarization::XY : polarization;
-    _modelImages.LoadFacet(modelImages.back().Data(), loadPol,
-                           entry.outputChannelIndex, entry.facetIndex,
-                           entry.facet, false);
-    if (Polarization::IsComplex(polarization)) {  // XY or YX
-      modelImages.emplace_back(width, height);
-      // YX is never stored: it is always combined with XY and stored as XY
-      _modelImages.LoadFacet(modelImages.back().Data(), Polarization::XY,
-                             entry.outputChannelIndex, entry.facetIndex,
-                             entry.facet, true);
-      if (isYX) {
-        for (float& v : modelImages.back()) v = -v;
+  for (const std::shared_ptr<ImagingTableEntry>& entry : facetGroup) {
+    Logger::Info.Flush();
+    Logger::Info << " == Converting model image to visibilities ==\n";
+
+    size_t width;
+    size_t height;
+    if (entry->facet) {
+      width = entry->facet->GetTrimmedBoundingBox().Width();
+      height = entry->facet->GetTrimmedBoundingBox().Height();
+    } else {
+      width = _settings.trimmedImageWidth;
+      height = _settings.trimmedImageHeight;
+    }
+
+    std::vector<PolarizationEnum> polarizations;
+    if (isFullStokes)
+      polarizations.assign(_settings.polarizations.begin(),
+                           _settings.polarizations.end());
+    else
+      polarizations = {entry->polarization};
+
+    std::vector<Image> entry_model_images;
+    entry_model_images.reserve(polarizations.size());
+    for (PolarizationEnum& polarization : polarizations) {
+      entry_model_images.emplace_back(width, height);
+      bool is_yx = polarization == Polarization::YX;
+      const PolarizationEnum loadPol = is_yx ? Polarization::XY : polarization;
+      _modelImages.LoadFacet(entry_model_images.back().Data(), loadPol,
+                             entry->outputChannelIndex, entry->facetIndex,
+                             entry->facet, false);
+      if (Polarization::IsComplex(polarization)) {  // XY or YX
+        entry_model_images.emplace_back(width, height);
+        // YX is never stored: it is always combined with XY and stored as XY
+        _modelImages.LoadFacet(entry_model_images.back().Data(),
+                               Polarization::XY, entry->outputChannelIndex,
+                               entry->facetIndex, entry->facet, true);
+        if (is_yx) {
+          for (float& v : entry_model_images.back()) v = -v;
+        }
       }
     }
+    model_images.push_back(std::move(entry_model_images));
+
+    average_beams.push_back(AverageBeam::Load(
+        _scalarBeamImages, _matrixBeamImages, entry->outputChannelIndex));
   }
 
-  GriddingTask task = _griddingTaskFactory->CreatePredictTask(
-      entry, *_imageWeightCache, std::move(modelImages),
-      AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                        entry.outputChannelIndex));
+  const bool kCombineFacets = false;
+  std::vector<GriddingTask> tasks = _griddingTaskFactory->CreatePredictTasks(
+      facetGroup, *_imageWeightCache, kCombineFacets, std::move(model_images),
+      std::move(average_beams));
+  assert(tasks.size() == facetGroup.size());  // For now.
 
-  _griddingTaskManager->Run(
-      std::move(task), [this, &entry](GriddingResult& result) {
-        GriddingResult::FacetData& facet_result = result.facets.front();
-        _griddingTaskFactory->SetMetaDataCacheEntry(
-            entry, std::move(facet_result.cache));
-      });
+  for (size_t i = 0; i < facetGroup.size(); ++i) {
+    const ImagingTableEntry& entry = *facetGroup[i];
+    _griddingTaskManager->Run(
+        std::move(tasks[i]), [this, &entry](GriddingResult& result) {
+          GriddingResult::FacetData& facet_result = result.facets.front();
+          _griddingTaskFactory->SetMetaDataCacheEntry(
+              entry, std::move(facet_result.cache));
+        });
+  }
 }
 
 ObservationInfo WSClean::getObservationInfo() const {
@@ -1258,9 +1275,9 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       _settings.polarizations.size() != 1;
 
   resetModelColumns(groupTable.FacetGroups());
-  _predictingWatch.Start();
   _griddingTaskManager->Start(getMaxNrMSProviders() *
                               (groupTable.MaxFacetGroupIndex() + 1));
+  _predictingWatch.Start();
 
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
@@ -1289,9 +1306,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
     for (ImagingTable::Group& facetGroup : facetGroups) {
       if (!gridPolarizationsAtOnce || facetGroup.front()->polarization ==
                                           *_settings.polarizations.begin()) {
-        for (const std::shared_ptr<ImagingTableEntry>& entry : facetGroup) {
-          predict(*entry);
-        }  // facets
+        predict(facetGroup);
       }
     }  // facet groups of different polarizations
   }    // independent groups (channels)
@@ -1445,12 +1460,9 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           const aocommon::PolarizationEnum first_polarization =
               *_settings.polarizations.begin();
           _predictingWatch.Start();
-          for (ImagingTable::Group& facetGroup : facetGroups) {
+          for (const ImagingTable::Group& facetGroup : facetGroups) {
             if (facetGroup.front()->polarization == first_polarization) {
-              for (const std::shared_ptr<ImagingTableEntry>& entry :
-                   facetGroup) {
-                predict(*entry);
-              }
+              predict(facetGroup);
             }
           }
           _griddingTaskManager->Finish();
@@ -1466,8 +1478,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _inversionWatch.Pause();
         } else if (parallelizePolarizations) {
           _predictingWatch.Start();
-          for (const ImagingTableEntry& entry : tableWithoutDdPsf) {
-            predict(entry);
+          for (const ImagingTable::Group& facetGroup : facetGroups) {
+            predict(facetGroup);
           }
           _griddingTaskManager->Finish();
           _predictingWatch.Pause();
@@ -1482,12 +1494,9 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _predictingWatch.Start();
           for (aocommon::PolarizationEnum polarization :
                _settings.polarizations) {
-            for (ImagingTable::Group& facetGroup : facetGroups) {
+            for (const ImagingTable::Group& facetGroup : facetGroups) {
               if (facetGroup.front()->polarization == polarization) {
-                for (const std::shared_ptr<ImagingTableEntry>& entry :
-                     facetGroup) {
-                  predict(*entry);
-                }
+                predict(facetGroup);
               }
             }
             _griddingTaskManager->Finish();

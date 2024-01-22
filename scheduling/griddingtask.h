@@ -31,11 +31,11 @@ class GriddingTask {
 
   uint32_t unique_id;
   enum Operation { Invert, Predict } operation;
-  bool imagePSF;
-  bool subtractModel;
+  bool imagePSF;       // Only for invert tasks.
+  bool subtractModel;  // Only for invert tasks.
   aocommon::PolarizationEnum polarization;
   bool isFirstTask;
-  bool storeImagingWeights;
+  bool storeImagingWeights;  // Only for invert tasks.
 
   std::shared_ptr<ImageWeights> imageWeights;
   std::vector<std::unique_ptr<MSDataDescription>> msList;
@@ -51,14 +51,11 @@ class GriddingTask {
         size_t _index, double _l_shift, double _m_shift,
         std::unique_ptr<MetaDataCache> _cache,
         std::unique_ptr<AverageBeam> _average_beam,
-        const std::shared_ptr<schaapcommon::facets::Facet>& _facet);
+        const std::shared_ptr<schaapcommon::facets::Facet>& _facet,
+        std::vector<aocommon::Image>&& _model_images);
 
     void Serialize(aocommon::SerialOStream& stream) const;
     void Unserialize(aocommon::SerialIStream& stream);
-
-    /// Images for prediction. The documentation of
-    /// @ref GriddingResult::FacetData::images explains why it is a vector.
-    std::vector<aocommon::Image> modelImages;
 
     size_t index;    ///< Index of the facet, between zero and n_facets.
     double l_shift;  ///< l_shift, adjusted to the center of the facet.
@@ -67,6 +64,10 @@ class GriddingTask {
     std::unique_ptr<AverageBeam> averageBeam;
     /// The facet itself. If null, faceting is disabled.
     std::shared_ptr<schaapcommon::facets::Facet> facet;
+
+    /// Images for prediction. The documentation of
+    /// @ref GriddingResult::FacetData::images explains why it is a vector.
+    std::vector<aocommon::Image> modelImages;
   };
 
   /// 'facets' always contains at least one element.

@@ -9,13 +9,14 @@
 using schaapcommon::facets::Facet;
 
 namespace {
-constexpr double kPixelScale{0.0042};
-constexpr size_t kImageSize{142};
-constexpr double kLShift{0.42};
-constexpr double kMShift{0.1};
-constexpr bool kCombineFacets{true};
-constexpr bool kIsFirstTask{true};
-constexpr bool kIsFirstInversion{true};
+constexpr double kPixelScale = 0.0042;
+constexpr size_t kImageSize = 142;
+constexpr float kImageValue = 1.42;
+constexpr double kLShift = 0.42;
+constexpr double kMShift = 0.1;
+constexpr bool kCombineFacets = true;
+constexpr bool kIsFirstTask = true;
+constexpr bool kIsFirstInversion = true;
 
 std::shared_ptr<Facet> CreateFacet() {
   Facet::InitializationData initialization_data{kPixelScale, kPixelScale,
@@ -46,6 +47,7 @@ struct FactoryFixture {
         group{2},
         average_beams{group.size()},
         average_beam_pointers{group.size()},
+        model_images{group.size()},
         meta_data_cache_pointers{group.size()},
         factory{ms_helper,        image_weight_initializer,
                 observation_info, kLShift,
@@ -84,6 +86,9 @@ struct FactoryFixture {
       // Create an AverageBeam object for each entry.
       average_beams[index] = std::make_unique<AverageBeam>();
       average_beam_pointers[index] = average_beams[index].get();
+
+      model_images[index].emplace_back(kImageSize, kImageSize,
+                                       kImageValue + index);
     }
   }
 
@@ -148,6 +153,23 @@ struct FactoryFixture {
     }
   }
 
+  void CheckPredictTask(const GriddingTask& task,
+                        ImagingTable::Group group) const {
+    CheckCommonTaskData(task, *group.front());
+    BOOST_TEST(task.operation == GriddingTask::Predict);
+    BOOST_TEST(!task.isFirstTask);
+
+    BOOST_TEST_REQUIRE(task.facets.size() == group.size());
+    for (size_t i = 0; i < group.size(); ++i) {
+      const GriddingTask::FacetData& facet_data = task.facets[i];
+      CheckCommonFacetData(facet_data, *group[i]);
+      const size_t entry_index = group[i]->index;
+      BOOST_TEST(facet_data.modelImages == model_images[entry_index]);
+      BOOST_TEST(facet_data.averageBeam.get() ==
+                 average_beam_pointers[entry_index]);
+    }
+  }
+
   // For initializing the Initializer.
   Settings settings;
   MSSelection global_selection;
@@ -165,6 +187,8 @@ struct FactoryFixture {
 
   std::vector<std::unique_ptr<AverageBeam>> average_beams;
   std::vector<AverageBeam*> average_beam_pointers;
+
+  std::vector<std::vector<aocommon::Image>> model_images;
 
   // Gets pointers to the cache items in the factory.
   std::vector<MetaDataCache*> meta_data_cache_pointers;
@@ -218,6 +242,27 @@ BOOST_FIXTURE_TEST_CASE(invert_combined_facets, FactoryFixture) {
 
   BOOST_REQUIRE(combined_tasks.size() == 1);
   CheckInvertTask(combined_tasks[0], group, kIsFirstTask);
+}
+
+BOOST_FIXTURE_TEST_CASE(predict_separate_tasks, FactoryFixture) {
+  const std::vector<GriddingTask> separate_tasks = factory.CreatePredictTasks(
+      group, image_weight_cache, !kCombineFacets,
+      std::vector<std::vector<aocommon::Image>>{model_images},
+      std::move(average_beams));
+
+  BOOST_REQUIRE(separate_tasks.size() == group.size());
+  CheckPredictTask(separate_tasks[0], {group[0]});
+  CheckPredictTask(separate_tasks[1], {group[1]});
+}
+
+BOOST_FIXTURE_TEST_CASE(predict_combined_facets, FactoryFixture) {
+  const std::vector<GriddingTask> combined_tasks = factory.CreatePredictTasks(
+      group, image_weight_cache, kCombineFacets,
+      std::vector<std::vector<aocommon::Image>>{model_images},
+      std::move(average_beams));
+
+  BOOST_REQUIRE(combined_tasks.size() == 1);
+  CheckPredictTask(combined_tasks[0], group);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

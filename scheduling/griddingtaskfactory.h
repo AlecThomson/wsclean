@@ -64,10 +64,11 @@ class GriddingTaskFactory {
   /**
    * Creates a degridding / predict task.
    */
-  GriddingTask CreatePredictTask(const ImagingTableEntry& entry,
-                                 ImageWeightCache& image_weight_cache,
-                                 std::vector<aocommon::Image>&& model_images,
-                                 std::unique_ptr<AverageBeam> average_beam);
+  std::vector<GriddingTask> CreatePredictTasks(
+      const ImagingTable::Group& facet_group,
+      ImageWeightCache& image_weight_cache, bool combine_facets,
+      std::vector<std::vector<aocommon::Image>>&& model_images,
+      std::vector<std::unique_ptr<AverageBeam>>&& average_beams);
 
   const std::vector<std::unique_ptr<MetaDataCache>>& GetMetaDataCache() const {
     return meta_data_cache_;
@@ -84,12 +85,15 @@ class GriddingTaskFactory {
   }
 
  private:
-  /// Add a facet structure to an existing task.
-  /// @param task An existing task, which may not have FacetData yet.
+  /// Add a facet structure to the last created task.
+  /// @param tasks The current list of created tasks.
   /// @param entry ImagingTableEntry with facet-specific data.
   /// @param average_beam Average beam value for the facet. May be empty.
-  void AddFacet(GriddingTask& task, const ImagingTableEntry& entry,
-                std::unique_ptr<AverageBeam> average_beam = nullptr);
+  /// @param model_images Model images (for predict tasks only).
+  void AddFacet(std::vector<GriddingTask>& tasks,
+                const ImagingTableEntry& entry,
+                std::unique_ptr<AverageBeam> average_beam = nullptr,
+                std::vector<aocommon::Image>&& model_images = {});
 
   /// Determine the polarization value for an invert or predict task.
   aocommon::PolarizationEnum DeterminePolarization(

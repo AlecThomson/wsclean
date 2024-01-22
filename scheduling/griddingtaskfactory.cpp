@@ -5,9 +5,20 @@
 #include "../idg/averagebeam.h"
 #include "../io/imagefilename.h"
 
-void GriddingTaskFactory::AddFacet(GriddingTask& task,
-                                   const ImagingTableEntry& entry,
-                                   std::unique_ptr<AverageBeam> average_beam) {
+void GriddingTaskFactory::AddFacet(
+    std::vector<GriddingTask>& tasks, const ImagingTableEntry& entry,
+    std::unique_ptr<AverageBeam> average_beam,
+    std::vector<aocommon::Image>&& model_images) {
+  assert(!tasks.empty());  // AddFacet adds a facet to an existing task.
+
+  if (!tasks.front().facets.empty()) {
+    // Both the first facet data and the entry should contain a facet, in the
+    // same facet group.
+    assert(tasks.front().facets.front().facet);
+    assert(entry.facet);
+    assert(tasks.front().facetGroupIndex == entry.facetGroupIndex);
+  }
+
   double l_shift = l_shift_;
   double m_shift = m_shift_;
 
@@ -18,9 +29,10 @@ void GriddingTaskFactory::AddFacet(GriddingTask& task,
   } else {
     assert(entry.facetIndex == 0);
   }
-  task.facets.emplace_back(entry.facetIndex, l_shift, m_shift,
-                           std::move(meta_data_cache_[entry.index]),
-                           std::move(average_beam), entry.facet);
+  tasks.back().facets.emplace_back(entry.facetIndex, l_shift, m_shift,
+                                   std::move(meta_data_cache_[entry.index]),
+                                   std::move(average_beam), entry.facet,
+                                   std::move(model_images));
 }
 
 aocommon::PolarizationEnum GriddingTaskFactory::DeterminePolarization(
@@ -42,8 +54,6 @@ GriddingTask GriddingTaskFactory::CreateBase(
   task.unique_id = entry.index;
   task.observationInfo = observation_info_;
   task.isFirstTask = is_first_task;
-
-  AddFacet(task, entry);
   task.facetGroupIndex = entry.facetGroupIndex;
 
   task.msList = ms_helper_.InitializeMsList(entry);
@@ -67,13 +77,7 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePsfTasks(
     // During PSF imaging, the average beam will never exist, so it is not
     // necessary to set the average beam in the task.
 
-    if (combine_facets && !tasks.empty()) {
-      assert(!tasks.front().facets.empty());
-      assert(tasks.front().facets.front().facet);
-      assert(entry->facet);
-      assert(tasks.front().facetGroupIndex == entry->facetGroupIndex);
-      AddFacet(tasks.front(), *entry);
-    } else {  // Create a new task.
+    if (tasks.empty() || !combine_facets) {  // Create a new task.
       tasks.push_back(CreateBase(*entry, image_weight_cache, is_first_task));
       tasks.back().operation = GriddingTask::Invert;
       tasks.back().imagePSF = true;
@@ -81,6 +85,7 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePsfTasks(
       tasks.back().subtractModel = false;
       tasks.back().storeImagingWeights = store_imaging_weights;
     }
+    AddFacet(tasks, *entry);
 
     is_first_task = false;
   }
@@ -103,16 +108,7 @@ std::vector<GriddingTask> GriddingTaskFactory::CreateInvertTasks(
   for (std::size_t i = 0; i < facet_group.size(); ++i) {
     const ImagingTableEntry& entry = *facet_group[i];
 
-    std::unique_ptr<AverageBeam> average_beam;
-    if (!average_beams.empty()) average_beam = std::move(average_beams[i]);
-
-    if (combine_facets && !tasks.empty()) {
-      assert(!tasks.front().facets.empty());
-      assert(tasks.front().facets.front().facet);
-      assert(entry.facet);
-      assert(tasks.front().facetGroupIndex == entry.facetGroupIndex);
-      AddFacet(tasks.back(), entry, std::move(average_beam));
-    } else {  // Create a new task.
+    if (tasks.empty() || !combine_facets) {  // Create a new task.
       tasks.push_back(CreateBase(entry, image_weight_cache, is_first_task));
 
       tasks.back().operation = GriddingTask::Invert;
@@ -123,10 +119,11 @@ std::vector<GriddingTask> GriddingTaskFactory::CreateInvertTasks(
                                    settings.continuedRun;
       tasks.back().storeImagingWeights =
           is_first_inversion && settings.writeImagingWeightSpectrumColumn;
-
-      GriddingTask::FacetData& facet_task = tasks.back().facets.front();
-      facet_task.averageBeam = std::move(average_beam);
     }
+
+    std::unique_ptr<AverageBeam> average_beam;
+    if (!average_beams.empty()) average_beam = std::move(average_beams[i]);
+    AddFacet(tasks, entry, std::move(average_beam));
 
     is_first_task = false;
   }
@@ -134,18 +131,30 @@ std::vector<GriddingTask> GriddingTaskFactory::CreateInvertTasks(
   return tasks;
 }
 
-GriddingTask GriddingTaskFactory::CreatePredictTask(
-    const ImagingTableEntry& entry, ImageWeightCache& image_weight_cache,
-    std::vector<aocommon::Image>&& model_images,
-    std::unique_ptr<AverageBeam> average_beam) {
-  GriddingTask task = CreateBase(entry, image_weight_cache, false);
-  task.operation = GriddingTask::Predict;
-  task.polarization = DeterminePolarization(entry);
-  task.storeImagingWeights = false;
+std::vector<GriddingTask> GriddingTaskFactory::CreatePredictTasks(
+    const ImagingTable::Group& facet_group,
+    ImageWeightCache& image_weight_cache, bool combine_facets,
+    std::vector<std::vector<aocommon::Image>>&& model_images,
+    std::vector<std::unique_ptr<AverageBeam>>&& average_beams) {
+  assert(model_images.size() == facet_group.size());
+  assert(average_beams.empty() || average_beams.size() == facet_group.size());
 
-  GriddingTask::FacetData& facet_task = task.facets.front();
-  facet_task.modelImages = std::move(model_images);
-  facet_task.averageBeam = std::move(average_beam);
+  std::vector<GriddingTask> tasks;
+  tasks.reserve(combine_facets ? 1 : facet_group.size());
 
-  return task;
+  for (std::size_t i = 0; i < facet_group.size(); ++i) {
+    const ImagingTableEntry& entry = *facet_group[i];
+
+    if (tasks.empty() || !combine_facets) {  // Create a new task.
+      tasks.push_back(CreateBase(entry, image_weight_cache, false));
+      tasks.back().operation = GriddingTask::Predict;
+      tasks.back().polarization = DeterminePolarization(entry);
+    }
+
+    std::unique_ptr<AverageBeam> average_beam;
+    if (!average_beams.empty()) average_beam = std::move(average_beams[i]);
+    AddFacet(tasks, entry, std::move(average_beam), std::move(model_images[i]));
+  }
+
+  return tasks;
 }
