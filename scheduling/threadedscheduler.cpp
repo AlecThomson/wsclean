@@ -35,10 +35,14 @@ void ThreadedScheduler::Run(
   // Start an extra thread if not maxed out already
   if (thread_list_.size() < _settings.parallelGridding)
     thread_list_.emplace_back(&ThreadedScheduler::ProcessQueue, this);
-  else
-    task_list_
-        .wait_for_empty();  // if all threads are busy, block until one
-                            // available (in order not to stack too many tasks)
+  else if (!_settings.UseMpi()) {
+    // When using the ThreadedScheduler as the main scheduler, block until a
+    // thread is available, in order not to stack too many tasks.
+    task_list_.wait_for_empty();
+  }
+  // When using the ThreadedScheduler as a local scheduler with the
+  // MPIScheduler, the MPIScheduler manages the task distribution.
+  // The ThreadedScheduler should always queue new tasks if it is busy.
 
   std::lock_guard<std::mutex> lock(mutex_);
   while (!ready_list_.empty()) {
@@ -56,7 +60,7 @@ void ThreadedScheduler::ProcessQueue() {
   while (task_list_.read(taskPair)) {
     try {
       std::unique_ptr<MSGridderBase> gridder(makeGridder(resources_per_task_));
-      GriddingResult result = runDirect(std::move(taskPair.first), *gridder);
+      GriddingResult result = RunDirect(std::move(taskPair.first), *gridder);
 
       std::lock_guard<std::mutex> lock(mutex_);
       ready_list_.emplace_back(std::move(result), taskPair.second);

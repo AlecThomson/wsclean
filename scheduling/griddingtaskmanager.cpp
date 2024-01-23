@@ -16,25 +16,30 @@
 
 #include "../wgridder/wgriddingmsgridder.h"
 
-GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
-    : _settings(settings) {}
+GriddingTaskManager::GriddingTaskManager(const Settings& settings)
+    : _settings(settings), _writerLockManager(this) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings) {
+    const Settings& settings) {
   if (settings.UseMpi()) {
 #ifdef HAVE_MPI
-    return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
+    return std::make_unique<MPIScheduler>(settings);
 #else
     throw std::runtime_error("MPI not available");
 #endif
-  } else if (settings.parallelGridding == 1) {
-    return std::unique_ptr<GriddingTaskManager>(
-        new GriddingTaskManager(settings));
   } else {
-    return std::unique_ptr<GriddingTaskManager>(
-        new ThreadedScheduler(settings));
+    return MakeLocal(settings);
+  }
+}
+
+std::unique_ptr<GriddingTaskManager> GriddingTaskManager::MakeLocal(
+    const Settings& settings) {
+  if (settings.parallelGridding == 1) {
+    return std::make_unique<GriddingTaskManager>(settings);
+  } else {
+    return std::make_unique<ThreadedScheduler>(settings);
   }
 }
 
@@ -46,16 +51,12 @@ Resources GriddingTaskManager::GetResources() const {
 
 void GriddingTaskManager::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
-  GriddingResult result = RunDirect(std::move(task));
+  std::unique_ptr<MSGridderBase> gridder(makeGridder(GetResources()));
+  GriddingResult result = RunDirect(std::move(task), *gridder);
   finishCallback(result);
 }
 
-GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
-  std::unique_ptr<MSGridderBase> gridder(makeGridder(GetResources()));
-  return runDirect(std::move(task), *gridder);
-}
-
-GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
+GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
                                               MSGridderBase& gridder) {
   GriddingTask::FacetData& facet_task = task.facets.front();
 
@@ -129,7 +130,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
   } else {
-    gridder.SetWriterLockManager(this);
+    gridder.SetWriterLockManager(_writerLockManager);
     gridder.Predict(std::move(facet_task.modelImages));
   }
 

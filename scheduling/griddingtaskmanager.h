@@ -25,7 +25,13 @@ class Settings;
 
 class GriddingTaskManager : protected WriterLockManager {
  public:
+  explicit GriddingTaskManager(const Settings& settings);
+
   virtual ~GriddingTaskManager();
+
+  void SetWriterLockManager(WriterLockManager& manager) {
+    _writerLockManager = &manager;
+  }
 
   /**
    * Initialize writer groups. Call this function before scheduling Predict
@@ -57,20 +63,11 @@ class GriddingTaskManager : protected WriterLockManager {
   virtual void Finish(){};
 
   /**
-   * Run the given task. This variant of Run() does not call a
-   * callback function when finished. A gridder is created for
-   * the duration of the call.
-   */
-  GriddingResult RunDirect(GriddingTask&& task);
-
-  /**
    * Make the gridding task manager according to the settings.
    */
-  static std::unique_ptr<GriddingTaskManager> Make(
-      const class Settings& settings);
+  static std::unique_ptr<GriddingTaskManager> Make(const Settings& settings);
 
  protected:
-  GriddingTaskManager(const Settings& settings);
   Resources GetResources() const;
 
   const Settings& _settings;
@@ -80,7 +77,15 @@ class GriddingTaskManager : protected WriterLockManager {
   /**
    * Run the provided task with the specified gridder.
    */
-  GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
+  GriddingResult RunDirect(GriddingTask&& task, MSGridderBase& gridder);
+
+  /**
+   * Make a local gridding task manager according to the settings.
+   * Both Make() and the MPIScheduler use this function. The MPIScheduler uses
+   * a local scheduler for running tasks at an MPI node.
+   */
+  static std::unique_ptr<GriddingTaskManager> MakeLocal(
+      const Settings& settings);
 
  private:
   class DummyWriterLock final : public WriterLock {
@@ -91,6 +96,14 @@ class GriddingTaskManager : protected WriterLockManager {
 
   std::unique_ptr<MSGridderBase> constructGridder(
       const Resources& resources) const;
+
+  /**
+   * Writer lock manager for the scheduler.
+   * By default, it equals the 'this' pointer.
+   * When the GriddingTaskManager is used within an MPIScheduler,
+   * it may point to the MPIScheduler.
+   */
+  WriterLockManager* _writerLockManager;
 };
 
 #endif

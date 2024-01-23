@@ -35,7 +35,8 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _callbacks(),
       _availableRoom(),
       _writerLock(),
-      _writerLockQueues() {
+      _writerLockQueues(),
+      _localScheduler(GriddingTaskManager::MakeLocal(settings)) {
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
@@ -51,6 +52,7 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   } else {
     _writerLock = std::make_unique<WorkerWriterLock>();
   }
+  _localScheduler->SetWriterLockManager(*this);
 }
 
 MPIScheduler::~MPIScheduler() { Finish(); }
@@ -67,6 +69,11 @@ void MPIScheduler::Run(GriddingTask&& task,
 
   std::lock_guard<std::mutex> lock(_mutex);
   processReadyList_UNSYNCHRONIZED();
+}
+
+void MPIScheduler::RunLocal(
+    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
+  _localScheduler->Run(std::move(task), finishCallback);
 }
 
 void MPIScheduler::Finish() {
@@ -111,9 +118,10 @@ WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
 }
 
 void MPIScheduler::runTaskOnNode0(GriddingTask&& task) {
-  GriddingResult result = RunDirect(std::move(task));
-  Logger::Info << "Main node has finished a gridding task.\n";
-  StoreResult(std::move(result), 0);
+  RunLocal(std::move(task), [this](GriddingResult& result) {
+    Logger::Info << "Main node has finished a gridding task.\n";
+    StoreResult(std::move(result), 0);
+  });
 }
 
 void MPIScheduler::send(GriddingTask&& task,

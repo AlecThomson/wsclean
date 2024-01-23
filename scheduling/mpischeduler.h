@@ -24,6 +24,13 @@ class MPIScheduler final : public GriddingTaskManager {
   void Run(GriddingTask&& task,
            std::function<void(GriddingResult&)> finishCallback) override;
 
+  /**
+   * Run function for use in Worker.
+   * Runs the task using the local scheduler.
+   */
+  void RunLocal(GriddingTask&& task,
+                std::function<void(GriddingResult&)> finishCallback);
+
   void Finish() override;
 
   void Start(size_t nWriterGroups) override;
@@ -158,6 +165,11 @@ class MPIScheduler final : public GriddingTaskManager {
    * If a queue is empty, nobody has the lock.
    */
   std::vector<aocommon::Queue<int>> _writerLockQueues;
+
+  /**
+   * The lower-level local scheduler on an MPI node.
+   */
+  std::unique_ptr<GriddingTaskManager> _localScheduler;
 };
 
 #endif  // HAVE_MPI

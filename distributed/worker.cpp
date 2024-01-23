@@ -8,7 +8,7 @@
 #include "taskmessage.h"
 
 #include "../scheduling/griddingtask.h"
-#include "../scheduling/griddingtaskmanager.h"
+#include "../scheduling/mpischeduler.h"
 
 #include <mpi.h>
 
@@ -50,25 +50,26 @@ void Worker::grid(size_t bodySize) {
 
   GriddingTask task;
   task.Unserialize(stream);
-  std::unique_ptr<GriddingTaskManager> scheduler =
-      GriddingTaskManager::Make(settings_);
+  MPIScheduler scheduler(settings_);
   aocommon::Logger::Info << "Worker node " << rank_
                          << " is starting gridding.\n";
-  GriddingResult result = scheduler->RunDirect(std::move(task));
-  aocommon::Logger::Info << "Worker node " << rank_ << " is done gridding.\n";
+  scheduler.RunLocal(std::move(task), [this](GriddingResult& result) {
+    aocommon::Logger::Info << "Worker node " << rank_ << " is done gridding.\n";
 
-  aocommon::SerialOStream resStream;
-  resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big
-  result.Serialize(resStream);
+    aocommon::SerialOStream resStream;
+    resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big
+    result.Serialize(resStream);
 
-  TaskMessage message;
-  message.type = TaskMessage::Type::kGriddingResult;
-  message.bodySize = resStream.size();
+    TaskMessage message;
+    message.type = TaskMessage::Type::kGriddingResult;
+    message.bodySize = resStream.size();
 
-  aocommon::SerialOStream msgStream;
-  message.Serialize(msgStream);
-  assert(msgStream.size() == TaskMessage::kSerializedSize);
+    aocommon::SerialOStream msgStream;
+    message.Serialize(msgStream);
+    assert(msgStream.size() == TaskMessage::kSerializedSize);
 
-  MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-  MPI_Send_Big(resStream.data(), resStream.size(), 0, 0, MPI_COMM_WORLD);
+    MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, 0, 0,
+             MPI_COMM_WORLD);
+    MPI_Send_Big(resStream.data(), resStream.size(), 0, 0, MPI_COMM_WORLD);
+  });
 }
