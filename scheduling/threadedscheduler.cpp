@@ -73,14 +73,13 @@ void ThreadedScheduler::ProcessQueue() {
 
 void ThreadedScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
-
   if (writer_group_locks_.size() < nWriterGroups)
-    writer_group_locks_ = std::vector<ThreadedWriterLock>(nWriterGroups);
+    writer_group_locks_ = std::vector<std::mutex>(nWriterGroups);
 }
 
-WriterLockManager::LockGuard ThreadedScheduler::GetLock(
-    size_t writerGroupIndex) {
-  return LockGuard(writer_group_locks_[writerGroupIndex]);
+std::unique_ptr<GriddingTaskManager::WriterLock> ThreadedScheduler::GetLock(
+    size_t writer_group_index) {
+  return std::make_unique<ThreadedWriterLock>(*this, writer_group_index);
 }
 
 void ThreadedScheduler::Finish() {

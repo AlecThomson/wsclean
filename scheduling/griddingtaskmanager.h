@@ -3,7 +3,6 @@
 
 #include "griddingtask.h"
 #include "griddingresult.h"
-#include "writerlockmanager.h"
 
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -17,19 +16,26 @@
 
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <vector>
 
 class MSGridderBase;
 class Resources;
 class Settings;
 
-class GriddingTaskManager : protected WriterLockManager {
+class GriddingTaskManager {
+ public:
+  class WriterLock {
+   public:
+    virtual ~WriterLock() = default;
+  };
+
  public:
   explicit GriddingTaskManager(const Settings& settings);
 
   virtual ~GriddingTaskManager();
 
-  void SetWriterLockManager(WriterLockManager& manager) {
+  void SetWriterLockManager(GriddingTaskManager& manager) {
     _writerLockManager = &manager;
   }
 
@@ -41,9 +47,15 @@ class GriddingTaskManager : protected WriterLockManager {
    */
   virtual void Start([[maybe_unused]] size_t nWriterGroups) {}
 
-  LockGuard GetLock([[maybe_unused]] size_t writerGroupIndex) override {
-    static DummyWriterLock dummy;
-    return LockGuard(dummy);
+  /**
+   * Obtains a lock for the given @p writer_group_index.
+   * The default implementation returns a dummy lock: Since it runs all tasks
+   * sequentially, locking is not needed.
+   * @return A lock object. Destroying the object releases the lock.
+   */
+  virtual std::unique_ptr<WriterLock> GetLock(
+      [[maybe_unused]] size_t writer_group_index) {
+    return nullptr;
   }
 
   /**
@@ -88,12 +100,6 @@ class GriddingTaskManager : protected WriterLockManager {
       const Settings& settings);
 
  private:
-  class DummyWriterLock final : public WriterLock {
-   public:
-    void lock() override {}
-    void unlock() override {}
-  };
-
   std::unique_ptr<MSGridderBase> constructGridder(
       const Resources& resources) const;
 
@@ -103,7 +109,7 @@ class GriddingTaskManager : protected WriterLockManager {
    * When the GriddingTaskManager is used within an MPIScheduler,
    * it may point to the MPIScheduler.
    */
-  WriterLockManager* _writerLockManager;
+  GriddingTaskManager* _writerLockManager;
 };
 
 #endif

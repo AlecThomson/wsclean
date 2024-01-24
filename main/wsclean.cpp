@@ -1097,7 +1097,7 @@ void WSClean::partitionModelIntoFacets(const ImagingTable::Groups& facetGroups,
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
-    for (const ImagingTable::Group facetGroup : facetGroups) {
+    for (const ImagingTable::Group& facetGroup : facetGroups) {
       const size_t imageCount = facetGroup.front()->imageCount;
       _modelImages.Load(fullImage.Data(), facetGroup.front()->polarization,
                         facetGroup.front()->outputChannelIndex, false);

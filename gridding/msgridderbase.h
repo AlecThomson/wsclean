@@ -151,7 +151,7 @@ class MSGridderBase {
     _doSubtractModel = doSubtractModel;
   }
 
-  void SetWriterLockManager(WriterLockManager* writerLockManager) {
+  void SetWriterLockManager(GriddingTaskManager* writerLockManager) {
     _writerLockManager = writerLockManager;
   }
 
@@ -742,7 +742,7 @@ class MSGridderBase {
   aocommon::UVector<std::complex<float>> _scratchModelData;
 
   std::unique_ptr<MSReader> _predictReader;
-  WriterLockManager* _writerLockManager;
+  GriddingTaskManager* _writerLockManager;
 
   VisibilityModifier _visibilityModifier;
 };

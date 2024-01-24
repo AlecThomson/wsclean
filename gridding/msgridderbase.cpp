@@ -481,8 +481,10 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 #endif
 
   {
-    WriterLockManager::LockGuard guard = _writerLockManager->GetLock(
-        _facetGroupIndex * MeasurementSetCount() + _msIndex);
+    const size_t lock_index =
+        _facetGroupIndex * MeasurementSetCount() + _msIndex;
+    std::unique_ptr<GriddingTaskManager::WriterLock> lock =
+        _writerLockManager->GetLock(lock_index);
     msProvider.WriteModel(buffer, IsFacet());
   }
   msProvider.NextOutputRow();

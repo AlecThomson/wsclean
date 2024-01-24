@@ -20,12 +20,15 @@
 using aocommon::Logger;
 
 namespace {
+constexpr int kMainNode = 0;
+constexpr int kTag = 0;
 constexpr int kSlotsPerNode = 1;
-}
+}  // namespace
 
 MPIScheduler::MPIScheduler(const Settings& settings)
     : GriddingTaskManager(settings),
       _masterDoesWork(settings.masterDoesWork),
+      _rank(-1),
       _isRunning(false),
       _isFinishing(false),
       _mutex(),
@@ -34,23 +37,17 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _readyList(),
       _callbacks(),
       _availableRoom(),
-      _writerLock(),
       _writerLockQueues(),
       _localScheduler(GriddingTaskManager::MakeLocal(settings)) {
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if (rank == 0) {
+  MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+  if (_rank == 0) {
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     // TODO(AST-1475): Use settings.parallelGridding slots per node.
     _availableRoom.assign(world_size, kSlotsPerNode);
-    if (settings.masterDoesWork) {
-      _writerLock = std::make_unique<MasterWriterLock>(*this);
-    } else {
+    if (!settings.masterDoesWork) {
       _availableRoom[0] = 0;
     }
-  } else {
-    _writerLock = std::make_unique<WorkerWriterLock>();
   }
   _localScheduler->SetWriterLockManager(*this);
 }
@@ -112,9 +109,14 @@ void MPIScheduler::Start(size_t nWriterGroups) {
   _writerLockQueues.resize(nWriterGroups);
 }
 
-WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
-  _writerLock->SetWriterGroupIndex(writerGroupIndex);
-  return LockGuard(*_writerLock);
+std::unique_ptr<GriddingTaskManager::WriterLock> MPIScheduler::GetLock(
+    size_t writer_group_index) {
+  assert(writer_group_index < _writerLockQueues.size());
+  if (_rank == 0) {
+    return std::make_unique<MasterWriterLock>(*this, writer_group_index);
+  } else {
+    return std::make_unique<WorkerWriterLock>(*this, writer_group_index);
+  }
 }
 
 void MPIScheduler::runTaskOnNode0(GriddingTask&& task) {
@@ -321,8 +323,10 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
            0, MPI_COMM_WORLD);
 }
 
-void MPIScheduler::WorkerWriterLock::lock() {
-  TaskMessage message(TaskMessage::Type::kLockRequest, _writerGroupIndex);
+MPIScheduler::WorkerWriterLock::WorkerWriterLock(MPIScheduler& scheduler,
+                                                 size_t writer_group_index)
+    : scheduler_(scheduler), writer_group_index_(writer_group_index) {
+  TaskMessage message(TaskMessage::Type::kLockRequest, writer_group_index);
   aocommon::SerialOStream taskMessageStream;
   message.Serialize(taskMessageStream);
 
@@ -337,7 +341,7 @@ void MPIScheduler::WorkerWriterLock::lock() {
   aocommon::SerialIStream stream(std::move(buffer));
   message.Unserialize(stream);
   if (message.type != TaskMessage::Type::kLockGrant ||
-      message.lockId != _writerGroupIndex) {
+      message.lockId != writer_group_index) {
     int node = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &node);
     throw std::runtime_error("Node " + std::to_string(node) +
@@ -346,38 +350,36 @@ void MPIScheduler::WorkerWriterLock::lock() {
                              std::to_string(static_cast<int>(message.type)) +
                              ", lock " + std::to_string(message.lockId) +
                              ") while requesting lock " +
-                             std::to_string(_writerGroupIndex));
+                             std::to_string(writer_group_index));
   }
 }
 
-void MPIScheduler::WorkerWriterLock::unlock() {
-  TaskMessage message(TaskMessage::Type::kLockRelease, _writerGroupIndex);
+MPIScheduler::WorkerWriterLock::~WorkerWriterLock() {
+  TaskMessage message(TaskMessage::Type::kLockRelease, writer_group_index_);
   aocommon::SerialOStream taskMessageStream;
   message.Serialize(taskMessageStream);
 
   // Using asynchronous MPI_ISend is possible here, however, the
   // taskMessageStream should then remain valid after the call and the extra
   // 'request' handle probably needs handling.
-  const int main_node = 0;
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
-           main_node, 0, MPI_COMM_WORLD);
+           kMainNode, kTag, MPI_COMM_WORLD);
 }
 
-void MPIScheduler::MasterWriterLock::lock() {
-  const size_t lockId = GetWriterGroupIndex();
-  assert(lockId < _scheduler._writerLockQueues.size());
+MPIScheduler::MasterWriterLock::MasterWriterLock(MPIScheduler& scheduler,
+                                                 size_t writer_group_index)
+    : scheduler_(scheduler), writer_group_index_(writer_group_index) {
+  std::unique_lock<std::mutex> lock(scheduler_._mutex);
+  assert(scheduler_._availableRoom[0] < kSlotsPerNode);
+  scheduler_._writerLockQueues[writer_group_index].PushBack(0);
 
-  std::unique_lock<std::mutex> lock(_scheduler._mutex);
-  assert(_scheduler._availableRoom[0] < kSlotsPerNode);
-  _scheduler._writerLockQueues[lockId].PushBack(0);
-
-  while (_scheduler._writerLockQueues[lockId][0] != 0) {
+  while (scheduler_._writerLockQueues[writer_group_index][0] != 0) {
     // Wait for lock in the worker thread on the master node.
     // processLockRelease notifies the worker thread when the lock is available.
-    _scheduler._notify.wait(lock);
+    scheduler_._notify.wait(lock);
   }
 }
 
-void MPIScheduler::MasterWriterLock::unlock() {
-  _scheduler.processLockRelease(0, GetWriterGroupIndex());
+MPIScheduler::MasterWriterLock::~MasterWriterLock() {
+  scheduler_.processLockRelease(0, writer_group_index_);
 }

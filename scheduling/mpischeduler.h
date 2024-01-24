@@ -35,38 +35,31 @@ class MPIScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  LockGuard GetLock(size_t writerGroupIndex) override;
+  std::unique_ptr<WriterLock> GetLock(size_t writerGroupIndex) override;
 
  private:
   class WorkerWriterLock : public WriterLock {
    public:
-    WorkerWriterLock() : _writerGroupIndex(0) {}
-    ~WorkerWriterLock() {}
-
-    void SetWriterGroupIndex(size_t writerGroupIndex) {
-      _writerGroupIndex = writerGroupIndex;
-    }
-    void lock() override;
-    void unlock() override;
-
-   protected:
-    size_t GetWriterGroupIndex() const { return _writerGroupIndex; }
+    explicit WorkerWriterLock(MPIScheduler& scheduler,
+                              size_t writer_group_index);
+    ~WorkerWriterLock() override;
 
    private:
-    size_t _writerGroupIndex;  ///< Index of the lock that must be acquired.
+    MPIScheduler& scheduler_;    ///< For accessing the scheduler's internals.
+    size_t writer_group_index_;  ///< Index of the lock that must be acquired.
   };
 
-  class MasterWriterLock final : public WorkerWriterLock {
-   public:
-    explicit MasterWriterLock(MPIScheduler& scheduler)
-        : WorkerWriterLock(), _scheduler(scheduler) {}
-    ~MasterWriterLock() {}
+  friend class WorkerWriterLock;
 
-    void lock() override;
-    void unlock() override;
+  class MasterWriterLock : public WriterLock {
+   public:
+    explicit MasterWriterLock(MPIScheduler& scheduler,
+                              size_t writer_group_index);
+    ~MasterWriterLock() override;
 
    private:
-    MPIScheduler& _scheduler;  ///< For direct lock calls to the scheduler.
+    MPIScheduler& scheduler_;    ///< For accessing the scheduler's internals.
+    size_t writer_group_index_;  ///< Index of the lock that must be acquired.
   };
 
   friend class MasterWriterLock;
@@ -131,6 +124,7 @@ class MPIScheduler final : public GriddingTaskManager {
   void grantLock(int node, size_t lockId);
 
   const bool _masterDoesWork;
+  int _rank;
   bool _isRunning;
   bool _isFinishing;
   std::condition_variable _notify;
@@ -157,7 +151,6 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   std::vector<int> _availableRoom;
 
-  std::unique_ptr<WorkerWriterLock> _writerLock;
   /**
    * For each lock, a queue with the nodes that are waiting for the lock.
    * The first node in a queue currently has the lock.

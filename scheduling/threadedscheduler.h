@@ -1,12 +1,12 @@
-#ifndef THREADED_SCHEDULER_H
-#define THREADED_SCHEDULER_H
+#ifndef SCHEDULING_THREADED_SCHEDULER_H_
+#define SCHEDULING_THREADED_SCHEDULER_H_
+
+#include <mutex>
+#include <thread>
 
 #include "griddingtaskmanager.h"
 
 #include "../structures/resources.h"
-
-#include <mutex>
-#include <thread>
 
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
@@ -19,17 +19,27 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  LockGuard GetLock(size_t writerGroupIndex) override;
+  std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) override;
 
  private:
   class ThreadedWriterLock final : public WriterLock {
    public:
-    void lock() override { _mutex.lock(); }
-    void unlock() override { _mutex.unlock(); }
+    explicit ThreadedWriterLock(ThreadedScheduler& scheduler,
+                                size_t writer_group_index)
+        : scheduler_{scheduler}, writer_group_index_{writer_group_index} {
+      scheduler.writer_group_locks_[writer_group_index].lock();
+    }
+
+    ~ThreadedWriterLock() override {
+      scheduler_.writer_group_locks_[writer_group_index_].unlock();
+    }
 
    private:
-    std::mutex _mutex;
+    ThreadedScheduler& scheduler_;
+    size_t writer_group_index_;
   };
+
+  friend class ThreadedWriterLock;
 
   void ProcessQueue();
   void CheckExceptions();
@@ -41,7 +51,7 @@ class ThreadedScheduler final : public GriddingTaskManager {
       task_list_;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
       ready_list_;
-  std::vector<ThreadedWriterLock> writer_group_locks_;
+  std::vector<std::mutex> writer_group_locks_;
 
   const Resources resources_per_task_;
 };
