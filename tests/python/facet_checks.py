@@ -31,7 +31,7 @@ def gridders():
 
 def predict_full_image(ms, gridder):
     """Predict full image"""
-    s = f"{tcf.WSCLEAN} -predict {gridder} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict -gridder {gridder} -name point-source {ms}"
     validate_call(s.split())
 
 
@@ -42,7 +42,7 @@ def predict_facet_image(ms, gridder, apply_facet_beam):
         shutil.copyfile(f"{name}-model.fits", f"{name}-model-pb.fits")
 
     # Predict facet based image
-    s = f"{tcf.WSCLEAN} -predict {gridder} {facet_beam} -facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
+    s = f"{tcf.WSCLEAN} -predict -gridder {gridder} {facet_beam} -facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
     validate_call(s.split())
 
 
@@ -53,7 +53,7 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     s = [
         mpi_cmd if mpi else thread_cmd,
-        gridder,
+        f"-gridder {gridder}",
         tcf.DIMS_SMALL,
         reorder_ms,
         "-niter 1000000 -auto-threshold 5 -mgain 0.8",
@@ -159,7 +159,7 @@ class TestFacets:
 
     # FIXME: we should test wstacking and wgridder here too
     # but they fail on the taql assertion
-    @pytest.mark.parametrize("gridder", ["-use-wgridder"])
+    @pytest.mark.parametrize("gridder", ["wgridder"])
     @pytest.mark.parametrize("apply_facet_beam", [False, True])
     def test_predict(self, gridder, apply_facet_beam):
         """
@@ -179,7 +179,7 @@ class TestFacets:
             taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
             assert_taql(taql_command)
 
-    @pytest.mark.parametrize("gridder", ["-use-wgridder"])
+    @pytest.mark.parametrize("gridder", ["wgridder"])
     @pytest.mark.parametrize("reorder", [False, True])
     @pytest.mark.parametrize("mpi", [False, True])
     def test_facetdeconvolution(self, gridder, reorder, mpi):
@@ -253,7 +253,7 @@ class TestFacets:
         of zero pixels.
         """
 
-        deconvolve_facets(tcf.MWA_MOCK_FACET, "-use-wgridder", True, mpi, True)
+        deconvolve_facets(tcf.MWA_MOCK_FACET, "wgridder", True, mpi, True)
 
         basic_image_check("facet-imaging-reorder-psf.fits")
         basic_image_check("facet-imaging-reorder-dirty.fits")
@@ -352,7 +352,7 @@ class TestFacets:
 
         # Note: -j 1 enabled to ensure deterministic iteration over visibilities
         for name, command in zip(names, commands):
-            s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
+            s = f"{tcf.WSCLEAN} -j 1 -nmiter 2 -gridder wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
             validate_call(s.split())
 
         # Compare images.

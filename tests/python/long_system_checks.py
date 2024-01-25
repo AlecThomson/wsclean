@@ -138,11 +138,12 @@ class TestLongSystem:
         validate_call(s.split())
 
     @pytest.mark.parametrize(
-        "gridder, test_name", (["", "shift-ws"], ["-use-wgridder", "shift-wg"])
+        "gridder, test_name",
+        (["wstacking", "shift-ws"], ["wgridder", "shift-wg"]),
     )
     def test_shift_image(self, gridder, test_name):
         # Shift the image with w-stacking and w-gridder gridder
-        s = f"{tcf.WSCLEAN} {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.DIMS_RECTANGULAR} -shift 08h09m20s -39d06m54s -no-update-model-required {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -gridder {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.DIMS_RECTANGULAR} -shift 08h09m20s -39d06m54s -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_shifted_source_list(self):
@@ -165,7 +166,7 @@ class TestLongSystem:
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
         # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
-        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder {tcf.DIMS_LARGE} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -gridder wgridder {tcf.DIMS_LARGE} -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_grid_with_beam(self):
@@ -219,7 +220,7 @@ class TestLongSystem:
         validate_call(h5download.split())
 
         name = f"facet-h5-{npol}pol"
-        s = f"{tcf.WSCLEAN} -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_LARGE} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -gridder wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_LARGE} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
 
         # Check for output images

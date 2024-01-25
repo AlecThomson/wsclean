@@ -12,21 +12,21 @@ sys.path.append(".")
 import config_vars as tcf
 
 
-def gridders():
-    return {"wstacking": "", "wgridder": "-use-wgridder"}
-
-
 @pytest.mark.usefixtures("prepare_mock_ms")
 class TestVelaDeconvolution:
-    @pytest.mark.parametrize("gridder", gridders().items())
+    @pytest.mark.parametrize("gridder", ["wstacking", "wgridder"])
     def test_veladeconvolution(self, gridder):
-        if "WGridder" not in check_output([tcf.WSCLEAN, "--version"]).decode():
+        if (
+            gridder == "wgridder"
+            and "WGridder"
+            not in check_output([tcf.WSCLEAN, "--version"]).decode()
+        ):
             pytest.skip("WSClean was not compiled with WGridder.")
 
         nchannels = 8
         npixels = 1024
-        name = "mwa_veladeconvolution_" + gridder[0]
-        s = f"{tcf.WSCLEAN} -quiet {gridder[1]} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {tcf.MWA_MOCK_MS}"
+        name = "mwa_veladeconvolution_" + gridder
+        s = f"{tcf.WSCLEAN} -quiet -gridder {gridder} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {tcf.MWA_MOCK_MS}"
         validate_call(s.split())
         imagenames = ["dirty", "image", "model", "psf", "residual"]
         fpaths = [
