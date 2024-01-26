@@ -15,7 +15,7 @@
 class MPIScheduler final : public GriddingTaskManager {
  public:
   MPIScheduler(const class Settings& settings);
-  ~MPIScheduler();
+  ~MPIScheduler() { Finish(); }
 
   /**
    * Main Run function.
@@ -24,13 +24,6 @@ class MPIScheduler final : public GriddingTaskManager {
   void Run(GriddingTask&& task,
            std::function<void(GriddingResult&)> finishCallback) override;
 
-  /**
-   * Run function for use in Worker.
-   * Runs the task using the local scheduler.
-   */
-  void RunLocal(GriddingTask&& task,
-                std::function<void(GriddingResult&)> finishCallback);
-
   void Finish() override;
 
   void Start(size_t nWriterGroups) override;
@@ -38,19 +31,6 @@ class MPIScheduler final : public GriddingTaskManager {
   std::unique_ptr<WriterLock> GetLock(size_t writerGroupIndex) override;
 
  private:
-  class WorkerWriterLock : public WriterLock {
-   public:
-    explicit WorkerWriterLock(MPIScheduler& scheduler,
-                              size_t writer_group_index);
-    ~WorkerWriterLock() override;
-
-   private:
-    MPIScheduler& scheduler_;    ///< For accessing the scheduler's internals.
-    size_t writer_group_index_;  ///< Index of the lock that must be acquired.
-  };
-
-  friend class WorkerWriterLock;
-
   class MasterWriterLock : public WriterLock {
    public:
     explicit MasterWriterLock(MPIScheduler& scheduler,
@@ -123,8 +103,6 @@ class MPIScheduler final : public GriddingTaskManager {
   void processLockRelease(int node, size_t lockId);
   void grantLock(int node, size_t lockId);
 
-  const bool _masterDoesWork;
-  int _rank;
   bool _isRunning;
   bool _isFinishing;
   std::condition_variable _notify;

@@ -7,7 +7,6 @@ This is used by the test_direction_dependent_psfs() test in long_system_checks.p
 inspect dirty and psf images passed on by the parallel deconvolution algorithm
 """
 
-
 import numpy as np
 
 

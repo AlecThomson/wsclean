@@ -167,7 +167,8 @@ if(MPI_FOUND)
   endif()
   add_definitions(-DHAVE_MPI)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-  set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
+  set(MPI_CPP_FILES scheduling/mpischeduler.cpp
+                    scheduling/mpiworkerscheduler.cpp distributed/mpibig.cpp)
 else(MPI_FOUND)
   message(
     WARNING

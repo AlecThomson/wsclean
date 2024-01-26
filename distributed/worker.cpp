@@ -8,15 +8,10 @@
 #include "taskmessage.h"
 
 #include "../scheduling/griddingtask.h"
-#include "../scheduling/mpischeduler.h"
 
 #include <mpi.h>
 
 #include <cassert>
-
-Worker::Worker(const Settings& settings) : settings_(settings), rank_(-1) {
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
-}
 
 void Worker::Run() {
   TaskMessage message;
@@ -37,7 +32,7 @@ void Worker::Run() {
     }
 
   } while (message.type != TaskMessage::Type::kFinish);
-  aocommon::Logger::Info << "Worker node " << rank_
+  aocommon::Logger::Info << "Worker node " << scheduler_.Rank()
                          << " received exit message.\n";
 }
 
@@ -50,11 +45,11 @@ void Worker::grid(size_t bodySize) {
 
   GriddingTask task;
   task.Unserialize(stream);
-  MPIScheduler scheduler(settings_);
-  aocommon::Logger::Info << "Worker node " << rank_
+  aocommon::Logger::Info << "Worker node " << scheduler_.Rank()
                          << " is starting gridding.\n";
-  scheduler.RunLocal(std::move(task), [this](GriddingResult& result) {
-    aocommon::Logger::Info << "Worker node " << rank_ << " is done gridding.\n";
+  scheduler_.Run(std::move(task), [this](GriddingResult& result) {
+    aocommon::Logger::Info << "Worker node " << scheduler_.Rank()
+                           << " is done gridding.\n";
 
     aocommon::SerialOStream resStream;
     resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big
