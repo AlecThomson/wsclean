@@ -52,10 +52,14 @@ void CheckDeprecated(bool is_slave, const std::string& param,
 }
 
 void PrintHeader() {
+  std::string git_commit_hash = std::string(WSCLEAN_GIT_HASH).empty()
+                                    ? "not available"
+                                    : std::string(WSCLEAN_GIT_HASH);
   Logger::Info << "\n"
                   "WSClean version " WSCLEAN_VERSION_STR
-                  " (" WSCLEAN_VERSION_DATE
-                  ")\n"
+                  " (" WSCLEAN_VERSION_DATE ")\nGit commit hash: "
+               << git_commit_hash
+               << "\n"
                   "This software package is released under the GPL version 3.\n"
                   "Author: André Offringa (offringa@gmail.com).\n\n";
 #ifndef NDEBUG
