@@ -50,7 +50,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
   msData.matchingRows = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   const aocommon::BandData& bandData = msData.bandData;
   while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
@@ -86,12 +86,13 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   double maxL = wWidth * PixelSizeX() * 0.5 + fabs(LShift()),
          maxM = wHeight * PixelSizeY() * 0.5 + fabs(MShift()),
          lmSq = maxL * maxL + maxM * maxM;
-  double cMinW = IsComplex() ? -_maxW : _minW;
+  double cMinW = IsComplex() ? -MaximumW() : MinimumW();
   double radiansForAllLayers;
   if (lmSq < 1.0)
-    radiansForAllLayers = 2 * M_PI * (_maxW - cMinW) * (1.0 - sqrt(1.0 - lmSq));
+    radiansForAllLayers =
+        2 * M_PI * (MaximumW() - cMinW) * (1.0 - sqrt(1.0 - lmSq));
   else
-    radiansForAllLayers = 2 * M_PI * (_maxW - cMinW);
+    radiansForAllLayers = 2 * M_PI * (MaximumW() - cMinW);
   size_t suggestedGridSize = size_t(ceil(radiansForAllLayers * NWFactor()));
   if (suggestedGridSize == 0) suggestedGridSize = 1;
   if (suggestedGridSize < _resources.NCpus()) {
@@ -128,7 +129,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
 }
 
 void WSMSGridder::gridMeasurementSet(MSData& msData) {
-  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
+  const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const aocommon::BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
@@ -160,7 +161,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
 
   try {
     size_t rowsRead = 0;
-    std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+    std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
     while (msReader->CurrentRowAvailable()) {
       double uInMeters, vInMeters, wInMeters;
       MSProvider::MetaData metaData;
@@ -184,7 +185,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
           isSelected[ch] = _gridder->IsInLayerRange(w);
         }
 
-        GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
+        GetCollapsedVisibilities(*msReader, msData.antenna_names, newItem,
                                  curBand, weightBuffer.data(),
                                  modelBuffer.data(), isSelected.data(),
                                  metaData);
@@ -262,8 +263,8 @@ void WSMSGridder::workThreadPerSample(
 }
 
 void WSMSGridder::predictMeasurementSet(MSData& msData, GainMode gain_mode) {
-  msData.msProvider->ReopenRW();
-  msData.msProvider->ResetWritePosition();
+  msData.ms_provider->ReopenRW();
+  msData.ms_provider->ResetWritePosition();
   const aocommon::BandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
@@ -292,7 +293,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData, GainMode gain_mode) {
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
   std::vector<size_t> rowIds;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     double uInMeters, vInMeters, wInMeters;
     msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
@@ -365,7 +366,7 @@ void WSMSGridder::predictWriteThread(
     while (!queue.empty() && queue.top().rowId == nextRowId) {
       MSProvider::MetaData metaData;
       ReadPredictMetaData(metaData);
-      WriteCollapsedVisibilities(*msData->msProvider, msData->antennaNames,
+      WriteCollapsedVisibilities(*msData->ms_provider, msData->antenna_names,
                                  *bandData, queue.top().data.get(), metaData);
 
       queue.pop();
@@ -390,8 +391,8 @@ void WSMSGridder::Invert() {
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
   _gridder->PrepareWLayers(ActualWGridSize(),
-                           double(_resources.Memory()) * (6.0 / 10.0), _minW,
-                           _maxW);
+                           double(_resources.Memory()) * (6.0 / 10.0),
+                           MinimumW(), MaximumW());
   if (IsFirstTask()) {
     Logger::Info << "Will process "
                  << (_gridder->NWLayers() / _gridder->NPasses()) << "/"
@@ -516,8 +517,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
   _gridder->PrepareWLayers(ActualWGridSize(),
-                           double(_resources.Memory()) * (6.0 / 10.0), _minW,
-                           _maxW);
+                           double(_resources.Memory()) * (6.0 / 10.0),
+                           MinimumW(), MaximumW());
 
   if (IsFirstTask()) {
     for (size_t i = 0; i != MeasurementSetCount(); ++i)

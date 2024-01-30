@@ -39,8 +39,8 @@ namespace {
 /**
  * @brief Select unique times from a given MSProvider
  */
-std::vector<double> SelectUniqueTimes(MSProvider& msProvider) {
-  std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
+  std::unique_ptr<MSReader> msReader = ms_provider.MakeReader();
   std::vector<double> msTimes;
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
@@ -60,69 +60,19 @@ std::vector<double> SelectUniqueTimes(MSProvider& msProvider) {
 // Defined out of class to allow the class the be used in a std::unique_ptr.
 MSGridderBase::~MSGridderBase() = default;
 
-MSGridderBase::MSData::MSData()
-    : msIndex(0),
-      dataDescId(0),
-      matchingRows(0),
-      totalRowsProcessed(0),
-      antennaNames() {}
-
 MSGridderBase::MSGridderBase(const Settings& settings)
-    : _metaDataCache(nullptr),
-      _settings(settings),
-      _actualInversionWidth(0),
-      _actualInversionHeight(0),
-      _actualPixelSizeX(0),
-      _actualPixelSizeY(0),
-      _phaseCentreRA(0.0),
-      _phaseCentreDec(0.0),
-      _l_shift(0.0),
-      _m_shift(0.0),
-      _mainImageDL(0.0),
-      _mainImageDM(0.0),
-      _facetIndex(0),
-      _facetGroupIndex(0),
-      _msIndex(0),
-      _isFacet(false),
-      _imagePadding(1.0),
-      _imageWidth(0),
-      _imageHeight(0),
-      _trimWidth(0),
-      _trimHeight(0),
-      _pixelSizeX(settings.pixelScaleX),
-      _pixelSizeY(settings.pixelScaleY),
-      _wGridSize(settings.nWLayers),
-      _actualWGridSize(0),
-      _measurementSets(),
-      _dataColumnName(settings.dataColumnName),
-      _psfMode(PsfMode::kNone),
-      _doSubtractModel(false),
-      _smallInversion(settings.smallInversion),
-      _wLimit(settings.wLimit / 100.0),
-      _precalculatedWeightInfo(nullptr),
-      _polarization(aocommon::Polarization::StokesI),
-      _nVisPolarizations(1),
-      _isComplex(false),
-      _weighting(settings.weightMode),
-      _isFirstTask(false),
-      _visibilityWeightingMode(settings.visibilityWeightingMode),
-      _gridMode(GriddingKernelMode::KaiserBessel),
-      _storeImagingWeights(false),
-      _theoreticalBeamSize(0.0),
-      _hasFrequencies(false),
-      _freqHigh(0.0),
-      _freqLow(0.0),
-      _bandStart(0.0),
-      _bandEnd(0.0),
-      _startTime(0.0),
-      _griddedVisibilityCount(0),
-      _totalWeight(0.0),
-      _maxGriddedWeight(0.0),
-      _visibilityWeightSum(0.0),
-      _predictReader(nullptr) {
+    : settings_(settings),
+      pixel_size_x_(settings.pixelScaleX),
+      pixel_size_y_(settings.pixelScaleY),
+      w_grid_size_(settings.nWLayers),
+      data_column_name_(settings.dataColumnName),
+      small_inversion_(settings.smallInversion),
+      w_limit_(settings.wLimit / 100.0),
+      weighting_(settings.weightMode),
+      visibility_weighting_mode_(settings.visibilityWeightingMode) {
 #ifdef HAVE_EVERYBEAM
-  _visibilityModifier.SetBeamInfo(settings.beamMode,
-                                  settings.beamNormalisationMode);
+  visibility_modifier_.SetBeamInfo(settings.beamMode,
+                                   settings.beamNormalisationMode);
 #endif
 }
 
@@ -131,29 +81,29 @@ std::vector<std::string> MSGridderBase::getAntennaNames(
   const casacore::ScalarColumn<casacore::String> antennaNameColumn(
       msAntenna, msAntenna.columnName(casacore::MSAntenna::NAME));
 
-  std::vector<std::string> antennaNames;
-  antennaNames.reserve(antennaNameColumn.nrow());
+  std::vector<std::string> antenna_names;
+  antenna_names.reserve(antennaNameColumn.nrow());
   for (size_t i = 0; i < antennaNameColumn.nrow(); ++i) {
-    antennaNames.push_back(antennaNameColumn(i));
+    antenna_names.push_back(antennaNameColumn(i));
   }
-  return antennaNames;
+  return antenna_names;
 }
 
 void MSGridderBase::initializePointResponse(
     const MSGridderBase::MSData& msData) {
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
+  if (settings_.applyFacetBeam || settings_.gridWithBeam) {
     const std::string element_response_string =
-        !_settings.beamModel.empty() ? _settings.beamModel : "DEFAULT";
-    _visibilityModifier.InitializePointResponse(
-        msData.msProvider->MS(), _settings.facetBeamUpdateTime,
+        !settings_.beamModel.empty() ? settings_.beamModel : "DEFAULT";
+    visibility_modifier_.InitializePointResponse(
+        msData.ms_provider->MS(), settings_.facetBeamUpdateTime,
         element_response_string, msData.bandData.ChannelCount(),
-        _settings.dataColumnName, _settings.mwaPath);
+        settings_.dataColumnName, settings_.mwaPath);
   } else {
-    _visibilityModifier.SetNoPointResponse();
+    visibility_modifier_.SetNoPointResponse();
   }
 #else
-  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
+  if (settings_.applyFacetBeam || settings_.gridWithBeam) {
     throw std::runtime_error(
         "-apply-facet-beam or -grid-with-beam was set, but wsclean was not "
         "compiled "
@@ -166,14 +116,15 @@ void MSGridderBase::initializePointResponse(
 void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
                                         bool isPredict) {
   initializePointResponse(msData);
-  _msIndex = msData.msIndex;
-  _nVisPolarizations = msData.msProvider->NPolarizations();
-  _gainMode = GetGainMode(Polarization(), _nVisPolarizations);
+  ms_index_ = msData.msIndex;
+  n_vis_polarizations_ = msData.ms_provider->NPolarizations();
+  gain_mode_ = GetGainMode(Polarization(), n_vis_polarizations_);
   const size_t n_channels = msData.SelectedBand().ChannelCount();
-  _scratchImageWeights.resize(n_channels);
+  scratch_image_weights_.resize(n_channels);
   if (isPredict) {
-    _scratchModelData.resize(n_channels * msData.msProvider->NPolarizations());
-    _predictReader = msData.msProvider->MakeReader();
+    scratch_model_data_.resize(n_channels *
+                               msData.ms_provider->NPolarizations());
+    predict_reader_ = msData.ms_provider->MakeReader();
   }
 }
 
@@ -215,7 +166,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
                                  NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   const double smallestWavelength = selectedBand.SmallestWavelength();
   const double longestWavelength = selectedBand.LongestWavelength();
   while (msReader->CurrentRowAvailable()) {
@@ -303,21 +254,21 @@ void MSGridderBase::initializeMSDataVector(
 
   resetMetaData();
   // FIXME: migrate data members to GriddingResult
-  _metaDataCache->h5Sum = 0.0;
-  _metaDataCache->correctionSum = 0.0;
+  meta_data_cache_->h5Sum = 0.0;
+  meta_data_cache_->correctionSum = 0.0;
 
-  bool hasCache = !_metaDataCache->msDataVector.empty();
-  if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
+  bool hasCache = !meta_data_cache_->msDataVector.empty();
+  if (!hasCache) meta_data_cache_->msDataVector.resize(MeasurementSetCount());
 
-  if (!_settings.facetSolutionFiles.empty()) {
-    _visibilityModifier.ResetCache(MeasurementSetCount(),
-                                   _settings.facetSolutionFiles,
-                                   _settings.facetSolutionTables);
+  if (!settings_.facetSolutionFiles.empty()) {
+    visibility_modifier_.ResetCache(MeasurementSetCount(),
+                                    settings_.facetSolutionFiles,
+                                    settings_.facetSolutionTables);
   }
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
-    initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
+    initializeMeasurementSet(msDataVector[i], meta_data_cache_->msDataVector[i],
                              hasCache);
   }
   calculateOverallMetaData(msDataVector.data());
@@ -326,21 +277,21 @@ void MSGridderBase::initializeMSDataVector(
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
                                              bool isCacheInitialized) {
-  MSProvider& msProvider = MeasurementSet(msData.msIndex);
-  msData.msProvider = &msProvider;
-  SynchronizedMS ms(msProvider.MS());
+  MSProvider& ms_provider = MeasurementSet(msData.msIndex);
+  msData.ms_provider = &ms_provider;
+  SynchronizedMS ms(ms_provider.MS());
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
 
-  msData.antennaNames = getAntennaNames(ms->antenna());
-  msData.dataDescId = msProvider.DataDescId();
+  msData.antenna_names = getAntennaNames(ms->antenna());
+  msData.dataDescId = ms_provider.DataDescId();
 
   initializeBandData(*ms, msData);
 
   if (HasDenormalPhaseCentre())
-    Logger::Debug << "Set has denormal phase centre: dl=" << _l_shift
-                  << ", dm=" << _m_shift << '\n';
+    Logger::Debug << "Set has denormal phase centre: dl=" << l_shift_
+                  << ", dm=" << m_shift_ << '\n';
 
-  calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
+  calculateMSLimits(msData.SelectedBand(), ms_provider.StartTime());
 
   if (isCacheInitialized) {
     msData.maxW = cacheEntry.maxW;
@@ -350,9 +301,9 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     msData.maxBaselineInM = cacheEntry.maxBaselineInM;
     msData.integrationTime = cacheEntry.integrationTime;
   } else {
-    if (msProvider.NPolarizations() == 4)
+    if (ms_provider.NPolarizations() == 4)
       calculateWLimits<4>(msData);
-    else if (msProvider.NPolarizations() == 2)
+    else if (ms_provider.NPolarizations() == 2)
       calculateWLimits<2>(msData);
     else
       calculateWLimits<1>(msData);
@@ -364,26 +315,26 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
-  if (!_settings.facetSolutionFiles.empty()) {
-    _visibilityModifier.SetMSTimes(msData.msIndex,
-                                   SelectUniqueTimes(*msData.msProvider));
+  if (!settings_.facetSolutionFiles.empty()) {
+    visibility_modifier_.SetMSTimes(msData.msIndex,
+                                    SelectUniqueTimes(*msData.ms_provider));
   }
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
-  _maxW = 0.0;
-  _minW = std::numeric_limits<double>::max();
+  max_w_ = 0.0;
+  min_w_ = std::numeric_limits<double>::max();
   double maxBaseline = 0.0;
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     const MSData& msData = msDataVector[i];
 
     maxBaseline = std::max(maxBaseline, msData.maxBaselineUVW);
-    _maxW = std::max(_maxW, msData.maxW);
-    _minW = std::min(_minW, msData.minW);
+    max_w_ = std::max(max_w_, msData.maxW);
+    min_w_ = std::min(min_w_, msData.minW);
   }
-  if (_minW > _maxW) {
-    _minW = _maxW;
+  if (min_w_ > max_w_) {
+    min_w_ = max_w_;
     Logger::Error
         << "*** Error! ***\n"
            "*** Calculating maximum and minimum w values failed! Make sure the "
@@ -391,47 +342,49 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
            "***\n";
   }
 
-  _theoreticalBeamSize = 1.0 / maxBaseline;
+  theoretical_beam_size_ = 1.0 / maxBaseline;
   if (IsFirstTask()) {
     Logger::Info << "Theoretic beam = "
-                 << aocommon::units::Angle::ToNiceString(_theoreticalBeamSize)
+                 << aocommon::units::Angle::ToNiceString(theoretical_beam_size_)
                  << "\n";
   }
-  if (_wLimit != 0.0) {
-    _maxW *= (1.0 - _wLimit);
-    if (_maxW < _minW) _maxW = _minW;
+  if (w_limit_ != 0.0) {
+    max_w_ *= (1.0 - w_limit_);
+    if (max_w_ < min_w_) max_w_ = min_w_;
   }
 
   if (!HasTrimSize()) SetTrimSize(ImageWidth(), ImageHeight());
 
-  _actualInversionWidth = ImageWidth();
-  _actualInversionHeight = ImageHeight();
-  _actualPixelSizeX = PixelSizeX();
-  _actualPixelSizeY = PixelSizeY();
+  actual_inversion_width_ = ImageWidth();
+  actual_inversion_height_ = ImageHeight();
+  actual_pixel_size_x_ = PixelSizeX();
+  actual_pixel_size_y_ = PixelSizeY();
 
   if (SmallInversion()) {
     size_t optWidth, optHeight, minWidth, minHeight;
-    CalculateFFTSize(_actualInversionWidth, _actualPixelSizeX,
-                     _theoreticalBeamSize, minWidth, optWidth);
-    CalculateFFTSize(_actualInversionHeight, _actualPixelSizeY,
-                     _theoreticalBeamSize, minHeight, optHeight);
-    if (optWidth < _actualInversionWidth ||
-        optHeight < _actualInversionHeight) {
+    CalculateFFTSize(actual_inversion_width_, actual_pixel_size_x_,
+                     theoretical_beam_size_, minWidth, optWidth);
+    CalculateFFTSize(actual_inversion_height_, actual_pixel_size_y_,
+                     theoretical_beam_size_, minHeight, optHeight);
+    if (optWidth < actual_inversion_width_ ||
+        optHeight < actual_inversion_height_) {
       const size_t newWidth =
-          std::max(std::min(optWidth, _actualInversionWidth), size_t(32));
+          std::max(std::min(optWidth, actual_inversion_width_), size_t(32));
       const size_t newHeight =
-          std::max(std::min(optHeight, _actualInversionHeight), size_t(32));
+          std::max(std::min(optHeight, actual_inversion_height_), size_t(32));
       if (IsFirstTask()) {
         Logger::Info << "Minimal inversion size: " << minWidth << " x "
                      << minHeight << ", using optimal: " << newWidth << " x "
                      << newHeight << "\n";
       }
-      _actualPixelSizeX = (double(_actualInversionWidth) * _actualPixelSizeX) /
-                          double(newWidth);
-      _actualPixelSizeY = (double(_actualInversionHeight) * _actualPixelSizeY) /
-                          double(newHeight);
-      _actualInversionWidth = newWidth;
-      _actualInversionHeight = newHeight;
+      actual_pixel_size_x_ =
+          (double(actual_inversion_width_) * actual_pixel_size_x_) /
+          double(newWidth);
+      actual_pixel_size_y_ =
+          (double(actual_inversion_height_) * actual_pixel_size_y_) /
+          double(newHeight);
+      actual_inversion_width_ = newWidth;
+      actual_inversion_height_ = newHeight;
     } else {
       if (IsFirstTask()) {
         Logger::Info
@@ -445,75 +398,75 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   // logs the suggested wgrid size.
   const size_t suggestedGridSize =
       (IsFirstTask() || !hasWGridSize()) ? getSuggestedWGridSize() : 0;
-  _actualWGridSize = hasWGridSize() ? _wGridSize : suggestedGridSize;
+  actual_w_grid_size_ = hasWGridSize() ? w_grid_size_ : suggestedGridSize;
 }
 
 void MSGridderBase::ReadPredictMetaData(MSProvider::MetaData& metaData) {
-  _predictReader->ReadMeta(metaData);
-  _predictReader->NextInputRow();
+  predict_reader_->ReadMeta(metaData);
+  predict_reader_->NextInputRow();
 }
 
 template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::WriteInstrumentalVisibilities(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
-  if (_visibilityModifier.HasH5Parm()) {
-    assert(!_settings.facetRegionFilename.empty());
-    _visibilityModifier.CacheParmResponse(metaData.time, antennaNames, curBand,
-                                          _msIndex);
+  if (visibility_modifier_.HasH5Parm()) {
+    assert(!settings_.facetRegionFilename.empty());
+    visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                           curBand, ms_index_);
 
-    _visibilityModifier.ApplyParmResponse<PolarizationCount, GainEntry>(
-        buffer, _msIndex, curBand.ChannelCount(), antennaNames.size(),
+    visibility_modifier_.ApplyParmResponse<PolarizationCount, GainEntry>(
+        buffer, ms_index_, curBand.ChannelCount(), antenna_names.size(),
         metaData.antenna1, metaData.antenna2);
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam) {
-    _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
-                                          curBand);
+  if (settings_.applyFacetBeam) {
+    visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
+                                           curBand);
 
-    _visibilityModifier.ApplyBeamResponse<PolarizationCount, GainEntry>(
+    visibility_modifier_.ApplyBeamResponse<PolarizationCount, GainEntry>(
         buffer, curBand.ChannelCount(), metaData.antenna1, metaData.antenna2);
   }
 #endif
 
   {
     const size_t lock_index =
-        _facetGroupIndex * MeasurementSetCount() + _msIndex;
+        facet_group_index_ * MeasurementSetCount() + ms_index_;
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
-        _writerLockManager->GetLock(lock_index);
-    msProvider.WriteModel(buffer, IsFacet());
+        writer_lock_manager_->GetLock(lock_index);
+    ms_provider.WriteModel(buffer, IsFacet());
   }
-  msProvider.NextOutputRow();
+  ms_provider.NextOutputRow();
 }
 
 template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kXX>(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kYY>(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kDiagonal>(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::WriteInstrumentalVisibilities<2, GainMode::kDiagonal>(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
-    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
@@ -585,53 +538,55 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
     const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
-    _scratchImageWeights[ch] = GetImageWeights()->GetWeight(u, v);
+    scratch_image_weights_[ch] = GetImageWeights()->GetWeight(u, v);
   }
 }
 
 template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::ApplyWeightsAndCorrections(
-    const std::vector<std::string>& antennaNames, InversionRow& rowData,
+    const std::vector<std::string>& antenna_names, InversionRow& rowData,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData) {
   if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
-    const bool apply_beam = _settings.applyFacetBeam || _settings.gridWithBeam;
+    const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
-    if (apply_beam && _visibilityModifier.HasH5Parm()) {
+    if (apply_beam && visibility_modifier_.HasH5Parm()) {
 #ifdef HAVE_EVERYBEAM
       // Load and apply (in conjugate) both the beam and the h5parm solutions
-      _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
-                                            curBand);
-      _visibilityModifier.CacheParmResponse(metaData.time, antennaNames,
-                                            curBand, _msIndex);
+      visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
+                                             curBand);
+      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                             curBand, ms_index_);
       const VisibilityModifier::DualResult result =
-          _visibilityModifier.ApplyConjugatedDual<PolarizationCount, GainEntry>(
-              rowData.data, weightBuffer, _scratchImageWeights.data(),
-              curBand.ChannelCount(), antennaNames.size(), metaData.antenna1,
-              metaData.antenna2, _msIndex, apply_forward);
-      _metaDataCache->h5Sum += result.h5Sum;
-      _metaDataCache->correctionSum += result.correctionSum;
+          visibility_modifier_
+              .ApplyConjugatedDual<PolarizationCount, GainEntry>(
+                  rowData.data, weightBuffer, scratch_image_weights_.data(),
+                  curBand.ChannelCount(), antenna_names.size(),
+                  metaData.antenna1, metaData.antenna2, ms_index_,
+                  apply_forward);
+      meta_data_cache_->h5Sum += result.h5Sum;
+      meta_data_cache_->correctionSum += result.correctionSum;
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
-      _visibilityModifier.CacheBeamResponse(metaData.time, metaData.fieldId,
-                                            curBand);
-      _metaDataCache->correctionSum +=
-          _visibilityModifier
+      visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
+                                             curBand);
+      meta_data_cache_->correctionSum +=
+          visibility_modifier_
               .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
-                  rowData.data, weightBuffer, _scratchImageWeights.data(),
+                  rowData.data, weightBuffer, scratch_image_weights_.data(),
                   curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
                   apply_forward);
 
 #endif  // HAVE_EVERYBEAM
-    } else if (_visibilityModifier.HasH5Parm()) {
-      _visibilityModifier.CacheParmResponse(metaData.time, antennaNames,
-                                            curBand, _msIndex);
+    } else if (visibility_modifier_.HasH5Parm()) {
+      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                             curBand, ms_index_);
 
-      _metaDataCache->correctionSum +=
-          _visibilityModifier
+      meta_data_cache_->correctionSum +=
+          visibility_modifier_
               .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
-                  rowData.data, weightBuffer, _scratchImageWeights.data(),
-                  _msIndex, curBand.ChannelCount(), antennaNames.size(),
+                  rowData.data, weightBuffer, scratch_image_weights_.data(),
+                  ms_index_, curBand.ChannelCount(), antenna_names.size(),
                   metaData.antenna1, metaData.antenna2, apply_forward);
     }
   }
@@ -641,15 +596,15 @@ void MSGridderBase::ApplyWeightsAndCorrections(
   float* weightIter = weightBuffer;
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      const double cumWeight = *weightIter * _scratchImageWeights[ch];
+      const double cumWeight = *weightIter * scratch_image_weights_[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
-        _visibilityWeightSum += *weightIter;
-        _maxGriddedWeight = std::max(cumWeight, _maxGriddedWeight);
-        ++_griddedVisibilityCount;
+        visibility_weight_sum_ += *weightIter;
+        max_gridded_weight_ = std::max(cumWeight, max_gridded_weight_);
+        ++gridded_visibility_count_;
       }
       // Total weight includes imaging weights
-      _totalWeight += cumWeight;
+      total_weight_ += cumWeight;
       *weightIter = cumWeight;
       *dataIter *= cumWeight;
       ++dataIter;
@@ -676,27 +631,27 @@ template void MSGridderBase::CalculateWeights<4>(
     const bool* isSelected);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kXX>(
-    const std::vector<std::string>& antennaNames, InversionRow& newItem,
+    const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kYY>(
-    const std::vector<std::string>& antennaNames, InversionRow& newItem,
+    const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kDiagonal>(
-    const std::vector<std::string>& antennaNames, InversionRow& newItem,
+    const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<2, GainMode::kDiagonal>(
-    const std::vector<std::string>& antennaNames, InversionRow& newItem,
+    const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<4, GainMode::kFull>(
-    const std::vector<std::string>& antennaNames, InversionRow& newItem,
+    const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 

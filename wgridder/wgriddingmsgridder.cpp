@@ -26,7 +26,7 @@ WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
                                        bool use_tuned_wgridder)
     : MSGridderBase(settings),
       resources_(resources),
-      accuracy_(_settings.wgridderAccuracy),
+      accuracy_(GetSettings().wgridderAccuracy),
       use_tuned_wgridder_(use_tuned_wgridder) {
   // It may happen that several schaapcommon::fft::Resamplers are created
   // concurrently, so we must make sure that the FFTW planner can deal with
@@ -81,7 +81,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, false);
 
-  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
+  const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const size_t dataSize = selectedBand.ChannelCount() * n_vis_polarizations;
   aocommon::UVector<std::complex<float>> modelBuffer(dataSize);
   aocommon::UVector<float> weightBuffer(dataSize);
@@ -98,7 +98,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
                                                    selectedBand.ChannelCount());
   aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   aocommon::UVector<std::complex<float>> newItemData(dataSize);
   InversionRow newRowData;
   newRowData.data = newItemData.data();
@@ -118,7 +118,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       newRowData.uvw[1] = metaData.vInM;
       newRowData.uvw[2] = metaData.wInM;
 
-      GetCollapsedVisibilities(*msReader, msData.antennaNames, newRowData,
+      GetCollapsedVisibilities(*msReader, msData.antenna_names, newRowData,
                                selectedBand, weightBuffer.data(),
                                modelBuffer.data(), isSelected.data(), metaData);
 
@@ -142,7 +142,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 }
 
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
-  msData.msProvider->ReopenRW();
+  msData.ms_provider->ReopenRW();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, true);
 
@@ -156,8 +156,8 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
   aocommon::UVector<double> uvwBuffer(maxNRows * 3);
   // Iterate over chunks until all data has been gridded
-  msData.msProvider->ResetWritePosition();
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  msData.ms_provider->ResetWritePosition();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     size_t nRows = 0;
 
@@ -186,7 +186,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != nRows; ++row) {
       WriteCollapsedVisibilities(
-          *msData.msProvider, msData.antennaNames, selectedBand,
+          *msData.ms_provider, msData.antenna_names, selectedBand,
           &visBuffer[row * selectedBand.ChannelCount()], metaDataBuffer[row]);
     }
     totalNRows += nRows;

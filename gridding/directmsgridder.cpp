@@ -126,7 +126,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     const MSGridderBase::MSData& msData, ProgressBar& progress,
     size_t msIndex) {
   StartMeasurementSet(msData, false);
-  const size_t n_vis_polarizations = msData.msProvider->NPolarizations();
+  const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.ChannelCount() * n_vis_polarizations);
@@ -140,9 +140,9 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
   newItem.data = newItemData.data();
 
   std::vector<size_t> idToMSRow;
-  msData.msProvider->MakeIdToMSRowMapping(idToMSRow);
+  msData.ms_provider->MakeIdToMSRowMapping(idToMSRow);
   size_t rowIndex = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
                          MeasurementSetCount() * idToMSRow.size());
@@ -153,7 +153,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     newItem.uvw[1] = metaData.vInM;
     newItem.uvw[2] = metaData.wInM;
 
-    GetCollapsedVisibilities(*msReader, msData.antennaNames, newItem,
+    GetCollapsedVisibilities(*msReader, msData.antenna_names, newItem,
                              selectedBand, weightBuffer.data(),
                              modelBuffer.data(), isSelected.data(), metaData);
     InversionSample sample;
