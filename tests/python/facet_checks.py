@@ -525,3 +525,17 @@ class TestFacets:
         assert not os.path.isfile(f"dd-psfs-with-faceting-0000-psf.fits")
         assert not os.path.isfile(f"dd-psfs-with-faceting-0001-psf.fits")
         assert not os.path.isfile(f"dd-psfs-with-faceting-MFS-psf.fits")
+
+    def test_predict_with_solutions(self):
+        # This is a more advanced prediction run which at some point failed
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
+        validate_call(h5download.split())
+        n_gridders = 4
+        shutil.copyfile(
+            "point-source-model.fits", "point-source-0000-model-pb.fits"
+        )
+        shutil.copyfile(
+            "point-source-model.fits", "point-source-0001-model-pb.fits"
+        )
+        s = f"{tcf.WSCLEAN} -v -predict -parallel-gridding {n_gridders} -channels-out 2 -apply-facet-beam -facet-beam-update 60 -facet-regions {tcf.FACETFILE_4FACETS} -diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -mwa-path . -reorder -name point-source {tcf.MWA_MOCK_FACET}"
+        validate_call(s.split())
