@@ -140,8 +140,8 @@ void ApplyFacetCorrections(
           // The final image needs to be corrected by 1/sqrt(..). However, since
           // we are scaling the beam images, we need to apply the inverse of
           // that.
-          const float factor =
-              std::sqrt(meta_cache[entry->index]->h5Sum / entry->imageWeight);
+          const float factor = std::sqrt(
+              meta_cache[entry->index]->h5_correction_sum / entry->imageWeight);
           facet_image.SetFacet(*entry->facet, true);
           facet_image.MultiplyImageInsideFacet(image_pointer, factor);
         }

@@ -81,7 +81,7 @@ class GriddingTaskFactory {
   }
 
   long double GetFacetCorrectionFactor(const ImagingTableEntry& entry) const {
-    return meta_data_cache_[entry.index]->correctionSum / entry.imageWeight;
+    return meta_data_cache_[entry.index]->correction_sum / entry.imageWeight;
   }
 
  private:

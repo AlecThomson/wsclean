@@ -254,8 +254,8 @@ void MSGridderBase::initializeMSDataVector(
 
   resetMetaData();
   // FIXME: migrate data members to GriddingResult
-  meta_data_cache_->h5Sum = 0.0;
-  meta_data_cache_->correctionSum = 0.0;
+  meta_data_cache_->correction_sum = 0.0;
+  meta_data_cache_->h5_correction_sum = 0.0;
 
   bool hasCache = !meta_data_cache_->msDataVector.empty();
   if (!hasCache) meta_data_cache_->msDataVector.resize(MeasurementSetCount());
@@ -294,12 +294,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   calculateMSLimits(msData.SelectedBand(), ms_provider.StartTime());
 
   if (isCacheInitialized) {
-    msData.maxW = cacheEntry.maxW;
-    msData.maxWWithFlags = cacheEntry.maxWWithFlags;
-    msData.minW = cacheEntry.minW;
-    msData.maxBaselineUVW = cacheEntry.maxBaselineUVW;
-    msData.maxBaselineInM = cacheEntry.maxBaselineInM;
-    msData.integrationTime = cacheEntry.integrationTime;
+    msData.maxW = cacheEntry.max_w;
+    msData.maxWWithFlags = cacheEntry.max_w_with_flags;
+    msData.minW = cacheEntry.min_w;
+    msData.maxBaselineUVW = cacheEntry.max_baseline_uvw;
+    msData.maxBaselineInM = cacheEntry.max_baseline_in_m;
+    msData.integrationTime = cacheEntry.integration_time;
   } else {
     if (ms_provider.NPolarizations() == 4)
       calculateWLimits<4>(msData);
@@ -307,12 +307,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
       calculateWLimits<2>(msData);
     else
       calculateWLimits<1>(msData);
-    cacheEntry.maxW = msData.maxW;
-    cacheEntry.maxWWithFlags = msData.maxWWithFlags;
-    cacheEntry.minW = msData.minW;
-    cacheEntry.maxBaselineUVW = msData.maxBaselineUVW;
-    cacheEntry.maxBaselineInM = msData.maxBaselineInM;
-    cacheEntry.integrationTime = msData.integrationTime;
+    cacheEntry.max_w = msData.maxW;
+    cacheEntry.max_w_with_flags = msData.maxWWithFlags;
+    cacheEntry.min_w = msData.minW;
+    cacheEntry.max_baseline_uvw = msData.maxBaselineUVW;
+    cacheEntry.max_baseline_in_m = msData.maxBaselineInM;
+    cacheEntry.integration_time = msData.integrationTime;
   }
 
   if (!settings_.facetSolutionFiles.empty()) {
@@ -564,13 +564,13 @@ void MSGridderBase::ApplyWeightsAndCorrections(
                   curBand.ChannelCount(), antenna_names.size(),
                   metaData.antenna1, metaData.antenna2, ms_index_,
                   apply_forward);
-      meta_data_cache_->h5Sum += result.h5Sum;
-      meta_data_cache_->correctionSum += result.correctionSum;
+      meta_data_cache_->h5_correction_sum += result.h5Sum;
+      meta_data_cache_->correction_sum += result.correctionSum;
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                              curBand);
-      meta_data_cache_->correctionSum +=
+      meta_data_cache_->correction_sum +=
           visibility_modifier_
               .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
                   rowData.data, weightBuffer, scratch_image_weights_.data(),
@@ -582,7 +582,7 @@ void MSGridderBase::ApplyWeightsAndCorrections(
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
 
-      meta_data_cache_->correctionSum +=
+      meta_data_cache_->correction_sum +=
           visibility_modifier_
               .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
                   rowData.data, weightBuffer, scratch_image_weights_.data(),

@@ -6,27 +6,27 @@
 void MetaDataCache::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt64(msDataVector.size());
   for (const Entry& entry : msDataVector) {
-    stream.Double(entry.minW)
-        .Double(entry.maxW)
-        .Double(entry.maxWWithFlags)
-        .Double(entry.maxBaselineUVW)
-        .Double(entry.maxBaselineInM)
-        .Double(entry.integrationTime);
+    stream.Double(entry.min_w)
+        .Double(entry.max_w)
+        .Double(entry.max_w_with_flags)
+        .Double(entry.max_baseline_uvw)
+        .Double(entry.max_baseline_in_m)
+        .Double(entry.integration_time);
   }
 
-  stream.LDouble(h5Sum).LDouble(correctionSum);
+  stream.LDouble(h5_correction_sum).LDouble(correction_sum);
 }
 
 void MetaDataCache::Unserialize(aocommon::SerialIStream& stream) {
   msDataVector.resize(stream.UInt64());
   for (Entry& entry : msDataVector) {
-    stream.Double(entry.minW)
-        .Double(entry.maxW)
-        .Double(entry.maxWWithFlags)
-        .Double(entry.maxBaselineUVW)
-        .Double(entry.maxBaselineInM)
-        .Double(entry.integrationTime);
+    stream.Double(entry.min_w)
+        .Double(entry.max_w)
+        .Double(entry.max_w_with_flags)
+        .Double(entry.max_baseline_uvw)
+        .Double(entry.max_baseline_in_m)
+        .Double(entry.integration_time);
   }
 
-  stream.LDouble(h5Sum).LDouble(correctionSum);
+  stream.LDouble(h5_correction_sum).LDouble(correction_sum);
 }
