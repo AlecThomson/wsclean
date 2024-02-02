@@ -77,8 +77,12 @@ class WSClean {
                           std::unique_ptr<PrimaryBeam>& primaryBeam,
                           bool requestPolarizationsAtOnce,
                           bool parallelizePolarizations);
-  void runSingleFirstInversion(std::shared_ptr<ImagingTableEntry> entry,
-                               std::unique_ptr<PrimaryBeam>& primaryBeam);
+  /**
+   * @brief Run first inversion on all entries within a group.
+   * @details A group should contain all facets of a single image.
+   */
+  void runFirstInversionGroup(ImagingTable::Group& facetGroup,
+                              std::unique_ptr<PrimaryBeam>& primaryBeam);
   void runMajorIterations(ImagingTable& groupTable,
                           std::unique_ptr<PrimaryBeam>& primaryBeam,
                           bool requestPolarizationsAtOnce,

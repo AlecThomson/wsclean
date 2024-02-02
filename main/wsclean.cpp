@@ -1340,73 +1340,76 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
                                  std::unique_ptr<PrimaryBeam>& primaryBeam,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
-  for (const ImagingTable::Group& group : groupTable.Facets()) {
-    if (requestPolarizationsAtOnce) {
-      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-        if (entry->polarization == *_settings.polarizations.begin())
-          runSingleFirstInversion(entry, primaryBeam);
-      }
-    } else if (parallelizePolarizations) {
-      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-        runSingleFirstInversion(entry, primaryBeam);
-      }
-    } else {
-      // Only use parallelism for entries with the same polarization.
-      for (aocommon::PolarizationEnum polarization : _settings.polarizations) {
-        for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-          if (entry->polarization == polarization) {
-            runSingleFirstInversion(entry, primaryBeam);
-          }
-        }
-        _griddingTaskManager->Finish();
-      }
+  std::vector<ImagingTable::Groups> facetGroupsQueue;
+  if (requestPolarizationsAtOnce) {
+    facetGroupsQueue.emplace_back(
+        groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
+          return entry.polarization == *_settings.polarizations.begin();
+        }));
+  } else if (parallelizePolarizations) {
+    facetGroupsQueue.emplace_back(groupTable.FacetGroups(
+        [&](const ImagingTableEntry& entry) { return true; }));
+  } else {
+    // Only use parallelism for entries with the same polarization.
+    for (aocommon::PolarizationEnum polarization : _settings.polarizations) {
+      facetGroupsQueue.emplace_back(
+          groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
+            return entry.polarization == polarization;
+          }));
     }
   }
+  for (ImagingTable::Groups& facetGroups : facetGroupsQueue) {
+    for (ImagingTable::Group& facetGroup : facetGroups) {
+      runFirstInversionGroup(facetGroup, primaryBeam);
+    }
+    _griddingTaskManager->Finish();
+  }
+
   if (requestPolarizationsAtOnce) {
-    _griddingTaskManager->Finish();
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
-  } else if (parallelizePolarizations) {
-    _griddingTaskManager->Finish();
   }
   stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
 }
 
-void WSClean::runSingleFirstInversion(
-    std::shared_ptr<ImagingTableEntry> entry,
+void WSClean::runFirstInversionGroup(
+    ImagingTable::Group& facetGroup,
     std::unique_ptr<PrimaryBeam>& primaryBeam) {
-  const bool isLastPol =
-      entry->polarization == *_settings.polarizations.rbegin();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
 
-  if (isLastPol) {
-    ImageFilename imageName =
-        ImageFilename(entry->outputChannelIndex, entry->outputIntervalIndex);
-    if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-      std::vector<std::unique_ptr<MSDataDescription>> msList =
-          _msHelper->InitializeMsList(*entry);
-      std::shared_ptr<ImageWeights> weights =
-          _image_weight_initializer->Initialize(*entry, msList,
-                                                *_imageWeightCache);
-      primaryBeam = std::make_unique<PrimaryBeam>(_settings);
-      for (std::unique_ptr<MSDataDescription>& description : msList)
-        primaryBeam->AddMS(std::move(description));
-      primaryBeam->SetPhaseCentre(_observationInfo.phaseCentreRA,
-                                  _observationInfo.phaseCentreDec, _l_shift,
-                                  _m_shift);
-      // Only generate beam images for facetIndex == 0 in facet group
-      if (entry->facetIndex == 0) {
-        primaryBeam->MakeOrReuse(imageName, *entry, std::move(weights),
-                                 _settings.fieldIds[0]);
+  for (const std::shared_ptr<ImagingTableEntry>& entry : facetGroup) {
+    const bool isLastPol =
+        entry->polarization == *_settings.polarizations.rbegin();
+    if (isLastPol) {
+      ImageFilename imageName =
+          ImageFilename(entry->outputChannelIndex, entry->outputIntervalIndex);
+      if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+        std::vector<std::unique_ptr<MSDataDescription>> msList =
+            _msHelper->InitializeMsList(*entry);
+        std::shared_ptr<ImageWeights> weights =
+            _image_weight_initializer->Initialize(*entry, msList,
+                                                  *_imageWeightCache);
+        primaryBeam = std::make_unique<PrimaryBeam>(_settings);
+        for (std::unique_ptr<MSDataDescription>& description : msList)
+          primaryBeam->AddMS(std::move(description));
+        primaryBeam->SetPhaseCentre(_observationInfo.phaseCentreRA,
+                                    _observationInfo.phaseCentreDec, _l_shift,
+                                    _m_shift);
+        // Only generate beam images for facetIndex == 0 in facet group
+        if (entry->facetIndex == 0) {
+          primaryBeam->MakeOrReuse(imageName, *entry, std::move(weights),
+                                   _settings.fieldIds[0]);
+        }
       }
     }
   }
 
   if (_settings.reuseDirty) {
-    loadExistingDirty(*entry, !doMakePSF);
+    for (const std::shared_ptr<ImagingTableEntry>& entry : facetGroup) {
+      loadExistingDirty(*entry, !doMakePSF);
+    }
   } else {
-    ImagingTable::Group group{std::move(entry)};
-    imageMain(group, true, !doMakePSF);
+    imageMain(facetGroup, true, !doMakePSF);
   }
 }
 
