@@ -82,7 +82,7 @@ class GriddingTaskManager {
  protected:
   Resources GetResources() const;
 
-  const Settings& _settings;
+  const Settings& GetSettings() const { return _settings; }
 
   std::unique_ptr<MSGridderBase> makeGridder(const Resources& resources) const;
 
@@ -102,6 +102,8 @@ class GriddingTaskManager {
  private:
   std::unique_ptr<MSGridderBase> constructGridder(
       const Resources& resources) const;
+
+  const Settings& _settings;
 
   /**
    * Writer lock manager for the scheduler.

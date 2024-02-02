@@ -1669,7 +1669,7 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
       weight_image = std::make_unique<Image>(
           _settings.trimmedImageWidth, _settings.trimmedImageHeight, 0.0f);
   }
-  for (const std::shared_ptr<ImagingTableEntry> facetEntry : facetGroup) {
+  for (const std::shared_ptr<ImagingTableEntry>& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry->facet, true);
     imageCache.LoadFacet(facetImage.Data(0), facetEntry->polarization,
                          facetEntry->outputChannelIndex, facetEntry->facetIndex,

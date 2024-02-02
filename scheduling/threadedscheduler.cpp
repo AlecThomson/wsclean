@@ -8,70 +8,72 @@
 #include <string>
 
 ThreadedScheduler::ThreadedScheduler(const Settings& settings)
-    : GriddingTaskManager(settings),
-      task_list_(settings.parallelGridding),
-      resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {}
+    : GriddingTaskManager{settings},
+      // When using the ThreadedScheduler as the main scheduler, limit the
+      // number of tasks in the queue to one per thread. When stacking too many
+      // tasks, memory usage could become an issue.
+      // When using the ThreadedScheduler as a local scheduler with the
+      // MPIScheduler, the MPIScheduler manages the task distribution.
+      // The ThreadedScheduler should always queue new tasks in that case.
+      task_queue_(settings.UseMpi() ? TaskQueueType()
+                                    : TaskQueueType(settings.parallelGridding)),
+      resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {
+  for (size_t i = 0; i < settings.parallelGridding; ++i) {
+    thread_list_.emplace_back(&ThreadedScheduler::ProcessQueue, this);
+  }
+}
 
 ThreadedScheduler::~ThreadedScheduler() {
-  if (!thread_list_.empty()) {
-    try {
-      Finish();
-    } catch (std::exception& e) {
-      // Normally, the user of the ThreadedScheduler calls Finish(), which
-      // empties the thread_list_. If thread_list_ is non-empty in this
-      // destructor, the ThreadedScheduler is destroyed because some another
-      // exception occurred. We are in a destructor, so all that can be done is
-      // report the error.
-      using namespace std::string_literals;
-      aocommon::Logger::Error
-          << "Exception caught during destruction of ThreadedScheduler:\n"s +
-                 e.what() + '\n';
-    }
+  try {
+    Finish();
+  } catch (std::exception& e) {
+    // Normally, the user of the ThreadedScheduler calls Finish(), which
+    // rethrows any exception caught in a thread.
+    // We are in a destructor, so all that can be done is report the error.
+    using namespace std::string_literals;
+    aocommon::Logger::Error
+        << "Exception caught during destruction of ThreadedScheduler:\n"s +
+               e.what() + '\n';
   }
+  task_queue_.Finish();  // Make all threads exit.
+  for (std::thread& thread : thread_list_) thread.join();
 }
 
 void ThreadedScheduler::Run(
-    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
-  // Start an extra thread if not maxed out already
-  if (thread_list_.size() < _settings.parallelGridding)
-    thread_list_.emplace_back(&ThreadedScheduler::ProcessQueue, this);
-  else if (!_settings.UseMpi()) {
-    // When using the ThreadedScheduler as the main scheduler, block until a
-    // thread is available, in order not to stack too many tasks.
-    task_list_.wait_for_empty();
-  }
-  // When using the ThreadedScheduler as a local scheduler with the
-  // MPIScheduler, the MPIScheduler manages the task distribution.
-  // The ThreadedScheduler should always queue new tasks if it is busy.
+    GriddingTask&& task, std::function<void(GriddingResult&)> finish_callback) {
+  task_queue_.Emplace(std::move(task), std::move(finish_callback));
 
-  std::lock_guard<std::mutex> lock(mutex_);
-  while (!ready_list_.empty()) {
-    // Call callbacks for any finished tasks
-    ready_list_.back().second(ready_list_.back().first);
-    ready_list_.pop_back();
-  }
-
-  task_list_.emplace(std::move(task), std::move(finishCallback));
-  CheckExceptions();
+  ProcessReadyList();
 }
 
 void ThreadedScheduler::ProcessQueue() {
-  std::pair<GriddingTask, std::function<void(GriddingResult&)>> taskPair;
-  while (task_list_.read(taskPair)) {
+  std::pair<GriddingTask, std::function<void(GriddingResult&)>> task_pair;
+  while (task_queue_.Pop(task_pair)) {
+    GriddingResult result;
     try {
       std::unique_ptr<MSGridderBase> gridder(makeGridder(resources_per_task_));
-      GriddingResult result = RunDirect(std::move(taskPair.first), *gridder);
-
-      std::lock_guard<std::mutex> lock(mutex_);
-      ready_list_.emplace_back(std::move(result), taskPair.second);
+      result = RunDirect(std::move(task_pair.first), *gridder);
     } catch (std::exception&) {
       std::lock_guard<std::mutex> lock(mutex_);
       latest_exception_ = std::current_exception();
+    }
+
+    std::function<void(GriddingResult&)> callback = std::move(task_pair.second);
+    if (GetSettings().UseMpi()) {
+      // Execute callback immediately, from the processing thread.
+      // The MPIScheduler stores the result at the main node.
+      // The MPIWorkerScheduler sends the result to the main node.
+      callback(result);
+    } else {
+      // Store the result and execute the callback on the main thread.
+      std::lock_guard<std::mutex> lock(mutex_);
+      ready_list_.emplace_back(std::move(result), std::move(callback));
     }
   }
 }
 
 void ThreadedScheduler::Start(size_t nWriterGroups) {
+  assert(ready_list_.empty());
   GriddingTaskManager::Start(nWriterGroups);
   if (writer_group_locks_.size() < nWriterGroups)
     writer_group_locks_ = std::vector<std::mutex>(nWriterGroups);
@@ -79,27 +81,38 @@ void ThreadedScheduler::Start(size_t nWriterGroups) {
 
 std::unique_ptr<GriddingTaskManager::WriterLock> ThreadedScheduler::GetLock(
     size_t writer_group_index) {
+  assert(writer_group_index < writer_group_locks_.size());
   return std::make_unique<ThreadedWriterLock>(*this, writer_group_index);
 }
 
 void ThreadedScheduler::Finish() {
-  task_list_.write_end();
-  for (std::thread& t : thread_list_) t.join();
-  thread_list_.clear();
-  task_list_.clear();
-  // All threads have joined, so no lock required
-  while (!ready_list_.empty()) {
-    // Call callbacks for any finished tasks
-    ready_list_.back().second(ready_list_.back().first);
-    ready_list_.pop_back();
-  }
-  CheckExceptions();
+  task_queue_.WaitForIdle(GetSettings().parallelGridding);
+
+  ProcessReadyList();
 }
 
-void ThreadedScheduler::CheckExceptions() {
-  if (latest_exception_) {
-    std::exception_ptr to_throw = std::move(latest_exception_);
+void ThreadedScheduler::ProcessReadyList() {
+  std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
+      local_ready_list;
+  std::exception_ptr local_exception;
+
+  // Move the ready_list_ and latest_exception_ to local variables so we can
+  // release the lock while the callbacks run / while throwing the exception.
+  {
+    std::lock_guard<std::mutex> lock{mutex_};
+
+    local_ready_list = std::move(ready_list_);
+    ready_list_.clear();
+
+    local_exception = std::move(latest_exception_);
     latest_exception_ = std::exception_ptr();
-    std::rethrow_exception(to_throw);
   }
+
+  // Call callbacks for any finished tasks
+  for (std::pair<GriddingResult, std::function<void(GriddingResult&)>>& item :
+       local_ready_list) {
+    item.second(item.first);
+  }
+
+  if (local_exception) std::rethrow_exception(local_exception);
 }

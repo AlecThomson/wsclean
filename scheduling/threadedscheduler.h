@@ -1,8 +1,11 @@
 #ifndef SCHEDULING_THREADED_SCHEDULER_H_
 #define SCHEDULING_THREADED_SCHEDULER_H_
 
+#include <memory>
 #include <mutex>
 #include <thread>
+
+#include <aocommon/taskqueue.h>
 
 #include "griddingtaskmanager.h"
 
@@ -42,13 +45,15 @@ class ThreadedScheduler final : public GriddingTaskManager {
   friend class ThreadedWriterLock;
 
   void ProcessQueue();
-  void CheckExceptions();
+  void ProcessReadyList();
 
-  std::mutex mutex_;
+  using TaskQueueType = aocommon::TaskQueue<
+      std::pair<GriddingTask, std::function<void(GriddingResult&)>>>;
+
+  std::mutex mutex_;  // Protects latest_exception_ and ready_list_.
   std::exception_ptr latest_exception_;
   std::vector<std::thread> thread_list_;
-  aocommon::Lane<std::pair<GriddingTask, std::function<void(GriddingResult&)>>>
-      task_list_;
+  TaskQueueType task_queue_;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
       ready_list_;
   std::vector<std::mutex> writer_group_locks_;
