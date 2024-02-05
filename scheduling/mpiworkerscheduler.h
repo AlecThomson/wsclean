@@ -1,7 +1,12 @@
 #ifndef SCHEDULING_MPI_WORKER_SCHEDULER_H_
 #define SCHEDULING_MPI_WORKER_SCHEDULER_H_
 
+#include <condition_variable>
+#include <mutex>
+#include <set>
+
 #include "griddingtaskmanager.h"
+#include "threadedscheduler.h"
 
 #include "../main/settings.h"
 
@@ -18,15 +23,16 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
   /**
    * Run function for use in Worker.
    * Runs the task using the local scheduler.
+   * Note: MpiWorkerScheduler ignores the callback function.
    */
   void Run(GriddingTask&& task,
-           std::function<void(GriddingResult&)> finish_callback) override {
-    local_scheduler_->Run(std::move(task), finish_callback);
-  }
+           std::function<void(GriddingResult&)> ignored_callback) override;
 
   std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) override {
     return std::make_unique<WorkerWriterLock>(*this, writer_group_index);
   }
+
+  void GrantLock(size_t writer_group_index);
 
  private:
   class WorkerWriterLock : public WriterLock {
@@ -47,9 +53,21 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
   int rank_;
 
   /**
-   * The lower-level local scheduler on an MPI node.
+   * Serializes MPI_Send calls from different threads.
+   * Protects writer_locks_.
    */
-  std::unique_ptr<GriddingTaskManager> local_scheduler_;
+  std::mutex mutex_;
+  /** Synchronizes threads waiting for writer locks. */
+  std::condition_variable notify_;
+  /** The writer group locks owned by this worker. */
+  std::set<size_t> writer_locks_;
+
+  /**
+   * The lower-level local scheduler on an MPI node.
+   * Always use a ThreadedScheduler since acquiring writer locks in the gridder
+   * should use a different thread than Worker::Run().
+   */
+  ThreadedScheduler local_scheduler_;
 };
 
 #endif  // SCHEDULING_MPI_WORKER_SCHEDULER_H_

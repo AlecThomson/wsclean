@@ -12,8 +12,6 @@ class Worker {
   void Run();
 
  private:
-  void grid(size_t body_size);
-
   MpiWorkerScheduler scheduler_;
 };
 
