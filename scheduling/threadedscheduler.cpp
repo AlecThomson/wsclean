@@ -51,8 +51,7 @@ void ThreadedScheduler::ProcessQueue() {
   while (task_queue_.Pop(task_pair)) {
     GriddingResult result;
     try {
-      std::unique_ptr<MSGridderBase> gridder(makeGridder(resources_per_task_));
-      result = RunDirect(std::move(task_pair.first), *gridder);
+      result = RunDirect(std::move(task_pair.first), resources_per_task_);
     } catch (std::exception&) {
       std::lock_guard<std::mutex> lock(mutex_);
       latest_exception_ = std::current_exception();

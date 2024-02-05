@@ -84,12 +84,10 @@ class GriddingTaskManager {
 
   const Settings& GetSettings() const { return _settings; }
 
-  std::unique_ptr<MSGridderBase> makeGridder(const Resources& resources) const;
-
   /**
-   * Run the provided task with the specified gridder.
+   * Run the provided task with the specified resources.
    */
-  GriddingResult RunDirect(GriddingTask&& task, MSGridderBase& gridder);
+  GriddingResult RunDirect(GriddingTask&& task, const Resources& resources);
 
   /**
    * Make a local gridding task manager according to the settings.
@@ -100,7 +98,7 @@ class GriddingTaskManager {
       const Settings& settings);
 
  private:
-  std::unique_ptr<MSGridderBase> constructGridder(
+  std::unique_ptr<MSGridderBase> ConstructGridder(
       const Resources& resources) const;
 
   const Settings& _settings;
