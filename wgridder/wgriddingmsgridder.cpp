@@ -226,8 +226,7 @@ void WGriddingMSGridder::Invert() {
 
   resetVisibilityCounters();
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    MSData& msData = msDataVector[i];
+  for (MSData& msData : msDataVector) {
     gridMeasurementSet(msData);
   }
 

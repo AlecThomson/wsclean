@@ -62,8 +62,6 @@ MSGridderBase::~MSGridderBase() = default;
 
 MSGridderBase::MSGridderBase(const Settings& settings)
     : settings_(settings),
-      pixel_size_x_(settings.pixelScaleX),
-      pixel_size_y_(settings.pixelScaleY),
       w_grid_size_(settings.nWLayers),
       data_column_name_(settings.dataColumnName),
       small_inversion_(settings.smallInversion),
@@ -271,7 +269,7 @@ void MSGridderBase::initializeMSDataVector(
     initializeMeasurementSet(msDataVector[i], meta_data_cache_->msDataVector[i],
                              hasCache);
   }
-  calculateOverallMetaData(msDataVector.data());
+  calculateOverallMetaData(msDataVector);
 }
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
@@ -321,14 +319,13 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   }
 }
 
-void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
+void MSGridderBase::calculateOverallMetaData(
+    const std::vector<MSData>& msDataVector) {
   max_w_ = 0.0;
   min_w_ = std::numeric_limits<double>::max();
   double maxBaseline = 0.0;
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    const MSData& msData = msDataVector[i];
-
+  for (const MSData& msData : msDataVector) {
     maxBaseline = std::max(maxBaseline, msData.maxBaselineUVW);
     max_w_ = std::max(max_w_, msData.maxW);
     min_w_ = std::min(min_w_, msData.minW);

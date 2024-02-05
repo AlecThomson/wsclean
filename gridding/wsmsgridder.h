@@ -39,10 +39,10 @@ class WSMSGridder final : public MSGridderBase {
   size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
   size_t OverSamplingFactor() const { return _overSamplingFactor; }
 
-  bool HasNWSize() const { return _nwWidth != 0 || _nwHeight != 0; }
-  size_t NWWidth() const { return _nwWidth; }
-  size_t NWHeight() const { return _nwHeight; }
-  double NWFactor() const { return _nwFactor; }
+  bool HasNWSize() const { return NWWidth() != 0 || NWHeight() != 0; }
+  size_t NWWidth() const { return GetSettings().widthForNWCalculation; }
+  size_t NWHeight() const { return GetSettings().heightForNWCalculation; }
+  double NWFactor() const { return GetSettings().nWLayersFactor; }
 
  private:
   struct InversionWorkSample {
@@ -78,8 +78,6 @@ class WSMSGridder final : public MSGridderBase {
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;
   std::vector<std::thread> _threadGroup;
-  size_t _nwWidth, _nwHeight;
-  double _nwFactor;
   size_t _antialiasingKernelSize, _overSamplingFactor;
   const Resources _resources;
   size_t _laneBufferSize;

@@ -24,9 +24,6 @@ using aocommon::Logger;
 
 WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources)
     : MSGridderBase(settings),
-      _nwWidth(settings.widthForNWCalculation),
-      _nwHeight(settings.heightForNWCalculation),
-      _nwFactor(settings.nWLayersFactor),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
       _resources(resources),

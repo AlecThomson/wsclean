@@ -88,8 +88,8 @@ class MSGridderBase {
   size_t ImageWidth() const { return image_width_; }
   size_t ImageHeight() const { return image_height_; }
   double ImagePadding() const { return image_padding_; }
-  double PixelSizeX() const { return pixel_size_x_; }
-  double PixelSizeY() const { return pixel_size_y_; }
+  double PixelSizeX() const { return settings_.pixelScaleX; }
+  double PixelSizeY() const { return settings_.pixelScaleY; }
   size_t ActualWGridSize() const { return actual_w_grid_size_; }
 
   void ClearMeasurementSetList() {
@@ -600,11 +600,10 @@ class MSGridderBase {
                                 MetaDataCache::Entry& cacheEntry,
                                 bool isCacheInitialized);
 
-  void calculateOverallMetaData(const MSData* msDataVector);
+  void calculateOverallMetaData(const std::vector<MSData>& msDataVector);
   bool hasWGridSize() const { return w_grid_size_ != 0; }
-  void initializeBandData(const casacore::MeasurementSet& ms,
-                          MSGridderBase::MSData& msData);
-  void initializePointResponse(const MSGridderBase::MSData& msData);
+  void initializeBandData(const casacore::MeasurementSet& ms, MSData& msData);
+  void initializePointResponse(const MSData& msData);
 
   template <size_t PolarizationCount>
   void CalculateWeights(InversionRow& row_data,
@@ -706,8 +705,6 @@ class MSGridderBase {
   size_t image_height_ = 0.0;
   size_t trim_width_ = 0;
   size_t trim_height_ = 0;
-  double pixel_size_x_ = 0.0;
-  double pixel_size_y_ = 0.0;
   size_t w_grid_size_ = 0;
   size_t actual_w_grid_size_ = 0;
   std::vector<MSProvider*> measurement_sets_;
