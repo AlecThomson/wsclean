@@ -49,7 +49,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * If all nodes are busy, the call will block until a node is available.
    */
   void send(GriddingTask&& task,
-            const std::function<void(GriddingResult&)>& callback);
+            std::function<void(GriddingResult&)>&& callback);
 
   /**
    * Wait until results are available and push these to the 'ready list'.
@@ -59,17 +59,12 @@ class MPIScheduler final : public GriddingTaskManager {
   void receiveLoop();
 
   /**
-   * Directly run the given task. This is a blocking call.
-   */
-  void runTaskOnNode0(GriddingTask&& task);
-
-  /**
    * "Atomically" finds a node for executing a (compound) task.
    * Updates the node state and stores the callback function.
    * @return The index of the node that is best suited for executing the task.
    */
   int findAndSetNodeState(const GriddingTask& task,
-                          const std::function<void(GriddingResult&)>& callback);
+                          std::function<void(GriddingResult&)>&& callback);
 
   /**
    * If any results are available, call the callback functions and remove these
@@ -108,7 +103,6 @@ class MPIScheduler final : public GriddingTaskManager {
   std::condition_variable _notify;
   std::mutex _mutex;
   std::thread _receiveThread;
-  std::thread _workThread;
   /** Stores results of ready tasks. */
   std::vector<GriddingResult> _readyList;
   /** Stores callbacks, indexed by task id. */
@@ -139,8 +133,9 @@ class MPIScheduler final : public GriddingTaskManager {
 
   /**
    * The lower-level local scheduler on an MPI node.
+   * Using the threaded scheduler ensures that gridding uses a separate thread.
    */
-  std::unique_ptr<GriddingTaskManager> _localScheduler;
+  ThreadedScheduler _localScheduler;
 };
 
 #endif  // HAVE_MPI

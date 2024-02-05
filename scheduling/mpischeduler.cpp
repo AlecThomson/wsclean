@@ -31,12 +31,11 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _isFinishing(false),
       _mutex(),
       _receiveThread(),
-      _workThread(),
       _readyList(),
       _callbacks(),
       _availableRoom(),
       _writerLockQueues(),
-      _localScheduler(GriddingTaskManager::MakeLocal(settings)) {
+      _localScheduler(settings) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // TODO(AST-1475): Use settings.parallelGridding slots per node.
@@ -44,7 +43,7 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   if (!settings.masterDoesWork) {
     _availableRoom[0] = 0;
   }
-  _localScheduler->SetWriterLockManager(*this);
+  _localScheduler.SetWriterLockManager(*this);
 }
 
 void MPIScheduler::Run(GriddingTask&& task,
@@ -55,7 +54,7 @@ void MPIScheduler::Run(GriddingTask&& task,
       _receiveThread = std::thread([&]() { receiveLoop(); });
     _isRunning = true;
   }
-  send(std::move(task), finishCallback);
+  send(std::move(task), std::move(finishCallback));
 
   std::lock_guard<std::mutex> lock(_mutex);
   processReadyList_UNSYNCHRONIZED();
@@ -64,6 +63,8 @@ void MPIScheduler::Run(GriddingTask&& task,
 void MPIScheduler::Finish() {
   if (_isRunning) {
     Logger::Info << "Finishing scheduler.\n";
+    _localScheduler.Finish();
+
     std::unique_lock<std::mutex> lock(_mutex);
     _isFinishing = true;
     _notify.notify_all();
@@ -80,7 +81,6 @@ void MPIScheduler::Finish() {
 
     if (_availableRoom.size() > 1) _receiveThread.join();
 
-    if (_workThread.joinable()) _workThread.join();
     _isRunning = false;
 
     // The while loop above ignores the work thread, which might
@@ -103,22 +103,16 @@ std::unique_ptr<GriddingTaskManager::WriterLock> MPIScheduler::GetLock(
   return std::make_unique<MasterWriterLock>(*this, writer_group_index);
 }
 
-void MPIScheduler::runTaskOnNode0(GriddingTask&& task) {
-  _localScheduler->Run(std::move(task), [this](GriddingResult& result) {
-    Logger::Info << "Main node has finished a gridding task.\n";
-    StoreResult(std::move(result), 0);
-  });
-}
-
 void MPIScheduler::send(GriddingTask&& task,
-                        const std::function<void(GriddingResult&)>& callback) {
-  int node = findAndSetNodeState(task, callback);
+                        std::function<void(GriddingResult&)>&& callback) {
+  int node = findAndSetNodeState(task, std::move(callback));
   Logger::Info << "Sending gridding task to node : " << node << '\n';
 
   if (node == 0) {
-    if (_workThread.joinable()) _workThread.join();
-    _workThread =
-        std::thread(&MPIScheduler::runTaskOnNode0, this, std::move(task));
+    _localScheduler.Run(std::move(task), [this](GriddingResult& result) {
+      Logger::Info << "Main node has finished a gridding task.\n";
+      StoreResult(std::move(result), 0);
+    });
   } else {
     aocommon::SerialOStream payloadStream;
     // To use MPI_Send_Big, a uint64_t need to be reserved
@@ -141,12 +135,11 @@ void MPIScheduler::send(GriddingTask&& task,
 }
 
 int MPIScheduler::findAndSetNodeState(
-    const GriddingTask& task,
-    const std::function<void(GriddingResult&)>& callback) {
+    const GriddingTask& task, std::function<void(GriddingResult&)>&& callback) {
   std::unique_lock<std::mutex> lock(_mutex);
 
   assert(_callbacks.count(task.unique_id) == 0);
-  _callbacks.emplace(task.unique_id, callback);
+  _callbacks.emplace(task.unique_id, std::move(callback));
 
   while (true) {
     // Find the node that has the most available execution slots.

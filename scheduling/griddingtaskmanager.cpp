@@ -29,17 +29,10 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 #else
     throw std::runtime_error("MPI not available");
 #endif
-  } else {
-    return MakeLocal(settings);
-  }
-}
-
-std::unique_ptr<GriddingTaskManager> GriddingTaskManager::MakeLocal(
-    const Settings& settings) {
-  if (settings.parallelGridding == 1) {
-    return std::make_unique<GriddingTaskManager>(settings);
-  } else {
+  } else if (settings.parallelGridding > 1) {
     return std::make_unique<ThreadedScheduler>(settings);
+  } else {
+    return std::make_unique<GriddingTaskManager>(settings);
   }
 }
 

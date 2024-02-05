@@ -89,14 +89,6 @@ class GriddingTaskManager {
    */
   GriddingResult RunDirect(GriddingTask&& task, const Resources& resources);
 
-  /**
-   * Make a local gridding task manager according to the settings.
-   * Both Make() and the MPIScheduler use this function. The MPIScheduler uses
-   * a local scheduler for running tasks at an MPI node.
-   */
-  static std::unique_ptr<GriddingTaskManager> MakeLocal(
-      const Settings& settings);
-
  private:
   std::unique_ptr<MSGridderBase> ConstructGridder(
       const Resources& resources) const;
