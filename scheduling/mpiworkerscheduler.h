@@ -49,18 +49,30 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
 
   friend class WorkerWriterLock;
 
+  /** Common part of GrantLock() and ~WorkerWriterLock().*/
+  void GrantLockUnsynchronized(size_t writer_group_index);
+
   /** MPI rank / node index. */
   int rank_;
 
   /**
    * Serializes MPI_Send calls from different threads.
-   * Protects writer_locks_.
+   * Protects all *writer_locks_ members.
    */
   std::mutex mutex_;
   /** Synchronizes threads waiting for writer locks. */
   std::condition_variable notify_;
-  /** The writer group locks owned by this worker. */
-  std::set<size_t> writer_locks_;
+  /**
+   * Signals that a writer lock is available for a thread.
+   * A writer lock is in the set after receiving a lock-grant message or when
+   * a thread released the lock while another thread is waiting for it.
+   */
+  std::set<size_t> available_writer_locks_;
+  /**
+   * For each writer lock, the number of local threads that either have or are
+   * waiting for the writer lock.
+   */
+  std::map<size_t, size_t> writer_locks_;
 
   /**
    * The lower-level local scheduler on an MPI node.

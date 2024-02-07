@@ -209,14 +209,6 @@ void Settings::Validate() const {
   }
 
   if (UseMpi()) {
-    if (parallelGridding > 1) {
-      throw std::runtime_error(
-          "MPI can not be combined with the parallel gridding option. "
-          "When using MPI, it is MPI that decides how many tasks to run on "
-          "each node. "
-          "Multiple gridders can run on a single node by telling MPI (e.g. "
-          "using a hostfile) to run multiple tasks on that node.");
-    }
     if (!masterDoesWork && nMpiNodes <= 1) {
       throw std::runtime_error(
           "Master was told not to work, but no other workers available.");

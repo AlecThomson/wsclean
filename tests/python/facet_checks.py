@@ -287,11 +287,17 @@ class TestFacets:
         h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
         validate_call(h5download.split())
 
-        names = ["facets-h5-serial", "facets-h5-threaded", "facets-h5-mpi"]
+        names = [
+            "facets-h5-serial",
+            "facets-h5-threaded",
+            "facets-h5-mpi",
+            "facets-h5-hybrid",
+        ]
         wsclean_commands = [
             tcf.WSCLEAN,
             f"{tcf.WSCLEAN} -parallel-gridding 3",
             f"mpirun -np 3 {tcf.WSCLEAN_MP}",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -parallel-gridding 3",
         ]
         for name, command in zip(names, wsclean_commands):
             s = f"{command} -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 -gridder wstacking {tcf.MWA_MOCK_MS}"
@@ -299,12 +305,10 @@ class TestFacets:
 
         # Typical rms difference is about 1.0e-7
         threshold = 3.0e-7
-        compare_rms_fits(
-            f"{names[0]}-YY-image.fits", f"{names[1]}-YY-image.fits", threshold
-        )
-        compare_rms_fits(
-            f"{names[0]}-YY-image.fits", f"{names[2]}-YY-image.fits", threshold
-        )
+        for name in names[1:]:
+            compare_rms_fits(
+                f"{names[0]}-YY-image.fits", f"{name}-YY-image.fits", threshold
+            )
 
     @pytest.mark.parametrize("beam", [False, True])
     @pytest.mark.parametrize(

@@ -38,8 +38,7 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _localScheduler(settings) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  // TODO(AST-1475): Use settings.parallelGridding slots per node.
-  _availableRoom.assign(world_size, kSlotsPerNode);
+  _availableRoom.assign(world_size, settings.parallelGridding);
   if (!settings.masterDoesWork) {
     _availableRoom[0] = 0;
   }
@@ -106,11 +105,13 @@ std::unique_ptr<GriddingTaskManager::WriterLock> MPIScheduler::GetLock(
 void MPIScheduler::send(GriddingTask&& task,
                         std::function<void(GriddingResult&)>&& callback) {
   int node = findAndSetNodeState(task, std::move(callback));
-  Logger::Info << "Sending gridding task to node : " << node << '\n';
+  Logger::Info << "Sending gridding task " << task.unique_id << " to node "
+               << node << ".\n";
 
   if (node == 0) {
     _localScheduler.Run(std::move(task), [this](GriddingResult& result) {
-      Logger::Info << "Main node has finished a gridding task.\n";
+      Logger::Info << "Main node has finished gridding task "
+                   << result.unique_id << ".\n";
       StoreResult(std::move(result), 0);
     });
   } else {
@@ -212,7 +213,7 @@ void MPIScheduler::processReadyList_UNSYNCHRONIZED() {
 
 bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
   for (size_t i = 1; i != _availableRoom.size(); ++i) {
-    if (_availableRoom[i] < kSlotsPerNode) {
+    if (_availableRoom[i] < static_cast<int>(GetSettings().parallelGridding)) {
       return true;
     }
   }
@@ -247,7 +248,8 @@ void MPIScheduler::processLockRequest(int node, size_t lockId) {
   std::unique_lock<std::mutex> lock(_mutex);
 
   // Idle nodes shouldn't request locks.
-  assert(_availableRoom[node] < kSlotsPerNode);
+  assert(_availableRoom[node] <
+         static_cast<int>(GetSettings().parallelGridding));
 
   _writerLockQueues[lockId].PushBack(node);
 
@@ -304,7 +306,8 @@ MPIScheduler::MasterWriterLock::MasterWriterLock(MPIScheduler& scheduler,
                                                  size_t writer_group_index)
     : scheduler_(scheduler), writer_group_index_(writer_group_index) {
   std::unique_lock<std::mutex> lock(scheduler_._mutex);
-  assert(scheduler_._availableRoom[0] < kSlotsPerNode);
+  assert(scheduler_._availableRoom[0] <
+         static_cast<int>(scheduler_.GetSettings().parallelGridding));
   scheduler_._writerLockQueues[writer_group_index].PushBack(0);
 
   while (scheduler_._writerLockQueues[writer_group_index][0] != 0) {

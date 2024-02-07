@@ -69,13 +69,13 @@ WSClean can be compiled with MPI support. If enabled, the compiler will produce
 a ``wsclean-mp`` binary which can exploit parallelism across multiple compute
 nodes. This binary supports the same command-line options as
 the regular ``wsclean`` binary. The main difference is that it performs
-parallel gridding using multiple MPI processes. Parallel gridding using multiple
-threads, using the ``-parallel-gridding`` option, is not possible with
-``wsclean-mp``.
+parallel gridding using multiple MPI processes.
 
 The other multi-threading arguments (described above) apply to each MPI process.
 For example, when using ``-j 4``, each MPI process will use 4 threads, even
 if these processes run on the same compute node.
+When using ``-parallel-gridding <N>``, each MPI process runs ``N`` gridding
+tasks in parallel, possibly using multiple threads per gridder (see above).
 
 Note that WSClean only uses MPI during gridding. Other parts, such as
 deconvolution and reordering, only use the main MPI process and therefore only
@@ -83,8 +83,10 @@ use multi-threading.
 
 When using a single compute node, using MPI is discouraged, since multi-threaded
 gridding using the ``-parallel-gridding`` is more efficient. When using multiple
-nodes, the best performance is normally achieved using one MPI process per node
-and a number of threads equal to the number of cores per node.
+nodes, the best performance is normally achieved using one MPI process with
+multiple parallel gridders per node. The total number of threads per node
+ (``-j`` option) should equal to the number of cores per node,
+which is the default setting.
 
 Processing related facets on one node (Work in progress!)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -93,11 +95,12 @@ When faceting is enabled, WSClean normally schedules gridding tasks for
 different facets at different compute nodes.
 It then uses a global writer lock for synchronizing updating the visibilities.
 
-For improving scalability, WSClean will soon support scheduling the tasks
-for all facets for a single output channel at a fixed compute node.
-The ``-parallel-gridding`` argument then specifies how many facets each node
-should process in parallel, using multiple threads. Instead of the global
-writer lock, WSClean then uses a local writer lock on each node.
+For improving scalability, WSClean will soon support scheduling compound
+tasks which contain sub-tasks for all facets for a single output channel.
+WSClean then executes all sub-tasks at the same compute node, which also
+removes the need for using a global writer lock. WSClean can use a local
+writer lock on each node instead. The ``-parallel-gridding`` argument
+then specifies how many facets / sub-tasks each node should process in parallel.
 
 The ``-channel-to-node`` argument specifies the mapping of output channels to
 node. For example, ``-channel-to-node 0,0,1,2`` schedules the tasks for

@@ -12,8 +12,11 @@ import config_vars as tcf
 
 
 @pytest.fixture(scope="session", autouse=True)
-def prepare():
-    # Change to directory containing the data
+def prepare_workdir():
+    # Changes to directory containing the data.
+    # Optionally removes the entire working directory
+    # at the end of a test session. Use with care!
+    cwd = os.getcwd()
     os.makedirs(tcf.WORKING_DIR, exist_ok=True)
     os.chdir(tcf.WORKING_DIR)
     os.makedirs(tcf.RESULTS_DIR, exist_ok=True)
@@ -28,6 +31,15 @@ def prepare():
             ]
         )
         check_call(["tar", "xf", tcf.MWA_COEFF_ARCHIVE])
+
+    yield
+
+    if (
+        "CLEANUP_WSCLEAN_TESTS" in os.environ
+        and int(os.environ["CLEANUP_WSCLEAN_TESTS"]) == 1
+    ):
+        os.chdir(cwd)
+        shutil.rmtree(tcf.WORKING_DIR)
 
 
 @pytest.fixture(scope="class")
@@ -79,20 +91,3 @@ def prepare_model_image():
     if not os.path.isfile(tcf.MODEL_IMAGE):
         wget = f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.MODEL_IMAGE)}"
         check_call(wget.split())
-
-
-@pytest.fixture(scope="session", autouse=True)
-def remove_workdir(request):
-    """
-    Fixture runs only at the end of a test session, and (NOTE!) removes
-    the entire working directory. Use with care!
-    """
-
-    def collect_cleanup():
-        if (
-            "CLEANUP_WSCLEAN_TESTS" in os.environ
-            and int(os.environ["CLEANUP_WSCLEAN_TESTS"]) == 1
-        ):
-            shutil.rmtree(tcf.WORKING_DIR)
-
-    request.addfinalizer(collect_cleanup)
