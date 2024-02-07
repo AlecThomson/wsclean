@@ -1344,17 +1344,17 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
   if (requestPolarizationsAtOnce) {
     facetGroupsQueue.emplace_back(
         groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
-          return entry.polarization == *_settings.polarizations.begin();
+          return !entry.isDdPsf &&
+                 (entry.polarization == *_settings.polarizations.begin());
         }));
   } else if (parallelizePolarizations) {
-    facetGroupsQueue.emplace_back(groupTable.FacetGroups(
-        [&](const ImagingTableEntry& entry) { return true; }));
+    facetGroupsQueue.emplace_back(groupTable.FacetGroups());
   } else {
     // Only use parallelism for entries with the same polarization.
     for (aocommon::PolarizationEnum polarization : _settings.polarizations) {
       facetGroupsQueue.emplace_back(
           groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
-            return entry.polarization == polarization;
+            return !entry.isDdPsf && (entry.polarization == polarization);
           }));
     }
   }
