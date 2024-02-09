@@ -131,7 +131,7 @@ void MPIScheduler::send(GriddingTask&& task,
     MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
              0, MPI_COMM_WORLD);
     MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
-                 MPI_COMM_WORLD);
+                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
   }
 }
 
@@ -223,7 +223,8 @@ bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
 void MPIScheduler::processGriddingResult(int node, size_t bodySize) {
   aocommon::UVector<unsigned char> buffer(bodySize);
   MPI_Status status;
-  MPI_Recv_Big(buffer.data(), bodySize, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv_Big(buffer.data(), bodySize, node, 0, MPI_COMM_WORLD, &status,
+               GetSettings().maxMpiMessageSize);
   GriddingResult result;
   aocommon::SerialIStream stream(std::move(buffer));
   stream.UInt64();  // storage for MPI_Recv_Big

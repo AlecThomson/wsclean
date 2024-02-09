@@ -1,5 +1,5 @@
-#ifndef MPI_BIG_H
-#define MPI_BIG_H
+#ifndef DISTRIBUTED_MPI_BIG_H_
+#define DISTRIBUTED_MPI_BIG_H_
 
 #include <mpi.h>
 
@@ -12,7 +12,7 @@
  * @returns MPI_SUCCESS when successful.
  */
 int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
-                 MPI_Comm comm);
+                 MPI_Comm comm, size_t maximum_message_size);
 
 /** Receives a big message.
  * The first 8 bytes of the buffer will receive the number of
@@ -21,6 +21,7 @@ int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
  * @returns MPI_SUCCESS when successful.
  */
 int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag,
-                 MPI_Comm comm, MPI_Status* status);
+                 MPI_Comm comm, MPI_Status* status,
+                 size_t maximum_message_size);
 
 #endif

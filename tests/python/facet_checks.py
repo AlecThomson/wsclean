@@ -296,7 +296,7 @@ class TestFacets:
         wsclean_commands = [
             tcf.WSCLEAN,
             f"{tcf.WSCLEAN} -parallel-gridding 3",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP}",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
             f"mpirun -np 3 {tcf.WSCLEAN_MP} -parallel-gridding 3",
         ]
         for name, command in zip(names, wsclean_commands):

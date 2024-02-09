@@ -35,6 +35,8 @@ class GriddingTaskManager {
 
   virtual ~GriddingTaskManager();
 
+  const Settings& GetSettings() const { return _settings; }
+
   void SetWriterLockManager(GriddingTaskManager& manager) {
     _writerLockManager = &manager;
   }
@@ -81,8 +83,6 @@ class GriddingTaskManager {
 
  protected:
   Resources GetResources() const;
-
-  const Settings& GetSettings() const { return _settings; }
 
   /**
    * Run the provided task with the specified resources.

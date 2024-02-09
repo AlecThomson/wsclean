@@ -11,9 +11,10 @@ const char* kFacetFile2Facets = FACET_DEFINITION_FILE_2FACETS;
 const char* kFacetFile4Facets = FACET_DEFINITION_FILE_4FACETS;
 const char* kFacetSolutionFile = "test_data/mock_soltab_2pol.h5";
 
+// Include sizes ending in "k", "m", which should yield kilobytes / megabytes.
 std::vector<const char*> baseArgs() {
-  return {"wsclean", "-quiet", "-size",           "1024",   "512",
-          "-scale",  "1amin",  "-multiscale",     "-niter", "1000000",
+  return {"wsclean", "-quiet", "-size",           "1k",     "512",
+          "-scale",  "1amin",  "-multiscale",     "-niter", "2m",
           "-mgain",  "0.8",    "-auto-threshold", "1",      "-auto-mask",
           "4"};
 }
@@ -40,10 +41,15 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   args1.push_back(kMWA_MS);
   commandLine.Parse(wsclean, args1.size(), args1.data(), false);
   const Settings settings1 = wsclean.GetSettings();
+  BOOST_CHECK_EQUAL(settings1.trimmedImageWidth, 1024);
+  BOOST_CHECK_EQUAL(settings1.trimmedImageHeight, 512);
+  BOOST_CHECK_EQUAL(settings1.deconvolutionIterationCount, 2 * 1024 * 1024);
   BOOST_CHECK_EQUAL(settings1.primaryBeamGridSize, 32u);
   PrimaryBeam primaryBeam1(settings1);
   BOOST_CHECK_EQUAL(primaryBeam1.GetUndersamplingFactor(), 16u);
   BOOST_CHECK_EQUAL(primaryBeam1.GetBeamUpdateTime(), 1800u);
+  BOOST_CHECK_EQUAL(settings1.maxMpiMessageSize,
+                    std::numeric_limits<std::int32_t>::max());
 
   std::vector<const char*> args2 = baseArgs();
   args2.push_back("-apply-primary-beam");
@@ -51,6 +57,8 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   args2.push_back("64");
   args2.push_back("-beam-aterm-update");
   args2.push_back("900");
+  args2.push_back("-max-mpi-message-size");
+  args2.push_back("1g");  // Test that a "g" suffix yields gigabytes.
   args2.push_back(kMWA_MS);
   commandLine.Parse(wsclean, args2.size(), args2.data(), false);
   const Settings settings2 = wsclean.GetSettings();
@@ -58,6 +66,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   PrimaryBeam primaryBeam2(settings2);
   BOOST_CHECK_EQUAL(primaryBeam2.GetUndersamplingFactor(), 8u);
   BOOST_CHECK_EQUAL(primaryBeam2.GetBeamUpdateTime(), 900u);
+  BOOST_CHECK_EQUAL(settings2.maxMpiMessageSize, 1024 * 1024 * 1024);
 }
 
 BOOST_AUTO_TEST_CASE(h5parm_basics) {

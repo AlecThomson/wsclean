@@ -96,6 +96,9 @@ Options can be:
 -channel-to-node <list>
    In MPI runs, override the default channel-to-node assignment. The
    comma-separated list must contain a node index for each output channel.
+-max-mpi-message-size <size>
+   In MPI runs, use a different maximum message size. The default value is 2 GB.
+   If size ends with g or m, the value is interpreted as gigabytes or megabytes.
 -mem <percentage>
    Limit memory usage to the given fraction of the total system memory. This is an approximate value.
    Default: 100.
@@ -528,7 +531,17 @@ std::vector<std::string> ParseStringList(const char* param) {
 size_t ParseSizeT(const char* param, const char* name) {
   char* endptr;
   errno = 0;
-  const long v = strtol(param, &endptr, 0);
+  long v = strtol(param, &endptr, 0);
+  if (*endptr == 'g' || *endptr == 'G') {
+    v *= 1024 * 1024 * 1024;
+    ++endptr;
+  } else if (*endptr == 'm' || *endptr == 'M') {
+    v *= 1024 * 1024;
+    ++endptr;
+  } else if (*endptr == 'k' || *endptr == 'K') {
+    v *= 1024;
+    ++endptr;
+  }
   if (*endptr != 0 || endptr == param || errno != 0) {
     std::ostringstream msg;
     msg << "Could not parse value '" << param << "' for parameter -" << name
@@ -643,11 +656,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "subtract-model") {
       settings.subtractModel = true;
     } else if (param == "size") {
-      size_t width = ParseSizeT(argv[argi + 1], "size"),
-             height = ParseSizeT(argv[argi + 2], "size");
-      settings.trimmedImageWidth = width;
-      settings.trimmedImageHeight = height;
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.trimmedImageWidth = ParseSizeT(argv[argi], "size");
+      IncArgi(argi, argc);
+      settings.trimmedImageHeight = ParseSizeT(argv[argi], "size");
     } else if (param == "padding") {
       IncArgi(argi, argc);
       settings.imagePadding = ParseDouble(argv[argi], 1.0, "padding");
@@ -671,9 +683,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "nwlayers-for-size" ||
                param == "wstack-nwlayers-for-size") {
       CheckDeprecated(isSlave, param, "wstack-nwlayers-for-size");
-      settings.widthForNWCalculation = ParseSizeT(argv[argi + 1], param);
-      settings.heightForNWCalculation = ParseSizeT(argv[argi + 2], param);
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.widthForNWCalculation = ParseSizeT(argv[argi], param);
+      IncArgi(argi, argc);
+      settings.heightForNWCalculation = ParseSizeT(argv[argi], param);
     } else if (param == "grid-mode" || param == "wstack-grid-mode") {
       CheckDeprecated(isSlave, param, "wstack-grid-mode");
       IncArgi(argi, argc);
@@ -826,9 +839,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
     } else if (param == "dd-psf-grid") {
-      settings.ddPsfGridWidth = ParseSizeT(argv[argi + 1], "dd-psf-grid");
-      settings.ddPsfGridHeight = ParseSizeT(argv[argi + 2], "dd-psf-grid");
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.ddPsfGridWidth = ParseSizeT(argv[argi], "dd-psf-grid");
+      IncArgi(argi, argc);
+      settings.ddPsfGridHeight = ParseSizeT(argv[argi], "dd-psf-grid");
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
     } else if (param == "no-negative") {
@@ -873,9 +887,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "no-small-inversion") {
       settings.smallInversion = false;
     } else if (param == "interval") {
-      settings.startTimestep = ParseSizeT(argv[argi + 1], "interval");
-      settings.endTimestep = ParseSizeT(argv[argi + 2], "interval");
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.startTimestep = ParseSizeT(argv[argi], "interval");
+      IncArgi(argi, argc);
+      settings.endTimestep = ParseSizeT(argv[argi], "interval");
     } else if (param == "intervals-out") {
       IncArgi(argi, argc);
       settings.intervalsOut = atoi(argv[argi]);
@@ -884,14 +899,16 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "odd-timesteps") {
       settings.evenOddTimesteps = MSSelection::OddTimesteps;
     } else if (param == "channel-range") {
-      settings.startChannel = ParseSizeT(argv[argi + 1], "channel-range");
-      settings.endChannel = ParseSizeT(argv[argi + 2], "channel-range");
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.startChannel = ParseSizeT(argv[argi], "channel-range");
+      IncArgi(argi, argc);
+      settings.endChannel = ParseSizeT(argv[argi], "channel-range");
     } else if (param == "shift") {
       settings.hasShift = true;
-      settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi + 1]);
-      settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi + 2]);
-      argi += 2;
+      IncArgi(argi, argc);
+      settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi]);
+      IncArgi(argi, argc);
+      settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi]);
     } else if (param == "channels-out") {
       IncArgi(argi, argc);
       settings.channelsOut = ParseSizeT(argv[argi], "channels-out");
@@ -925,12 +942,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       // mfs was renamed to mf in wsclean 2.7
       CheckDeprecated(isSlave, param, "no-mf-weighting");
     } else if (param == "spectral-correction") {
+      IncArgi(argi, argc);
       settings.spectralCorrectionFrequency =
-          ParseDouble(argv[argi + 1], 0.0, "spectral-correction", false);
-      aocommon::UVector<double> list =
-          NumberList::ParseDoubleList(argv[argi + 2]);
+          ParseDouble(argv[argi], 0.0, "spectral-correction", false);
+      IncArgi(argi, argc);
+      aocommon::UVector<double> list = NumberList::ParseDoubleList(argv[argi]);
       settings.spectralCorrection.assign(list.begin(), list.end());
-      argi += 2;
     } else if (param == "taper-gaussian") {
       IncArgi(argi, argc);
       double taperBeamSize =
@@ -1080,10 +1097,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         settings.mode = Settings::RestoreMode;
       else
         settings.mode = Settings::RestoreListMode;
-      settings.restoreInput = argv[argi + 1];
-      settings.restoreModel = argv[argi + 2];
-      settings.restoreOutput = argv[argi + 3];
-      argi += 3;
+      IncArgi(argi, argc);
+      settings.restoreInput = argv[argi];
+      IncArgi(argi, argc);
+      settings.restoreModel = argv[argi];
+      IncArgi(argi, argc);
+      settings.restoreOutput = argv[argi];
     } else if (param == "beam-size") {
       IncArgi(argi, argc);
       double beam = Angle::Parse(argv[argi], "beam size", Angle::kArcseconds);
@@ -1091,16 +1110,15 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.manualBeamMinorSize = beam;
       settings.manualBeamPA = 0.0;
     } else if (param == "beam-shape") {
-      double beamMaj = Angle::Parse(argv[argi + 1], "beam shape, major axis",
-                                    Angle::kArcseconds);
-      double beamMin = Angle::Parse(argv[argi + 2], "beam shape, minor axis",
-                                    Angle::kArcseconds);
-      double beamPA = Angle::Parse(argv[argi + 3], "beam shape, position angle",
-                                   Angle::kDegrees);
-      argi += 3;
-      settings.manualBeamMajorSize = beamMaj;
-      settings.manualBeamMinorSize = beamMin;
-      settings.manualBeamPA = beamPA;
+      IncArgi(argi, argc);
+      settings.manualBeamMajorSize = Angle::Parse(
+          argv[argi], "beam shape, major axis", Angle::kArcseconds);
+      IncArgi(argi, argc);
+      settings.manualBeamMinorSize = Angle::Parse(
+          argv[argi], "beam shape, minor axis", Angle::kArcseconds);
+      IncArgi(argi, argc);
+      settings.manualBeamPA = Angle::Parse(
+          argv[argi], "beam shape, position angle", Angle::kDegrees);
     } else if (param == "fit-beam") {
       settings.fittedBeam = true;
     } else if (param == "no-fit-beam") {
@@ -1142,6 +1160,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       const aocommon::UVector<int> list = NumberList::ParseIntList(argv[argi]);
       settings.channelToNode.assign(list.begin(), list.end());
+    } else if (param == "max-mpi-message-size") {
+      IncArgi(argi, argc);
+      settings.maxMpiMessageSize =
+          ParseSizeT(argv[argi], "max-mpi-message-size");
     } else if (param == "mem") {
       IncArgi(argi, argc);
       settings.memFraction = ParseDouble(argv[argi], 0.0, "mem", false) / 100.0;

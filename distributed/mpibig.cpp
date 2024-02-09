@@ -4,54 +4,55 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 
 using aocommon::Logger;
 
 int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
-                 MPI_Comm comm) {
-  size_t nPackages = (count + std::numeric_limits<int>::max() - 1) /
-                     std::numeric_limits<int>::max();
+                 MPI_Comm comm, size_t maximum_message_size) {
+  size_t n_packages = (count + maximum_message_size - 1) / maximum_message_size;
 
-  *reinterpret_cast<uint64_t*>(buf) = nPackages;
+  *reinterpret_cast<uint64_t*>(buf) = n_packages;
 
-  Logger::Debug << "Sending " << nPackages << " packages...\n";
-  for (size_t i = 0; i != nPackages - 1; ++i) {
-    const unsigned char* partBuffer = buf + i * std::numeric_limits<int>::max();
-    int returnValue = MPI_Send(partBuffer, std::numeric_limits<int>::max(),
-                               MPI_BYTE, dest, tag, comm);
-    if (returnValue != MPI_SUCCESS) return returnValue;
+  Logger::Debug << "Sending " << n_packages << " packages...\n";
+  for (size_t i = 0; i != n_packages - 1; ++i) {
+    const unsigned char* part_buffer = buf + i * maximum_message_size;
+    int return_value =
+        MPI_Send(part_buffer, maximum_message_size, MPI_BYTE, dest, tag, comm);
+    if (return_value != MPI_SUCCESS) return return_value;
     Logger::Debug << "Package " << (i + 1) << " sent.\n";
   }
 
-  const unsigned char* partBuffer =
-      buf + (nPackages - 1) * std::numeric_limits<int>::max();
-  size_t partCount = count % std::numeric_limits<int>::max();
-  int returnValue = MPI_Send(partBuffer, partCount, MPI_BYTE, dest, tag, comm);
-  Logger::Debug << "Package " << nPackages << " sent.\n";
-  return returnValue;
+  const unsigned char* part_buffer =
+      buf + (n_packages - 1) * maximum_message_size;
+  size_t part_count = count % maximum_message_size;
+  int return_value =
+      MPI_Send(part_buffer, part_count, MPI_BYTE, dest, tag, comm);
+  Logger::Debug << "Package " << n_packages << " sent.\n";
+  return return_value;
 }
 
 int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag,
-                 MPI_Comm comm, MPI_Status* status) {
-  int firstSize = std::min<size_t>(std::numeric_limits<int>::max(), count);
-  int returnValue =
-      MPI_Recv(buf, firstSize, MPI_BYTE, source, tag, comm, status);
-  if (returnValue != MPI_SUCCESS) return returnValue;
+                 MPI_Comm comm, MPI_Status* status,
+                 size_t maximum_message_size) {
+  int first_size = std::min(maximum_message_size, count);
+  int return_value =
+      MPI_Recv(buf, first_size, MPI_BYTE, source, tag, comm, status);
+  if (return_value != MPI_SUCCESS) return return_value;
 
-  size_t nPackages = *reinterpret_cast<uint64_t*>(buf);
-  buf += firstSize;
-  count -= size_t(firstSize);
+  size_t n_packages = *reinterpret_cast<uint64_t*>(buf);
+  buf += first_size;
+  count -= size_t(first_size);
 
-  Logger::Debug << "Received package 1/" << nPackages << ".\n";
-  for (size_t i = 1; i != nPackages; ++i) {
-    int partSize = std::min<size_t>(std::numeric_limits<int>::max(), count);
-    returnValue = MPI_Recv(buf, partSize, MPI_BYTE, source, tag, comm, status);
-    if (returnValue != MPI_SUCCESS) return returnValue;
+  Logger::Debug << "Received package 1/" << n_packages << ".\n";
+  for (size_t i = 1; i != n_packages; ++i) {
+    int part_size = std::min(maximum_message_size, count);
+    return_value =
+        MPI_Recv(buf, part_size, MPI_BYTE, source, tag, comm, status);
+    if (return_value != MPI_SUCCESS) return return_value;
 
-    buf += partSize;
-    count -= size_t(partSize);
-    Logger::Debug << "Received package " << (i + 1) << "/" << nPackages
+    buf += part_size;
+    count -= size_t(part_size);
+    Logger::Debug << "Received package " << (i + 1) << "/" << n_packages
                   << ".\n";
   }
   return MPI_SUCCESS;

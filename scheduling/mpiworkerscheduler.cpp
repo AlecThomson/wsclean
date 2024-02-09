@@ -47,7 +47,7 @@ void MpiWorkerScheduler::Run(
     MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, kMainNode, kTag,
              MPI_COMM_WORLD);
     MPI_Send_Big(resStream.data(), resStream.size(), kMainNode, kTag,
-                 MPI_COMM_WORLD);
+                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
   });
 }
 

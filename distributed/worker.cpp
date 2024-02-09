@@ -18,6 +18,8 @@ constexpr int kTag = 0;
 
 void Worker::Run() {
   TaskMessage message;
+  const size_t maximum_message_size =
+      scheduler_.GetSettings().maxMpiMessageSize;
   do {
     MPI_Status status;
     aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
@@ -30,7 +32,7 @@ void Worker::Run() {
       case TaskMessage::Type::kGriddingRequest: {
         buffer.resize(message.bodySize);
         MPI_Recv_Big(buffer.data(), message.bodySize, kMainNode, kTag,
-                     MPI_COMM_WORLD, &status);
+                     MPI_COMM_WORLD, &status, maximum_message_size);
         aocommon::SerialIStream stream(std::move(buffer));
         stream.UInt64();  // skip the nr of packages
 

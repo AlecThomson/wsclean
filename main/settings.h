@@ -2,6 +2,8 @@
 #define WSCLEAN_SETTINGS_H
 
 #include <cassert>
+#include <cstdint>
+#include <limits>
 #include <optional>
 
 #include "../gridding/wstackinggridder.h"
@@ -65,7 +67,8 @@ class Settings {
   double nWLayersFactor;
   size_t antialiasingKernelSize, overSamplingFactor;
   size_t threadCount, parallelReordering, parallelGridding;
-  size_t nMpiNodes;  // 0 if MPI is disabled.
+  size_t nMpiNodes;          // 0 if MPI is disabled.
+  size_t maxMpiMessageSize;  // Only used if MPI is enabled.
   bool masterDoesWork;
   /// Maps output channel indices to node indices, when using MPI.
   std::vector<size_t> channelToNode;
@@ -280,7 +283,8 @@ inline Settings::Settings()
       threadCount(aocommon::system::ProcessorCount()),
       parallelReordering(4),
       parallelGridding(1),
-      nMpiNodes{0},
+      nMpiNodes(0),
+      maxMpiMessageSize{std::numeric_limits<std::int32_t>::max()},
       masterDoesWork(true),
       channelToNode(),
       fieldIds{0},

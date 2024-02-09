@@ -1,6 +1,6 @@
 #include "settings.h"
 
-#include "../io/facetreader.h"
+#include <sstream>
 
 #include <aocommon/logger.h>
 
@@ -9,7 +9,7 @@
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableRecord.h>
 
-#include <sstream>
+#include "../io/facetreader.h"
 
 using aocommon::Logger;
 
@@ -226,6 +226,12 @@ void Settings::Validate() const {
       if (node >= nMpiNodes) {
         throw std::runtime_error("Invalid node number in channel-to-node map.");
       }
+    }
+    const std::size_t kMessageLimit{std::numeric_limits<std::int32_t>::max()};
+    if (maxMpiMessageSize > kMessageLimit) {
+      throw std::runtime_error("MPI message size larger than " +
+                               std::to_string(kMessageLimit) +
+                               " is not supported.");
     }
   }
 

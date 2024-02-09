@@ -90,4 +90,11 @@ BOOST_AUTO_TEST_CASE(validate_mpi_settings) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(invalid_mpi_message_size) {
+  Settings settings = ValidSettings();
+  settings.nMpiNodes = 1;  // Enables MPI, including message size check.
+  settings.maxMpiMessageSize = 42'000'000'000;
+  BOOST_CHECK_THROW(settings.Validate(), std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
