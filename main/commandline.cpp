@@ -51,16 +51,18 @@ void CheckDeprecated(bool is_slave, const std::string& param,
   }
 }
 
-void PrintHeader() {
-  std::string git_commit_hash = std::string(WSCLEAN_GIT_HASH).empty()
-                                    ? "not available"
-                                    : std::string(WSCLEAN_GIT_HASH);
+void PrintHeader(bool print_commit_hash = false) {
   Logger::Info << "\n"
                   "WSClean version " WSCLEAN_VERSION_STR
-                  " (" WSCLEAN_VERSION_DATE ")\nGit commit hash: "
-               << git_commit_hash
-               << "\n"
-                  "This software package is released under the GPL version 3.\n"
+                  " (" WSCLEAN_VERSION_DATE ")\n";
+
+  if (print_commit_hash) {
+    std::string git_commit_hash = std::string(WSCLEAN_GIT_HASH).empty()
+                                      ? "not available"
+                                      : std::string(WSCLEAN_GIT_HASH);
+    Logger::Info << "Git commit hash: " << git_commit_hash << "\n";
+  }
+  Logger::Info << "This software package is released under the GPL version 3.\n"
                   "Author: André Offringa (offringa@gmail.com).\n\n";
 #ifndef NDEBUG
   Logger::Info
@@ -609,7 +611,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
     if (param == "version") {
       if (!isSlave) {
-        PrintHeader();
+        PrintHeader(true);
 #ifdef HAVE_EVERYBEAM
         Logger::Info << "EveryBeam is available.\n";
 #endif
