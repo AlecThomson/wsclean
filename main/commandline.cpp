@@ -301,6 +301,8 @@ Options can be:
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
+-compound-tasks
+   Schedule compound gridding tasks which contain all facets for a single image.
 
   ** A-TERM GRIDDING **
 -aterm-config <filename>
@@ -1202,6 +1204,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.simulateNoise = true;
       settings.simulatedBaselineNoiseFilename = argv[argi];
+    } else if (param == "compound-tasks") {
+      throw std::runtime_error("Compound tasks are not supported yet.");
+      IncArgi(argi, argc);
+      settings.compoundTasks = true;
     } else if (param == "aterm-config") {
       IncArgi(argi, argc);
       settings.atermConfigFilename = argv[argi];

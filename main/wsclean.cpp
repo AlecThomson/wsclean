@@ -136,10 +136,9 @@ void WSClean::storeAverageBeam(const ImagingTableEntry& entry,
 }
 
 void WSClean::imagePSF(ImagingTable::Group& facet_group) {
-  const bool kCombineFacets = false;
-
   std::vector<GriddingTask> tasks = _griddingTaskFactory->CreatePsfTasks(
-      facet_group, *_imageWeightCache, kCombineFacets, _isFirstInversionTask);
+      facet_group, *_imageWeightCache, _settings.compoundTasks,
+      _isFirstInversionTask);
 
   for (size_t i = 0; i < facet_group.size(); ++i) {
     ImagingTableEntry& entry = *facet_group[i];
@@ -272,10 +271,9 @@ void WSClean::imageMain(ImagingTable::Group& facet_group, bool isFirstInversion,
     }
   }
 
-  const bool kCombineFacets = false;
   std::vector<GriddingTask> tasks = _griddingTaskFactory->CreateInvertTasks(
-      facet_group, *_imageWeightCache, kCombineFacets, _isFirstInversionTask,
-      isFirstInversion, std::move(average_beams));
+      facet_group, *_imageWeightCache, _settings.compoundTasks,
+      _isFirstInversionTask, isFirstInversion, std::move(average_beams));
 
   for (size_t i = 0; i < facet_group.size(); ++i) {
     ImagingTableEntry& entry = *facet_group[i];
@@ -500,10 +498,9 @@ void WSClean::predict(const ImagingTable::Group& facetGroup) {
         _scalarBeamImages, _matrixBeamImages, entry->outputChannelIndex));
   }
 
-  const bool kCombineFacets = false;
   std::vector<GriddingTask> tasks = _griddingTaskFactory->CreatePredictTasks(
-      facetGroup, *_imageWeightCache, kCombineFacets, std::move(model_images),
-      std::move(average_beams));
+      facetGroup, *_imageWeightCache, _settings.compoundTasks,
+      std::move(model_images), std::move(average_beams));
   assert(tasks.size() == facetGroup.size());  // For now.
 
   for (size_t i = 0; i < facetGroup.size(); ++i) {

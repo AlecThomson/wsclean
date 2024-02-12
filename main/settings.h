@@ -119,6 +119,7 @@ class Settings {
   bool simulateNoise;
   double simulatedNoiseStdDev;
   std::string simulatedBaselineNoiseFilename;
+  bool compoundTasks;
 
   /** @{
    * These settings all relate to the deconvolution.
@@ -351,6 +352,7 @@ inline Settings::Settings()
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),
       simulatedBaselineNoiseFilename(),
+      compoundTasks(false),
       // Deconvolution default settings:
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
