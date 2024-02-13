@@ -100,12 +100,16 @@ def compare_rms_fits(fits1, fits2, threshold):
             )
         )
         return
-    image1 = fits.open(fits1)[0].data
-    image2 = fits.open(fits2)[0].data
-    dimage = image1.flatten() - image2.flatten()
-    rms = np.sqrt(dimage.dot(dimage) / dimage.size)
-    print(rms)
-    assert rms <= threshold
+    image1 = fits.open(fits1)[0].data.flatten()
+    image2 = fits.open(fits2)[0].data.flatten()
+    dimage = image1 - image2
+    rms1 = np.sqrt(image1.dot(image1) / image1.size)
+    rms2 = np.sqrt(image2.dot(image2) / image2.size)
+    drms = np.sqrt(dimage.dot(dimage) / dimage.size)
+    print(
+        f"compare_rms_fits():\n- RMS of {fits1}: {rms1}\n- RMS of {fits2}: {rms2}\n- Difference between {fits1} and {fits2} = {drms}; threshold: {threshold}"
+    )
+    assert drms <= threshold
 
 
 def validate_call(cmdline):
