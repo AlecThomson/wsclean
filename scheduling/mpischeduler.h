@@ -59,12 +59,14 @@ class MPIScheduler final : public GriddingTaskManager {
   void receiveLoop();
 
   /**
-   * "Atomically" finds a node for executing a (compound) task.
-   * Updates the node state and stores the callback function.
-   * @return The index of the node that is best suited for executing the task.
+   * Gets a node index for executing a (compound) task according
+   * to the channel to index mapping.
+   * Updates the number of tasks assigned to the node and stores
+   * the callback function.
+   * @return The index of the node executing the task.
    */
-  int findAndSetNodeState(const GriddingTask& task,
-                          std::function<void(GriddingResult&)>&& callback);
+  int getNode(const GriddingTask& task,
+              std::function<void(GriddingResult&)>&& callback);
 
   /**
    * If any results are available, call the callback functions and remove these

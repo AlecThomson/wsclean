@@ -76,6 +76,11 @@ class GriddingTask {
   std::vector<FacetData> facets;
   size_t facetGroupIndex;
 
+  /// This variable should not be serialized. Only the main MPI
+  /// node uses it to select a target node according to the
+  /// channel-to-node option in the command line settings.
+  size_t outputChannelIndex;
+
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
 };

@@ -55,6 +55,7 @@ GriddingTask GriddingTaskFactory::CreateBase(
   task.observationInfo = observation_info_;
   task.isFirstTask = is_first_task;
   task.facetGroupIndex = entry.facetGroupIndex;
+  task.outputChannelIndex = entry.outputChannelIndex;
 
   task.msList = ms_helper_.InitializeMsList(entry);
   task.imageWeights = image_weight_initializer_.Initialize(entry, task.msList,
