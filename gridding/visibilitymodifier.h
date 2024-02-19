@@ -151,12 +151,12 @@ class VisibilityModifier {
    * PSFs.
    */
   template <size_t PolarizationCount, GainMode GainEntry>
-  float ApplyConjugatedParmResponse(std::complex<float>* data,
-                                    const float* weights,
-                                    const float* image_weights, size_t ms_index,
-                                    size_t n_channels, size_t n_antennas,
-                                    size_t antenna1, size_t antenna2,
-                                    bool apply_forward);
+  void ApplyConjugatedParmResponse(std::complex<float>* data,
+                                   const float* weights,
+                                   const float* image_weights, size_t ms_index,
+                                   size_t n_channels, size_t n_antennas,
+                                   size_t antenna1, size_t antenna2,
+                                   bool apply_forward);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
@@ -168,11 +168,6 @@ class VisibilityModifier {
   }
 
   bool HasH5Parm() const { return !_h5parms.empty(); }
-
-  struct DualResult {
-    float h5Sum = 0.0;
-    float correctionSum = 0.0;
-  };
 
 #ifdef HAVE_EVERYBEAM
   /**
@@ -187,23 +182,21 @@ class VisibilityModifier {
                          size_t antenna1, size_t antenna2);
 
   template <size_t PolarizationCount, GainMode GainEntry>
-  float ApplyConjugatedBeamResponse(std::complex<float>* data,
-                                    const float* weights,
-                                    const float* image_weights,
-                                    size_t n_channels, size_t antenna1,
-                                    size_t antenna2, bool apply_forward);
+  void ApplyConjugatedBeamResponse(std::complex<float>* data,
+                                   const float* weights,
+                                   const float* image_weights,
+                                   size_t n_channels, size_t antenna1,
+                                   size_t antenna2, bool apply_forward);
 
   /**
    * Correct the data for both the conjugated beam and the
    * conjugated h5parm solutions.
    */
   template <size_t PolarizationCount, GainMode GainEntry>
-  DualResult ApplyConjugatedDual(std::complex<float>* data,
-                                 const float* weights,
-                                 const float* image_weights, size_t n_channels,
-                                 size_t n_stations, size_t antenna1,
-                                 size_t antenna2, size_t ms_index,
-                                 bool apply_forward);
+  void ApplyConjugatedDual(std::complex<float>* data, const float* weights,
+                           const float* image_weights, size_t n_channels,
+                           size_t n_stations, size_t antenna1, size_t antenna2,
+                           size_t ms_index, bool apply_forward);
 #endif
 
   void SetFacetDirection(double ra, double dec) {
@@ -212,6 +205,8 @@ class VisibilityModifier {
   }
   double FacetDirectionRA() const { return _facetDirectionRA; }
   double FacetDirectionDec() const { return _facetDirectionDec; }
+  long double CorrectionSum() const { return correction_sum_; }
+  long double H5CorrectionSum() const { return h5_correction_sum_; }
 
  private:
   void SetH5Parms(size_t n_measurement_sets,
@@ -251,6 +246,25 @@ class VisibilityModifier {
   size_t _pointResponseBufferSize = 0;
   double _facetDirectionRA = 0.0;
   double _facetDirectionDec = 0.0;
+  /** @{
+   * These variables are incremented with a comparatively small value for each
+   * gridded visibility, hence a long double is used to accommodate sufficient
+   * precision. The h5_correction_sum is only used when both beam and h5parm
+   * solutions are applied. When only one of h5parm or beam solutions are
+   * applied, the sum is stored in correction_sum and h5_correction_sum is
+   * unused.
+   *
+   * The correction_sum is always the full combined correction needed for a
+   * facet, i.e. the visibilities only need to be corrected by that (combined)
+   * correction_sum. However, for correcting the beam, the beam part is
+   * recalculated when doing the final image-based beam correction. In order to
+   * do so, the h5 sum must be separately stored.
+   */
+  long double correction_sum_ = 0.0;
+  long double h5_correction_sum_ = 0.0;
+  /**
+   * @}
+   */
 };
 
 #endif

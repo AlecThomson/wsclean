@@ -142,6 +142,8 @@ GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
   facet_result.effectiveGriddedVisibilityCount =
       gridder->EffectiveGriddedVisibilityCount();
   result.visibilityWeightSum = gridder->VisibilityWeightSum();
+  facet_result.averageCorrection = gridder->AverageCorrection();
+  facet_result.averageH5Correction = gridder->AverageH5Correction();
   facet_result.cache = gridder->AcquireMetaDataCache();
 
   // If the average beam already exists on input, IDG will not recompute it, so

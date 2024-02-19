@@ -6,7 +6,7 @@
 #include <vector>
 
 struct OutputChannelInfo {
-  OutputChannelInfo()
+  OutputChannelInfo(size_t n_facets = 0, size_t n_dd_psfs = 0)
       : weight(0.0),
         normalizationFactor(1.0),
         wGridSize(0),
@@ -19,7 +19,10 @@ struct OutputChannelInfo {
         beamSizeEstimate(0.0),
         theoreticBeamSize(0.0),
         psfNormalizationFactor(1.0),
-        centralPsfIndex(0) {}
+        centralPsfIndex(0),
+        averageFacetCorrection(n_facets),
+        averageH5FacetCorrection(n_facets),
+        averageDdPsfCorrection(n_dd_psfs) {}
   double weight, normalizationFactor;
   std::size_t wGridSize, visibilityCount;
   double effectiveVisibilityCount, visibilityWeightSum;
@@ -31,6 +34,11 @@ struct OutputChannelInfo {
   // For dd psf mode, this is the facet index that holds the central
   // psf.
   std::size_t centralPsfIndex;
+  // See VisibilityModifier for an explanation
+  std::vector<double> averageFacetCorrection;
+  std::vector<double> averageH5FacetCorrection;
+  // Same as averageFacetCorrection, but then for the DD PSF facets
+  std::vector<double> averageDdPsfCorrection;
 };
 
 /**

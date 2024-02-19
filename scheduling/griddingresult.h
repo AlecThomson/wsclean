@@ -43,6 +43,9 @@ struct GriddingResult {
     double normalizationFactor = 0.0;
     size_t actualWGridSize = 0;
     double effectiveGriddedVisibilityCount = 0.0;
+    /// See VisibilityModifier for an explanation of these parameters
+    double averageCorrection = 0.0;
+    double averageH5Correction = 0.0;
 
     std::unique_ptr<MetaDataCache> cache;
     std::unique_ptr<AverageBeam> averageBeam;

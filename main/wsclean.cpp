@@ -169,6 +169,15 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
       facet_result.effectiveGriddedVisibilityCount;
   _infoPerChannel[channelIndex].visibilityWeightSum =
       result.visibilityWeightSum;
+  if (entry.isDdPsf) {
+    _infoPerChannel[channelIndex].averageDdPsfCorrection[entry.facetIndex] =
+        facet_result.averageCorrection;
+  } else {
+    _infoPerChannel[channelIndex].averageFacetCorrection[entry.facetIndex] =
+        facet_result.averageCorrection;
+    _infoPerChannel[channelIndex].averageH5FacetCorrection[entry.facetIndex] =
+        facet_result.averageH5Correction;
+  }
 
   _griddingTaskFactory->SetMetaDataCacheEntry(entry,
                                               std::move(facet_result.cache));
@@ -188,16 +197,18 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   Settings settings(_settings);
   settings.trimmedImageWidth = image.Width();
   settings.trimmedImageHeight = image.Height();
-  size_t centralIndex =
+  const size_t centralIndex =
       settings.trimmedImageWidth / 2 +
       (settings.trimmedImageHeight / 2) * settings.trimmedImageWidth;
+  const size_t channelIndex = entry.outputChannelIndex;
 
   // When imaging with dd psfs, facet corrections are applied, so correct for
   // this. di psfs do not receive facet corrections and do not require this
   // multiplication.
   if (entry.isDdPsf &&
       (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-    const double factor = _griddingTaskFactory->GetFacetCorrectionFactor(entry);
+    const double factor =
+        _infoPerChannel[channelIndex].averageDdPsfCorrection[entry.facetIndex];
     image *= 1.0 / factor;
   }
 
@@ -207,7 +218,6 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   else
     normFactor = 0.0;
 
-  const size_t channelIndex = entry.outputChannelIndex;
   image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
@@ -330,6 +340,15 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       _infoPerChannel[entry.outputChannelIndex].beamPA =
           std::numeric_limits<double>::quiet_NaN();
     }
+  }
+
+  if (facet_result.averageCorrection != 0.0) {
+    _infoPerChannel[entry.outputChannelIndex]
+        .averageFacetCorrection[entry.facetIndex] =
+        facet_result.averageCorrection;
+    _infoPerChannel[entry.outputChannelIndex]
+        .averageH5FacetCorrection[entry.facetIndex] =
+        facet_result.averageH5Correction;
   }
 
   using PolImagesPair = std::pair<const PolarizationEnum, std::vector<Image>>;
@@ -598,7 +617,9 @@ void WSClean::RunClean() {
 
     if (_settings.doReorder) _msHelper->PerformReordering(_imagingTable, false);
 
-    _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
+    _infoPerChannel.assign(_settings.channelsOut,
+                           OutputChannelInfo(std::max<size_t>(1, _facetCount),
+                                             std::max<size_t>(1, _ddPsfCount)));
 
     _imageWeightCache = createWeightCache();
 
@@ -794,7 +815,9 @@ void WSClean::RunPredict() {
     makeImagingTable(intervalIndex);
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 
-    _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
+    _infoPerChannel.assign(
+        _settings.channelsOut,
+        OutputChannelInfo(std::max<size_t>(1, _facetCount), 0));
 
     _msHelper =
         std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
@@ -1012,21 +1035,16 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-        const std::vector<std::unique_ptr<MetaDataCache>>& meta_data_cache =
-            _griddingTaskFactory->GetMetaDataCache();
+        const OutputChannelInfo& channel_info =
+            _infoPerChannel[currentChannelIndex];
         if (correct_beam_for_facet_gains)
-          primaryBeam->CorrectBeamForFacetGain(imageName, group,
-                                               meta_data_cache);
-        primaryBeam->CorrectImages(writer.Writer(), imageName, "image",
-                                   meta_data_cache);
+          primaryBeam->CorrectBeamForFacetGain(imageName, group, channel_info);
+        primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
         if (_settings.savePsfPb)
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf",
-                                     meta_data_cache);
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
         if (_settings.deconvolutionIterationCount != 0) {
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
-                                     meta_data_cache);
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "model",
-                                     meta_data_cache);
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
         }
       }
     }
@@ -1114,17 +1132,18 @@ void WSClean::partitionSingleGroup(const ImagingTable::Group& facetGroup,
                                    bool isPredictOnly) {
   const bool isImaginary = (imageIndex == 1);
   for (const std::shared_ptr<ImagingTableEntry>& facetEntry : facetGroup) {
+    const size_t channelIndex = facetEntry->outputChannelIndex;
     facetImage.SetFacet(*facetEntry->facet, true);
     facetImage.CopyToFacet({fullImage.Data()});
     if (!isPredictOnly) {
       if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
         const double factor =
-            _griddingTaskFactory->GetFacetCorrectionFactor(*facetEntry);
+            _infoPerChannel[channelIndex]
+                .averageFacetCorrection[facetEntry->facetIndex];
         facetImage *= 1.0 / std::sqrt(factor);
       }
     }
-    imageCache.StoreFacet(facetImage, facetEntry->polarization,
-                          facetEntry->outputChannelIndex,
+    imageCache.StoreFacet(facetImage, facetEntry->polarization, channelIndex,
                           facetEntry->facetIndex, isImaginary);
   }
 }
@@ -1674,8 +1693,9 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-      const double factor =
-          _griddingTaskFactory->GetFacetCorrectionFactor(*facetEntry);
+      const size_t channelIndex = facetEntry->outputChannelIndex;
+      const double factor = _infoPerChannel[channelIndex]
+                                .averageFacetCorrection[facetEntry->facetIndex];
       facetImage *= 1.0 / std::sqrt(factor);
     }
 
@@ -2072,8 +2092,9 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     std::vector<float*> imagePtr{image.Data()};
     for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
       facetImage.SetFacet(*entry->facet, true);
-      const double factor =
-          _griddingTaskFactory->GetFacetCorrectionFactor(*entry);
+      const size_t channelIndex = entry->outputChannelIndex;
+      const double factor = _infoPerChannel[channelIndex]
+                                .averageFacetCorrection[entry->facetIndex];
       facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
     }
 

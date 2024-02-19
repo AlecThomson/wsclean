@@ -369,10 +369,10 @@ template void VisibilityModifier::ApplyBeamResponse<4, GainMode::kFull>(
     size_t antenna2);
 
 template <size_t PolarizationCount, GainMode GainEntry>
-float VisibilityModifier::ApplyConjugatedBeamResponse(
+void VisibilityModifier::ApplyConjugatedBeamResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward) {
-  float correction_sum = 0.0;
+  double local_correction_sum = 0.0;
   for (size_t ch = 0; ch < n_channels; ++ch) {
     const size_t offset = ch * _pointResponseBufferSize;
     const size_t offset1 = offset + antenna1 * 4u;
@@ -387,35 +387,33 @@ float VisibilityModifier::ApplyConjugatedBeamResponse(
     const float weighted_squared_gain =
         ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(gain1, gain2,
                                                                  weights);
-    correction_sum += image_weights[ch] * weighted_squared_gain;
+    local_correction_sum += image_weights[ch] * weighted_squared_gain;
 
     data += PolarizationCount;
     weights += PolarizationCount;
   }
-  return correction_sum;
+  correction_sum_ += local_correction_sum;
 }
 
-template float
-VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kXX>(
+template void VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kXX>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward);
 
-template float
-VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kYY>(
+template void VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kYY>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedBeamResponse<2, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedBeamResponse<4, GainMode::kFull>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward);
@@ -555,7 +553,7 @@ template void VisibilityModifier::ApplyParmResponse<4, GainMode::kFull>(
     size_t n_antennas, size_t antenna1, size_t antenna2);
 
 template <size_t PolarizationCount, GainMode GainEntry>
-float VisibilityModifier::ApplyConjugatedParmResponse(
+void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward) {
@@ -563,7 +561,7 @@ float VisibilityModifier::ApplyConjugatedParmResponse(
       (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
                                                                             : 2;
 
-  float correctionSum = 0.0;
+  double local_correction_sum = 0.0;
 
   // Conditional could be templated once C++ supports partial function
   // specialization
@@ -585,7 +583,7 @@ float VisibilityModifier::ApplyConjugatedParmResponse(
       const float weighted_squared_gain =
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(gain1, gain2,
                                                                    weights);
-      correctionSum += image_weights[ch] * weighted_squared_gain;
+      local_correction_sum += image_weights[ch] * weighted_squared_gain;
 
       data += PolarizationCount;
       weights += PolarizationCount;
@@ -606,40 +604,38 @@ float VisibilityModifier::ApplyConjugatedParmResponse(
       const float weighted_squared_gain =
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(gain1, gain2,
                                                                    weights);
-      correctionSum += image_weights[ch] * weighted_squared_gain;
+      local_correction_sum += image_weights[ch] * weighted_squared_gain;
 
       data += PolarizationCount;
       weights += PolarizationCount;
     }
   }
-  return correctionSum;
+  correction_sum_ += local_correction_sum;
 }
 
-template float
-VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kXX>(
+template void VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kXX>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward);
 
-template float
-VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kYY>(
+template void VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kYY>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedParmResponse<2, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward);
 
-template float
+template void
 VisibilityModifier::ApplyConjugatedParmResponse<4, GainMode::kFull>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
@@ -647,11 +643,12 @@ VisibilityModifier::ApplyConjugatedParmResponse<4, GainMode::kFull>(
 
 #ifdef HAVE_EVERYBEAM
 template <size_t PolarizationCount, GainMode GainEntry>
-VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
+void VisibilityModifier::ApplyConjugatedDual(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward) {
-  DualResult result;
+  double correctionSum = 0.0;
+  double h5Sum = 0.0;
   const size_t nparms =
       (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
                                                                             : 2;
@@ -697,14 +694,13 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
       const float weighted_squared_gain_h5 =
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(
               gain_h5_1, gain_h5_2, weights);
-      result.h5Sum += weighted_squared_gain_h5 * image_weights[ch];
+      h5Sum += weighted_squared_gain_h5 * image_weights[ch];
 
       const float weighted_squared_gain_combined =
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(
               gain_combined_1, gain_combined_2, weights);
 
-      result.correctionSum +=
-          weighted_squared_gain_combined * image_weights[ch];
+      correctionSum += weighted_squared_gain_combined * image_weights[ch];
 
       data += PolarizationCount;
       weights += PolarizationCount;
@@ -741,7 +737,7 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
       const float weighted_squared_gain_h5 =
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(
               gain_h5_1, gain_h5_2, weights);
-      result.h5Sum += weighted_squared_gain_h5 * image_weights[ch];
+      h5Sum += weighted_squared_gain_h5 * image_weights[ch];
 
       const aocommon::MC2x2F gain_combined_1(gain_b_1[0] * gain_h5_1[0], 0, 0,
                                              gain_b_1[3] * gain_h5_1[3]);
@@ -752,42 +748,37 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
           ComputeWeightedSquaredGain<PolarizationCount, GainEntry>(
               gain_combined_1, gain_combined_2, weights);
 
-      result.correctionSum +=
-          weighted_squared_gain_combined * image_weights[ch];
+      correctionSum += weighted_squared_gain_combined * image_weights[ch];
 
       data += PolarizationCount;
       weights += PolarizationCount;
     }
   }
-  return result;
+  correction_sum_ += correctionSum;
+  h5_correction_sum_ += h5Sum;
 }
 
-template VisibilityModifier::DualResult
-VisibilityModifier::ApplyConjugatedDual<1, GainMode::kXX>(
+template void VisibilityModifier::ApplyConjugatedDual<1, GainMode::kXX>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward);
 
-template VisibilityModifier::DualResult
-VisibilityModifier::ApplyConjugatedDual<1, GainMode::kYY>(
+template void VisibilityModifier::ApplyConjugatedDual<1, GainMode::kYY>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward);
 
-template VisibilityModifier::DualResult
-VisibilityModifier::ApplyConjugatedDual<1, GainMode::kDiagonal>(
+template void VisibilityModifier::ApplyConjugatedDual<1, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward);
 
-template VisibilityModifier::DualResult
-VisibilityModifier::ApplyConjugatedDual<2, GainMode::kDiagonal>(
+template void VisibilityModifier::ApplyConjugatedDual<2, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward);
 
-template VisibilityModifier::DualResult
-VisibilityModifier::ApplyConjugatedDual<4, GainMode::kFull>(
+template void VisibilityModifier::ApplyConjugatedDual<4, GainMode::kFull>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward);

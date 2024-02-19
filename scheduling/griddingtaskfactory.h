@@ -80,10 +80,6 @@ class GriddingTaskFactory {
     meta_data_cache_[entry.index] = std::move(cache);
   }
 
-  long double GetFacetCorrectionFactor(const ImagingTableEntry& entry) const {
-    return meta_data_cache_[entry.index]->correction_sum / entry.imageWeight;
-  }
-
  private:
   /// Add a facet structure to the last created task.
   /// @param tasks The current list of created tasks.

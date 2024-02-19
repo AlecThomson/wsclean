@@ -251,9 +251,6 @@ void MSGridderBase::initializeMSDataVector(
   msDataVector = std::vector<MSGridderBase::MSData>(MeasurementSetCount());
 
   resetMetaData();
-  // FIXME: migrate data members to GriddingResult
-  meta_data_cache_->correction_sum = 0.0;
-  meta_data_cache_->h5_correction_sum = 0.0;
 
   bool hasCache = !meta_data_cache_->msDataVector.empty();
   if (!hasCache) meta_data_cache_->msDataVector.resize(MeasurementSetCount());
@@ -554,37 +551,30 @@ void MSGridderBase::ApplyWeightsAndCorrections(
                                              curBand);
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
-      const VisibilityModifier::DualResult result =
-          visibility_modifier_
-              .ApplyConjugatedDual<PolarizationCount, GainEntry>(
-                  rowData.data, weightBuffer, scratch_image_weights_.data(),
-                  curBand.ChannelCount(), antenna_names.size(),
-                  metaData.antenna1, metaData.antenna2, ms_index_,
-                  apply_forward);
-      meta_data_cache_->h5_correction_sum += result.h5Sum;
-      meta_data_cache_->correction_sum += result.correctionSum;
+      visibility_modifier_.ApplyConjugatedDual<PolarizationCount, GainEntry>(
+          rowData.data, weightBuffer, scratch_image_weights_.data(),
+          curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
+          metaData.antenna2, ms_index_, apply_forward);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                              curBand);
-      meta_data_cache_->correction_sum +=
-          visibility_modifier_
-              .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
-                  rowData.data, weightBuffer, scratch_image_weights_.data(),
-                  curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
-                  apply_forward);
+      visibility_modifier_
+          .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
+              rowData.data, weightBuffer, scratch_image_weights_.data(),
+              curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
+              apply_forward);
 
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
 
-      meta_data_cache_->correction_sum +=
-          visibility_modifier_
-              .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
-                  rowData.data, weightBuffer, scratch_image_weights_.data(),
-                  ms_index_, curBand.ChannelCount(), antenna_names.size(),
-                  metaData.antenna1, metaData.antenna2, apply_forward);
+      visibility_modifier_
+          .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
+              rowData.data, weightBuffer, scratch_image_weights_.data(),
+              ms_index_, curBand.ChannelCount(), antenna_names.size(),
+              metaData.antenna1, metaData.antenna2, apply_forward);
     }
   }
 

@@ -275,6 +275,13 @@ class MSGridderBase {
     return std::move(meta_data_cache_);
   }
 
+  double AverageCorrection() const {
+    return visibility_modifier_.CorrectionSum() / total_weight_;
+  }
+  double AverageH5Correction() const {
+    return visibility_modifier_.H5CorrectionSum() / total_weight_;
+  }
+
  protected:
   size_t ActualInversionWidth() const { return actual_inversion_width_; }
   size_t ActualInversionHeight() const { return actual_inversion_height_; }

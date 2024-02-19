@@ -107,10 +107,11 @@ void WriteBeamImages(const ImageFilename& image_name,
 }
 #endif
 
-void ApplyFacetCorrections(
-    const ImageFilename& image_name, const Settings& settings,
-    const CoordinateSystem& coordinates, const ImagingTable::Group& group,
-    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
+void ApplyFacetCorrections(const ImageFilename& image_name,
+                           const Settings& settings,
+                           const CoordinateSystem& coordinates,
+                           const ImagingTable::Group& group,
+                           const OutputChannelInfo& channel_info) {
   if (settings.polarizations ==
       std::set<PolarizationEnum>{Polarization::XX, Polarization::YY}) {
     // FIXME: to be implemented
@@ -141,7 +142,7 @@ void ApplyFacetCorrections(
           // we are scaling the beam images, we need to apply the inverse of
           // that.
           const float factor = std::sqrt(
-              meta_cache[entry->index]->h5_correction_sum / entry->imageWeight);
+              channel_info.averageH5FacetCorrection[entry->facetIndex]);
           facet_image.SetFacet(*entry->facet, true);
           facet_image.MultiplyImageInsideFacet(image_pointer, factor);
         }
@@ -206,7 +207,7 @@ void PrimaryBeam::AddMS(std::unique_ptr<MSDataDescription> description) {
 
 void PrimaryBeam::CorrectBeamForFacetGain(
     const ImageFilename& image_name, const ImagingTable::Group& group,
-    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
+    const OutputChannelInfo& channel_info) {
   const CoordinateSystem coordinates{settings_.trimmedImageWidth,
                                      settings_.trimmedImageHeight,
                                      phase_centre_ra_,
@@ -215,13 +216,13 @@ void PrimaryBeam::CorrectBeamForFacetGain(
                                      settings_.pixelScaleY,
                                      l_shift_,
                                      m_shift_};
-  ApplyFacetCorrections(image_name, settings_, coordinates, group, meta_cache);
+  ApplyFacetCorrections(image_name, settings_, coordinates, group,
+                        channel_info);
 }
 
-void PrimaryBeam::CorrectImages(
-    aocommon::FitsWriter& writer, const ImageFilename& image_name,
-    const std::string& filename_kind,
-    const std::vector<std::unique_ptr<MetaDataCache>>& meta_cache) {
+void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
+                                const ImageFilename& image_name,
+                                const std::string& filename_kind) {
   if (settings_.polarizations.size() == 1 || filename_kind == "psf") {
     const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);
     PolarizationEnum pol = *settings_.polarizations.begin();

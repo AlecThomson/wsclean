@@ -13,8 +13,6 @@ void MetaDataCache::Serialize(aocommon::SerialOStream& stream) const {
         .Double(entry.max_baseline_in_m)
         .Double(entry.integration_time);
   }
-
-  stream.LDouble(h5_correction_sum).LDouble(correction_sum);
 }
 
 void MetaDataCache::Unserialize(aocommon::SerialIStream& stream) {
@@ -27,6 +25,4 @@ void MetaDataCache::Unserialize(aocommon::SerialIStream& stream) {
         .Double(entry.max_baseline_in_m)
         .Double(entry.integration_time);
   }
-
-  stream.LDouble(h5_correction_sum).LDouble(correction_sum);
 }
