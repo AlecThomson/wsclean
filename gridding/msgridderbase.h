@@ -576,6 +576,17 @@ class MSGridderBase {
   double MaximumW() const { return max_w_; }
   double MinimumW() const { return min_w_; }
 
+  /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
+  /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
+  /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
+  /// only relevant for prediction.
+  size_t facet_group_index_ = 0;
+  size_t ms_index_ = 0;
+  GriddingTaskManager* writer_lock_manager_ = nullptr;
+
+  void FlushBufferVisibilities(MSProvider& msProvider,
+                               std::complex<float>* buffer);
+
  private:
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
@@ -699,12 +710,6 @@ class MSGridderBase {
   double main_image_dl_ = 0.0;
   double main_image_dm_ = 0.0;
   size_t facet_index_ = 0;
-  /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
-  /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
-  /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
-  /// only relevant for prediction.
-  size_t facet_group_index_ = 0;
-  size_t ms_index_ = 0;
   /// @see SetIsFacet()
   bool is_facet_ = false;
   double image_padding_ = 1.0;
@@ -756,8 +761,6 @@ class MSGridderBase {
   aocommon::UVector<std::complex<float>> scratch_model_data_;
 
   std::unique_ptr<MSReader> predict_reader_;
-  GriddingTaskManager* writer_lock_manager_ = nullptr;
-
   VisibilityModifier visibility_modifier_;
 };
 

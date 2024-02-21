@@ -94,51 +94,118 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
   size_t maxNRows = calculateMaxNRowsInMemory(selectedBand.ChannelCount());
 
-  aocommon::UVector<std::complex<float>> visBuffer(maxNRows *
-                                                   selectedBand.ChannelCount());
-  aocommon::UVector<double> uvwBuffer(maxNRows * 3);
+  for (auto& gd : griddingData) {
+    gd.nRows = 0;
+    gd.lastChunk = false;
+    gd.doneReading = false;
+    gd.doneComputing = true;
+    gd.uvwBuffer.resize(maxNRows * 3);
+    gd.visBuffer.resize(maxNRows * selectedBand.ChannelCount());
+  }
 
-  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
+  MSProvider* msProvider = msData.ms_provider;
+  std::vector<std::basic_string<char>>* antennaNames = &msData.antenna_names;
+
+  std::complex<float>* f_modelBuffer = modelBuffer.data();
+  float* f_weightBuffer = weightBuffer.data();
+  bool* f_isSelected = isSelected.data();
+
+  std::thread reader_thread([this, msProvider, selectedBand, f_modelBuffer,
+                             f_weightBuffer, f_isSelected, maxNRows, dataSize,
+                             antennaNames]() {
+    this->read_fn(msProvider, selectedBand, f_modelBuffer, f_weightBuffer,
+                  f_isSelected, maxNRows, dataSize, antennaNames);
+  });
+  // Iterate over chunks until all data has been gridded
+  size_t chunk_idx = 0;
+  while (true) {
+    Logger::Debug << "Max " << maxNRows << " rows fit in memory.\n";
+    Logger::Info << "Loading data in memory...\n";
+
+    GriddingData& chunk = griddingData[chunk_idx % GRIDDING_PREFETCH_FACTOR];
+
+    // Mutex wait for data
+    if (!chunk.doneReading) {
+      std::cout << "Computer is waiting for read." << std::endl;
+    }
+    while (!chunk.doneReading) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    Logger::Info << "Gridding " << chunk.nRows << " rows...\n";
+    gridder_->AddInversionData(chunk.nRows, selectedBand.ChannelCount(),
+                               chunk.uvwBuffer.data(), frequencies.data(),
+                               chunk.visBuffer.data());
+
+    totalNRows += chunk.nRows;
+    bool done = chunk.lastChunk;
+
+    chunk.doneReading = false;
+    chunk.doneComputing = true;
+
+    if (done) {
+      break;
+    }
+
+    chunk_idx += 1;
+  }  // end of chunk
+  reader_thread.join();
+  std::cout << "Fully done." << std::endl;
+
+  msData.totalRowsProcessed += totalNRows;
+}
+void WGriddingMSGridder::read_fn(
+    MSProvider* msProvider, const aocommon::BandData& selectedBand,
+    std::complex<float>* modelBuffer, float* weightBuffer, bool* isSelected,
+    size_t maxNRows, const size_t dataSize,
+    std::vector<std::basic_string<char>>* antennaNames) {
+  // Read / fill the chunk
+  auto msReader = msProvider->MakeReader();
   aocommon::UVector<std::complex<float>> newItemData(dataSize);
   InversionRow newRowData;
   newRowData.data = newItemData.data();
 
-  // Iterate over chunks until all data has been gridded
-  while (msReader->CurrentRowAvailable()) {
-    Logger::Debug << "Max " << maxNRows << " rows fit in memory.\n";
-    Logger::Info << "Loading data in memory...\n";
+  size_t chunk_idx = 0;
+  while (true) {
+    GriddingData& chunk = griddingData[chunk_idx % GRIDDING_PREFETCH_FACTOR];
+    chunk.nRows = 0;
 
-    size_t nRows = 0;
+    // Mutex wait for data
+    if (!chunk.doneComputing) {
+    }
 
-    // Read / fill the chunk
-    while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
+    while (!chunk.doneComputing) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    while (msReader->CurrentRowAvailable() && chunk.nRows < maxNRows) {
       MSProvider::MetaData metaData;
       msReader->ReadMeta(metaData);
       newRowData.uvw[0] = metaData.uInM;
       newRowData.uvw[1] = metaData.vInM;
       newRowData.uvw[2] = metaData.wInM;
 
-      GetCollapsedVisibilities(*msReader, msData.antenna_names, newRowData,
-                               selectedBand, weightBuffer.data(),
-                               modelBuffer.data(), isSelected.data(), metaData);
+      GetCollapsedVisibilities(*msReader, *antennaNames, newRowData,
+                                     selectedBand, weightBuffer, modelBuffer,
+                                     isSelected, metaData);
 
       std::copy_n(newRowData.data, selectedBand.ChannelCount(),
-                  &visBuffer[nRows * selectedBand.ChannelCount()]);
-      std::copy_n(newRowData.uvw, 3, &uvwBuffer[nRows * 3]);
+                  &chunk.visBuffer[chunk.nRows * selectedBand.ChannelCount()]);
+      std::copy_n(newRowData.uvw, 3, &chunk.uvwBuffer[chunk.nRows * 3]);
 
-      ++nRows;
+      ++chunk.nRows;
       msReader->NextInputRow();
     }
 
-    Logger::Info << "Gridding " << nRows << " rows...\n";
-    gridder_->AddInversionData(nRows, selectedBand.ChannelCount(),
-                               uvwBuffer.data(), frequencies.data(),
-                               visBuffer.data());
+    chunk.doneComputing = false;
+    if (!msReader->CurrentRowAvailable()) {
+      chunk.lastChunk = true;
+      chunk.doneReading = true;
+      break;
+    }
+    chunk.doneReading = true;
 
-    totalNRows += nRows;
-  }  // end of chunk
-
-  msData.totalRowsProcessed += totalNRows;
+    chunk_idx += 1;
+  }
 }
 
 void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
@@ -188,6 +255,17 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
       WriteCollapsedVisibilities(
           *msData.ms_provider, msData.antenna_names, selectedBand,
           &visBuffer[row * selectedBand.ChannelCount()], metaDataBuffer[row]);
+    }
+
+    {
+      // Lock over all writing operations
+      // We do technically not need to lock here yet, but it saves
+      GriddingTaskManager* lock = writer_lock_manager_->GetLock(
+          facet_group_index_ * MeasurementSetCount() + ms_index_);
+      for (size_t row = 0; row != nRows; ++row) {
+        FlushBufferVisibilities(*msData.ms_provider,
+                                &visBuffer[row * selectedBand.ChannelCount()]);
+      }
     }
     totalNRows += nRows;
   }  // end of chunk

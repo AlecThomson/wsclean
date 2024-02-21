@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#define GRIDDING_PREFETCH_FACTOR 2
+
 class WGriddingGridderBase;
 
 class WGriddingMSGridder final : public MSGridderBase {
@@ -46,6 +48,21 @@ class WGriddingMSGridder final : public MSGridderBase {
   double accuracy_;
   bool use_tuned_wgridder_;
   std::unique_ptr<WGriddingGridderBase> gridder_;
+
+  struct GriddingData {
+    bool lastChunk = false;
+    bool doneReading = false;
+    bool doneComputing = true;
+    size_t nRows;
+    aocommon::UVector<double> uvwBuffer;
+    aocommon::UVector<std::complex<float>> visBuffer;
+  };
+  GriddingData griddingData[GRIDDING_PREFETCH_FACTOR];
+
+  void read_fn(MSProvider* msProvider, const aocommon::BandData& selectedBand,
+               std::complex<float>* modelBuffer, float* weightBuffer,
+               bool* isSelected, size_t maxNRows, const size_t dataSize,
+               std::vector<std::basic_string<char>>* antennaNames);
 };
 
 #endif

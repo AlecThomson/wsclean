@@ -395,6 +395,12 @@ void MSGridderBase::calculateOverallMetaData(
   actual_w_grid_size_ = hasWGridSize() ? w_grid_size_ : suggestedGridSize;
 }
 
+void MSGridderBase::FlushBufferVisibilities(MSProvider& msProvider,
+                                            std::complex<float>* buffer) {
+  msProvider.WriteModel(buffer, IsFacet());
+  msProvider.NextOutputRow();
+}
+
 void MSGridderBase::ReadPredictMetaData(MSProvider::MetaData& metaData) {
   predict_reader_->ReadMeta(metaData);
   predict_reader_->NextInputRow();
@@ -426,15 +432,6 @@ void MSGridderBase::WriteInstrumentalVisibilities(
         buffer, curBand.ChannelCount(), metaData.antenna1, metaData.antenna2);
   }
 #endif
-
-  {
-    const size_t lock_index =
-        facet_group_index_ * MeasurementSetCount() + ms_index_;
-    std::unique_ptr<GriddingTaskManager::WriterLock> lock =
-        writer_lock_manager_->GetLock(lock_index);
-    ms_provider.WriteModel(buffer, IsFacet());
-  }
-  ms_provider.NextOutputRow();
 }
 
 template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kXX>(
