@@ -25,6 +25,8 @@ constexpr int kTag = 0;
 constexpr int kSlotsPerNode = 1;
 }  // namespace
 
+std::vector<std::thread> scheduling_threads;
+
 MPIScheduler::MPIScheduler(const Settings& settings)
     : GriddingTaskManager(settings),
       _isRunning(false),
@@ -44,6 +46,9 @@ MPIScheduler::MPIScheduler(const Settings& settings)
     _availableRoom[0] = 0;
   }
   _localScheduler.SetWriterLockManager(*this);
+
+  std::cout << "World size is " << world_size << std::endl;
+  scheduling_threads.resize(world_size);
 }
 
 void MPIScheduler::Run(GriddingTask&& task,
@@ -116,24 +121,34 @@ void MPIScheduler::send(GriddingTask&& task,
       StoreResult(std::move(result), 0);
     });
   } else {
-    aocommon::SerialOStream payloadStream;
-    // To use MPI_Send_Big, a uint64_t need to be reserved
-    payloadStream.UInt64(0);
-    task.Serialize(payloadStream);
+//    if (scheduling_threads[node].joinable()) scheduling_threads[node].join();
 
-    TaskMessage message;
-    message.type = TaskMessage::Type::kGriddingRequest;
-    message.bodySize = payloadStream.size();
+//    scheduling_threads[node] = std::thread(
+//        [this](GriddingTask task, int node) -> void {
+          aocommon::SerialOStream payloadStream;
+          // To use MPI_Send_Big, a uint64_t need to be reserved
+          payloadStream.UInt64(0);
+          task.Serialize(payloadStream);
 
-    aocommon::SerialOStream taskMessageStream;
-    message.Serialize(taskMessageStream);
-    assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
+          TaskMessage message;
+          message.type = TaskMessage::Type::kGriddingRequest;
+          message.bodySize = payloadStream.size();
 
-    std::unique_lock<std::mutex> lock(_send_mutex);
-    MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
-             0, MPI_COMM_WORLD);
-    MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
-                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
+          aocommon::SerialOStream taskMessageStream;
+          message.Serialize(taskMessageStream);
+          assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
+
+        std::unique_lock<std::mutex> lock(_send_mutex);
+    //    MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
+    //             0, MPI_COMM_WORLD);
+    //    MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
+    //                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
+          MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
+                   node, 0, MPI_COMM_WORLD);
+          MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
+                       MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
+//        },
+//        std::move(task), node);
   }
 }
 
