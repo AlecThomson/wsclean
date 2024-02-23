@@ -63,19 +63,12 @@ def prepare_mock_ms():
     os.makedirs(tcf.MWA_MOCK_MS, exist_ok=True)
 
     if not os.path.isfile(tcf.MWA_MOCK_ARCHIVE):
-        check_call(
-            [
-                "wget",
-                "-q",
-                os.path.join(
-                    tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"
-                ),
-                "-O",
-                tcf.MWA_MOCK_ARCHIVE,
-            ]
+        url = os.path.join(
+            tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"
         )
+        check_call(f"wget -q {url} -O {tcf.MWA_MOCK_ARCHIVE}".split())
         check_call(
-            f"tar -xf {tcf.MWA_MOCK_ARCHIVE}  -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
+            f"tar -xf {tcf.MWA_MOCK_ARCHIVE} -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
         )
 
     # From python 3.8 onwards, use copytree(..., dirs_exist_ok=True)
@@ -90,4 +83,11 @@ def prepare_mock_ms():
 def prepare_model_image():
     if not os.path.isfile(tcf.MODEL_IMAGE):
         wget = f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.MODEL_IMAGE)}"
+        check_call(wget.split())
+
+
+@pytest.fixture(scope="class")
+def prepare_mock_soltab():
+    if not os.path.isfile(tcf.MOCK_SOLTAB_2POL):
+        wget = f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.MOCK_SOLTAB_2POL)}"
         check_call(wget.split())

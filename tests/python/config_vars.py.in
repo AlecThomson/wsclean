@@ -31,7 +31,7 @@ MODEL_IMAGE = "point-source-model.fits"
 MWA_MS = "MWA-1052736496-averaged.ms"
 
 # Mock MWA measurement set
-MWA_MOCK_ARCHIVE="MWA_ARCHIVE.tar.bz2"
+MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
@@ -47,3 +47,6 @@ SKA_MS = "ska-low-sim-averaged.ms"
 
 # GMRT set with RR polarization
 GMRT_MS = "GMRT_MOCK.ms"
+
+# Mock solution file with two polarizations
+MOCK_SOLTAB_2POL = "mock_soltab_2pol.h5"

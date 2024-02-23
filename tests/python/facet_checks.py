@@ -36,14 +36,17 @@ def predict_full_image(ms, gridder):
     validate_call(s.split())
 
 
-def predict_facet_image(ms, gridder, apply_facet_beam):
+def predict_facet_image(ms, gridder, apply_beam):
     name = "point-source"
-    facet_beam = "-apply-facet-beam -mwa-path ." if apply_facet_beam else ""
-    if apply_facet_beam:
+    facet_beam = "-apply-facet-beam -mwa-path ." if apply_beam else ""
+    if apply_beam:
         shutil.copyfile(f"{name}-model.fits", f"{name}-model-pb.fits")
 
     # Predict facet based image
-    s = f"{tcf.WSCLEAN} -predict -gridder {gridder} {facet_beam} -facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
+    s = (
+        f"{tcf.WSCLEAN} -predict -gridder {gridder} {facet_beam} "
+        f"-facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
+    )
     validate_call(s.split())
 
 
@@ -52,19 +55,14 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     mpi_cmd = f"mpirun -tag-output -np {nthreads} {tcf.WSCLEAN_MP}"
     thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
-    s = [
-        mpi_cmd if mpi else thread_cmd,
-        f"-gridder {gridder}",
-        tcf.DIMS_SMALL,
-        reorder_ms,
-        "-niter 1000000 -auto-threshold 5 -mgain 0.8",
-        f"-facet-regions {tcf.FACETFILE_4FACETS}",
-        f"-name facet-imaging{reorder_ms}",
-        "-mwa-path . -apply-facet-beam" if apply_beam else "",
-        "-v",
-        ms,
-    ]
-    validate_call(" ".join(s).split())
+    facet_beam = "-mwa-path . -apply-facet-beam" if apply_beam else ""
+    s = (
+        f"{mpi_cmd if mpi else thread_cmd} -gridder {gridder} {reorder_ms} "
+        f"{tcf.DIMS_SMALL} -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+        f"-facet-regions {tcf.FACETFILE_4FACETS} {facet_beam} "
+        f"-name facet-imaging{reorder_ms} -v {ms}"
+    )
+    validate_call(s.split())
 
 
 def create_pointsource_grid_skymodel(
@@ -113,20 +111,21 @@ def create_pointsource_grid_skymodel(
     return source_positions
 
 
-@pytest.mark.usefixtures("prepare_mock_ms", "prepare_model_image")
+@pytest.mark.usefixtures(
+    "prepare_mock_ms", "prepare_model_image", "prepare_mock_soltab"
+)
 class TestFacets:
     def test_makepsfonly(self):
         """
         Test that wsclean with the -make-psf-only flag exits gracefully and
         that the psf passes basic checks.
         """
-        s = [
-            tcf.WSCLEAN,
-            "-make-psf-only -name facet-psf-only",
-            tcf.DIMS_SMALL,
-            f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.MWA_MOCK_MS}",
-        ]
-        validate_call(" ".join(s).split())
+        s = (
+            f"{tcf.WSCLEAN} -name facet-psf-only -make-psf-only "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"{tcf.DIMS_SMALL} {tcf.MWA_MOCK_MS}"
+        )
+        validate_call(s.split())
 
         basic_image_check("facet-psf-only-psf.fits")
 
@@ -237,10 +236,13 @@ class TestFacets:
         validate_call(chmod.split())
         try:
             # When "-no-update-model-required" is specified, processing a read-only measurement set should be possible.
-            s = f"{tcf.WSCLEAN} -interval 10 20 -no-update-model-required -name facet-readonly-ms -auto-threshold 0.5 -auto-mask 3 \
-                -mgain 0.95 -nmiter 2 -multiscale -niter 100000 \
-                -facet-regions {tcf.FACETFILE_4FACETS} \
-                {tcf.DIMS_SMALL} {tcf.MWA_MOCK_FULL}"
+            s = (
+                f"{tcf.WSCLEAN} -name facet-readonly-ms -interval 10 20 "
+                "-no-update-model-required -auto-threshold 0.5 -auto-mask 3 "
+                "-mgain 0.95 -nmiter 2 -multiscale -niter 100000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} "
+                f"{tcf.DIMS_SMALL} {tcf.MWA_MOCK_FULL}"
+            )
             validate_call(s.split())
         finally:
             chmod = f"chmod u+w -R {tcf.MWA_MOCK_FULL}"
@@ -261,33 +263,48 @@ class TestFacets:
 
     def test_multi_channel(self):
         # Test for issue 122. Only test if no crash occurs.
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-
-        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name multi-channel-faceting -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
-        validate_call(s.split())
+        validate_call(
+            (
+                f"{tcf.WSCLEAN} -name multi-channel-faceting "
+                "-parallel-gridding 3 -channels-out 2 "
+                "-pol xx,yy -join-polarizations "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+                f"{tcf.MWA_MOCK_MS}"
+            ).split()
+        )
 
     def test_diagonal_solutions(self):
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-
-        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name faceted-diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -diagonal-solutions -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
-        validate_call(s.split())
+        validate_call(
+            (
+                f"{tcf.WSCLEAN} -name faceted-diagonal-solutions "
+                "-parallel-gridding 3 -channels-out 2 "
+                "-diagonal-solutions "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+                f"{tcf.MWA_MOCK_MS}"
+            ).split()
+        )
 
     def test_diagonal_solutions_with_beam(self):
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-
-        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name faceted-diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -diagonal-solutions -mwa-path . -apply-facet-beam -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
-        validate_call(s.split())
+        validate_call(
+            (
+                f"{tcf.WSCLEAN} -name faceted-diagonal-solutions "
+                "-parallel-gridding 3 -channels-out 2 "
+                "-diagonal-solutions -mwa-path . -apply-facet-beam "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+                f"{tcf.MWA_MOCK_MS}"
+            ).split()
+        )
 
     def test_parallel_gridding(self):
         # Compare serial, threaded and mpi run for facet based imaging
         # with h5 corrections. Number of used threads/processes is
         # deliberately chosen smaller than the number of facets.
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-
         names = [
             "facets-h5-serial",
             "facets-h5-threaded",
@@ -301,11 +318,18 @@ class TestFacets:
             f"mpirun -np 3 {tcf.WSCLEAN_MP} -parallel-gridding 3",
         ]
         for name, command in zip(names, wsclean_commands):
-            s = f"{command} -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 -nmiter 5 -gridder wstacking {tcf.MWA_MOCK_MS}"
+            s = (
+                f"{command} -name {name} "
+                "-pol xx,yy -join-polarizations "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+                f"-nmiter 5 -gridder wstacking {tcf.MWA_MOCK_MS}"
+            )
             validate_call(s.split())
 
-            # All images will be compared against the first image. For the first image itself,
-            # only test whether the image is finite.
+            # All images will be compared against the first image.
+            # For the first image itself, only test whether the image is finite.
             if name == names[0]:
                 rms = compute_rms(f"{names[0]}-YY-image.fits")
                 assert np.isfinite(rms)
@@ -323,8 +347,8 @@ class TestFacets:
         "h5file",
         [
             None,
-            ["mock_soltab_2pol.h5"],
-            ["mock_soltab_2pol.h5", "mock_soltab_2pol.h5"],
+            [tcf.MOCK_SOLTAB_2POL],
+            [tcf.MOCK_SOLTAB_2POL, tcf.MOCK_SOLTAB_2POL],
         ],
     )
     def test_multi_ms(self, beam, h5file):
@@ -332,10 +356,6 @@ class TestFacets:
         Check that identical images are obtained in case multiple (identical) MSets and H5Parm
         files are provided compared to imaging one MSet
         """
-
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-
         # Make a new copy of tcf.MWA_MOCK_MS into two MSets
         validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_1}".split())
         validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_2}".split())
@@ -410,7 +430,7 @@ class TestFacets:
         # Create a template image
         s = (
             f"{tcf.WSCLEAN} -gridder wgridder -name template-diagonal-solutions "
-            f"-size 256 256 -scale 4amin -interval 0 1 diagonal_solutions.ms"
+            f"{tcf.DIMS_SMALL} -interval 0 1 diagonal_solutions.ms"
         )
         validate_call(s.split())
 
@@ -432,10 +452,8 @@ class TestFacets:
 
         # Image (without solutions)
         s = (
-            f"{tcf.WSCLEAN} -name diagonal-solutions-reference -size 256 256 "
-            "-no-reorder "
-            "-scale 4amin "
-            "diagonal_solutions.ms"
+            f"{tcf.WSCLEAN} -name diagonal-solutions-reference -no-reorder "
+            f"{tcf.DIMS_SMALL} diagonal_solutions.ms"
         )
         validate_call(s.split())
 
@@ -469,24 +487,17 @@ class TestFacets:
         # Image data predicted with solutions applied,
         # without applying corrections for the solutions while imaging
         s = (
-            f"{tcf.WSCLEAN} -name diagonal-solutions-no-correction -size 256 256 "
-            "-no-reorder "
-            "-scale 4amin "
-            "diagonal_solutions.ms"
+            f"{tcf.WSCLEAN} -name diagonal-solutions-no-correction -no-reorder "
+            f"{tcf.DIMS_SMALL} diagonal_solutions.ms"
         )
         validate_call(s.split())
 
         # Image data predicted with solutions applied,
         # while applying corrections
         s = (
-            f"{tcf.WSCLEAN} -name diagonal-solutions "
+            f"{tcf.WSCLEAN} -name diagonal-solutions -no-reorder "
             "-parallel-gridding 3 "
-            "-size 256 256 "
-            "-no-reorder "
-            "-scale 4amin "
-            "-mgain 0.8 "
-            "-threshold 10mJy "
-            "-niter 10000 "
+            f"{tcf.DIMS_SMALL} -mgain 0.8 -threshold 10mJy -niter 10000 "
             f"-facet-regions {tcf.FACETFILE_4FACETS} "
             "-apply-facet-solutions diagonal-solutions.h5 "
             "amplitude000,phase000 -diagonal-solutions "
@@ -514,13 +525,15 @@ class TestFacets:
             )
 
     def test_dd_psfs_with_faceting(self):
-        s = [
-            tcf.WSCLEAN,
-            "-name dd-psfs-with-faceting -dd-psf-grid 3 3 -parallel-gridding 5 -parallel-deconvolution 100 -channels-out 2 -join-channels -niter 100 -mgain 0.8 -gridder wgridder -apply-facet-beam -mwa-path .",
-            tcf.DIMS_SMALL,
-            f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.MWA_MOCK_MS}",
-        ]
-        validate_call(" ".join(s).split())
+        validate_call(
+            (
+                f"{tcf.WSCLEAN} -name dd-psfs-with-faceting "
+                f"-dd-psf-grid 3 3 -parallel-gridding 5 {tcf.DIMS_SMALL} "
+                "-parallel-deconvolution 100 -channels-out 2 -join-channels "
+                "-niter 100 -mgain 0.8 -apply-facet-beam -mwa-path . "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.MWA_MOCK_MS}"
+            ).split()
+        )
         import os.path
 
         basic_image_check("dd-psfs-with-faceting-MFS-image.fits")
@@ -540,14 +553,19 @@ class TestFacets:
 
     def test_predict_with_solutions(self):
         # This is a more advanced prediction run which at some point failed
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
-        validate_call(h5download.split())
-        n_gridders = 4
         shutil.copyfile(
             "point-source-model.fits", "point-source-0000-model-pb.fits"
         )
         shutil.copyfile(
             "point-source-model.fits", "point-source-0001-model-pb.fits"
         )
-        s = f"{tcf.WSCLEAN} -v -predict -parallel-gridding {n_gridders} -channels-out 2 -apply-facet-beam -facet-beam-update 60 -facet-regions {tcf.FACETFILE_4FACETS} -diagonal-solutions -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -mwa-path . -reorder -name point-source {tcf.MWA_MOCK_FACET}"
-        validate_call(s.split())
+        validate_call(
+            (
+                f"{tcf.WSCLEAN} -name point-source -v -predict -reorder "
+                "-parallel-gridding 4 -channels-out 2 -diagonal-solutions "
+                "-apply-facet-beam -facet-beam-update 60 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-mwa-path . {tcf.MWA_MOCK_FACET}"
+            ).split()
+        )
