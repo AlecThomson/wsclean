@@ -508,7 +508,8 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kAARTFAAC:
     case everybeam::TelescopeType::kMWATelescope:
     case everybeam::TelescopeType::kOSKARTelescope:
-    case everybeam::TelescopeType::kSkaMidTelescope: {
+    case everybeam::TelescopeType::kSkaMidTelescope:
+    case everybeam::TelescopeType::kOvroLwaTelescope: {
       std::vector<double> baseline_weights(n_baselines * interval_count, 0);
       std::vector<double> time_array(interval_count, 0);
       // Loop over the intervalCounts
