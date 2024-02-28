@@ -311,11 +311,12 @@ class TestFacets:
             "facets-h5-mpi",
             "facets-h5-hybrid",
         ]
+        # Using only 2 threads/gridder yields relatively stable results.
         wsclean_commands = [
-            tcf.WSCLEAN,
-            f"{tcf.WSCLEAN} -parallel-gridding 3",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -parallel-gridding 3",
+            f"{tcf.WSCLEAN} -j 2",
+            f"{tcf.WSCLEAN} -j 6 -parallel-gridding 3",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 2 -max-mpi-message-size 42k",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 6 -parallel-gridding 3",
         ]
         for name, command in zip(names, wsclean_commands):
             s = (
