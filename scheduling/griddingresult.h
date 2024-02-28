@@ -1,17 +1,19 @@
-#ifndef GRIDDING_RESULT_H
-#define GRIDDING_RESULT_H
+#ifndef SCHEDULING_GRIDDING_RESULT_H_
+#define SCHEDULING_GRIDDING_RESULT_H_
+
+#include <string>
 
 #include <aocommon/image.h>
 #include <aocommon/io/serialstreamfwd.h>
 
-#include <string>
+#include "../idg/averagebeam.h"
 
 #include "metadatacache.h"
 
 class AverageBeam;
 
 struct GriddingResult {
-  GriddingResult();
+  GriddingResult() {}
   GriddingResult(const GriddingResult& source) = delete;
   GriddingResult(GriddingResult&& source) noexcept;
   ~GriddingResult();

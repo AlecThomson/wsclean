@@ -1205,8 +1205,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.simulateNoise = true;
       settings.simulatedBaselineNoiseFilename = argv[argi];
     } else if (param == "compound-tasks") {
-      throw std::runtime_error("Compound tasks are not supported yet.");
-      IncArgi(argi, argc);
       settings.compoundTasks = true;
     } else if (param == "aterm-config") {
       IncArgi(argi, argc);

@@ -208,6 +208,11 @@ void Settings::Validate() const {
     }
   }
 
+  if (compoundTasks && ((parallelGridding > 1) || UseMpi())) {
+    throw std::runtime_error(
+        "Compound tasks are only supported for sequential runs.");
+  }
+
   if (UseMpi()) {
     if (!masterDoesWork && nMpiNodes <= 1) {
       throw std::runtime_error(

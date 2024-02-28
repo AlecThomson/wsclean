@@ -343,6 +343,46 @@ class TestFacets:
                     threshold,
                 )
 
+    def test_compound_tasks(self):
+        """
+        Compares a basic serial run without compound tasks to
+        runs with compound tasks.
+        """
+        # TODO(AST-1471); Add tests with parallel gridding and/or mpi.
+        names = [
+            "facets-h5-nocompound",
+            "facets-h5-compound-serial",
+        ]
+        # Using only 2 threads/gridder yields relatively stable results.
+        wsclean_commands = [
+            f"{tcf.WSCLEAN} -j 2",
+            f"{tcf.WSCLEAN} -j 2 -compound-tasks",
+        ]
+        for name, command in zip(names, wsclean_commands):
+            s = (
+                f"{command} -name {name} "
+                "-pol xx,yy -join-polarizations "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+                f"-nmiter 5 {tcf.MWA_MOCK_MS}"
+            )
+            validate_call(s.split())
+
+            # All images will be compared against the first image.
+            # For the first image itself, only test whether the image is finite.
+            if name == names[0]:
+                rms = compute_rms(f"{names[0]}-YY-image.fits")
+                assert np.isfinite(rms)
+            else:
+                # Typical rms difference is about 1.0e-7
+                threshold = 3.0e-7
+                compare_rms_fits(
+                    f"{names[0]}-YY-image.fits",
+                    f"{name}-YY-image.fits",
+                    threshold,
+                )
+
     @pytest.mark.parametrize("beam", [False, True])
     @pytest.mark.parametrize(
         "h5file",

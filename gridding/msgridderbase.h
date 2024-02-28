@@ -104,9 +104,9 @@ class MSGridderBase {
     return selections_[index];
   }
   size_t MeasurementSetCount() const { return measurement_sets_.size(); }
-  void AddMeasurementSet(MSProvider* ms_provider,
+  void AddMeasurementSet(std::unique_ptr<MSProvider> ms_provider,
                          const MSSelection& selection) {
-    measurement_sets_.push_back(ms_provider);
+    measurement_sets_.push_back(std::move(ms_provider));
     selections_.push_back(selection);
   }
 
@@ -714,7 +714,7 @@ class MSGridderBase {
   size_t trim_height_ = 0;
   size_t w_grid_size_ = 0;
   size_t actual_w_grid_size_ = 0;
-  std::vector<MSProvider*> measurement_sets_;
+  std::vector<std::unique_ptr<MSProvider>> measurement_sets_;
   std::string data_column_name_;
   PsfMode psf_mode_ = PsfMode::kNone;
   bool do_subtract_model_ = false;

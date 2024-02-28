@@ -50,108 +50,63 @@ void GriddingTaskManager::Run(
 
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
                                               const Resources& resources) {
-  std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
-  gridder->SetGridMode(_settings.gridMode);
-
-  GriddingTask::FacetData& facet_task = task.facets.front();
-
-  gridder->ClearMeasurementSetList();
-  std::vector<std::unique_ptr<MSProvider>> msProviders;
-  for (auto& p : task.msList) {
-    msProviders.emplace_back(p->GetProvider());
-    gridder->AddMeasurementSet(msProviders.back().get(), p->Selection());
-  }
-
-  const bool has_input_average_beam(facet_task.averageBeam);
-  if (has_input_average_beam) {
-    assert(dynamic_cast<IdgMsGridder*>(gridder.get()));
-    IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(*gridder);
-    idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
-  }
-
-  gridder->SetFacetGroupIndex(task.facetGroupIndex);
-  const schaapcommon::facets::Facet* facet = facet_task.facet.get();
-  gridder->SetIsFacet(facet != nullptr);
-  if (facet) {
-    gridder->SetFacetIndex(facet_task.index);
-    gridder->SetImageWidth(facet->GetUntrimmedBoundingBox().Width());
-    gridder->SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
-    gridder->SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
-                         facet->GetTrimmedBoundingBox().Height());
-    gridder->SetFacetDirection(facet->RA(), facet->Dec());
-  } else {
-    gridder->SetImageWidth(_settings.paddedImageWidth);
-    gridder->SetImageHeight(_settings.paddedImageHeight);
-    gridder->SetTrimSize(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight);
-  }
-  gridder->SetLShift(facet_task.l_shift);
-  gridder->SetMShift(facet_task.m_shift);
-  std::unique_ptr<MetaDataCache> cache = std::move(facet_task.cache);
-  if (!cache) cache = std::make_unique<MetaDataCache>();
-  gridder->SetMetaDataCache(std::move(cache));
-
-  gridder->SetImagePadding(_settings.imagePadding);
-  gridder->SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
-  gridder->SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
-
-  if (_settings.hasShift) {
-    double main_image_dl = 0.0;
-    double main_image_dm = 0.0;
-    aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec,
-                                          task.observationInfo.phaseCentreRA,
-                                          task.observationInfo.phaseCentreDec,
-                                          main_image_dl, main_image_dm);
-    gridder->SetMainImageDL(main_image_dl);
-    gridder->SetMainImageDM(main_image_dm);
-  }
-
-  gridder->SetPolarization(task.polarization);
-  gridder->SetIsComplex(task.polarization == aocommon::Polarization::XY ||
-                        task.polarization == aocommon::Polarization::YX);
-  gridder->SetIsFirstTask(task.isFirstTask);
-  gridder->SetImageWeights(task.imageWeights.get());
-  if (task.operation == GriddingTask::Invert) {
-    if (task.imagePSF) {
-      if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
-        gridder->SetPsfMode(PsfMode::kDirectionDependent);
-      } else {
-        gridder->SetPsfMode(PsfMode::kSingle);
-      }
-    } else {
-      gridder->SetPsfMode(PsfMode::kNone);
-    }
-    gridder->SetDoSubtractModel(task.subtractModel);
-    gridder->SetStoreImagingWeights(task.storeImagingWeights);
-    gridder->Invert();
-  } else {
-    gridder->SetWriterLockManager(_writerLockManager);
-    gridder->Predict(std::move(facet_task.modelImages));
-  }
-
   GriddingResult result;
-  GriddingResult::FacetData& facet_result = result.facets.front();
-  facet_result.images = gridder->ResultImages();
   result.unique_id = task.unique_id;
-  result.startTime = gridder->StartTime();
-  result.beamSize = gridder->BeamSize();
-  facet_result.imageWeight = gridder->ImageWeight();
-  facet_result.normalizationFactor = gridder->NormalizationFactor();
-  facet_result.actualWGridSize = gridder->ActualWGridSize();
-  result.griddedVisibilityCount = gridder->GriddedVisibilityCount();
-  facet_result.effectiveGriddedVisibilityCount =
-      gridder->EffectiveGriddedVisibilityCount();
-  result.visibilityWeightSum = gridder->VisibilityWeightSum();
-  facet_result.averageCorrection = gridder->AverageCorrection();
-  facet_result.averageH5Correction = gridder->AverageH5Correction();
-  facet_result.cache = gridder->AcquireMetaDataCache();
+  result.facets.reserve(task.facets.size());
+  // The gridder resets visibility counters in each invocation.
+  result.griddedVisibilityCount = 0;
+  result.visibilityWeightSum = 0.0;
 
-  // If the average beam already exists on input, IDG will not recompute it, so
-  // in that case there is no need to return the unchanged average beam.
-  IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder.get());
-  if (idgGridder && !has_input_average_beam) {
-    facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
+  for (GriddingTask::FacetData& facet_task : task.facets) {
+    // Create a new gridder for each facet / sub-task, since gridders do not
+    // support reusing them for multiple tasks.
+    std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
+    InitializeGridderForTask(*gridder, task);
+
+    const bool has_input_average_beam(facet_task.averageBeam);
+    if (has_input_average_beam) {
+      assert(dynamic_cast<IdgMsGridder*>(gridder.get()));
+      IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(*gridder);
+      idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
+    }
+
+    InitializeGridderForFacet(*gridder, facet_task);
+
+    if (task.operation == GriddingTask::Invert) {
+      gridder->Invert();
+    } else {
+      gridder->Predict(std::move(facet_task.modelImages));
+    }
+
+    // Add facet-specific result values to the result.
+    GriddingResult::FacetData& facet_result = result.facets.emplace_back();
+    facet_result.images = gridder->ResultImages();
+    facet_result.actualWGridSize = gridder->ActualWGridSize();
+    facet_result.averageCorrection = gridder->AverageCorrection();
+    facet_result.averageH5Correction = gridder->AverageH5Correction();
+    facet_result.cache = gridder->AcquireMetaDataCache();
+
+    // The gridder resets visibility counters in each gridding invocation,
+    // so they only contain the statistics of that invocation.
+    facet_result.imageWeight = gridder->ImageWeight();
+    facet_result.normalizationFactor = gridder->NormalizationFactor();
+    facet_result.effectiveGriddedVisibilityCount =
+        gridder->EffectiveGriddedVisibilityCount();
+    result.griddedVisibilityCount += gridder->GriddedVisibilityCount();
+    result.visibilityWeightSum += gridder->VisibilityWeightSum();
+
+    // If the average beam already exists on input, IDG will not recompute it,
+    // so in that case there is no need to return the unchanged average beam.
+    IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder.get());
+    if (idgGridder && !has_input_average_beam) {
+      facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
+    }
+
+    // Store result values that are equal for all facets.
+    result.startTime = gridder->StartTime();
+    result.beamSize = gridder->BeamSize();
   }
+
   return result;
 }
 
@@ -180,4 +135,78 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::ConstructGridder(
       return std::make_unique<WSMSGridder>(_settings, resources);
   }
   return {};
+}
+
+void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
+                                                   const GriddingTask& task) {
+  gridder.SetGridMode(_settings.gridMode);
+
+  // Initialize gridder with values that are equal for all facets.
+  gridder.SetFacetGroupIndex(task.facetGroupIndex);
+  gridder.SetImagePadding(_settings.imagePadding);
+  gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
+
+  if (_settings.hasShift) {
+    double main_image_dl = 0.0;
+    double main_image_dm = 0.0;
+    aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec,
+                                          task.observationInfo.phaseCentreRA,
+                                          task.observationInfo.phaseCentreDec,
+                                          main_image_dl, main_image_dm);
+    gridder.SetMainImageDL(main_image_dl);
+    gridder.SetMainImageDM(main_image_dm);
+  }
+
+  gridder.SetPolarization(task.polarization);
+  gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
+                       task.polarization == aocommon::Polarization::YX);
+  gridder.SetIsFirstTask(task.isFirstTask);
+  gridder.SetImageWeights(task.imageWeights.get());
+  if (task.operation == GriddingTask::Invert) {
+    if (task.imagePSF) {
+      if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
+        gridder.SetPsfMode(PsfMode::kDirectionDependent);
+      } else {
+        gridder.SetPsfMode(PsfMode::kSingle);
+      }
+    } else {
+      gridder.SetPsfMode(PsfMode::kNone);
+    }
+    gridder.SetDoSubtractModel(task.subtractModel);
+    gridder.SetStoreImagingWeights(task.storeImagingWeights);
+  } else {
+    gridder.SetWriterLockManager(_writerLockManager);
+  }
+
+  gridder.ClearMeasurementSetList();
+  for (const std::unique_ptr<MSDataDescription>& description : task.msList) {
+    gridder.AddMeasurementSet(description->GetProvider(),
+                              description->Selection());
+  }
+}
+
+void GriddingTaskManager::InitializeGridderForFacet(
+    MSGridderBase& gridder, GriddingTask::FacetData& facet_task) {
+  const schaapcommon::facets::Facet* facet = facet_task.facet.get();
+  gridder.SetIsFacet(facet != nullptr);
+  if (facet) {
+    gridder.SetFacetIndex(facet_task.index);
+    gridder.SetImageWidth(facet->GetUntrimmedBoundingBox().Width());
+    gridder.SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
+    gridder.SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
+                        facet->GetTrimmedBoundingBox().Height());
+    gridder.SetFacetDirection(facet->RA(), facet->Dec());
+  } else {
+    gridder.SetImageWidth(_settings.paddedImageWidth);
+    gridder.SetImageHeight(_settings.paddedImageHeight);
+    gridder.SetTrimSize(_settings.trimmedImageWidth,
+                        _settings.trimmedImageHeight);
+  }
+  gridder.SetLShift(facet_task.l_shift);
+  gridder.SetMShift(facet_task.m_shift);
+
+  std::unique_ptr<MetaDataCache> cache = std::move(facet_task.cache);
+  if (!cache) cache = std::make_unique<MetaDataCache>();
+  gridder.SetMetaDataCache(std::move(cache));
 }

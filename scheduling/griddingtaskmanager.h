@@ -93,6 +93,12 @@ class GriddingTaskManager {
   std::unique_ptr<MSGridderBase> ConstructGridder(
       const Resources& resources) const;
 
+  void InitializeGridderForTask(MSGridderBase& gridder,
+                                const GriddingTask& task);
+
+  void InitializeGridderForFacet(MSGridderBase& gridder,
+                                 GriddingTask::FacetData& facet_task);
+
   const Settings& _settings;
 
   /**

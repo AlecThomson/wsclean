@@ -5,7 +5,6 @@
 
 #include "../idg/averagebeam.h"
 
-GriddingResult::GriddingResult() : facets(1) {}
 GriddingResult::GriddingResult(GriddingResult&& source) noexcept = default;
 GriddingResult::~GriddingResult() = default;
 GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept =

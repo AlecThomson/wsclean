@@ -152,18 +152,21 @@ class WSClean {
    */
   bool overrideImageSettings(const aocommon::FitsReader& reader);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
-  void loadExistingPSF(ImagingTableEntry& entry);
-  void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
+  void loadExistingPSF(std::shared_ptr<ImagingTableEntry> entry);
+  void loadExistingDirty(std::shared_ptr<ImagingTableEntry> entry,
+                         bool updateBeamInfo);
 
-  void imagePSF(ImagingTable::Group& facetGroup);
-  void imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result);
+  void ImagePsf(ImagingTable::Group&& facet_group);
+  void ImagePsfCallback(ImagingTable::Group facet_group,
+                        GriddingResult& result);
 
-  void imageMain(ImagingTable::Group& facetGroup, bool isFirstInversion,
-                 bool updateBeamInfo);
-  void imageMainCallback(ImagingTableEntry& entry, GriddingResult& result,
-                         bool updateBeamInfo, bool isFirstInversion);
+  void ImageMain(ImagingTable::Group& facet_group, bool is_first_inversion,
+                 bool update_beam_info);
+  void ImageMainCallback(ImagingTable::Group facet_group,
+                         GriddingResult& result, bool update_beam_info,
+                         bool is_first_inversion);
 
-  void predict(const ImagingTable::Group& facetGroup);
+  void Predict(const ImagingTable::Group& facet_group);
 
   void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
