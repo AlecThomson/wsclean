@@ -84,8 +84,13 @@ class Settings {
   std::string prefixName;
   bool joinedPolarizationDeconvolution;
   bool joinedFrequencyDeconvolution;
-  bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
-      isDirtySaved, isFirstResidualSaved;
+  bool minGridResolution;
+  bool makePSF;
+  bool makePSFOnly;
+  bool isWeightImageSaved;
+  bool isUVImageSaved;
+  bool isDirtySaved;
+  bool isFirstResidualSaved;
   bool reusePsf, reuseDirty;
   std::string reusePsfPrefix, reuseDirtyPrefix;
   bool writeImagingWeightSpectrumColumn;
@@ -300,7 +305,7 @@ inline Settings::Settings()
       prefixName("wsclean"),
       joinedPolarizationDeconvolution(false),
       joinedFrequencyDeconvolution(false),
-      smallInversion(true),
+      minGridResolution(true),
       makePSF(false),
       makePSFOnly(false),
       isWeightImageSaved(false),

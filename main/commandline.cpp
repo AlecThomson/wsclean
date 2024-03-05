@@ -260,10 +260,10 @@ Options can be:
    Split the bandwidth at the specified frequencies (in Hz) before the normal bandwidth
    division is performed. This can e.g. be useful for imaging multiple bands with irregular
    number of channels.
--no-small-inversion and -small-inversion
-   Perform inversion at the Nyquist resolution and upscale the image to the requested image size afterwards.
-   This speeds up inversion considerably, but makes aliasing slightly worse. This effect is
-   in most cases <1%. Default: on.
+-no-min-grid-resolution and -min-grid-resolution
+   Perform prediction and inversion at the Nyquist resolution and upscale the image to the requested image
+   size afterwards. This speeds up inversion and prediction considerably, but makes aliasing slightly worse.
+   This effect is in most cases <1%. Default: on.
 -make-psf
    Always make the psf, even when no cleaning is performed.
 -make-psf-only
@@ -886,10 +886,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "name") {
       IncArgi(argi, argc);
       settings.prefixName = argv[argi];
-    } else if (param == "small-inversion") {
-      settings.smallInversion = true;
-    } else if (param == "no-small-inversion") {
-      settings.smallInversion = false;
+    } else if (param == "min-grid-resolution" || param == "small-inversion") {
+      CheckDeprecated(isSlave, param, "min-grid-resolution");
+      settings.minGridResolution = true;
+    } else if (param == "no-min-grid-resolution" ||
+               param == "no-small-inversion") {
+      CheckDeprecated(isSlave, param, "no-min-grid-resolution");
+      settings.minGridResolution = false;
     } else if (param == "interval") {
       IncArgi(argi, argc);
       settings.startTimestep = ParseSizeT(argv[argi], "interval");
@@ -1258,7 +1261,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       Deprecated(isSlave, param, "gridder");
       settings.gridderType = GridderType::DirectFT;
       settings.imagePadding = 1.0;
-      settings.smallInversion = false;
+      settings.minGridResolution = false;
     } else if (param == "direct-ft-precision") {
       IncArgi(argi, argc);
       std::string precStr = argv[argi];
@@ -1282,7 +1285,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "recompile WSClean");
 #endif
         settings.gridderType = GridderType::IDG;
-        settings.smallInversion = false;
+        settings.minGridResolution = false;
       } else if (gridder_str == "wgridder") {
         settings.gridderType = GridderType::WGridder;
       } else if (gridder_str == "tuned-wgridder") {
@@ -1302,7 +1305,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           "recompile WSClean");
 #endif
       settings.gridderType = GridderType::IDG;
-      settings.smallInversion = false;
+      settings.minGridResolution = false;
     } else if (param == "idg-mode") {
       IncArgi(argi, argc);
       std::string mode =

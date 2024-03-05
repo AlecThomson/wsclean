@@ -64,7 +64,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
     : settings_(settings),
       w_grid_size_(settings.nWLayers),
       data_column_name_(settings.dataColumnName),
-      small_inversion_(settings.smallInversion),
+      small_inversion_(settings.minGridResolution),
       w_limit_(settings.wLimit / 100.0),
       weighting_(settings.weightMode),
       visibility_weighting_mode_(settings.visibilityWeightingMode) {
