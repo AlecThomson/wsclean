@@ -1,5 +1,6 @@
 #include "wgriddinggridder_simple.h"
 #include "ducc0/wgridder/wgridder.h"
+#include "ducc0/fft/fftnd_impl.h"
 
 using namespace ducc0;
 

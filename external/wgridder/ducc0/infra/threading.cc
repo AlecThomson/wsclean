@@ -52,7 +52,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ducc0/infra/threading.h"
 #include "ducc0/infra/error_handling.h"
 #include "ducc0/infra/misc_utils.h"
+#include "ducc0/infra/string_utils.h"
 #include <atomic>
+#include <exception>
 #include <utility>
 
 #ifdef DUCC0_STDCXX_LOWLEVEL_THREADING
@@ -62,8 +64,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <queue>
 #include <vector>
-#include <exception>
 #include <errno.h>
+#include <string>
 #include <string.h>
 #if __has_include(<pthread.h>)
 #include <pthread.h>
@@ -105,16 +107,6 @@ class latch
 
 #ifdef DUCC0_STDCXX_LOWLEVEL_THREADING
 
-static long mystrtol(const char *inp)
-  {
-  auto errno_bak = errno;
-  errno=0;
-  auto res = strtol(inp, nullptr, 10);
-  MR_assert(!errno, "error during strtol conversion ", strerror(errno));
-  errno=errno_bak;
-  return res;
-  }
-
 size_t ducc0_max_threads()
   {
   static const size_t max_threads_ = []()
@@ -130,10 +122,13 @@ size_t ducc0_max_threads()
     size_t res = std::max<size_t>(1, std::thread::hardware_concurrency());
 #endif
     auto evar=getenv("DUCC0_NUM_THREADS");
+    // fallback
+    if (!evar)
+      evar=getenv("OMP_NUM_THREADS");
     if (!evar)
       return res;
-    auto res2 = mystrtol(evar);
-    MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS");
+    auto res2 = stringToData<long>(trim(std::string(evar)));
+    MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS/OMP_NUM_THREADS");
     if (res2==0)
       return res;
     return std::min<size_t>(res, res2);
@@ -149,7 +144,7 @@ int pin_info()
     auto evar=getenv("DUCC0_PIN_DISTANCE");
     if (!evar)
       return -1; // do nothing at all
-    auto res = mystrtol(evar);
+    auto res = stringToData<long>(trim(std::string(evar)));
     return int(res);
     }();
   return pin_info_;
@@ -161,7 +156,7 @@ int pin_offset()
     auto evar=getenv("DUCC0_PIN_OFFSET");
     if (!evar)
       return 0;
-    auto res = mystrtol(evar);
+    auto res = stringToData<long>(trim(std::string(evar)));
     return int(res);
     }();
   return pin_offset_;
@@ -171,7 +166,7 @@ template <typename T> class concurrent_queue
   {
     std::queue<T> q_;
     Mutex mut_;
-    std::atomic<size_t> size_;
+    std::atomic<size_t> size_=0;
     using lock_t = LockGuard;
 
   public:
@@ -297,7 +292,7 @@ class ducc_thread_pool: public thread_pool
           worker->busy_flag.clear();
           worker->work = nullptr;
           worker->thread = std::thread(
-            [worker, this, i]{ worker->worker_main(shutdown_, unscheduled_tasks_, overflow_work_, i); });
+            [worker, this, i]{ worker->worker_main(shutdown_, unscheduled_tasks_, overflow_work_, i+1); });
           }
         catch (...)
           {
@@ -321,9 +316,7 @@ class ducc_thread_pool: public thread_pool
   public:
     explicit ducc_thread_pool(size_t nthreads):
       workers_(nthreads)
-      { create_threads(); }
-
-    ducc_thread_pool(): ducc_thread_pool(ducc0_max_threads()) {}
+      { do_pinning(0); create_threads(); }
 
     //virtual
     ~ducc_thread_pool() { shutdown(); }
@@ -403,7 +396,8 @@ thread_pool *set_active_pool(thread_pool *new_pool)
   { return std::exchange(active_pool, new_pool); }
 thread_pool *get_active_pool()
   {
-  MR_assert(active_pool!=nullptr, "no thread pool active");
+  if (!active_pool) active_pool = get_master_pool();
+  MR_assert(active_pool, "no thread pool active");
   return active_pool;
   }
 
@@ -444,10 +438,12 @@ thread_pool *get_active_pool()
   return active_pool;
   }
 
+static bool in_parallel_region=false;
+
 #endif
 
 size_t max_threads()
-  { return get_active_pool()->nthreads(); }
+  { return get_active_pool()->nthreads()+1; }
 size_t adjust_nthreads(size_t nthreads_in)
   { return get_active_pool()->adjust_nthreads(nthreads_in); }
 
@@ -600,7 +596,7 @@ template<typename T> class ScopedValueChanger
       { object=original_value; }
   };
 
-#define DUCC0_HIERARCHICAL_SUBMISSION
+//#define DUCC0_HIERARCHICAL_SUBMISSION
 #ifdef DUCC0_HIERARCHICAL_SUBMISSION
 
 // The next two definitions are taken from TensorFlow sources.
@@ -648,11 +644,11 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
   auto new_f = YCombinator([this, &f, &counter, &ex, &ex_mut, pool](auto &new_f, size_t istart, size_t step) -> void {
     try
       {
-      ScopedValueChanger changer(in_parallel_region, true);
+      ScopedValueChanger<bool> changer(in_parallel_region, true);
       ScopedUseThreadPool guard(*pool);
       for(; step>0; step>>=1)
         if(istart+step<nthreads_)
-          pool->submit([this, &f, &new_f, &counter, &ex, &ex_mut, pool, istart, step]()
+          pool->submit([&new_f, istart, step]()
             {new_f(istart+step, step>>1);});
       MyScheduler sched(*this, istart);
       f(sched);
@@ -692,7 +688,7 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
     }
   {
   // do remaining work directly on this thread
-  ScopedValueChanger changer(in_parallel_region, true);
+  ScopedValueChanger<bool> changer(in_parallel_region, true);
   MyScheduler sched(*this, 0);
   f(sched);
   }
@@ -736,6 +732,7 @@ void execParallel(size_t nthreads, std::function<void(Scheduler &)> func)
 void execParallel(size_t nthreads, std::function<void(size_t)> func)
   {
   Distribution dist;
+  MR_assert(nthreads==adjust_nthreads(nthreads), "bad nthreads value");
   dist.execParallel(nthreads, [&](Scheduler &sched)
     { func(sched.thread_num()); });
   }
@@ -753,7 +750,7 @@ void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
 void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
   std::function<void(size_t, size_t, size_t)> func)
   {
-  nthreads = adjust_nthreads(nthreads);
+  MR_assert(nthreads==adjust_nthreads(nthreads), "bad nthreads value");
   execParallel(nthreads, [&](Scheduler &sched)
     {
     auto tid = sched.thread_num();

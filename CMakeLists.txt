@@ -374,6 +374,7 @@ add_library(
   external/wgridder/ducc0/math/gl_integrator.cc
   external/wgridder/ducc0/infra/threading.cc
   external/wgridder/ducc0/infra/mav.cc
+  external/wgridder/ducc0/infra/string_utils.cc
   external/wgridder/ducc0/wgridder/wgridder.cc
   ${IDG_FILES}
   ${MPI_CPP_FILES})
