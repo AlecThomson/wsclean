@@ -1,6 +1,7 @@
 #ifndef SCHEDULING_THREADED_SCHEDULER_H_
 #define SCHEDULING_THREADED_SCHEDULER_H_
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -47,15 +48,35 @@ class ThreadedScheduler final : public GriddingTaskManager {
   void ProcessQueue();
   void ProcessReadyList();
 
-  using TaskQueueType = aocommon::TaskQueue<
-      std::pair<GriddingTask, std::function<void(GriddingResult&)>>>;
+  /// Contains all data for a single task.
+  struct TaskData {
+    GriddingTask task;
+    GriddingResult result;
+    std::mutex result_mutex;
+    std::atomic<std::size_t> finished_facet_count;
+    std::function<void(GriddingResult&)> callback;
+  };
 
-  std::mutex mutex_;  // Protects latest_exception_ and ready_list_.
-  std::exception_ptr latest_exception_;
+  /// The first value of the pair is the unique id for the tasks, for looking up
+  /// the task and its callback into task_data_map_.
+  /// The second value is the index of the facet for the sub-task.
+  using TaskQueueType = aocommon::TaskQueue<std::pair<size_t, size_t>>;
+
+  /// Protects task_data_map_, latest_exception_ and ready_list_.
+  std::mutex mutex_;
   std::vector<std::thread> thread_list_;
+  /// Stores the data for the pending tasks.
+  /// The map is indexed by the unique_id of the task.
+  std::map<std::size_t, TaskData> task_data_map_;
+  /// FIFO queue for the tasks.
+  /// Each sub-task, which processes a single facet, has an entry.
   TaskQueueType task_queue_;
-  std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
-      ready_list_;
+  /// Stores the unique_id for tasks that are complete, so the main thread
+  /// can execute the callback.
+  std::vector<size_t> ready_list_;
+  /// Stores the latest exception that occurred while running a task in a
+  /// thread, so the scheduler can rethrow it in the main thread.
+  std::exception_ptr latest_exception_;
   std::vector<std::mutex> writer_group_locks_;
 
   const Resources resources_per_task_;

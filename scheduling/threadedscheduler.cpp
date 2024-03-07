@@ -41,32 +41,60 @@ ThreadedScheduler::~ThreadedScheduler() {
 
 void ThreadedScheduler::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finish_callback) {
-  task_queue_.Emplace(std::move(task), std::move(finish_callback));
+  const std::size_t task_id = task.unique_id;
+  const std::size_t facet_count = task.facets.size();
+  TaskData* task_data;
+
+  // Add an entry in task_data_map_ for the task.
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    assert(task_data_map_.count(task_id) == 0);
+    task_data = &task_data_map_[task_id];
+  }
+  task_data->task = std::move(task);
+  task_data->result.facets.resize(facet_count);
+  task_data->callback = std::move(finish_callback);
+
+  // Add sub-tasks for each facet to the task queue.
+  for (std::size_t facet_index = 0; facet_index < facet_count; ++facet_index) {
+    task_queue_.Emplace(task_id, facet_index);
+  }
 
   ProcessReadyList();
 }
 
 void ThreadedScheduler::ProcessQueue() {
-  std::pair<GriddingTask, std::function<void(GriddingResult&)>> task_pair;
-  while (task_queue_.Pop(task_pair)) {
-    GriddingResult result;
+  std::pair<size_t, size_t> facet_task_pair;
+  while (task_queue_.Pop(facet_task_pair)) {
+    const std::size_t task_id = facet_task_pair.first;
+    const std::size_t facet_index = facet_task_pair.second;
+    TaskData& task_data = task_data_map_[task_id];
     try {
-      result = RunDirect(std::move(task_pair.first), resources_per_task_);
+      RunDirect(task_data.task, {facet_index}, resources_per_task_,
+                task_data.result, task_data.result_mutex);
     } catch (std::exception&) {
       std::lock_guard<std::mutex> lock(mutex_);
       latest_exception_ = std::current_exception();
     }
 
-    std::function<void(GriddingResult&)> callback = std::move(task_pair.second);
-    if (GetSettings().UseMpi()) {
-      // Execute callback immediately, from the processing thread.
-      // The MPIScheduler stores the result at the main node.
-      // The MPIWorkerScheduler sends the result to the main node.
-      callback(result);
-    } else {
-      // Store the result and execute the callback on the main thread.
-      std::lock_guard<std::mutex> lock(mutex_);
-      ready_list_.emplace_back(std::move(result), std::move(callback));
+    // Extract the new value from task_data.finished_facet_count directly.
+    // When extracting the new value later, another thread may also have
+    // incremented the atomic value in the mean time, and multiple threads
+    // will think they have processed the last facet.
+    const size_t finished_facet_count = ++task_data.finished_facet_count;
+    if (finished_facet_count == task_data.task.facets.size()) {
+      if (GetSettings().UseMpi()) {
+        // Execute callback immediately, from the processing thread.
+        // The MPIScheduler stores the result at the main node.
+        // The MPIWorkerScheduler sends the result to the main node.
+        task_data.callback(task_data.result);
+        std::lock_guard<std::mutex> lock(mutex_);
+        task_data_map_.erase(task_id);
+      } else {
+        // Store the task id and execute the callback on the main thread.
+        std::lock_guard<std::mutex> lock(mutex_);
+        ready_list_.emplace_back(task_id);
+      }
     }
   }
 }
@@ -91,8 +119,7 @@ void ThreadedScheduler::Finish() {
 }
 
 void ThreadedScheduler::ProcessReadyList() {
-  std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
-      local_ready_list;
+  std::vector<std::size_t> local_ready_list;
   std::exception_ptr local_exception;
 
   // Move the ready_list_ and latest_exception_ to local variables so we can
@@ -108,9 +135,17 @@ void ThreadedScheduler::ProcessReadyList() {
   }
 
   // Call callbacks for any finished tasks
-  for (std::pair<GriddingResult, std::function<void(GriddingResult&)>>& item :
-       local_ready_list) {
-    item.second(item.first);
+  for (std::size_t task_id : local_ready_list) {
+    TaskData& task_data = task_data_map_[task_id];
+    task_data.callback(task_data.result);
+  }
+
+  // Remove the finished tasks from task_data_map_.
+  if (!local_ready_list.empty()) {
+    std::lock_guard<std::mutex> lock{mutex_};
+    for (std::size_t task_id : local_ready_list) {
+      task_data_map_.erase(task_id);
+    }
   }
 
   if (local_exception) std::rethrow_exception(local_exception);

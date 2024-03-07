@@ -348,15 +348,28 @@ class TestFacets:
         Compares a basic serial run without compound tasks to
         runs with compound tasks.
         """
-        # TODO(AST-1471); Add tests with parallel gridding and/or mpi.
         names = [
-            "facets-h5-nocompound",
-            "facets-h5-compound-serial",
+            "facets-h5-nocompound-sequential",
+            "facets-h5-compound-sequential",
+            "facets-h5-compound-threaded",
+            "facets-h5-compound-sequential-mpi-local",
+            "facets-h5-compound-threaded-mpi-remote",
         ]
-        # Using only 2 threads/gridder yields relatively stable results.
+        # Because of the static channel-to-node map, using more than
+        # 2 processes makes no sense: This test only has a single channel.
+        # The MPI tests either run everything 'local'ly or 'remote'ly.
+        mpi_cmd = f"mpirun -np 2 {tcf.WSCLEAN_MP}"
+        # Using 5 tasks/node makes the main node send the compound tasks for
+        # the yy polarization while the task for xx is not yet finished
+        # Using only 1 thread/gridder yields very stable results: It allows
+        # using zero tolerance when comparing sequential runs (see below).
+        pg = "-j 5 -parallel-gridding 5"
         wsclean_commands = [
-            f"{tcf.WSCLEAN} -j 2",
-            f"{tcf.WSCLEAN} -j 2 -compound-tasks",
+            f"{tcf.WSCLEAN} -j 1",
+            f"{tcf.WSCLEAN} -j 1 -compound-tasks",
+            f"{tcf.WSCLEAN} {pg} -compound-tasks",
+            f"{mpi_cmd} -j 1 -compound-tasks",
+            f"{mpi_cmd} {pg} -compound-tasks -no-work-on-master",
         ]
         for name, command in zip(names, wsclean_commands):
             s = (
@@ -375,8 +388,9 @@ class TestFacets:
                 rms = compute_rms(f"{names[0]}-YY-image.fits")
                 assert np.isfinite(rms)
             else:
-                # Typical rms difference is about 1.0e-7
-                threshold = 3.0e-7
+                # Pure sequential tests should produce equal results.
+                # In parallel tests, typical RMS difference is about 1.0e-7.
+                threshold = 3.0e-7 if pg in command else 0.0
                 compare_rms_fits(
                     f"{names[0]}-YY-image.fits",
                     f"{name}-YY-image.fits",

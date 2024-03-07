@@ -1,5 +1,7 @@
 #include "griddingtaskmanager.h"
 
+#include <numeric>
+
 #include "mpischeduler.h"
 #include "threadedscheduler.h"
 
@@ -44,23 +46,36 @@ Resources GriddingTaskManager::GetResources() const {
 
 void GriddingTaskManager::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
-  GriddingResult result = RunDirect(std::move(task), GetResources());
+  std::vector<size_t> facet_indices(task.facets.size());
+  std::iota(facet_indices.begin(), facet_indices.end(), 0);
+
+  GriddingResult result;
+  result.facets.resize(task.facets.size());
+  std::mutex result_mutex;
+
+  RunDirect(task, facet_indices, GetResources(), result, result_mutex);
+
   finishCallback(result);
 }
 
-GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
-                                              const Resources& resources) {
-  GriddingResult result;
-  result.unique_id = task.unique_id;
-  result.facets.reserve(task.facets.size());
-  // The gridder resets visibility counters in each invocation.
-  result.griddedVisibilityCount = 0;
-  result.visibilityWeightSum = 0.0;
+void GriddingTaskManager::RunDirect(GriddingTask& task,
+                                    const std::vector<size_t>& facet_indices,
+                                    const Resources& resources,
+                                    GriddingResult& result,
+                                    std::mutex& result_mutex) {
+  assert(!facet_indices.empty());
+  assert(result.facets.size() == task.facets.size());
 
-  for (GriddingTask::FacetData& facet_task : task.facets) {
+  std::unique_ptr<MSGridderBase> gridder;
+
+  for (size_t facet_index : facet_indices) {
+    assert(facet_index < task.facets.size());
+    GriddingTask::FacetData& facet_task = task.facets[facet_index];
+    GriddingResult::FacetData& facet_result = result.facets[facet_index];
+
     // Create a new gridder for each facet / sub-task, since gridders do not
     // support reusing them for multiple tasks.
-    std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
+    gridder = ConstructGridder(resources);
     InitializeGridderForTask(*gridder, task);
 
     const bool has_input_average_beam(facet_task.averageBeam);
@@ -79,7 +94,6 @@ GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
     }
 
     // Add facet-specific result values to the result.
-    GriddingResult::FacetData& facet_result = result.facets.emplace_back();
     facet_result.images = gridder->ResultImages();
     facet_result.actualWGridSize = gridder->ActualWGridSize();
     facet_result.averageCorrection = gridder->AverageCorrection();
@@ -92,8 +106,11 @@ GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
     facet_result.normalizationFactor = gridder->NormalizationFactor();
     facet_result.effectiveGriddedVisibilityCount =
         gridder->EffectiveGriddedVisibilityCount();
-    result.griddedVisibilityCount += gridder->GriddedVisibilityCount();
-    result.visibilityWeightSum += gridder->VisibilityWeightSum();
+    {
+      std::lock_guard<std::mutex> result_lock(result_mutex);
+      result.griddedVisibilityCount += gridder->GriddedVisibilityCount();
+      result.visibilityWeightSum += gridder->VisibilityWeightSum();
+    }
 
     // If the average beam already exists on input, IDG will not recompute it,
     // so in that case there is no need to return the unchanged average beam.
@@ -101,13 +118,14 @@ GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task,
     if (idgGridder && !has_input_average_beam) {
       facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
     }
+  }
 
+  if (facet_indices.front() == 0) {
     // Store result values that are equal for all facets.
+    result.unique_id = task.unique_id;
     result.startTime = gridder->StartTime();
     result.beamSize = gridder->BeamSize();
   }
-
-  return result;
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::ConstructGridder(
@@ -141,7 +159,6 @@ void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
                                                    const GriddingTask& task) {
   gridder.SetGridMode(_settings.gridMode);
 
-  // Initialize gridder with values that are equal for all facets.
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
   gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
