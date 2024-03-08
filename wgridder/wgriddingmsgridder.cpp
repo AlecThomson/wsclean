@@ -260,8 +260,10 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
     {
       // Lock over all writing operations
       // We do technically not need to lock here yet, but it saves
-      GriddingTaskManager* lock = writer_lock_manager_->GetLock(
-          facet_group_index_ * MeasurementSetCount() + ms_index_);
+      const size_t lock_index =
+          facet_group_index_ * MeasurementSetCount() + ms_index_;
+      std::unique_ptr<GriddingTaskManager::WriterLock> lock =
+          writer_lock_manager_->GetLock(lock_index);
       for (size_t row = 0; row != nRows; ++row) {
         FlushBufferVisibilities(*msData.ms_provider,
                                 &visBuffer[row * selectedBand.ChannelCount()]);

@@ -47,9 +47,6 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   }
   _localScheduler.SetWriterLockManager(*this);
 
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  std::cout << "World size is " << world_size << std::endl;
   scheduling_threads.resize(world_size);
 }
 
@@ -88,7 +85,6 @@ void MPIScheduler::Finish() {
 
     if (_availableRoom.size() > 1) _receiveThread.join();
 
-    if (_workThread.joinable()) _workThread.join();
     _isRunning = false;
 
     // The while loop above ignores the work thread, which might
@@ -128,7 +124,6 @@ void MPIScheduler::send(GriddingTask&& task,
 
     scheduling_threads[node] = std::thread(
         [this](GriddingTask task, int node) -> void {
-          auto start = Time::now();
           aocommon::SerialOStream payloadStream;
           // To use MPI_Send_Big, a uint64_t need to be reserved
           payloadStream.UInt64(0);
