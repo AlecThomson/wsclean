@@ -94,9 +94,6 @@ void WSCFitsWriter::setGridderConfiguration(
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
-
-  /* This is the normalization factor that was applied. The factor is useful
-   * to undo the normalization for e.g. conversion to Kelvins. */
   _writer.SetExtraKeyword("WSCDATAC", settings.dataColumnName);
   _writer.SetExtraKeyword("WSCWEIGH", settings.weightMode.ToString());
   _writer.SetExtraKeyword("WSCGKRNL", settings.antialiasingKernelSize);
@@ -128,6 +125,8 @@ void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry,
                bandwidth = bandEnd - bandStart;
   _writer.SetFrequency(centreFrequency, bandwidth);
   _writer.SetExtraKeyword("WSCIMGWG", channelInfo.weight);
+  /* This is the normalization factor that was applied. The factor is useful
+   * to undo the normalization for e.g. conversion to Kelvins. */
   _writer.SetExtraKeyword("WSCNORMF", channelInfo.normalizationFactor);
   _writer.SetExtraKeyword("WSCNWLAY", channelInfo.wGridSize);
   _writer.SetExtraKeyword("WSCNVIS", channelInfo.visibilityCount);
