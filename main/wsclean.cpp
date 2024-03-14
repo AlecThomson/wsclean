@@ -72,8 +72,12 @@ WSClean::WSClean()
 
 WSClean::~WSClean() = default;
 
-GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
-                                          bool isPSF) {
+void WSClean::loadExistingImage(ImagingTableEntry& entry, bool isPSF) {
+  if (isPSF)
+    Logger::Info << "Loading existing PSF from disk...\n";
+  else
+    Logger::Info << "Loading existing dirty image from disk...\n";
+
   std::string name;
   if (isPSF) {
     Settings modifiedSettings(_settings);
@@ -95,33 +99,48 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
       reader.ImageHeight() != _settings.trimmedImageHeight)
     throw std::runtime_error(
         "Image width and height of reused PSF don't match with given settings");
-  Image psfImage(reader.ImageWidth(), reader.ImageHeight());
-  reader.Read(psfImage.Data());
+  Image image(reader.ImageWidth(), reader.ImageHeight());
+  reader.Read(image.Data());
 
-  GriddingResult result;
-  GriddingResult::FacetData& facet_result = result.facets.emplace_back();
-  facet_result.images = {std::move(psfImage)};
-  facet_result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
-  reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
-  double nVis = 0.0;
-  reader.ReadDoubleKeyIfExists("WSCNVIS", nVis);
-  result.griddedVisibilityCount = nVis;
+  const size_t channel_index = entry.outputChannelIndex;
+  OutputChannelInfo& channel_info = _infoPerChannel[channel_index];
+
+  entry.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
+  channel_info.weight = entry.imageWeight;
+  reader.ReadDoubleKeyIfExists("WSCVWSUM", channel_info.visibilityWeightSum);
+  double n_visibilities = channel_info.visibilityCount;
+  reader.ReadDoubleKeyIfExists("WSCNVIS", n_visibilities);
+  channel_info.visibilityCount = static_cast<size_t>(n_visibilities);
   reader.ReadDoubleKeyIfExists("WSCENVIS",
-                               facet_result.effectiveGriddedVisibilityCount);
-  return result;
-}
+                               channel_info.effectiveVisibilityCount);
+  reader.ReadDoubleKeyIfExists("WSCNORMF", channel_info.normalizationFactor);
+  entry.normalizationFactor = channel_info.normalizationFactor;
 
-void WSClean::loadExistingPSF(std::shared_ptr<ImagingTableEntry> entry) {
-  Logger::Info << "Loading existing PSF from disk...\n";
-  GriddingResult result = loadExistingImage(*entry, true);
-  ImagePsfCallback({std::move(entry)}, result);
-}
+  if (isPSF) {
+    processFullPSF(image, entry);
 
-void WSClean::loadExistingDirty(std::shared_ptr<ImagingTableEntry> entry,
-                                bool updateBeamInfo) {
-  Logger::Info << "Loading existing dirty image from disk...\n";
-  GriddingResult result = loadExistingImage(*entry, false);
-  ImageMainCallback({std::move(entry)}, result, updateBeamInfo, true);
+    _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
+    _psfImages.Store(image.Data(), *_settings.polarizations.begin(),
+                     channel_index, false);
+  } else {
+    // maxFacetGroupIndex is always 1
+    const size_t maxFacetGroupIndex = 1;
+    initializeModelImages(entry, *_settings.polarizations.begin(),
+                          maxFacetGroupIndex);
+    _residualImages.SetWSCFitsWriter(createWSCFitsWriter(
+        entry, *_settings.polarizations.begin(), false, false));
+    for (size_t imageIndex = 0; imageIndex != entry.imageCount; ++imageIndex) {
+      const bool isImaginary = (imageIndex == 1);
+      WSCFitsWriter writer(createWSCFitsWriter(
+          entry, *_settings.polarizations.begin(), isImaginary, false));
+      _residualImages.Store(image, *_settings.polarizations.begin(),
+                            channel_index, isImaginary);
+      if (_settings.isDirtySaved) {
+        Logger::Info << "Writing dirty image...\n";
+        writer.WriteImage("dirty.fits", image);
+      }
+    }
+  }
 }
 
 void WSClean::storeAverageBeam(const ImagingTableEntry& entry,
@@ -974,12 +993,12 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               entry.polarization == *_settings.polarizations.begin();
           return (entry.isDdPsf == doMakeDdPsf) && is_first_polarization;
         });
-    for (ImagingTable::Group& facet_group : facet_groups) {
-      if (_settings.reusePsf) {
-        for (std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
-          loadExistingPSF(entry);
-        }
-      } else {
+    if (_settings.reusePsf) {
+      for (ImagingTable::Group& facet_group : facet_groups) {
+        loadExistingImage(*facet_group.front(), true);
+      }
+    } else {
+      for (ImagingTable::Group& facet_group : facet_groups) {
         ImagePsf(std::move(facet_group));
       }
       _isFirstInversionTask = false;
@@ -987,7 +1006,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
     _griddingTaskManager->Finish();
 
-    if (!doMakeDdPsf) stitchFacets(groupTable, _psfImages, false, true);
+    if (!doMakeDdPsf && !_settings.reusePsf)
+      stitchFacets(groupTable, _psfImages, false, true);
   }
 
   if (!_settings.makePSFOnly) {
@@ -1432,7 +1452,8 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
   if (requestPolarizationsAtOnce) {
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
   }
-  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
+  if (!_settings.reuseDirty)
+    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
 }
 
 void WSClean::runFirstInversionGroup(
@@ -1470,7 +1491,7 @@ void WSClean::runFirstInversionGroup(
 
   if (_settings.reuseDirty) {
     for (const std::shared_ptr<ImagingTableEntry>& entry : facetGroup) {
-      loadExistingDirty(entry, !doMakePSF);
+      loadExistingImage(*entry, false);
     }
   } else {
     ImageMain(facetGroup, true, !doMakePSF);

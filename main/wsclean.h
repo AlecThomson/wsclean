@@ -151,10 +151,7 @@ class WSClean {
    * to be reset.
    */
   bool overrideImageSettings(const aocommon::FitsReader& reader);
-  GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
-  void loadExistingPSF(std::shared_ptr<ImagingTableEntry> entry);
-  void loadExistingDirty(std::shared_ptr<ImagingTableEntry> entry,
-                         bool updateBeamInfo);
+  void loadExistingImage(ImagingTableEntry& entry, bool isPSF);
 
   void ImagePsf(ImagingTable::Group&& facet_group);
   void ImagePsfCallback(ImagingTable::Group facet_group,

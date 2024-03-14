@@ -624,3 +624,28 @@ class TestFacets:
                 f"-mwa-path . {tcf.MWA_MOCK_FACET}"
             ).split()
         )
+
+    def test_facet_continuing(self):
+        nthreads = 4
+        s = (
+            f"{tcf.WSCLEAN} -parallel-gridding {nthreads} "
+            f"{tcf.DIMS_SMALL} -niter 100 -auto-threshold 5 -mgain 0.8 -channels-out 2 "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-name facet-continuing-a {tcf.MWA_MOCK_FULL}"
+        )
+        validate_call(s.split())
+        s = (
+            f"{tcf.WSCLEAN} -reuse-psf facet-continuing-a -reuse-dirty facet-continuing-a "
+            f"-parallel-gridding {nthreads} {tcf.DIMS_SMALL} -niter 100 "
+            f"-auto-threshold 5 -mgain 0.8 -channels-out 2 -facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-name facet-continuing-b -v {tcf.MWA_MOCK_FULL}"
+        )
+        validate_call(s.split())
+        basic_image_check("facet-continuing-b-0000-dirty.fits")
+        basic_image_check("facet-continuing-b-0000-image.fits")
+        basic_image_check("facet-continuing-b-0000-psf.fits")
+        basic_image_check("facet-continuing-b-0000-residual.fits")
+        basic_image_check("facet-continuing-b-0001-dirty.fits")
+        basic_image_check("facet-continuing-b-0001-image.fits")
+        basic_image_check("facet-continuing-b-0001-psf.fits")
+        basic_image_check("facet-continuing-b-0001-residual.fits")
