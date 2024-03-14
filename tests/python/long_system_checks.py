@@ -503,6 +503,8 @@ class TestLongSystem:
         # with the same index
         assert all(np.argmin(diff, axis=0) == np.arange(num_psfs))
 
+    def test_reuse_dd_psfs(self):
+
     def test_read_only_ms(self):
         chmod = f"chmod a-w -R {tcf.MWA_MS}"
         validate_call(chmod.split())

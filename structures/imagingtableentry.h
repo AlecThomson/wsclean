@@ -83,7 +83,8 @@ struct ImagingTableEntry {
 
   /**
    * Index of the entry within a facet group, which equals the index of 'facet'
-   * in WSClean::_facets.
+   * in WSClean::_facets. In case of a DD PSF entry (@see isDdPsf) this is the
+   * index of the PSF.
    */
   size_t facetIndex;
 

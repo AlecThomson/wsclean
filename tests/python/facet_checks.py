@@ -649,3 +649,30 @@ class TestFacets:
         basic_image_check("facet-continuing-b-0001-image.fits")
         basic_image_check("facet-continuing-b-0001-psf.fits")
         basic_image_check("facet-continuing-b-0001-residual.fits")
+
+    def test_dd_psf_continuing(self):
+        nthreads = 4
+        s = (
+            f"{tcf.WSCLEAN} -parallel-gridding {nthreads} "
+            f"-size 1024 1024 -scale 1amin -channels-out 2 -parallel-deconvolution 256 "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-dd-psf-grid 4 4 -make-psf -apply-facet-beam -mwa-path . "
+            f"-name dd-psf-reuse-a {tcf.MWA_MOCK_FULL}"
+        )
+        validate_call(s.split())
+        s = (
+            f"{tcf.WSCLEAN} -reuse-psf dd-psf-reuse-a -reuse-dirty dd-psf-reuse-a -parallel-deconvolution 256 "
+            f"-parallel-gridding {nthreads} -size 1024 1024 -scale 1amin -niter 1000 "
+            f"-auto-threshold 5 -mgain 0.8 -channels-out 2 -facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-dd-psf-grid 4 4 -apply-facet-beam -mwa-path . "
+            f"-name dd-psf-reuse-b {tcf.MWA_MOCK_FULL}"
+        )
+        validate_call(s.split())
+        basic_image_check("dd-psf-reuse-b-0000-dirty.fits")
+        basic_image_check("dd-psf-reuse-b-0000-image.fits")
+        basic_image_check("dd-psf-reuse-b-0000-psf.fits")
+        basic_image_check("dd-psf-reuse-b-0000-residual.fits")
+        basic_image_check("dd-psf-reuse-b-0001-dirty.fits")
+        basic_image_check("dd-psf-reuse-b-0001-image.fits")
+        basic_image_check("dd-psf-reuse-b-0001-psf.fits")
+        basic_image_check("dd-psf-reuse-b-0001-residual.fits")
