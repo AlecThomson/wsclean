@@ -7,6 +7,7 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 from astropy.wcs import WCS
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.coordinates import Angle
 import numpy as np
 import argparse
 import sys
