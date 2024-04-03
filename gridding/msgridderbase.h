@@ -452,8 +452,14 @@ class MSGridderBase {
   inline void ReadVisibilities(MSReader& ms_reader, InversionRow& row_data,
                                float* weight_buffer,
                                std::complex<float>* model_buffer) {
+    ReadVisibilities(ms_reader, row_data.data, weight_buffer, model_buffer);
+  }
+  inline void ReadVisibilities(MSReader& ms_reader,
+                               std::complex<float>* visibility_buffer,
+                               float* weight_buffer,
+                               std::complex<float>* model_buffer) {
     if (GetPsfMode() == PsfMode::kNone) {
-      ms_reader.ReadData(row_data.data);
+      ms_reader.ReadData(visibility_buffer);
     }
     if (DoSubtractModel()) {
       ms_reader.ReadModel(model_buffer);
