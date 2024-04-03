@@ -421,6 +421,14 @@ class MSGridderBase {
   }
 
   template <size_t PolarizationCount>
+  std::complex<float>& InlineApplyWeightsAndCorrections(
+      const std::vector<std::string>& antenna_names,
+      const aocommon::BandData& cur_band, float* scratch_weight_buffer,
+      float* weight_buffer, std::complex<float>* visibility_buffer,
+      size_t visibility_index, size_t row, size_t channel,
+      const MSProvider::MetaData& meta_data);
+
+  template <size_t PolarizationCount>
   void ApplyWeightsAndCorrections(const std::vector<std::string>& antenna_names,
                                   InversionRow& row_data,
                                   const aocommon::BandData& cur_band,
@@ -661,6 +669,96 @@ class MSGridderBase {
                         float* weight_buffer, std::complex<float>* model_buffer,
                         const bool* is_selected);
 
+  // Equivalent functionality to 'ApplyWeightsAndCorrections' however written so
+  // that it can apply the corrections inlines and out of order e.g. from within
+  // a gridder that wants to get them "on the fly" As opposed to sequentially
+  // being called in order one row at a time like 'ApplyWeightsAndCorrections'
+  // is
+  template <size_t PolarizationCount, GainMode GainEntry>
+  inline std::complex<float>& InlineApplyWeightsAndCorrections(
+      const std::vector<std::string>& antenna_names,
+      const aocommon::BandData& curBand, float* scratch_weight_buffer,
+      float* weight_buffer, std::complex<float>* visibility_buffer,
+      size_t visibility_index, size_t row, size_t channel,
+      const MSProvider::MetaData& metaData) {
+    const size_t channel_count = curBand.ChannelCount();
+    const size_t data_size = PolarizationCount * channel_count;
+
+    // Calculate a row at a time, and cache up to 256 rows before throwing one
+    // away (well overwriting instead) This avoids excessive duplicate
+    // computation.
+    thread_local static std::vector<aocommon::UVector<std::complex<float>>>
+        visibility_row(256, aocommon::UVector<std::complex<float>>(data_size));
+    thread_local static size_t last_row = std::numeric_limits<size_t>::max();
+    thread_local static uint8_t row_index = 0;
+    if (last_row != row) {
+      last_row = row;
+      ++row_index;
+
+      // Read the visibilities into our cache so we can modify them in place
+      // without touching the original underlying data
+      std::copy_n(&visibility_buffer[row * data_size], data_size,
+                  visibility_row[row_index].data());
+      float* row_scratch_weights = &scratch_weight_buffer[row * channel_count];
+      float* row_weight_iter = &weight_buffer[row * data_size];
+      std::complex<float>* row_visibility_iter =
+          visibility_row[row_index].data();
+
+      // Apply corrections
+      if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
+        const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
+        const bool apply_beam =
+            settings_.applyFacetBeam || settings_.gridWithBeam;
+        if (apply_beam && visibility_modifier_.HasH5Parm()) {
+          // This has been temporarily removed for prototyping purposes. We will
+          // need to add it back once we have proven the prototype.
+          exit(721);
+        } else if (apply_beam) {
+          // This has been temporarily removed for prototyping purposes. We will
+          // need to add it back once we have proven the prototype.
+          exit(722);
+        } else if (visibility_modifier_.HasH5Parm()) {
+          visibility_modifier_
+              .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
+                  visibility_row[row_index].data(), row_weight_iter,
+                  row_scratch_weights, ms_index_, channel_count,
+                  antenna_names.size(), metaData.antenna1, metaData.antenna2,
+                  apply_forward, time_offsets_[ms_index_][row]);
+        }
+      }
+
+      // We might be applying these same weights multiple times, so ensure it
+      // only counts towards the totals the first time around
+      bool already_counted = already_counted_weights[row];
+      if (!already_counted) {
+        already_counted_weights[row] = true;
+      }
+      // Apply visibility and imaging weights
+      for (size_t ch = 0; ch != channel_count; ++ch) {
+        for (size_t p = 0; p != PolarizationCount; ++p) {
+          double cum_weight = *row_weight_iter * row_scratch_weights[ch];
+          if (!already_counted) {
+            if (p == 0 && cum_weight != 0.0) {
+              // Visibility weight sum is the sum of weights excluding imaging
+              // weights
+              visibility_weight_sum_ += *row_weight_iter;
+              max_gridded_weight_ = std::max(cum_weight, max_gridded_weight_);
+              ++gridded_visibility_count_;
+            }
+            // Total weight includes imaging weights
+            total_weight_ += cum_weight;
+          }
+          *row_visibility_iter *= cum_weight;
+          ++row_visibility_iter;
+          ++row_weight_iter;
+        }
+      }
+    }
+
+    // Return the actual visibility that has been asked for from the cache
+    return visibility_row[row_index][channel];
+  }
+
   template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyWeightsAndCorrections(const std::vector<std::string>& antenna_names,
                                   InversionRow& row_data,
@@ -789,6 +887,7 @@ class MSGridderBase {
   double start_time_ = 0.0;
 
  public:
+  std::vector<bool> already_counted_weights;
   std::map<size_t, std::vector<size_t>> time_offsets_;
 
  private:
@@ -807,6 +906,54 @@ class MSGridderBase {
 
   VisibilityModifier visibility_modifier_;
 };
+
+template <size_t PolarizationCount>
+inline std::complex<float>& MSGridderBase::InlineApplyWeightsAndCorrections(
+    const std::vector<std::string>& antenna_names,
+    const aocommon::BandData& cur_band, float* scratch_weight_buffer,
+    float* weight_buffer, std::complex<float>* visibility_buffer,
+    size_t visibility_index, size_t row, size_t channel,
+    const MSProvider::MetaData& meta_data) {
+  switch (gain_mode_) {
+    case GainMode::kXX:
+      if constexpr (PolarizationCount == 1) {
+        return InlineApplyWeightsAndCorrections<PolarizationCount,
+                                                GainMode::kXX>(
+            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
+            visibility_buffer, visibility_index, row, channel, meta_data);
+      }
+      break;
+    case GainMode::kYY:
+      if constexpr (PolarizationCount == 1) {
+        return InlineApplyWeightsAndCorrections<PolarizationCount,
+                                                GainMode::kYY>(
+            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
+            visibility_buffer, visibility_index, row, channel, meta_data);
+      }
+      break;
+    case GainMode::kDiagonal:
+      if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
+        return InlineApplyWeightsAndCorrections<PolarizationCount,
+                                                GainMode::kDiagonal>(
+            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
+            visibility_buffer, visibility_index, row, channel, meta_data);
+      }
+      break;
+    case GainMode::kFull:
+      if constexpr (PolarizationCount == 4) {
+        return InlineApplyWeightsAndCorrections<PolarizationCount,
+                                                GainMode::kFull>(
+            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
+            visibility_buffer, visibility_index, row, channel, meta_data);
+      } else {
+        throw std::runtime_error(
+            "Invalid combination of visibility polarizations and gain mode");
+      }
+      break;
+    default:
+      throw std::runtime_error("Unknown gain mode");
+  }
+}
 
 template <size_t PolarizationCount>
 inline void MSGridderBase::ApplyWeightsAndCorrections(
