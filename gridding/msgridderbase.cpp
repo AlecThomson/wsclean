@@ -538,6 +538,20 @@ void MSGridderBase::CalculateWeights(double* uvw_buffer,
   }
 }
 
+void MSGridderBase::PreCacheCorrections(
+    const MSProvider::MetaData& metaData,
+    const std::vector<std::string>& antenna_names,
+    const aocommon::BandData& curBand) {
+  if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
+    if (visibility_modifier_.HasH5Parm()) {
+      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                             curBand, ms_index_);
+      (time_offsets_[ms_index_])
+          .push_back(visibility_modifier_._timeOffset[ms_index_]);
+    }
+  }
+}
+
 template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::ApplyWeightsAndCorrections(
     const std::vector<std::string>& antenna_names, InversionRow& rowData,

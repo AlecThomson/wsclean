@@ -427,6 +427,10 @@ class MSGridderBase {
                                   float* weight_buffer,
                                   const MSProvider::MetaData& meta_data);
 
+  void PreCacheCorrections(const MSProvider::MetaData& metaData,
+                           const std::vector<std::string>& antenna_names,
+                           const aocommon::BandData& curBand);
+
   /**
    * Read a row of visibility and weights from the msprovider
    *
@@ -778,6 +782,10 @@ class MSGridderBase {
   double band_end_ = 0.0;
   double start_time_ = 0.0;
 
+ public:
+  std::map<size_t, std::vector<size_t>> time_offsets_;
+
+ private:
   size_t gridded_visibility_count_ = 0;
   double total_weight_ = 0.0;
   double max_gridded_weight_ = 0.0;

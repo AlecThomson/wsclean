@@ -135,6 +135,9 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
                                uvwBuffer.data(), frequencies.data(),
                                visBuffer.data());
 
+    // Clear 'per chunk' data that we have cached
+    time_offsets_.clear();
+
     totalNRows += nRows;
   }  // end of chunk
 
