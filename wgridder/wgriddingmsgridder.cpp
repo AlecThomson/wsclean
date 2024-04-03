@@ -82,9 +82,8 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   StartMeasurementSet(msData, false);
 
   const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
-  const size_t dataSize = selectedBand.ChannelCount() * n_vis_polarizations;
-  aocommon::UVector<std::complex<float>> modelBuffer(dataSize);
-  aocommon::UVector<float> weightBuffer(dataSize);
+  const size_t data_size = selectedBand.ChannelCount() * n_vis_polarizations;
+  aocommon::UVector<std::complex<float>> modelBuffer(data_size);
   aocommon::UVector<bool> isSelected(selectedBand.ChannelCount(), true);
 
   size_t totalNRows = 0;
@@ -94,14 +93,23 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
   size_t maxNRows = calculateMaxNRowsInMemory(selectedBand.ChannelCount());
 
-  aocommon::UVector<std::complex<float>> visBuffer(maxNRows *
-                                                   selectedBand.ChannelCount());
-  aocommon::UVector<double> uvwBuffer(maxNRows * 3);
+  // For the sake of simplicity the prototype does not *yet* support more than 1
+  // polarization here. We will initially be testing the prototype in a way that
+  // n_vis_polarizations is always 1 We force an exit here to  make it apparent
+  // if a mistake has been made As this develops into a full feature we will
+  // have to change and implement this
+  if (n_vis_polarizations > 1) {
+    exit(657);
+  }
+
+  aocommon::UVector<double> uvw_buffer(maxNRows * 3);
+  aocommon::UVector<std::complex<float>> visibility_buffer(maxNRows *
+                                                           data_size);
+  aocommon::UVector<float> weight_buffer(maxNRows * data_size);
+  aocommon::UVector<float> uv_buffer(maxNRows * selectedBand.ChannelCount());
+  aocommon::UVector<MSProvider::MetaData> metadata_buffer(maxNRows);
 
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-  aocommon::UVector<std::complex<float>> newItemData(dataSize);
-  InversionRow newRowData;
-  newRowData.data = newItemData.data();
 
   // Iterate over chunks until all data has been gridded
   while (msReader->CurrentRowAvailable()) {
@@ -109,34 +117,79 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
     Logger::Info << "Loading data in memory...\n";
 
     size_t nRows = 0;
+    std::complex<float>* vis_buffer_index = visibility_buffer.data();
+    float* weight_buffer_index = weight_buffer.data();
+    float* uv_buffer_index = uv_buffer.data();
+    double* uvw_buffer_index = uvw_buffer.data();
+    MSProvider::MetaData* meta_data = metadata_buffer.data();
 
     // Read / fill the chunk
     while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
-      MSProvider::MetaData metaData;
-      msReader->ReadMeta(metaData);
-      newRowData.uvw[0] = metaData.uInM;
-      newRowData.uvw[1] = metaData.vInM;
-      newRowData.uvw[2] = metaData.wInM;
+      msReader->ReadMeta(*meta_data);
+      uvw_buffer_index[0] = meta_data->uInM;
+      uvw_buffer_index[1] = meta_data->vInM;
+      uvw_buffer_index[2] = meta_data->wInM;
 
-      GetCollapsedVisibilities(*msReader, msData.antenna_names, newRowData,
-                               selectedBand, weightBuffer.data(),
-                               modelBuffer.data(), isSelected.data(), metaData);
+      // Read and store all visibilities and weights, we need them all in memory
+      // when calling 'InlineApplyWeightsAndCorrections' so that we can
+      // calculate the final visibilities to return correctly
+      ReadVisibilities(*msReader, vis_buffer_index, weight_buffer_index,
+                       modelBuffer.data());
+      CalculateWeights(uvw_buffer_index, vis_buffer_index, selectedBand,
+                       weight_buffer_index, modelBuffer.data(),
+                       isSelected.data());
 
-      std::copy_n(newRowData.data, selectedBand.ChannelCount(),
-                  &visBuffer[nRows * selectedBand.ChannelCount()]);
-      std::copy_n(newRowData.uvw, 3, &uvwBuffer[nRows * 3]);
+      // We need to store all the calculated uv values as we will need them when
+      // apply the weights/corrections inline
+      std::copy_n(scratch_image_weights_.data(), selectedBand.ChannelCount(),
+                  uv_buffer_index);
+
+      // Prime some of the required correction caches so that the correct data
+      // is already available when we calculate/apply them inline
+      PreCacheCorrections(*meta_data, msData.antenna_names, selectedBand);
+      already_counted_weights.push_back(false);
+
+      // We don't currently store the imaging weights
+      // For testing we don't need this
+      // Final implementation will need this
+      // if (StoreImagingWeights())
+      // ms_reader.WriteImagingWeights(scratch_image_weights_.data());
+
+      weight_buffer_index += data_size;
+      vis_buffer_index += data_size;
+      uv_buffer_index += selectedBand.ChannelCount();
+      uvw_buffer_index += 3;
+      ++meta_data;
 
       ++nRows;
       msReader->NextInputRow();
     }
 
+    std::function<std::complex<float>&(size_t index)> getVisibilityWithWeight;
+    if (n_vis_polarizations == 1) {
+      getVisibilityWithWeight = [&](size_t index) -> std::complex<float>& {
+        size_t row = index / data_size;
+        size_t channel = index % data_size;
+        MSProvider::MetaData& meta_data = metadata_buffer[row];
+
+        return InlineApplyWeightsAndCorrections<1>(
+            msData.antenna_names, selectedBand, uv_buffer.data(),
+            weight_buffer.data(), visibility_buffer.data(), index, row, channel,
+            meta_data);
+      };
+    }
+
+    auto ms = cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>>(
+        {nRows, selectedBand.ChannelCount()},
+        cvirtmembuf<std::complex<float>>(getVisibilityWithWeight));
+
     Logger::Info << "Gridding " << nRows << " rows...\n";
     gridder_->AddInversionData(nRows, selectedBand.ChannelCount(),
-                               uvwBuffer.data(), frequencies.data(),
-                               visBuffer.data());
+                               uvw_buffer.data(), frequencies.data(), ms);
 
     // Clear 'per chunk' data that we have cached
     time_offsets_.clear();
+    already_counted_weights.clear();
 
     totalNRows += nRows;
   }  // end of chunk

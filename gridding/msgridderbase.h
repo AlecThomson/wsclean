@@ -23,6 +23,7 @@
 
 #include <aocommon/uvector.h>
 
+#include <map>
 #include <mutex>
 #include <memory>
 
@@ -890,13 +891,14 @@ class MSGridderBase {
   std::vector<bool> already_counted_weights;
   std::map<size_t, std::vector<size_t>> time_offsets_;
 
- private:
   size_t gridded_visibility_count_ = 0;
   double total_weight_ = 0.0;
   double max_gridded_weight_ = 0.0;
   double visibility_weight_sum_ = 0.0;
 
   aocommon::UVector<float> scratch_image_weights_;
+
+ private:
   /// Initialized in StartMeasurementSet(), used in WriteCollapsedVisibilities()
   /// to expand visibilities into.
   aocommon::UVector<std::complex<float>> scratch_model_data_;
