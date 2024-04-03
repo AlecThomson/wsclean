@@ -398,6 +398,28 @@ class MSGridderBase {
       ms_reader.WriteImagingWeights(scratch_image_weights_.data());
   }
 
+  inline void CalculateWeights(double* uvw_buffer,
+                               std::complex<float>* visibility_buffer,
+                               const aocommon::BandData& cur_band,
+                               float* weight_buffer,
+                               std::complex<float>* model_buffer,
+                               const bool* is_selected) {
+    switch (n_vis_polarizations_) {
+      case 1:
+        CalculateWeights<1>(uvw_buffer, visibility_buffer, cur_band,
+                            weight_buffer, model_buffer, is_selected);
+        break;
+      case 2:
+        CalculateWeights<2>(uvw_buffer, visibility_buffer, cur_band,
+                            weight_buffer, model_buffer, is_selected);
+        break;
+      case 4:
+        CalculateWeights<4>(uvw_buffer, visibility_buffer, cur_band,
+                            weight_buffer, model_buffer, is_selected);
+        break;
+    }
+  }
+
   template <size_t PolarizationCount>
   void ApplyWeightsAndCorrections(const std::vector<std::string>& antenna_names,
                                   InversionRow& row_data,
@@ -613,7 +635,18 @@ class MSGridderBase {
   void initializePointResponse(const MSData& msData);
 
   template <size_t PolarizationCount>
-  void CalculateWeights(InversionRow& row_data,
+  inline void CalculateWeights(InversionRow& rowData,
+                               const aocommon::BandData& curBand,
+                               float* weightBuffer,
+                               std::complex<float>* modelBuffer,
+                               const bool* isSelected) {
+    CalculateWeights<PolarizationCount>(rowData.uvw, rowData.data, curBand,
+                                        weightBuffer, modelBuffer, isSelected);
+  }
+
+  template <size_t PolarizationCount>
+  void CalculateWeights(double* uvw_buffer,
+                        std::complex<float>* visibility_buffer,
                         const aocommon::BandData& cur_band,
                         float* weight_buffer, std::complex<float>* model_buffer,
                         const bool* is_selected);
