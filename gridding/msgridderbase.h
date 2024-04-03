@@ -728,32 +728,48 @@ class MSGridderBase {
         }
       }
 
+      // Adjust these values locally then only set them once to the shared
+      // variable, this way we reduce contention and reduce the need for locking
+      double local_visibility_weight_sum = 0.0;
+      double local_max_gridded_weight = 0.0;
+      double local_total_weight = 0.0;
+      size_t local_visibility_count = 0;
+      // Apply visibility and imaging weights
+      for (size_t ch = 0; ch != channel_count; ++ch) {
+        for (size_t p = 0; p != PolarizationCount; ++p) {
+          double cum_weight = *row_weight_iter * row_scratch_weights[ch];
+
+          if (p == 0 && cum_weight != 0.0) {
+            // Visibility weight sum is the sum of weights excluding imaging
+            // weights
+            local_visibility_weight_sum += *row_weight_iter;
+            local_max_gridded_weight =
+                std::max(cum_weight, local_max_gridded_weight);
+            ++local_visibility_count;
+          }
+          // Total weight includes imaging weights
+          local_total_weight += cum_weight;
+
+          *row_visibility_iter *= cum_weight;
+          ++row_visibility_iter;
+          ++row_weight_iter;
+        }
+      }
+      total_weight_mutex_.lock();
       // We might be applying these same weights multiple times, so ensure it
       // only counts towards the totals the first time around
       bool already_counted = already_counted_weights[row];
       if (!already_counted) {
         already_counted_weights[row] = true;
       }
-      // Apply visibility and imaging weights
-      for (size_t ch = 0; ch != channel_count; ++ch) {
-        for (size_t p = 0; p != PolarizationCount; ++p) {
-          double cum_weight = *row_weight_iter * row_scratch_weights[ch];
-          if (!already_counted) {
-            if (p == 0 && cum_weight != 0.0) {
-              // Visibility weight sum is the sum of weights excluding imaging
-              // weights
-              visibility_weight_sum_ += *row_weight_iter;
-              max_gridded_weight_ = std::max(cum_weight, max_gridded_weight_);
-              ++gridded_visibility_count_;
-            }
-            // Total weight includes imaging weights
-            total_weight_ += cum_weight;
-          }
-          *row_visibility_iter *= cum_weight;
-          ++row_visibility_iter;
-          ++row_weight_iter;
-        }
+      if (!already_counted) {
+        visibility_weight_sum_ += local_visibility_weight_sum;
+        max_gridded_weight_ =
+            std::max(local_max_gridded_weight, max_gridded_weight_);
+        gridded_visibility_count_ += local_visibility_count;
+        total_weight_ += local_total_weight;
       }
+      total_weight_mutex_.unlock();
     }
 
     // Return the actual visibility that has been asked for from the cache
@@ -892,6 +908,7 @@ class MSGridderBase {
   std::map<size_t, std::vector<size_t>> time_offsets_;
 
   size_t gridded_visibility_count_ = 0;
+  std::mutex total_weight_mutex_;
   double total_weight_ = 0.0;
   double max_gridded_weight_ = 0.0;
   double visibility_weight_sum_ = 0.0;

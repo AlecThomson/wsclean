@@ -266,6 +266,7 @@ class VisibilityModifier {
    * recalculated when doing the final image-based beam correction. In order to
    * do so, the h5 sum must be separately stored.
    */
+  std::mutex correction_sum_mutex_;
   long double correction_sum_ = 0.0;
   long double h5_correction_sum_ = 0.0;
   /**

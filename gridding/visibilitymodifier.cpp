@@ -392,7 +392,9 @@ void VisibilityModifier::ApplyConjugatedBeamResponse(
     data += PolarizationCount;
     weights += PolarizationCount;
   }
+  correction_sum_mutex_.lock();
   correction_sum_ += local_correction_sum;
+  correction_sum_mutex_.unlock();
 }
 
 template void VisibilityModifier::ApplyConjugatedBeamResponse<1, GainMode::kXX>(
@@ -610,7 +612,9 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
       weights += PolarizationCount;
     }
   }
+  correction_sum_mutex_.lock();
   correction_sum_ += local_correction_sum;
+  correction_sum_mutex_.unlock();
 }
 
 template void VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kXX>(
@@ -754,8 +758,10 @@ void VisibilityModifier::ApplyConjugatedDual(
       weights += PolarizationCount;
     }
   }
+  correction_sum_mutex_.lock();
   correction_sum_ += correctionSum;
   h5_correction_sum_ += h5Sum;
+  correction_sum_mutex_.unlock();
 }
 
 template void VisibilityModifier::ApplyConjugatedDual<1, GainMode::kXX>(
