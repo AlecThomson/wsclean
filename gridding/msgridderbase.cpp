@@ -574,7 +574,8 @@ void MSGridderBase::ApplyWeightsAndCorrections(
           .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
               rowData.data, weightBuffer, scratch_image_weights_.data(),
               ms_index_, curBand.ChannelCount(), antenna_names.size(),
-              metaData.antenna1, metaData.antenna2, apply_forward);
+              metaData.antenna1, metaData.antenna2, apply_forward,
+              visibility_modifier_._timeOffset[ms_index_]);
     }
   }
 

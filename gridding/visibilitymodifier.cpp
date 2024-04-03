@@ -556,7 +556,7 @@ template <size_t PolarizationCount, GainMode GainEntry>
 void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward) {
+    size_t antenna2, bool apply_forward, size_t time_offset) {
   const size_t nparms =
       (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
                                                                             : 2;
@@ -569,7 +569,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const aocommon::MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
@@ -592,7 +592,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const aocommon::MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
@@ -616,30 +616,30 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
 template void VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kXX>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward);
+    size_t antenna2, bool apply_forward, size_t time_offset);
 
 template void VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kYY>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward);
+    size_t antenna2, bool apply_forward, size_t time_offset);
 
 template void
 VisibilityModifier::ApplyConjugatedParmResponse<1, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward);
+    size_t antenna2, bool apply_forward, size_t time_offset);
 
 template void
 VisibilityModifier::ApplyConjugatedParmResponse<2, GainMode::kDiagonal>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward);
+    size_t antenna2, bool apply_forward, size_t time_offset);
 
 template void
 VisibilityModifier::ApplyConjugatedParmResponse<4, GainMode::kFull>(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward);
+    size_t antenna2, bool apply_forward, size_t time_offset);
 
 #ifdef HAVE_EVERYBEAM
 template <size_t PolarizationCount, GainMode GainEntry>

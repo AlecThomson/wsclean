@@ -156,7 +156,7 @@ class VisibilityModifier {
                                    const float* image_weights, size_t ms_index,
                                    size_t n_channels, size_t n_antennas,
                                    size_t antenna1, size_t antenna2,
-                                   bool apply_forward);
+                                   bool apply_forward, size_t time_offset);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
@@ -242,7 +242,13 @@ class VisibilityModifier {
   /// The gain type for each measurement set (given ms_index)
   std::vector<schaapcommon::h5parm::GainType> _h5GainType;
   std::vector<std::vector<double>> _cachedMSTimes;
+  // We temporarily make _timeOffset public for the sake of a quick prototype.
+  // In a final implementation we will need to deal with this in a more suitable
+  // way as part of the final architecture
+ public:
   std::vector<size_t> _timeOffset;
+
+ private:
   size_t _pointResponseBufferSize = 0;
   double _facetDirectionRA = 0.0;
   double _facetDirectionDec = 0.0;

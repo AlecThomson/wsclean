@@ -107,7 +107,7 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugate_h5parm, ModifierFixture<2>) {
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedParmResponse<kNPolarizations, GainMode::kDiagonal>(
       data, kWeights, kImageWeights, kMsIndex, kNChannels, kNStations,
-      kAntenna1, kAntenna2, false);
+      kAntenna1, kAntenna2, false, modifier._timeOffset[kMsIndex]);
   const float reference_x_correction =
       std::norm(kAntenna1ParmGainX) * std::norm(kAntenna2ParmGainX);
   const float reference_y_correction =
