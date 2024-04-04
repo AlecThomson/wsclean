@@ -342,8 +342,8 @@ void Settings::Validate() const {
 }
 
 void Settings::checkPolarizations() const {
-  bool hasXY = polarizations.count(aocommon::Polarization::XY) != 0;
-  bool hasYX = polarizations.count(aocommon::Polarization::YX) != 0;
+  const bool hasXY = polarizations.count(aocommon::Polarization::XY) != 0;
+  const bool hasYX = polarizations.count(aocommon::Polarization::YX) != 0;
   if (joinedPolarizationDeconvolution) {
     if (polarizations.size() == 1)
       throw std::runtime_error(
@@ -388,6 +388,12 @@ void Settings::checkPolarizations() const {
           "The auto-masking threshold was smaller or equal to the "
           "auto-threshold. This does not make sense. Did you accidentally "
           "reverse the auto-mask and auto-threshold values?");
+  }
+  if (hasXY && hasYX && gridderType != GridderType::WStacking) {
+    throw std::runtime_error(
+        "Combined XY/YX imaging is not possible with gridders other than the "
+        "w-stacking gridder. Either add '-gridder wstacking' to the command "
+        "line, or image a different set of polarizations (e.g. iquv).");
   }
 }
 
