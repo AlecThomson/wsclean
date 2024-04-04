@@ -79,8 +79,8 @@ class CachedImageSet {
       Load<NumT>(image, polarization, freqIndex, isImaginary);
     } else {
       // No need to check width and height here, because we do not cache
-      std::string filename =
-          nameFacet(polarization, freqIndex, facetIndex, isImaginary);
+      const std::string filename =
+          FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Loading " << filename << '\n';
       aocommon::FitsReader reader(filename);
       reader.Read(image);
@@ -155,8 +155,8 @@ class CachedImageSet {
       // If _facetCount 0, use the main "Store" as is
       Store(image, polarization, freqIndex, isImaginary);
     } else {
-      std::string filename =
-          nameFacet(polarization, freqIndex, facetIndex, isImaginary);
+      const std::string filename =
+          FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Storing " << filename << '\n';
       _writer->WriteFullNameImage(filename, image, *facet);
       _storedNames.insert(filename);
@@ -171,8 +171,8 @@ class CachedImageSet {
   void StoreFacet(const schaapcommon::facets::FacetImage& facetimage,
                   aocommon::PolarizationEnum polarization, size_t freqIndex,
                   size_t facetIndex, bool isImaginary) {
-    std::string filename =
-        nameFacet(polarization, freqIndex, facetIndex, isImaginary);
+    const std::string filename =
+        FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
     aocommon::Logger::Debug << "Storing " << filename << '\n';
     _writer->WriteFullNameImage(filename, facetimage);
     _storedNames.insert(filename);
@@ -194,9 +194,9 @@ class CachedImageSet {
     return nameTrunk(polarization, freqIndex, isImaginary) + "-tmp.fits";
   }
 
-  std::string nameFacet(aocommon::PolarizationEnum polarization,
-                        size_t freqIndex, size_t facetIndex,
-                        bool isImaginary) const {
+  std::string FacetFilename(aocommon::PolarizationEnum polarization,
+                            size_t freqIndex, size_t facetIndex,
+                            bool isImaginary) const {
     std::ostringstream str;
     str << nameTrunk(polarization, freqIndex, isImaginary);
     if (_facetCount > 0) {

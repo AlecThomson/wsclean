@@ -7,33 +7,26 @@
 
 struct OutputChannelInfo {
   OutputChannelInfo(size_t n_facets = 0, size_t n_dd_psfs = 0)
-      : weight(0.0),
-        normalizationFactor(1.0),
-        wGridSize(0),
-        visibilityCount(0),
-        effectiveVisibilityCount(0.0),
-        visibilityWeightSum(0.0),
-        beamMaj(0.0),
-        beamMin(0.0),
-        beamPA(0.0),
-        beamSizeEstimate(0.0),
-        theoreticBeamSize(0.0),
-        psfNormalizationFactor(1.0),
-        centralPsfIndex(0),
-        averageFacetCorrection(n_facets),
+      : averageFacetCorrection(n_facets),
         averageH5FacetCorrection(n_facets),
         averageDdPsfCorrection(n_dd_psfs) {}
-  double weight, normalizationFactor;
-  std::size_t wGridSize, visibilityCount;
-  double effectiveVisibilityCount, visibilityWeightSum;
-  double beamMaj, beamMin, beamPA;
+  double weight = 0.0;
+  double normalizationFactor = 1.0;
+  std::size_t wGridSize = 0;
+  std::size_t visibilityCount = 0;
+  double effectiveVisibilityCount = 0.0;
+  double visibilityWeightSum = 0.0;
+  double beamMaj = 0.0;
+  double beamMin = 0.0;
+  double beamPA = 0.0;
   // The beam size estimate is calculated from the longest baseline, and used
   // as initial value when fitting the (accurate) beam
-  double beamSizeEstimate;
-  double theoreticBeamSize, psfNormalizationFactor;
+  double beamSizeEstimate = 0.0;
+  double theoreticBeamSize = 0.0;
+  double psfNormalizationFactor = 1.0;
   // For dd psf mode, this is the facet index that holds the central
   // psf.
-  std::size_t centralPsfIndex;
+  std::size_t centralPsfIndex = 0;
   // See VisibilityModifier for an explanation
   std::vector<double> averageFacetCorrection;
   std::vector<double> averageH5FacetCorrection;
