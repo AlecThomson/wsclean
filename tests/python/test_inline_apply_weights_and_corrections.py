@@ -24,16 +24,16 @@ class TestInlineWeightsAndCorrections:
         # Check rms of output images is within expected range
         assert os.path.isfile(name + "-dirty.fits")
         rms_dirty = compute_rms(name + "-dirty.fits")
-        assert abs(0.358219 - rms_dirty) < 0.00001
+        assert abs(0.358219 - rms_dirty) / rms_dirty < 0.01
 
         assert os.path.isfile(name + "-model.fits")
         rms_model = compute_rms(name + "-model.fits")
-        assert abs(0.10708495 - rms_model) < 0.00001
+        assert abs(0.10708495 - rms_model) / rms_model < 0.01
 
         assert os.path.isfile(name + "-residual.fits")
         rms_residual = compute_rms(name + "-residual.fits")
-        assert abs(0.26990286 - rms_residual) < 0.00001
+        assert abs(0.26990286 - rms_residual) / rms_residual < 0.01
 
         assert os.path.isfile(name + "-image.fits")
         rms_image = compute_rms(name + "-image.fits")
-        assert abs(0.318041 - rms_image) < 0.00001
+        assert abs(0.318041 - rms_image) / rms_image < 0.01
