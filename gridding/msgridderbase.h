@@ -692,6 +692,14 @@ class MSGridderBase {
         visibility_row(256, aocommon::UVector<std::complex<float>>(data_size));
     thread_local static size_t last_row = std::numeric_limits<size_t>::max();
     thread_local static uint8_t row_index = 0;
+
+    // We might be applying these same weights/corrections multiple times, so
+    // ensure it only counts towards the totals the first time around
+    bool already_counted = already_counted_weights[row];
+    if (!already_counted) {
+      already_counted_weights[row] = true;
+    }
+
     if (last_row != row) {
       last_row = row;
       ++row_index;
@@ -724,7 +732,8 @@ class MSGridderBase {
                   visibility_row[row_index].data(), row_weight_iter,
                   row_scratch_weights, ms_index_, channel_count,
                   antenna_names.size(), metaData.antenna1, metaData.antenna2,
-                  apply_forward, time_offsets_[ms_index_][row]);
+                  apply_forward, time_offsets_[ms_index_][row],
+                  !already_counted);
         }
       }
 
@@ -756,12 +765,6 @@ class MSGridderBase {
         }
       }
       total_weight_mutex_.lock();
-      // We might be applying these same weights multiple times, so ensure it
-      // only counts towards the totals the first time around
-      bool already_counted = already_counted_weights[row];
-      if (!already_counted) {
-        already_counted_weights[row] = true;
-      }
       if (!already_counted) {
         visibility_weight_sum_ += local_visibility_weight_sum;
         max_gridded_weight_ =

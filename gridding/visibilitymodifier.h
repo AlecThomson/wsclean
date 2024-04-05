@@ -156,7 +156,8 @@ class VisibilityModifier {
                                    const float* image_weights, size_t ms_index,
                                    size_t n_channels, size_t n_antennas,
                                    size_t antenna1, size_t antenna2,
-                                   bool apply_forward, size_t time_offset);
+                                   bool apply_forward, size_t time_offset,
+                                   bool count_corrections);
 
   template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
