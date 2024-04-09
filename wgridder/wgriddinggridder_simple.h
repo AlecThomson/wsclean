@@ -4,15 +4,43 @@
 #include <complex>
 #include <vector>
 #include <cstddef>
+#include "ducc0/wgridder/wgridder.h"
+
+using namespace ducc0;
+
+template <typename T>
+class cvirtmembuf {
+ public:
+  cvirtmembuf(std::function<T &(size_t index)> callback_)
+      : callback(callback_){};
+  template <typename I>
+  inline const T &raw(I i) const {
+    // NB! This will behave incorrectly if too many (currently more than 256)
+    // rows are called and stored at a time. This needs to be addressed for
+    // further prototyping/implementation, but for the sake of a quick testing
+    // it seems to be okay, DUCC/wgridder doesn't seem to try reference that
+    // many at once
+    return callback(i);
+  };
+  const T *data() const {
+    // wgridder doesn't actually use this part of the interface; for now for
+    // prototyping purposes implement it and cause an obvious error if it gets
+    // called, for a final solution we will need to do better in terms of
+    // design.
+    exit(500);
+    return nullptr;
+  };
+  std::function<T &(size_t index)> callback;
+};
 
 class WGriddingGridderBase {
  public:
   virtual ~WGriddingGridderBase() = default;
   virtual void MemoryUsage(size_t &constant, size_t &per_vis) const = 0;
   virtual void InitializeInversion() = 0;
-  virtual void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
-                                const double *freq,
-                                const std::complex<float> *vis) = 0;
+  virtual void AddInversionData(
+      size_t nrows, size_t nchan, const double *uvw, const double *freq,
+      cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>> &ms) = 0;
   virtual void FinalizeImage(double multiplicationFactor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
@@ -100,7 +128,8 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    */
   void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
                         const double *freq,
-                        const std::complex<float> *vis) override;
+                        cmav<std::complex<float>, 2,
+                             cvirtmembuf<std::complex<float>>> &ms) override;
 
   /**
    * Finalize inversion once all passes are performed.

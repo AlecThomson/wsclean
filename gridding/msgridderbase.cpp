@@ -465,7 +465,8 @@ template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
     MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount>
-void MSGridderBase::CalculateWeights(InversionRow& rowData,
+void MSGridderBase::CalculateWeights(double* uvw_buffer,
+                                     std::complex<float>* visibility_buffer,
                                      const aocommon::BandData& curBand,
                                      float* weightBuffer,
                                      std::complex<float>* modelBuffer,
@@ -473,7 +474,7 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (GetPsfMode() != PsfMode::kNone) {
     // Visibilities for a point source at the phase centre are all ones
-    std::fill_n(rowData.data, dataSize, 1.0);
+    std::fill_n(visibility_buffer, dataSize, 1.0);
     double dl = 0.0;
     double dm = 0.0;
     if (GetPsfMode() == PsfMode::kSingle) {
@@ -489,15 +490,16 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
       const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
       const double shiftFactor =
           2.0 * M_PI *
-          (rowData.uvw[0] * dl + rowData.uvw[1] * dm + rowData.uvw[2] * dn);
-      rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
+          (uvw_buffer[0] * dl + uvw_buffer[1] * dm + uvw_buffer[2] * dn);
+      rotateVisibilities<PolarizationCount>(curBand, shiftFactor,
+                                            visibility_buffer);
     }
   }
 
   if (DoSubtractModel()) {
     std::complex<float>* modelIter = modelBuffer;
-    for (std::complex<float>* iter = rowData.data;
-         iter != rowData.data + dataSize; ++iter) {
+    for (std::complex<float>* iter = visibility_buffer;
+         iter != visibility_buffer + dataSize; ++iter) {
       *iter -= *modelIter;
       modelIter++;
     }
@@ -530,9 +532,23 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
 
   // Precompute imaging weights
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
-    const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
+    const double u = uvw_buffer[0] / curBand.ChannelWavelength(ch);
+    const double v = uvw_buffer[1] / curBand.ChannelWavelength(ch);
     scratch_image_weights_[ch] = GetImageWeights()->GetWeight(u, v);
+  }
+}
+
+void MSGridderBase::PreCacheCorrections(
+    const MSProvider::MetaData& metaData,
+    const std::vector<std::string>& antenna_names,
+    const aocommon::BandData& curBand) {
+  if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
+    if (visibility_modifier_.HasH5Parm()) {
+      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                             curBand, ms_index_);
+      (time_offsets_[ms_index_])
+          .push_back(visibility_modifier_._timeOffset[ms_index_]);
+    }
   }
 }
 
@@ -574,7 +590,8 @@ void MSGridderBase::ApplyWeightsAndCorrections(
           .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
               rowData.data, weightBuffer, scratch_image_weights_.data(),
               ms_index_, curBand.ChannelCount(), antenna_names.size(),
-              metaData.antenna1, metaData.antenna2, apply_forward);
+              metaData.antenna1, metaData.antenna2, apply_forward,
+              visibility_modifier_._timeOffset[ms_index_], true);
     }
   }
 

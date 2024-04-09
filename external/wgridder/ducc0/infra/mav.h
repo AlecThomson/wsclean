@@ -714,14 +714,13 @@ template<typename T> vfmav<T> subarray
   (const vfmav<T> &arr, const vector<slice> &slices)  
   { return arr.subarray(slices); }
 
-template<typename T, size_t ndim> class cmav: public mav_info<ndim>, public cmembuf<T>
+template<typename T, size_t ndim, typename tbuf=cmembuf<T>> class cmav: public mav_info<ndim>, public tbuf
   {
   protected:
-    template<typename T2, size_t nd2> friend class cmav;
-    template<typename T2, size_t nd2> friend class vmav;
+    template<typename T2, size_t nd2, typename tbuf2> friend class cmav;
+    template<typename T2, size_t nd2, typename tbuf2> friend class vmav;
 
     using tinfo = mav_info<ndim>;
-    using tbuf = cmembuf<T>;
     using tinfo::shp, tinfo::str;
 
   public:
@@ -750,6 +749,8 @@ template<typename T, size_t ndim> class cmav: public mav_info<ndim>, public cmem
       : tinfo(shp_), tbuf(d_) {}
     cmav(const cfmav<T> &inp)
       : tinfo(inp), tbuf(inp) {}
+    cmav(const shape_t &shp_, tbuf buf_)
+      : tinfo(shp_), tbuf(buf_) {}
     void assign(const cmav &other)
       {
       mav_info<ndim>::assign(other);
@@ -800,14 +801,13 @@ template<size_t nd2, typename T, size_t ndim> cmav<T,nd2> subarray
   (const cmav<T, ndim> &arr, const vector<slice> &slices)  
   { return arr.template subarray<nd2>(slices); }
 
-template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
+template<typename T, size_t ndim, typename tbuf=cmembuf<T>> class vmav: public cmav<T, ndim, tbuf>
   {
   protected:
-    template<typename T2, size_t nd2> friend class vmav;
+    template<typename T2, size_t nd2, typename tbuf2> friend class vmav;
 
     using parent = cmav<T, ndim>;
     using tinfo = mav_info<ndim>;
-    using tbuf = cmembuf<T>;
     using tinfo::shp, tinfo::str;
 
   public:
