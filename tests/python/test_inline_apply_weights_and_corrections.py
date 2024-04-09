@@ -1,8 +1,9 @@
-import pytest
-import os
 import sys
+from pathlib import Path
+
 import numpy as np
-from utils import validate_call, compute_rms
+import pytest
+from utils import compute_rms, validate_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -17,23 +18,19 @@ class TestInlineWeightsAndCorrections:
         h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
         validate_call(h5download.split())
 
-        name = f"facet-h5-inline-corrections"
-        s = f"{tcf.WSCLEAN} -gridder wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol i -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
-        validate_call(s.split())
+        name = "facet-h5-inline-corrections"
+        command = f"{tcf.WSCLEAN} -gridder wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol i -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MS}"
+        validate_call(command.split())
 
-        # Check rms of output images is within expected range
-        assert os.path.isfile(name + "-dirty.fits")
-        rms_dirty = compute_rms(name + "-dirty.fits")
-        assert abs(0.358219 - rms_dirty) / rms_dirty < 0.01
-
-        assert os.path.isfile(name + "-model.fits")
-        rms_model = compute_rms(name + "-model.fits")
-        assert abs(0.10708495 - rms_model) / rms_model < 0.01
-
-        assert os.path.isfile(name + "-residual.fits")
-        rms_residual = compute_rms(name + "-residual.fits")
-        assert abs(0.26990286 - rms_residual) / rms_residual < 0.01
-
-        assert os.path.isfile(name + "-image.fits")
-        rms_image = compute_rms(name + "-image.fits")
-        assert abs(0.318041 - rms_image) / rms_image < 0.01
+        # Check rms of output images is within 1% of the expected rms calculated from previous runs
+        expected_rms = {
+            "dirty": 0.358219,
+            "model": 0.10708495,
+            "residual": 0.26990286,
+            "image": 0.318041,
+        }
+        for image_type, expected_image_rms in expected_rms.items():
+            file_path = Path(f"{name}-{image_type}.fits")
+            assert file_path.is_file()
+            rms = compute_rms(file_path)
+            assert abs(expected_image_rms - rms) / rms < 0.01
