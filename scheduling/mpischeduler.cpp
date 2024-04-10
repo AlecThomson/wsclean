@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <memory>
-#include <chrono>
 
 #include "griddingresult.h"
 
@@ -26,13 +25,12 @@ constexpr int kTag = 0;
 constexpr int kSlotsPerNode = 1;
 }  // namespace
 
-std::vector<std::thread> scheduling_threads;
-
 MPIScheduler::MPIScheduler(const Settings& settings)
     : GriddingTaskManager(settings),
       _isRunning(false),
       _isFinishing(false),
       _mutex(),
+      _send_mutex(),
       _receiveThread(),
       _readyList(),
       _callbacks(),
@@ -46,8 +44,6 @@ MPIScheduler::MPIScheduler(const Settings& settings)
     _availableRoom[0] = 0;
   }
   _localScheduler.SetWriterLockManager(*this);
-
-  scheduling_threads.resize(world_size);
 }
 
 void MPIScheduler::Run(GriddingTask&& task,
@@ -120,75 +116,44 @@ void MPIScheduler::send(GriddingTask&& task,
       StoreResult(std::move(result), 0);
     });
   } else {
-    if (scheduling_threads[node].joinable()) scheduling_threads[node].join();
+    aocommon::SerialOStream payloadStream;
+    // To use MPI_Send_Big, a uint64_t need to be reserved
+    payloadStream.UInt64(0);
+    task.Serialize(payloadStream);
 
-    scheduling_threads[node] = std::thread(
-        [this](GriddingTask task, int node) -> void {
-          aocommon::SerialOStream payloadStream;
-          // To use MPI_Send_Big, a uint64_t need to be reserved
-          payloadStream.UInt64(0);
-          task.Serialize(payloadStream);
+    TaskMessage message;
+    message.type = TaskMessage::Type::kGriddingRequest;
+    message.bodySize = payloadStream.size();
 
-          TaskMessage message;
-          message.type = TaskMessage::Type::kGriddingRequest;
-          message.bodySize = payloadStream.size();
+    aocommon::SerialOStream taskMessageStream;
+    message.Serialize(taskMessageStream);
+    assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
 
-          aocommon::SerialOStream taskMessageStream;
-          message.Serialize(taskMessageStream);
-          assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
-
-          MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
-                   node, 0, MPI_COMM_WORLD);
-          MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
-                       MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
-        },
-        std::move(task), node);
+    std::unique_lock<std::mutex> lock(_send_mutex);
+    MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
+             0, MPI_COMM_WORLD);
+    MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
+                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
   }
 }
 
-// int MPIScheduler::getNode(const GriddingTask& task,
-//                           std::function<void(GriddingResult&)>&& callback) {
-//   // Determine the target node using the channel to node mapping.
-//   int node = GetSettings().channelToNode[task.outputChannelIndex];
-//
-//   // Wait until _availableRoom[node] becomes larger than 0.
-//   std::unique_lock<std::mutex> lock(_mutex);
-//   while (_availableRoom[node] <= 0) {
-//     _notify.wait(lock);
-//   }
-//   _availableRoom[node] -= task.facets.size();
-//
-//   // Store the callback function.
-//   assert(_callbacks.count(task.unique_id) == 0);
-//   _callbacks.emplace(task.unique_id, std::move(callback));
-//
-//   return node;
-// }
-
 int MPIScheduler::getNode(const GriddingTask& task,
                           std::function<void(GriddingResult&)>&& callback) {
+  // Determine the target node using the channel to node mapping.
+  int node = GetSettings().channelToNode[task.outputChannelIndex];
+
+  // Wait until _availableRoom[node] becomes larger than 0.
   std::unique_lock<std::mutex> lock(_mutex);
-
-  assert(_callbacks.count(task.unique_id) == 0);
-  _callbacks.emplace(task.unique_id, callback);
-
-  while (true) {
-    // Find the node that has the most available execution slots.
-    // The backwards search prefers worker nodes over the main node.
-    const auto nodeWithMostSlots =
-        std::max_element(_availableRoom.rbegin(), _availableRoom.rend());
-    // Select nodeWithMostSlots even if it can't process all facets in parallel.
-    // It's still the best candidate. Also, processing all facets in parallel
-    // may not be possible at all.
-    if (*nodeWithMostSlots > 0) {
-      *nodeWithMostSlots -= task.facets.size();
-      _notify.notify_all();
-      return _availableRoom.rend() - nodeWithMostSlots - 1;
-    } else {
-      // All nodes are busy -> Wait and try again later.
-      _notify.wait(lock);
-    }
+  while (_availableRoom[node] <= 0) {
+    _notify.wait(lock);
   }
+  _availableRoom[node] -= task.facets.size();
+
+  // Store the callback function.
+  assert(_callbacks.count(task.unique_id) == 0);
+  _callbacks.emplace(task.unique_id, std::move(callback));
+
+  return node;
 }
 
 void MPIScheduler::receiveLoop() {
@@ -329,6 +294,7 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
   // MPI_Send is much simpler. Since the message is small and the receiver
   // is already waiting for the message, the overhead of synchronous
   // communication should be limited.
+  std::unique_lock<std::mutex> lock(_send_mutex);
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
            0, MPI_COMM_WORLD);
 }
