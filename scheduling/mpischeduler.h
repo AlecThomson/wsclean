@@ -104,6 +104,7 @@ class MPIScheduler final : public GriddingTaskManager {
   bool _isFinishing;
   std::condition_variable _notify;
   std::mutex _mutex;
+  std::mutex _send_mutex;  // Serializes MPI_Send's from different threads.
   std::thread _receiveThread;
   /** Stores results of ready tasks. */
   std::vector<GriddingResult> _readyList;

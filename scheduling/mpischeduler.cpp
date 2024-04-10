@@ -30,6 +30,7 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _isRunning(false),
       _isFinishing(false),
       _mutex(),
+      _send_mutex(),
       _receiveThread(),
       _readyList(),
       _callbacks(),
@@ -128,6 +129,7 @@ void MPIScheduler::send(GriddingTask&& task,
     message.Serialize(taskMessageStream);
     assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
 
+    std::unique_lock<std::mutex> lock(_send_mutex);
     MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
              0, MPI_COMM_WORLD);
     MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
@@ -292,6 +294,7 @@ void MPIScheduler::grantLock(int node, size_t lockId) {
   // MPI_Send is much simpler. Since the message is small and the receiver
   // is already waiting for the message, the overhead of synchronous
   // communication should be limited.
+  std::unique_lock<std::mutex> lock(_send_mutex);
   MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
            0, MPI_COMM_WORLD);
 }
