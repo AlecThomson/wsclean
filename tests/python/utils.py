@@ -2,6 +2,7 @@ import numpy as np
 import os
 import shutil
 from subprocess import check_call, check_output
+from astropy.io import fits
 import sys
 import warnings
 
@@ -23,16 +24,6 @@ def basic_image_check(fits_file):
     Checks that the fits file has no NaN or Inf values and that the number
     of zeroes is below a limit.
     """
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning(
-                "Could not import astropy, so fits image checks are skipped."
-            )
-        )
-        return
-
     image = fits.open(fits_file)
     assert len(image) == 1
     data = image[0].data
@@ -70,17 +61,6 @@ def compute_rms(fits_file):
     """
     Compute and return the root-mean-square of an input fits image.
     """
-
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning(
-                "Could not import astropy, so fits image checks are skipped."
-            )
-        )
-        return
-
     data = fits.open(fits_file)[0].data[0, 0, ...]
     return np.sqrt(np.mean(data**2))
 
@@ -90,16 +70,6 @@ def compare_rms_fits(fits1, fits2, threshold):
     Checks the root-mean square of the difference between
     two input fits files against a user-defined threshold.
     """
-
-    try:
-        from astropy.io import fits
-    except:
-        warnings.warn(
-            UserWarning(
-                "Could not import astropy, so fits image checks are skipped."
-            )
-        )
-        return
     image1 = fits.open(fits1)[0].data.flatten()
     image2 = fits.open(fits2)[0].data.flatten()
     dimage = image1 - image2
