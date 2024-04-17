@@ -188,7 +188,7 @@ if(${EVERYBEAM_FOUND})
         "WSClean needs EveryBeam version 0.5.x with x>=5 - but found version ${EVERYBEAM_VERSION}"
     )
   else()
-    include_directories(${EVERYBEAM_INCLUDE_DIRS})
+    include_directories(SYSTEM ${EVERYBEAM_INCLUDE_DIRS})
     add_definitions(-DHAVE_EVERYBEAM)
     message(STATUS "EveryBeam library found.")
   endif()
@@ -211,7 +211,7 @@ if(IDGAPI_FOUND)
     )
   else()
     set(IDG_FILES idg/idgmsgridder.cpp)
-    include_directories(${IDGAPI_INCLUDE_DIRS})
+    include_directories(SYSTEM ${IDGAPI_INCLUDE_DIRS})
     add_definitions(-DHAVE_IDG)
     message(STATUS "Image domain gridder libraries found.")
   endif()
@@ -270,7 +270,7 @@ ExternalProject_Add(
     -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
 
 set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
-include_directories(${RADLER_INCLUDE_DIR})
+include_directories(SYSTEM ${RADLER_INCLUDE_DIR})
 
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
