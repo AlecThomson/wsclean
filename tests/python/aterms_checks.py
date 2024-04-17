@@ -2,6 +2,7 @@ import pytest
 import sys
 import numpy as np
 from utils import check_and_remove_files, check_output, validate_call
+from astropy.io import fits
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
@@ -15,11 +16,6 @@ config_filename = "screen_config.cfg"
 
 def create_dummy_fits_screen():
     """Create a dummy fits screen file compatible with tcf.MWA_MOCK_MS"""
-
-    try:
-        from astropy.io import fits
-    except:
-        pytest.skip("Could not import astropy, so aterms checks are skipped.")
     # For "diagonal" screen type, the fits file has shape [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
     x_imsize = 32
     y_imsize = 32
