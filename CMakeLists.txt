@@ -93,7 +93,7 @@ endif()
 
 # Include aocommon and XTensor, also for schaapcommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
-set(XTENSOR_LIBRARIES xsimd xtensor xtl)
+set(XTENSOR_LIBRARIES xsimd xtl xtensor)
 include(external/aocommon/CMake/FetchXTensor.cmake)
 add_compile_definitions(XTENSOR_USE_XSIMD)
 
