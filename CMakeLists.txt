@@ -91,10 +91,14 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   endif()
 endif()
 
-# Include aocommon
+# Include aocommon and XTensor, also for schaapcommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+set(XTENSOR_LIBRARIES xsimd xtensor)
+include(external/aocommon/CMake/FetchXTensor.cmake)
+add_compile_definitions(XTENSOR_USE_XSIMD)
 
 # Schaapcommon
+set(SCHAAPCOMMON_MODULES facets fft fitters h5parm)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
