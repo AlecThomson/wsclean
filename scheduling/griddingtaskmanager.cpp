@@ -19,7 +19,7 @@
 #include "../wgridder/wgriddingmsgridder.h"
 
 GriddingTaskManager::GriddingTaskManager(const Settings& settings)
-    : _settings(settings), _writerLockManager(this) {}
+    : settings_(settings), writer_lock_manager_(this) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
@@ -40,8 +40,8 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 
 Resources GriddingTaskManager::GetResources() const {
   return Resources(
-      _settings.threadCount,
-      GetAvailableMemory(_settings.memFraction, _settings.absMemLimit));
+      settings_.threadCount,
+      GetAvailableMemory(settings_.memFraction, settings_.absMemLimit));
 }
 
 void GriddingTaskManager::Run(
@@ -130,44 +130,44 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::ConstructGridder(
     const Resources& resources) const {
-  switch (_settings.gridderType) {
+  switch (settings_.gridderType) {
     case GridderType::IDG:
-      return std::make_unique<IdgMsGridder>(_settings, resources);
+      return std::make_unique<IdgMsGridder>(settings_, resources);
     case GridderType::WGridder:
-      return std::make_unique<WGriddingMSGridder>(_settings, resources, false);
+      return std::make_unique<WGriddingMSGridder>(settings_, resources, false);
     case GridderType::TunedWGridder:
-      return std::make_unique<WGriddingMSGridder>(_settings, resources, true);
+      return std::make_unique<WGriddingMSGridder>(settings_, resources, true);
     case GridderType::DirectFT:
-      switch (_settings.directFTPrecision) {
+      switch (settings_.directFTPrecision) {
         case DirectFTPrecision::Float:
-          return std::make_unique<DirectMSGridder<float>>(_settings, resources);
+          return std::make_unique<DirectMSGridder<float>>(settings_, resources);
         case DirectFTPrecision::Double:
-          return std::make_unique<DirectMSGridder<double>>(_settings,
+          return std::make_unique<DirectMSGridder<double>>(settings_,
                                                            resources);
         case DirectFTPrecision::LongDouble:
-          return std::make_unique<DirectMSGridder<long double>>(_settings,
+          return std::make_unique<DirectMSGridder<long double>>(settings_,
                                                                 resources);
       }
       break;
     case GridderType::WStacking:
-      return std::make_unique<WSMSGridder>(_settings, resources);
+      return std::make_unique<WSMSGridder>(settings_, resources);
   }
   return {};
 }
 
 void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
                                                    const GriddingTask& task) {
-  gridder.SetGridMode(_settings.gridMode);
+  gridder.SetGridMode(settings_.gridMode);
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  gridder.SetImagePadding(_settings.imagePadding);
+  gridder.SetImagePadding(settings_.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
 
-  if (_settings.hasShift) {
+  if (settings_.hasShift) {
     double main_image_dl = 0.0;
     double main_image_dm = 0.0;
-    aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec,
+    aocommon::ImageCoordinates::RaDecToLM(settings_.shiftRA, settings_.shiftDec,
                                           task.observationInfo.phaseCentreRA,
                                           task.observationInfo.phaseCentreDec,
                                           main_image_dl, main_image_dm);
@@ -182,7 +182,7 @@ void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
   gridder.SetImageWeights(task.imageWeights.get());
   if (task.operation == GriddingTask::Invert) {
     if (task.imagePSF) {
-      if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
+      if (settings_.ddPsfGridWidth > 1 || settings_.ddPsfGridHeight > 1) {
         gridder.SetPsfMode(PsfMode::kDirectionDependent);
       } else {
         gridder.SetPsfMode(PsfMode::kSingle);
@@ -193,7 +193,7 @@ void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
     gridder.SetDoSubtractModel(task.subtractModel);
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
   } else {
-    gridder.SetWriterLockManager(_writerLockManager);
+    gridder.SetWriterLockManager(writer_lock_manager_);
   }
 
   gridder.ClearMeasurementSetList();
@@ -215,10 +215,10 @@ void GriddingTaskManager::InitializeGridderForFacet(
                         facet->GetTrimmedBoundingBox().Height());
     gridder.SetFacetDirection(facet->RA(), facet->Dec());
   } else {
-    gridder.SetImageWidth(_settings.paddedImageWidth);
-    gridder.SetImageHeight(_settings.paddedImageHeight);
-    gridder.SetTrimSize(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight);
+    gridder.SetImageWidth(settings_.paddedImageWidth);
+    gridder.SetImageHeight(settings_.paddedImageHeight);
+    gridder.SetTrimSize(settings_.trimmedImageWidth,
+                        settings_.trimmedImageHeight);
   }
   gridder.SetLShift(facet_task.l_shift);
   gridder.SetMShift(facet_task.m_shift);

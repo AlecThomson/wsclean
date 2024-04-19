@@ -1,23 +1,22 @@
-#ifndef GRIDDING_OPERATION_H
-#define GRIDDING_OPERATION_H
-
-#include "griddingtask.h"
-#include "griddingresult.h"
-
-#include "../structures/imageweights.h"
-#include "../structures/observationinfo.h"
-#include "../structures/msselection.h"
-
-#include <aocommon/polarization.h>
-
-#include "../msproviders/msdatadescription.h"
-
-#include <aocommon/lane.h>
+#ifndef GRIDDING_TASK_MANAGER_H_
+#define GRIDDING_TASK_MANAGER_H_
 
 #include <cstring>
 #include <functional>
 #include <memory>
 #include <vector>
+
+#include <aocommon/lane.h>
+#include <aocommon/polarization.h>
+
+#include "../structures/imageweights.h"
+#include "../structures/observationinfo.h"
+#include "../structures/msselection.h"
+
+#include "../msproviders/msdatadescription.h"
+
+#include "griddingtask.h"
+#include "griddingresult.h"
 
 class MSGridderBase;
 class Resources;
@@ -35,10 +34,10 @@ class GriddingTaskManager {
 
   virtual ~GriddingTaskManager();
 
-  const Settings& GetSettings() const { return _settings; }
+  const Settings& GetSettings() const { return settings_; }
 
   void SetWriterLockManager(GriddingTaskManager& manager) {
-    _writerLockManager = &manager;
+    writer_lock_manager_ = &manager;
   }
 
   /**
@@ -117,7 +116,7 @@ class GriddingTaskManager {
   void InitializeGridderForFacet(MSGridderBase& gridder,
                                  GriddingTask::FacetData& facet_task);
 
-  const Settings& _settings;
+  const Settings& settings_;
 
   /**
    * Writer lock manager for the scheduler.
@@ -125,7 +124,7 @@ class GriddingTaskManager {
    * When the GriddingTaskManager is used within an MPIScheduler,
    * it may point to the MPIScheduler.
    */
-  GriddingTaskManager* _writerLockManager;
+  GriddingTaskManager* writer_lock_manager_;
 };
 
 #endif
