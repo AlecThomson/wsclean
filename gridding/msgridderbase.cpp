@@ -255,10 +255,8 @@ void MSGridderBase::initializeMSDataVector(
   bool hasCache = !meta_data_cache_->msDataVector.empty();
   if (!hasCache) meta_data_cache_->msDataVector.resize(MeasurementSetCount());
 
-  if (!settings_.facetSolutionFiles.empty()) {
-    visibility_modifier_.ResetCache(MeasurementSetCount(),
-                                    settings_.facetSolutionFiles,
-                                    settings_.facetSolutionTables);
+  if (visibility_modifier_.HasH5Parm()) {
+    visibility_modifier_.ResetCache(MeasurementSetCount());
   }
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -310,7 +308,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integration_time = msData.integrationTime;
   }
 
-  if (!settings_.facetSolutionFiles.empty()) {
+  if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.SetMSTimes(msData.msIndex,
                                     SelectUniqueTimes(*msData.ms_provider));
   }

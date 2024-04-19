@@ -85,6 +85,15 @@ class MSGridderBase {
   MSGridderBase(const Settings& settings);
   virtual ~MSGridderBase();
 
+  void SetH5Parm(
+      const std::vector<schaapcommon::h5parm::H5Parm>& h5parms,
+      const std::vector<schaapcommon::h5parm::SolTab*>& first_solutions,
+      const std::vector<schaapcommon::h5parm::SolTab*>& second_solutions,
+      const std::vector<schaapcommon::h5parm::GainType>& gain_types) {
+    visibility_modifier_.SetH5Parm(h5parms, first_solutions, second_solutions,
+                                   gain_types);
+  }
+
   size_t ImageWidth() const { return image_width_; }
   size_t ImageHeight() const { return image_height_; }
   double ImagePadding() const { return image_padding_; }

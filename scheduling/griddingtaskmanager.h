@@ -9,6 +9,10 @@
 #include <aocommon/lane.h>
 #include <aocommon/polarization.h>
 
+#include <schaapcommon/h5parm/jonesparameters.h>
+#include <schaapcommon/h5parm/h5parm.h>
+#include <schaapcommon/h5parm/soltab.h>
+
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
 #include "../structures/msselection.h"
@@ -116,7 +120,28 @@ class GriddingTaskManager {
   void InitializeGridderForFacet(MSGridderBase& gridder,
                                  GriddingTask::FacetData& facet_task);
 
+  void LoadSolutions();
+  void LoadGainTypes();
+
   const Settings& settings_;
+
+  /** For each solution, an H5Parm object for accessing the values. */
+  std::vector<schaapcommon::h5parm::H5Parm> h5parms_;
+
+  /**
+   * For each solution, a pointer into h5parms_ for the first part.
+   * If there are two solution tables, it contains the amplitudes.
+   */
+  std::vector<schaapcommon::h5parm::SolTab*> first_solutions_;
+
+  /**
+   * For each solution, a pointer into h5parms_ for the second (phase) part.
+   * This vector remains empty if there is a single solution table.
+   */
+  std::vector<schaapcommon::h5parm::SolTab*> second_solutions_;
+
+  /** For each solution, the corresponding gain type. */
+  std::vector<schaapcommon::h5parm::GainType> gain_types_;
 
   /**
    * Writer lock manager for the scheduler.

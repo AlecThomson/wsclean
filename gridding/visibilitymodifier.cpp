@@ -264,34 +264,36 @@ void VisibilityModifier::InitializeMockResponse(
   _cachedBeamResponse.assign(beam_response.begin(), beam_response.end());
 #endif
   _cachedParmResponse.emplace_back(parm_response);
-  if (parm_response.size() == n_channels * n_stations * 4)
-    _h5GainType = {schaapcommon::h5parm::GainType::kFullJones};
-  else
-    _h5GainType = {schaapcommon::h5parm::GainType::kDiagonalComplex};
   _timeOffset = {0};
 }
 
 void VisibilityModifier::CacheParmResponse(
     double time, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& band, size_t ms_index) {
+  using schaapcommon::h5parm::JonesParameters;
+
+  const size_t solution_index = (*_h5parms).size() == 1 ? 0 : ms_index;
+
   // Only extract DD solutions if the corresponding cache entry is empty.
   if (_cachedParmResponse[ms_index].empty()) {
-    const size_t nparms =
-        (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones)
-            ? 4
-            : 2;
+    const size_t nparms = NParms(ms_index);
     const std::vector<double> freqs(band.begin(), band.end());
     const size_t responseSize = _cachedMSTimes[ms_index].size() * freqs.size() *
                                 antennaNames.size() * nparms;
-    const std::string dirName = _h5parms[ms_index]->GetNearestSource(
+    const std::string dirName = (*_h5parms)[solution_index].GetNearestSource(
         _facetDirectionRA, _facetDirectionDec);
-    const size_t dirIndex = _h5SolTabs[ms_index].first->GetDirIndex(dirName);
-    schaapcommon::h5parm::JonesParameters jonesParameters(
-        freqs, _cachedMSTimes[ms_index], antennaNames, _h5GainType[ms_index],
-        schaapcommon::h5parm::JonesParameters::InterpolationType::NEAREST,
-        dirIndex, _h5SolTabs[ms_index].first, _h5SolTabs[ms_index].second,
-        false, 0.0f, 0u,
-        schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior::kUnit);
+    schaapcommon::h5parm::SolTab* const first_solution =
+        (*_firstSolutions)[solution_index];
+    schaapcommon::h5parm::SolTab* const second_solution =
+        _secondSolutions->empty() ? nullptr
+                                  : (*_secondSolutions)[solution_index];
+    const size_t dirIndex = first_solution->GetDirIndex(dirName);
+    JonesParameters jonesParameters(
+        freqs, _cachedMSTimes[ms_index], antennaNames,
+        (*_gainTypes)[solution_index],
+        JonesParameters::InterpolationType::NEAREST, dirIndex, first_solution,
+        second_solution, false, 0.0f, 0u,
+        JonesParameters::MissingAntennaBehavior::kUnit);
     // parms (Casacore::Cube) is column major
     const casacore::Cube<std::complex<float>>& parms =
         jonesParameters.GetParms();
@@ -420,89 +422,12 @@ VisibilityModifier::ApplyConjugatedBeamResponse<4, GainMode::kFull>(
 
 #endif
 
-void VisibilityModifier::SetH5Parms(
-    size_t n_measurement_sets, const std::vector<std::string>& solutionFiles,
-    const std::vector<std::string>& solutionTables) {
-  _h5parms.resize(n_measurement_sets);
-  _h5SolTabs.resize(n_measurement_sets);
-  _h5GainType.resize(n_measurement_sets);
-
-  for (size_t i = 0; i < _h5parms.size(); ++i) {
-    if (solutionFiles.size() > 1) {
-      _h5parms[i].reset(new schaapcommon::h5parm::H5Parm(solutionFiles[i]));
-    } else {
-      _h5parms[i].reset(new schaapcommon::h5parm::H5Parm(solutionFiles[0]));
-    }
-
-    if (solutionTables.size() == 1) {
-      _h5SolTabs[i] =
-          std::make_pair(&_h5parms[i]->GetSolTab(solutionTables[0]), nullptr);
-      _h5GainType[i] =
-          schaapcommon::h5parm::JonesParameters::H5ParmTypeStringToGainType(
-              _h5SolTabs[i].first->GetType());
-    } else if (solutionTables.size() == 2) {
-      const std::array<std::string, 2> solTabTypes{
-          _h5parms[i]->GetSolTab(solutionTables[0]).GetType(),
-          _h5parms[i]->GetSolTab(solutionTables[1]).GetType()};
-
-      const std::array<std::string, 2>::const_iterator amplitude_iter =
-          std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
-      const std::array<std::string, 2>::const_iterator phase_iter =
-          std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
-
-      if (amplitude_iter == solTabTypes.end() ||
-          phase_iter == solTabTypes.end()) {
-        throw std::runtime_error(
-            "WSClean expects solution tables with name 'amplitude' and "
-            "'phase', but received " +
-            solTabTypes[0] + " and " + solTabTypes[1]);
-      } else {
-        const size_t amplitude_index =
-            std::distance(solTabTypes.begin(), amplitude_iter);
-        const size_t phase_index =
-            std::distance(solTabTypes.begin(), phase_iter);
-        _h5SolTabs[i] = std::make_pair(
-            &_h5parms[i]->GetSolTab(solutionTables[amplitude_index]),
-            &_h5parms[i]->GetSolTab(solutionTables[phase_index]));
-      }
-
-      const size_t n_amplitude_pol =
-          _h5SolTabs[i].first->HasAxis("pol")
-              ? _h5SolTabs[i].first->GetAxis("pol").size
-              : 1;
-      const size_t n_phase_pol = _h5SolTabs[i].second->HasAxis("pol")
-                                     ? _h5SolTabs[i].second->GetAxis("pol").size
-                                     : 1;
-      if (n_amplitude_pol == 1 && n_phase_pol == 1) {
-        _h5GainType[i] = schaapcommon::h5parm::GainType::kScalarComplex;
-      } else if (n_amplitude_pol == 2 && n_phase_pol == 2) {
-        _h5GainType[i] = schaapcommon::h5parm::GainType::kDiagonalComplex;
-      } else if (n_amplitude_pol == 4 && n_phase_pol == 4) {
-        _h5GainType[i] = schaapcommon::h5parm::GainType::kFullJones;
-      } else {
-        throw std::runtime_error(
-            "Incorrect or mismatching number of polarizations in the "
-            "provided amplitude and phase soltabs. The number of polarizations "
-            "should both be either 1, 2 or 4, but received " +
-            std::to_string(n_amplitude_pol) + " for amplitude and " +
-            std::to_string(n_phase_pol) + " for phase");
-      }
-    } else {
-      throw std::runtime_error(
-          "Specify the solution table name(s) with "
-          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
-    }
-  }
-}
-
 template <size_t PolarizationCount, GainMode GainEntry>
 void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
                                            size_t ms_index, size_t n_channels,
                                            size_t n_antennas, size_t antenna1,
                                            size_t antenna2) {
-  const size_t nparms =
-      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
-                                                                            : 2;
+  const size_t nparms = NParms(ms_index);
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
@@ -557,9 +482,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward) {
-  const size_t nparms =
-      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
-                                                                            : 2;
+  const size_t nparms = NParms(ms_index);
 
   double local_correction_sum = 0.0;
 
@@ -649,9 +572,7 @@ void VisibilityModifier::ApplyConjugatedDual(
     size_t ms_index, bool apply_forward) {
   double correctionSum = 0.0;
   double h5Sum = 0.0;
-  const size_t nparms =
-      (_h5GainType[ms_index] == schaapcommon::h5parm::GainType::kFullJones) ? 4
-                                                                            : 2;
+  const size_t nparms = NParms(ms_index);
 
   // Conditional could be templated once C++ supports partial function
   // specialization

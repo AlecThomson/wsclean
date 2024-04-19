@@ -113,16 +113,13 @@ class VisibilityModifier {
 #endif
   }
 
-  void ResetCache(size_t n_measurement_sets,
-                  const std::vector<std::string>& solutionFiles,
-                  const std::vector<std::string>& solutionTables) {
+  void ResetCache(size_t n_measurement_sets) {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
     // object would be re-used for multiple gridding tasks.
     _cachedParmResponse.assign(n_measurement_sets, {});
     _cachedMSTimes.assign(n_measurement_sets, {});
     _timeOffset.assign(n_measurement_sets, 0u);
-    SetH5Parms(n_measurement_sets, solutionFiles, solutionTables);
   }
 
   /**
@@ -167,7 +164,18 @@ class VisibilityModifier {
     _cachedMSTimes[ms_index] = std::move(times);
   }
 
-  bool HasH5Parm() const { return !_h5parms.empty(); }
+  void SetH5Parm(
+      const std::vector<schaapcommon::h5parm::H5Parm>& h5parms,
+      const std::vector<schaapcommon::h5parm::SolTab*>& first_solutions,
+      const std::vector<schaapcommon::h5parm::SolTab*>& second_solutions,
+      const std::vector<schaapcommon::h5parm::GainType>& gain_types) {
+    _h5parms = &h5parms;
+    _firstSolutions = &first_solutions;
+    _secondSolutions = &second_solutions;
+    _gainTypes = &gain_types;
+  }
+
+  bool HasH5Parm() const { return _h5parms && !_h5parms->empty(); }
 
 #ifdef HAVE_EVERYBEAM
   /**
@@ -208,11 +216,13 @@ class VisibilityModifier {
   long double CorrectionSum() const { return correction_sum_; }
   long double H5CorrectionSum() const { return h5_correction_sum_; }
 
- private:
-  void SetH5Parms(size_t n_measurement_sets,
-                  const std::vector<std::string>& solutionFiles,
-                  const std::vector<std::string>& solutionTables);
+  inline size_t NParms(size_t ms_index) const {
+    using schaapcommon::h5parm::GainType;
+    const size_t solution_index = (*_gainTypes).size() == 1 ? 0 : ms_index;
+    return (*_gainTypes)[solution_index] == GainType::kFullJones ? 4 : 2;
+  }
 
+ private:
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _pointResponse alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
@@ -235,12 +245,21 @@ class VisibilityModifier {
    * 4 (for full jones).
    */
   std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
-  std::vector<std::unique_ptr<schaapcommon::h5parm::H5Parm>> _h5parms;
-  std::vector<
-      std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>>
-      _h5SolTabs;
-  /// The gain type for each measurement set (given ms_index)
-  std::vector<schaapcommon::h5parm::GainType> _h5GainType;
+  /**
+   * Optional pointers to vectors with h5parm solution objects.
+   * The GriddingTaskManager, which always outlives GriddingTasks and their
+   * VisibilityModifier, owns the objects.
+   * If all measurement sets use the same solution, the vectors have one
+   * element. Otherwise, they have one element for each ms.
+   * The second solution table is optional. If both tables are used, the first
+   * table has the amplitude part and the second table has the phase part.
+   * @{
+   */
+  const std::vector<schaapcommon::h5parm::H5Parm>* _h5parms = nullptr;
+  const std::vector<schaapcommon::h5parm::SolTab*>* _firstSolutions = nullptr;
+  const std::vector<schaapcommon::h5parm::SolTab*>* _secondSolutions = nullptr;
+  const std::vector<schaapcommon::h5parm::GainType>* _gainTypes = nullptr;
+  /** @} */
   std::vector<std::vector<double>> _cachedMSTimes;
   std::vector<size_t> _timeOffset;
   size_t _pointResponseBufferSize = 0;
