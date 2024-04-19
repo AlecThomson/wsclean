@@ -26,7 +26,7 @@ constexpr float kImageWeights[kNChannels] = {1.0};
 }  // namespace
 
 template <size_t NTerms>
-class ModifierFixture {
+struct ModifierFixture {
  public:
   static_assert(NTerms == 2 || NTerms == 4);
   ModifierFixture() {
@@ -34,13 +34,19 @@ class ModifierFixture {
         kAntenna1BeamGainX, 0.0, 0.0, kAntenna1BeamGainY,  // antenna 1
         kAntenna2BeamGainX, 0.0, 0.0, kAntenna2BeamGainY   // antenna 2
     };
-    const std::vector<std::complex<float>> parm_response = NTerms==2 ? std::vector<std::complex<float>>{
+    const std::vector<std::complex<float>> parm_response =
+     NTerms == 2 ? std::vector<std::complex<float>>{
         kAntenna1ParmGainX, kAntenna1ParmGainY, // antenna 1
         kAntenna2ParmGainX, kAntenna2ParmGainY // antenna 2
     } : std::vector<std::complex<float>>{
         kAntenna1ParmGainX, 0.0, 0.0, kAntenna1ParmGainY, // antenna 1
         kAntenna2ParmGainX, 0.0, 0.0, kAntenna2ParmGainY // antenna 2
     };
+    gain_types.push_back(NTerms == 2
+                             ? schaapcommon::h5parm::GainType::kDiagonalComplex
+                             : schaapcommon::h5parm::GainType::kFullJones);
+    modifier.SetH5Parm(dummy_h5parms, dummy_solutions, dummy_solutions,
+                       gain_types);
     modifier.InitializeMockResponse(kNStations, kNChannels, beam_response,
                                     parm_response);
   }
@@ -88,6 +94,9 @@ class ModifierFixture {
   }
 #endif  // HAVE_EVERYBEAM
 
+  std::vector<schaapcommon::h5parm::H5Parm> dummy_h5parms;
+  std::vector<schaapcommon::h5parm::SolTab*> dummy_solutions;
+  std::vector<schaapcommon::h5parm::GainType> gain_types;
   VisibilityModifier modifier;
 };
 
