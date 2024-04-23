@@ -18,25 +18,44 @@
 class SynchronizedMS;
 
 /**
- * Enum for selecting the entry or entries from the direction dependent gain
- * matrix that are to be used to correct the visibilities during the reading
- * and/or writing operations.
+ * This enum summarizes the number of polarizations stored in the
+ * measurement set provider for gridding, together with the type
+ * of polarizations. It is mainly used for templating.
  */
 enum class GainMode {
   /// Correct visibilities only with the X solution.
   kXX,
   /// Correct visibilities only with the Y solution.
   kYY,
-  /// Correct visibilities with the X and Y solutions, but not with the
-  /// cross-terms (XY/YX).
-  /// When the input is Stokes I visibilities, the trace of the gain is taken
-  /// and applied. When the input contains both XX and YY or all four
-  /// polarizations, the X/Y gains are separately applied.
-  kDiagonal,
+  /// Correct Stokes I visibilities with the trace of the
+  /// X and Y solutions.
+  kTrace,
+  /// Apply X and Y separately to the XX and YY visibilities.
+  k2VisDiagonal,
+  /// TODO to be added: Multiply the diagonal [X 0 ; 0 Y] matrix with the 2x2
+  /// visibility matrix.
+  // k4VisDiagonal,
   /// Correct visibilities with the full 2x2 complex matrix.
   kFull
 };
 
+constexpr size_t GetNVisibilities(GainMode mode) {
+  switch (mode) {
+    case GainMode::kXX:
+    case GainMode::kYY:
+    case GainMode::kTrace:
+      return 1;
+    case GainMode::k2VisDiagonal:
+      return 2;
+    case GainMode::kFull:
+      return 4;
+  }
+  return 0;
+}
+
+/**
+ * @param polarization The polarization requested
+ */
 inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
                             size_t n_visibility_polarizations) {
   switch (n_visibility_polarizations) {
@@ -48,20 +67,25 @@ inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
           return GainMode::kYY;
         case aocommon::Polarization::StokesI:
           // polarization might also be RR. We still need to provide a GainMode,
-          // so we also return diagonal in those cases.
+          // so we also return trace in those cases.
         default:
-          return GainMode::kDiagonal;
+          return GainMode::kTrace;
       }
       break;
     case 2:
-      if (polarization == aocommon::Polarization::DiagonalInstrumental ||
-          polarization == aocommon::Polarization::StokesI)
-        return GainMode::kDiagonal;
+      // When 2 polarizations are stored (XX, YY), it might be because Stokes I
+      // is being imaged with diagonal solutions, but it might also be that both
+      // polarizations are requested independently and imaged at the same time.
+      // IDG could in theory do this, although it's currently not implemented.
+      if (polarization == aocommon::Polarization::StokesI ||
+          polarization == aocommon::Polarization::DiagonalInstrumental)
+        return GainMode::k2VisDiagonal;
       break;
     case 4:
-      if (polarization == aocommon::Polarization::DiagonalInstrumental)
-        return GainMode::kDiagonal;
-      else if (polarization == aocommon::Polarization::Instrumental)
+      // TODO how will we handle individually gridded polarizations (e.g. with
+      // wgridder) with full or diagonal polarization correction?
+      if (polarization == aocommon::Polarization::FullStokes ||
+          polarization == aocommon::Polarization::Instrumental)
         return GainMode::kFull;
       break;
   }
@@ -147,7 +171,7 @@ class VisibilityModifier {
    * applied to the data. This is necessary for calculating direction-dependent
    * PSFs.
    */
-  template <size_t PolarizationCount, GainMode GainEntry>
+  template <GainMode GainEntry>
   void ApplyConjugatedParmResponse(std::complex<float>* data,
                                    const float* weights,
                                    const float* image_weights, size_t ms_index,
@@ -155,7 +179,7 @@ class VisibilityModifier {
                                    size_t antenna1, size_t antenna2,
                                    bool apply_forward);
 
-  template <size_t PolarizationCount, GainMode GainEntry>
+  template <GainMode GainEntry>
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
                          size_t n_channels, size_t n_antennas, size_t antenna1,
                          size_t antenna2);
@@ -185,11 +209,11 @@ class VisibilityModifier {
   void CacheBeamResponse(double time, size_t fieldId,
                          const aocommon::BandData& band);
 
-  template <size_t PolarizationCount, GainMode GainEntry>
+  template <GainMode Mode>
   void ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
                          size_t antenna1, size_t antenna2);
 
-  template <size_t PolarizationCount, GainMode GainEntry>
+  template <GainMode Mode>
   void ApplyConjugatedBeamResponse(std::complex<float>* data,
                                    const float* weights,
                                    const float* image_weights,
@@ -200,7 +224,7 @@ class VisibilityModifier {
    * Correct the data for both the conjugated beam and the
    * conjugated h5parm solutions.
    */
-  template <size_t PolarizationCount, GainMode GainEntry>
+  template <GainMode Mode>
   void ApplyConjugatedDual(std::complex<float>* data, const float* weights,
                            const float* image_weights, size_t n_channels,
                            size_t n_stations, size_t antenna1, size_t antenna2,

@@ -451,14 +451,11 @@ void IdgMsGridder::computePredictionBuffer(
     MSProvider::MetaData metaData;
     ReadPredictMetaData(metaData);
     if (n_vis_polarizations == 1) {
-      // Remove the XY/YX pols from the data and place the result in the first
-      // quarter of the array
+      // Place Stokes I in the first quarter of the array
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
         row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
       }
 
-      WriteInstrumentalVisibilities<1>(*_outputProvider, antenna_names,
-                                       _selectedBand, row.second, metaData);
     } else if (n_vis_polarizations == 2) {
       // Remove the XY/YX pols from the data and place the result in the first
       // half of the array
@@ -466,13 +463,11 @@ void IdgMsGridder::computePredictionBuffer(
         row.second[i * 2] = row.second[i * 4];
         row.second[i * 2 + 1] = row.second[i * 4 + 3];
       }
-      WriteInstrumentalVisibilities<2>(*_outputProvider, antenna_names,
-                                       _selectedBand, row.second, metaData);
     } else {
       assert(n_vis_polarizations == 4);
-      WriteInstrumentalVisibilities<4>(*_outputProvider, antenna_names,
-                                       _selectedBand, row.second, metaData);
     }
+    WriteInstrumentalVisibilities(*_outputProvider, antenna_names,
+                                  _selectedBand, row.second, metaData);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();
