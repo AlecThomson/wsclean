@@ -404,7 +404,7 @@ void MSGridderBase::ReadPredictMetaData(MSProvider::MetaData& metaData) {
   predict_reader_->NextInputRow();
 }
 
-template <size_t PolarizationCount, GainMode GainEntry>
+template <GainMode Mode>
 void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
@@ -416,7 +416,7 @@ void MSGridderBase::WriteInstrumentalVisibilities(
     visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                            curBand, ms_index_);
 
-    visibility_modifier_.ApplyParmResponse<PolarizationCount, GainEntry>(
+    visibility_modifier_.ApplyParmResponse<Mode>(
         buffer, ms_index_, curBand.ChannelCount(), antenna_names.size(),
         metaData.antenna1, metaData.antenna2);
   }
@@ -426,35 +426,34 @@ void MSGridderBase::WriteInstrumentalVisibilities(
     visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                            curBand);
 
-    visibility_modifier_.ApplyBeamResponse<PolarizationCount, GainEntry>(
+    visibility_modifier_.ApplyBeamResponse<Mode>(
         buffer, curBand.ChannelCount(), metaData.antenna1, metaData.antenna2);
   }
 #endif
 }
 
-template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kXX>(
+template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kXX>(
     MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
-template void MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kYY>(
+template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kYY>(
+    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    MSProvider::MetaData& metaData);
+
+template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kTrace>(
     MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void
-MSGridderBase::WriteInstrumentalVisibilities<1, GainMode::kDiagonal>(
+MSGridderBase::WriteInstrumentalVisibilities<GainMode::k2VisDiagonal>(
     MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
-template void
-MSGridderBase::WriteInstrumentalVisibilities<2, GainMode::kDiagonal>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
-    const aocommon::BandData& curBand, std::complex<float>* buffer,
-    MSProvider::MetaData& metaData);
-
-template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
+template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kFull>(
     MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
@@ -531,7 +530,7 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
   }
 }
 
-template <size_t PolarizationCount, GainMode GainEntry>
+template <GainMode Mode>
 void MSGridderBase::ApplyWeightsAndCorrections(
     const std::vector<std::string>& antenna_names, InversionRow& rowData,
     const aocommon::BandData& curBand, float* weightBuffer,
@@ -546,7 +545,7 @@ void MSGridderBase::ApplyWeightsAndCorrections(
                                              curBand);
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
-      visibility_modifier_.ApplyConjugatedDual<PolarizationCount, GainEntry>(
+      visibility_modifier_.ApplyConjugatedDual<Mode>(
           rowData.data, weightBuffer, scratch_image_weights_.data(),
           curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
           metaData.antenna2, ms_index_, apply_forward);
@@ -554,22 +553,20 @@ void MSGridderBase::ApplyWeightsAndCorrections(
       // Load and apply only the conjugate beam
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                              curBand);
-      visibility_modifier_
-          .ApplyConjugatedBeamResponse<PolarizationCount, GainEntry>(
-              rowData.data, weightBuffer, scratch_image_weights_.data(),
-              curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
-              apply_forward);
+      visibility_modifier_.ApplyConjugatedBeamResponse<Mode>(
+          rowData.data, weightBuffer, scratch_image_weights_.data(),
+          curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
+          apply_forward);
 
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
 
-      visibility_modifier_
-          .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
-              rowData.data, weightBuffer, scratch_image_weights_.data(),
-              ms_index_, curBand.ChannelCount(), antenna_names.size(),
-              metaData.antenna1, metaData.antenna2, apply_forward);
+      visibility_modifier_.ApplyConjugatedParmResponse<Mode>(
+          rowData.data, weightBuffer, scratch_image_weights_.data(), ms_index_,
+          curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
+          metaData.antenna2, apply_forward);
     }
   }
 
@@ -577,7 +574,7 @@ void MSGridderBase::ApplyWeightsAndCorrections(
   std::complex<float>* dataIter = rowData.data;
   float* weightIter = weightBuffer;
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    for (size_t p = 0; p != PolarizationCount; ++p) {
+    for (size_t p = 0; p != GetNVisibilities(Mode); ++p) {
       const double cumWeight = *weightIter * scratch_image_weights_[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
@@ -612,27 +609,28 @@ template void MSGridderBase::CalculateWeights<4>(
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kXX>(
+template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kXX>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
-template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kYY>(
+template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kYY>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
-template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kDiagonal>(
+template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kTrace>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
-template void MSGridderBase::ApplyWeightsAndCorrections<2, GainMode::kDiagonal>(
+template void
+MSGridderBase::ApplyWeightsAndCorrections<GainMode::k2VisDiagonal>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
 
-template void MSGridderBase::ApplyWeightsAndCorrections<4, GainMode::kFull>(
+template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kFull>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
     const aocommon::BandData& curBand, float* weightBuffer,
     const MSProvider::MetaData& metaData);
