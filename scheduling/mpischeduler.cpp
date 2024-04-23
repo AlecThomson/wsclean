@@ -139,21 +139,28 @@ void MPIScheduler::send(GriddingTask&& task,
 
 int MPIScheduler::getNode(const GriddingTask& task,
                           std::function<void(GriddingResult&)>&& callback) {
-  // Determine the target node using the channel to node mapping.
-  int node = GetSettings().channelToNode[task.outputChannelIndex];
-
-  // Wait until _availableRoom[node] becomes larger than 0.
   std::unique_lock<std::mutex> lock(_mutex);
-  while (_availableRoom[node] <= 0) {
-    _notify.wait(lock);
-  }
-  _availableRoom[node] -= task.facets.size();
 
-  // Store the callback function.
   assert(_callbacks.count(task.unique_id) == 0);
-  _callbacks.emplace(task.unique_id, std::move(callback));
+  _callbacks.emplace(task.unique_id, callback);
 
-  return node;
+  while (true) {
+    // Find the node that has the most available execution slots.
+    // The backwards search prefers worker nodes over the main node.
+    const auto nodeWithMostSlots =
+        std::max_element(_availableRoom.rbegin(), _availableRoom.rend());
+    // Select nodeWithMostSlots even if it can't process all facets in parallel.
+    // It's still the best candidate. Also, processing all facets in parallel
+    // may not be possible at all.
+    if (*nodeWithMostSlots > 0) {
+      *nodeWithMostSlots -= task.facets.size();
+      _notify.notify_all();
+      return _availableRoom.rend() - nodeWithMostSlots - 1;
+    } else {
+      // All nodes are busy -> Wait and try again later.
+      _notify.wait(lock);
+    }
+  }
 }
 
 void MPIScheduler::receiveLoop() {
