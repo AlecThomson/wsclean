@@ -124,11 +124,9 @@ size_t ducc0_max_threads()
     auto evar=getenv("DUCC0_NUM_THREADS");
     // fallback
     if (!evar)
-      evar=getenv("OMP_NUM_THREADS");
-    if (!evar)
       return res;
     auto res2 = stringToData<long>(trim(std::string(evar)));
-    MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS/OMP_NUM_THREADS");
+    MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS");
     if (res2==0)
       return res;
     return std::min<size_t>(res, res2);
