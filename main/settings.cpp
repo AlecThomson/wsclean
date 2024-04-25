@@ -300,16 +300,23 @@ void Settings::Validate() const {
         "primary beam correction: add -apply-primary-beam to your commandline "
         "or use IDG to apply the beam.");
 
-  if (saveSourceList &&
-      (polarizations.size() != 1 ||
-       (*polarizations.begin() != aocommon::Polarization::StokesI &&
-        *polarizations.begin() != aocommon::Polarization::XX &&
-        *polarizations.begin() != aocommon::Polarization::YY &&
-        *polarizations.begin() != aocommon::Polarization::LL &&
-        *polarizations.begin() != aocommon::Polarization::RR)))
-    throw std::runtime_error(
-        "Saving a source list currently only works for Stokes I or pseudo "
-        "Stokes I (XX, YY, LL or RR) imaging.");
+  if (saveSourceList) {
+    if (polarizations.size() != 1 ||
+        (*polarizations.begin() != aocommon::Polarization::StokesI &&
+         *polarizations.begin() != aocommon::Polarization::XX &&
+         *polarizations.begin() != aocommon::Polarization::YY &&
+         *polarizations.begin() != aocommon::Polarization::LL &&
+         *polarizations.begin() != aocommon::Polarization::RR)) {
+      throw std::runtime_error(
+          "Saving a source list currently only works for Stokes I or pseudo "
+          "Stokes I (XX, YY, LL or RR) imaging.");
+    } else if (!IsSpectralFittingEnabled() && channelsOut > 1 &&
+               joinedFrequencyDeconvolution) {
+      throw std::runtime_error(
+          "Saving a source list with multiple channels requires specifying a "
+          "fitting method");
+    }
+  }
 
   if (saveSourceList && deconvolutionIterationCount == 0)
     throw std::runtime_error("A source list cannot be saved without cleaning.");
