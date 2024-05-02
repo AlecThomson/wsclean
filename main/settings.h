@@ -60,7 +60,7 @@ class Settings {
   double manualBeamMajorSize = 0.0, manualBeamMinorSize = 0.0;
   double manualBeamPA = 0.0;
   bool fittedBeam = true, theoreticBeam = false, circularBeam = false;
-  double beamFittingBoxSize = 0.0;
+  double beamFittingBoxSize = 10.0;
   bool continuedRun = false;
   double memFraction = 1.0, absMemLimit = 0.0;
   double minUVWInMeters = 0.0, maxUVWInMeters = 0.0, minUVInLambda = 0.0;
