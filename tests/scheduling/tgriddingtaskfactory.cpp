@@ -27,31 +27,23 @@ std::shared_ptr<Facet> CreateFacet() {
 
 struct FactoryFixture {
   FactoryFixture()
-      : settings{},
-        global_selection{},
-        ms_bands{},
-        ms_helper{settings, global_selection, ms_bands},
-        image_weight_initializer{settings, global_selection, ms_bands,
-                                 ms_helper.GetReorderedMsHandles()},
+      : settings(),
+        global_selection(),
+        ms_bands(),
+        ms_helper(settings, global_selection, ms_bands),
+        image_weight_initializer(settings, global_selection, ms_bands,
+                                 ms_helper.GetReorderedMsHandles()),
         observation_info{42.0, 6.0, "test_name", "test_observer", "test_field"},
-        image_weight_cache{WeightMode{WeightMode::NaturalWeighted},
-                           kImageSize,
-                           kImageSize,
-                           kPixelScale,
-                           kPixelScale,
-                           0.0,
-                           1.0,
-                           0.0,
-                           0,
-                           false},
-        group{2},
-        average_beams{group.size()},
-        average_beam_pointers{group.size()},
-        model_images{group.size()},
-        meta_data_cache_pointers{group.size()},
-        factory{ms_helper,        image_weight_initializer,
-                observation_info, kLShift,
-                kMShift,          group.size()} {
+        image_weight_cache(WeightMode(WeightMode::NaturalWeighted), kImageSize,
+                           kImageSize, kPixelScale, kPixelScale, 0.0, 1.0, 0.0,
+                           0, false),
+        group(2),
+        average_beams(group.size()),
+        average_beam_pointers(group.size()),
+        model_images(group.size()),
+        meta_data_cache_pointers(group.size()),
+        factory(ms_helper, image_weight_initializer, observation_info, kLShift,
+                kMShift, group.size()) {
     settings.pixelScaleX = kPixelScale;
     settings.pixelScaleY = kPixelScale;
     settings.writeImagingWeightSpectrumColumn = true;
