@@ -19,6 +19,42 @@
 using aocommon::Logger;
 using aocommon::units::Angle;
 
+namespace math {
+
+void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
+                                   std::array<aocommon::Image*, 4>& images) {
+  assert(images[0] && images[1] && images[2] && images[3]);
+  assert(images[0]->Width() == images[1]->Width() &&
+         images[0]->Height() == images[1]->Height());
+  assert(images[0]->Width() == images[2]->Width() &&
+         images[0]->Height() == images[2]->Height());
+  assert(images[0]->Width() == images[3]->Width() &&
+         images[0]->Height() == images[3]->Height());
+
+  float* a = images[0]->Data();
+  float* b = images[1]->Data();
+  float* c = images[2]->Data();
+  float* d = images[3]->Data();
+
+  for (size_t i = 0; i != images[0]->Size(); ++i) {
+    double stokes_values[4] = {*a, *b, *c, *d};
+    aocommon::Vector4 v;
+    aocommon::Polarization::StokesToLinear(stokes_values, v.data());
+    v = mueller_correction * v;
+    aocommon::Polarization::LinearToStokes(v.data(), stokes_values);
+    *a = stokes_values[0];
+    ++a;
+    *b = stokes_values[1];
+    ++b;
+    *c = stokes_values[2];
+    ++c;
+    *d = stokes_values[3];
+    ++d;
+  }
+}
+
+}  // namespace math
+
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
                                   double& bMin, double& bPA,
                                   const aocommon::Image& image,

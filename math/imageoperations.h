@@ -4,6 +4,7 @@
 #include "../structures/outputchannelinfo.h"
 #include "../io/imagefilename.h"
 
+#include <aocommon/hmatrix4x4.h>
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
@@ -11,6 +12,21 @@
 #include <string>
 
 class Settings;
+
+namespace math {
+
+/**
+ * Multiplies every pixel of a set of Stokes I,Q,U,V images with a Mueller
+ * matrix. This function assumes that the Mueller matrix is a correction to
+ * linear instrumental polarizations, i.e. it applies a correction on
+ * XX/XY/YX/YY values. The Stokes IQUV image values are therefore first
+ * converted to linear polarization, then the matrix is applied, and then the
+ * values are converted and written back to Stokes images.
+ */
+void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
+                                   std::array<aocommon::Image*, 4>& images);
+
+}  // namespace math
 
 class ImageOperations {
  public:
