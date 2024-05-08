@@ -11,12 +11,16 @@
 
 #include "../structures/imageweights.h"
 
+#include "BS_thread_pool.hpp"
+
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 
 #include <schaapcommon/fft/resampler.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+#include <algorithm>
 
 using aocommon::Image;
 using aocommon::Logger;
@@ -42,12 +46,14 @@ std::unique_ptr<WGriddingGridderBase> WGriddingMSGridder::MakeGridder(
     return std::make_unique<WGriddingGridder_Simple<double>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+        resources_.NCpus() / num_parallel_nested_, accuracy_, 0,
+        use_tuned_wgridder_);
   } else {
     return std::make_unique<WGriddingGridder_Simple<float>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+        resources_.NCpus() / num_parallel_nested_, accuracy_, 0,
+        use_tuned_wgridder_);
   }
 }
 
@@ -65,9 +71,12 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   }
   const uint64_t memForBuffers = resources_.Memory() - constantMem;
 
-  const uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
-                                 channelCount       // vis themselves
-                             + sizeof(double) * 3;  // uvw
+  const uint64_t memPerRow =
+      perVisMem                                       // ducc internal usage
+      + (sizeof(std::complex<float>) * channelCount)  // visibilities
+      + (sizeof(float) * channelCount)                // weights
+      + sizeof(double) * 3                            // uvw
+      + sizeof(MSProvider::MetaData);                 // metadata
   const size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
   if (maxNRows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
@@ -78,8 +87,21 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
 }
 
 void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
+  const size_t num_gridding_threads = std::min(
+      GetSettings().parallelGridding, static_cast<size_t>(numNestedGridders()));
+  const size_t num_threads_per_gridder =
+      GetSettings().threadCount / GetSettings().parallelGridding;
+  const size_t num_overall_threads =
+      num_gridding_threads * num_threads_per_gridder;
+
+  BS::thread_pool all_core_thread_pool(num_overall_threads);
+  BS::thread_pool gridder_task_thread_grid_pool(num_gridding_threads);
+
+  Logger::Info << "gridMeasurementSet..\n";
   const aocommon::BandData selectedBand(msData.SelectedBand());
-  StartMeasurementSet(msData, false);
+  for (auto& gridder : nestedGridders) {
+    gridder->StartMeasurementSet(msData, false);
+  }
 
   const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const size_t data_size = selectedBand.ChannelCount() * n_vis_polarizations;
@@ -93,20 +115,10 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
   size_t maxNRows = calculateMaxNRowsInMemory(selectedBand.ChannelCount());
 
-  // For the sake of simplicity the prototype does not *yet* support more than 1
-  // polarization here. We will initially be testing the prototype in a way that
-  // n_vis_polarizations is always 1 We force an exit here to  make it apparent
-  // if a mistake has been made As this develops into a full feature we will
-  // have to change and implement this
-  if (n_vis_polarizations > 1) {
-    exit(657);
-  }
-
   aocommon::UVector<double> uvw_buffer(maxNRows * 3);
   aocommon::UVector<std::complex<float>> visibility_buffer(maxNRows *
                                                            data_size);
-  aocommon::UVector<float> weight_buffer(maxNRows * data_size);
-  aocommon::UVector<float> uv_buffer(maxNRows * selectedBand.ChannelCount());
+  aocommon::UVector<float> weight_buffer(data_size);
   aocommon::UVector<MSProvider::MetaData> metadata_buffer(maxNRows);
 
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
@@ -118,8 +130,6 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
     size_t nRows = 0;
     std::complex<float>* vis_buffer_index = visibility_buffer.data();
-    float* weight_buffer_index = weight_buffer.data();
-    float* uv_buffer_index = uv_buffer.data();
     double* uvw_buffer_index = uvw_buffer.data();
     MSProvider::MetaData* meta_data = metadata_buffer.data();
 
@@ -133,21 +143,12 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       // Read and store all visibilities and weights, we need them all in memory
       // when calling 'InlineApplyWeightsAndCorrections' so that we can
       // calculate the final visibilities to return correctly
-      ReadVisibilities(*msReader, vis_buffer_index, weight_buffer_index,
+      ReadVisibilities(*msReader, vis_buffer_index, weight_buffer.data(),
                        modelBuffer.data());
       CalculateWeights(uvw_buffer_index, vis_buffer_index, selectedBand,
-                       weight_buffer_index, modelBuffer.data(),
-                       isSelected.data());
-
-      // We need to store all the calculated uv values as we will need them when
-      // apply the weights/corrections inline
-      std::copy_n(scratch_image_weights_.data(), selectedBand.ChannelCount(),
-                  uv_buffer_index);
-
-      // Prime some of the required correction caches so that the correct data
-      // is already available when we calculate/apply them inline
-      PreCacheCorrections(*meta_data, msData.antenna_names, selectedBand);
-      already_counted_weights.push_back(false);
+                       weight_buffer.data(), modelBuffer.data(),
+                       isSelected.data(), *meta_data, msData.antenna_names,
+                       nestedGridders);
 
       // We don't currently store the imaging weights
       // For testing we don't need this
@@ -155,9 +156,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       // if (StoreImagingWeights())
       // ms_reader.WriteImagingWeights(scratch_image_weights_.data());
 
-      weight_buffer_index += data_size;
       vis_buffer_index += data_size;
-      uv_buffer_index += selectedBand.ChannelCount();
       uvw_buffer_index += 3;
       ++meta_data;
 
@@ -165,31 +164,59 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       msReader->NextInputRow();
     }
 
-    std::function<std::complex<float>&(size_t index)> getVisibilityWithWeight;
-    if (n_vis_polarizations == 1) {
-      getVisibilityWithWeight = [&](size_t index) -> std::complex<float>& {
-        size_t row = index / data_size;
-        size_t channel = index % data_size;
-        MSProvider::MetaData& meta_data = metadata_buffer[row];
+    Logger::Info << "Gridding " << nRows << " rows for "
+                 << nestedGridders.size() << " facets across "
+                 << num_gridding_threads << "threads...\n";
 
-        return InlineApplyWeightsAndCorrections<1>(
-            msData.antenna_names, selectedBand, uv_buffer.data(),
-            weight_buffer.data(), visibility_buffer.data(), index, row, channel,
-            meta_data);
-      };
+    for (size_t facet_index = 0; facet_index < nestedGridders.size();
+         ++facet_index) {
+      gridder_task_thread_grid_pool.detach_task([&, facet_index] {
+        std::stringstream logMessage;
+        logMessage << "Gridding facet" << facet_index << "\n";
+        Logger::Info << logMessage.str();
+        const auto& gridder = nestedGridders[facet_index];
+
+        gridder->gridded_visibility_count_ = gridded_visibility_count_;
+        gridder->visibility_weight_sum_ = visibility_weight_sum_;
+        gridder->max_gridded_weight_ = max_gridded_weight_;
+        gridder->total_weight_ = total_weight_;
+
+        // Create a callback and virtual memory buffer object that can apply
+        // weights and corrections on the fly when passed into DUCC
+        std::function<std::complex<float>&(size_t index)>
+            getVisibilityWithWeight;
+        if (n_vis_polarizations == 1) {
+          getVisibilityWithWeight = [&](size_t index) -> std::complex<float>& {
+            size_t row = index / data_size;
+            size_t channel = index % data_size;
+            MSProvider::MetaData& meta_data = metadata_buffer[row];
+
+            return gridder->InlineApplyWeightsAndCorrections<1>(
+                msData.antenna_names, selectedBand, visibility_buffer.data(),
+                index, row, channel, meta_data);
+          };
+        }
+        auto ms =
+            cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>>(
+                {nRows, selectedBand.ChannelCount()},
+                cvirtmembuf<std::complex<float>>(getVisibilityWithWeight));
+
+        ((WGriddingMSGridder*)gridder)
+            ->gridder_->AddInversionData(nRows, selectedBand.ChannelCount(),
+                                         uvw_buffer.data(), frequencies.data(),
+                                         ms);
+        Logger::Info << "Done gridding facet" << facet_index << "\n";
+      });
     }
+    gridder_task_thread_grid_pool.wait();
 
-    auto ms = cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>>(
-        {nRows, selectedBand.ChannelCount()},
-        cvirtmembuf<std::complex<float>>(getVisibilityWithWeight));
-
-    Logger::Info << "Gridding " << nRows << " rows...\n";
-    gridder_->AddInversionData(nRows, selectedBand.ChannelCount(),
-                               uvw_buffer.data(), frequencies.data(), ms);
-
-    // Clear 'per chunk' data that we have cached
-    time_offsets_.clear();
-    already_counted_weights.clear();
+    // Clear 'per chunk' data that we have cached so that they are fresh for the
+    // next chunk of data
+    for (size_t facet_index = 0; facet_index < nestedGridders.size();
+         ++facet_index) {
+      const auto& gridder = nestedGridders[facet_index];
+      gridder->time_offsets_.clear();
+    }
 
     totalNRows += nRows;
   }  // end of chunk
@@ -271,60 +298,98 @@ void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
 }
 
 void WGriddingMSGridder::Invert() {
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  std::vector<std::vector<MSData>> msDataVectors;
+  for (const auto& pgridder : nestedGridders) {
+    std::vector<MSData> msDataVector;
+    pgridder->initializeMSDataVector(msDataVector);
+    msDataVectors.emplace_back(msDataVector);
+  }
 
-  size_t trimmedWidth, trimmedHeight;
-  getActualTrimmedSize(trimmedWidth, trimmedHeight);
+  const size_t num_overall_threads = resources_.NCpus();
+  const size_t num_gridding_threads = num_parallel_nested_;
 
-  gridder_ = MakeGridder(trimmedWidth, trimmedHeight);
-  gridder_->InitializeInversion();
+  BS::thread_pool all_core_thread_pool(num_overall_threads);
+  for (size_t gridder_index = 0; gridder_index < nestedGridders.size();
+       ++gridder_index) {
+    all_core_thread_pool.detach_task([&, gridder_index] {
+      WGriddingMSGridder* pgridder =
+          (WGriddingMSGridder*)(nestedGridders[gridder_index]);
+      auto msDataVector = msDataVectors[gridder_index];
 
-  resetVisibilityCounters();
+      pgridder->calculateOverallMetaData(msDataVector);
 
-  for (MSData& msData : msDataVector) {
+      size_t trimmedWidth, trimmedHeight;
+      pgridder->getActualTrimmedSize(trimmedWidth, trimmedHeight);
+
+      pgridder->gridder_ = pgridder->MakeGridder(trimmedWidth, trimmedHeight);
+      pgridder->gridder_->InitializeInversion();
+
+      pgridder->resetVisibilityCounters();
+    });
+  }
+  all_core_thread_pool.wait();
+
+  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
+    MSData& msData = msDataVectors[0][i];
     gridMeasurementSet(msData);
   }
 
-  gridder_->FinalizeImage(1.0 / totalWeight());
+  for (size_t gridder_index = 0; gridder_index < nestedGridders.size();
+       ++gridder_index) {
+    all_core_thread_pool.detach_task([&, gridder_index] {
+      WGriddingMSGridder* pgridder =
+          (WGriddingMSGridder*)(nestedGridders[gridder_index]);
 
-  Logger::Info << "Gridded visibility count: "
-               << double(GriddedVisibilityCount());
-  if (Weighting().IsNatural())
-    Logger::Info << ", effective count after weighting: "
-                 << EffectiveGriddedVisibilityCount();
-  Logger::Info << '\n';
+      pgridder->gridder_->FinalizeImage(1.0 / pgridder->totalWeight());
 
-  _image = Image(ActualInversionWidth(), ActualInversionHeight());
-  {
-    std::vector<float> imageFloat = gridder_->RealImage();
-    for (size_t i = 0; i < imageFloat.size(); ++i) _image[i] = imageFloat[i];
+      Logger::Info << "Gridded visibility count: "
+                   << double(pgridder->GriddedVisibilityCount());
+      if (pgridder->Weighting().IsNatural())
+        Logger::Info << ", effective count after weighting: "
+                     << pgridder->EffectiveGriddedVisibilityCount();
+      Logger::Info << '\n';
+
+      pgridder->_image = Image(pgridder->ActualInversionWidth(),
+                               pgridder->ActualInversionHeight());
+      {
+        std::vector<float> imageFloat = pgridder->gridder_->RealImage();
+        for (size_t i = 0; i < imageFloat.size(); ++i)
+          pgridder->_image[i] = imageFloat[i];
+      }
+
+      if (pgridder->ImageWidth() != pgridder->ActualInversionWidth() ||
+          pgridder->ImageHeight() != pgridder->ActualInversionHeight()) {
+        // Interpolate the image
+        // The input is of size ActualInversionWidth() x ActualInversionHeight()
+        schaapcommon::fft::Resampler resampler(
+            pgridder->ActualInversionWidth(), pgridder->ActualInversionHeight(),
+            pgridder->ImageWidth(), pgridder->ImageHeight(),
+            resources_.NCpus() / numNestedGridders());
+
+        Image resized(pgridder->ImageWidth(), pgridder->ImageHeight());
+        resampler.Resample(pgridder->_image.Data(), resized.Data());
+        pgridder->_image = std::move(resized);
+      }
+
+      if (pgridder->TrimWidth() != pgridder->ImageWidth() ||
+          pgridder->TrimHeight() != pgridder->ImageHeight()) {
+        Logger::Debug << "Trimming " << pgridder->ImageWidth() << " x "
+                      << pgridder->ImageHeight() << " -> "
+                      << pgridder->TrimWidth() << " x "
+                      << pgridder->TrimHeight() << '\n';
+
+        pgridder->_image = pgridder->_image.Trim(pgridder->TrimWidth(),
+                                                 pgridder->TrimHeight());
+      }
+    });
   }
-
-  if (ImageWidth() != ActualInversionWidth() ||
-      ImageHeight() != ActualInversionHeight()) {
-    // Interpolate the image
-    // The input is of size ActualInversionWidth() x ActualInversionHeight()
-    schaapcommon::fft::Resampler resampler(
-        ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
-        ImageHeight(), resources_.NCpus());
-
-    Image resized(ImageWidth(), ImageHeight());
-    resampler.Resample(_image.Data(), resized.Data());
-    _image = std::move(resized);
-  }
-
-  if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
-    Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
-                  << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
-
-    _image = _image.Trim(TrimWidth(), TrimHeight());
-  }
+  all_core_thread_pool.wait();
 }
 
 void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
 
   size_t trimmedWidth, trimmedHeight;
   getActualTrimmedSize(trimmedWidth, trimmedHeight);

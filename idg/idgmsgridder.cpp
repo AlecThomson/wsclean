@@ -85,6 +85,7 @@ void IdgMsGridder::Invert() {
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
 
   double max_w = 0;
   for (const MSData& msData : msDataVector) {
@@ -328,6 +329,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
 
   double max_w = 0;
   for (const MSData& msData : msDataVector) {

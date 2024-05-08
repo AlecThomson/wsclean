@@ -20,6 +20,7 @@ void DirectMSGridder<num_t>::Invert() {
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
   resetVisibilityCounters();
 
   ProgressBar progress("Performing direct Fourier transform");

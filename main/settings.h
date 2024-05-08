@@ -357,7 +357,7 @@ inline Settings::Settings()
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),
       simulatedBaselineNoiseFilename(),
-      compoundTasks(false),
+      compoundTasks(true),
       // Deconvolution default settings:
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),

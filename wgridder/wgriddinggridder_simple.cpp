@@ -46,21 +46,38 @@ void WGriddingGridder_Simple<NumT>::InitializeInversion() {
 template <typename NumT>
 void WGriddingGridder_Simple<NumT>::AddInversionData(
     size_t nrows, size_t nchan, const double *uvw, const double *freq,
-    cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>> &ms) {
+    const std::complex<float> *vis) {
   cmav<double, 2> uvw2(uvw, {nrows, 3});
   bool decreasing_freq = (nchan > 1) && (freq[1] < freq[0]);
-
   auto freq2(decreasing_freq ? cmav<double, 1>(freq + nchan - 1, {nchan}, {-1})
                              : cmav<double, 1>(freq, {nchan}));
-
-  // We temporarily break this for testing/prototype purposes and just ensure we
-  // use data that doesn't hit this case. A final implementation would need to
-  // handle this.
-  if (decreasing_freq) exit(602);
-  /*auto ms(decreasing_freq
+  auto ms(decreasing_freq
               ? cmav<std::complex<float>, 2>(vis + nchan - 1, {nrows, nchan},
                                              {ptrdiff_t(nchan), -1})
-              : cmav<std::complex<float>, 2>(vis, {nrows, nchan}));*/
+              : cmav<std::complex<float>, 2>(vis, {nrows, nchan}));
+  vmav<NumT, 2> tdirty({width_t_, height_t_});
+  cmav<float, 2> twgt(nullptr, {0, 0});
+  cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
+  if (!tuning_)
+    ms2dirty<NumT, NumT>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
+                         epsilon_, true, nthreads_, tdirty, verbosity_, true,
+                         false, sigma_min, sigma_max, -l_shift_, -m_shift_);
+  else
+    ms2dirty_tuning<NumT, NumT>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
+                                pixelSizeY_, epsilon_, true, nthreads_, tdirty,
+                                verbosity_, true, false, sigma_min, sigma_max,
+                                -l_shift_, -m_shift_);
+  for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
+}
+
+template <typename NumT>
+void WGriddingGridder_Simple<NumT>::AddInversionData(
+    size_t nrows, size_t nchan, const double *uvw, const double *freq,
+    cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>> &ms) {
+  cmav<double, 2> uvw2(uvw, {nrows, 3});
+
+  auto freq2(cmav<double, 1>(freq, {nchan}));
+
   vmav<NumT, 2> tdirty({width_t_, height_t_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});

@@ -13,6 +13,7 @@ class Resources {
   size_t NCpus() const { return n_cpus_; }
   int64_t Memory() const { return memory_; }
 
+  Resources GetCombined(size_t num_combined) const;
   Resources GetPart(size_t part_size) const;
 
  private:

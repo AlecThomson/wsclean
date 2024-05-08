@@ -86,6 +86,13 @@ class MSGridderBase {
   MSGridderBase(const Settings& settings);
   virtual ~MSGridderBase();
 
+  int numNestedGridders() const { return nestedGridders.size(); };
+  void addNestedGridder(MSGridderBase* gridder) {
+    nestedGridders.push_back(gridder);
+  };
+  std::vector<MSGridderBase*> nestedGridders;
+  int num_parallel_nested_ = 1;
+
   size_t ImageWidth() const { return image_width_; }
   size_t ImageHeight() const { return image_height_; }
   double ImagePadding() const { return image_padding_; }
@@ -105,9 +112,9 @@ class MSGridderBase {
     return selections_[index];
   }
   size_t MeasurementSetCount() const { return measurement_sets_.size(); }
-  void AddMeasurementSet(std::unique_ptr<MSProvider> ms_provider,
+  void AddMeasurementSet(MSProvider* ms_provider,
                          const MSSelection& selection) {
-    measurement_sets_.push_back(std::move(ms_provider));
+    measurement_sets_.push_back(ms_provider);
     selections_.push_back(selection);
   }
 
@@ -319,6 +326,7 @@ class MSGridderBase {
     std::complex<float>* data;
   };
 
+ public:
   /**
    * Initializes MS related data members, i.e. the @c _telescope and the
    * @c _pointResponse data in case a beam is applied on the facets and
@@ -389,8 +397,8 @@ class MSGridderBase {
       const bool* is_selected, const MSProvider::MetaData& meta_data) {
     ReadVisibilities(ms_reader, row_data, weight_buffer, model_buffer);
 
-    CalculateWeights<PolarizationCount>(row_data, cur_band, weight_buffer,
-                                        model_buffer, is_selected);
+    // CalculateWeights<PolarizationCount>(row_data, cur_band, weight_buffer,
+    // model_buffer, is_selected);
 
     ApplyWeightsAndCorrections<PolarizationCount>(
         antenna_names, row_data, cur_band, weight_buffer, meta_data);
@@ -404,19 +412,25 @@ class MSGridderBase {
                                const aocommon::BandData& cur_band,
                                float* weight_buffer,
                                std::complex<float>* model_buffer,
-                               const bool* is_selected) {
+                               const bool* is_selected,
+                               const MSProvider::MetaData& meta_data,
+                               const std::vector<std::string>& antenna_names,
+                               std::vector<MSGridderBase*> child_gridders) {
     switch (n_vis_polarizations_) {
       case 1:
         CalculateWeights<1>(uvw_buffer, visibility_buffer, cur_band,
-                            weight_buffer, model_buffer, is_selected);
+                            weight_buffer, model_buffer, is_selected, meta_data,
+                            antenna_names, child_gridders);
         break;
       case 2:
         CalculateWeights<2>(uvw_buffer, visibility_buffer, cur_band,
-                            weight_buffer, model_buffer, is_selected);
+                            weight_buffer, model_buffer, is_selected, meta_data,
+                            antenna_names, child_gridders);
         break;
       case 4:
         CalculateWeights<4>(uvw_buffer, visibility_buffer, cur_band,
-                            weight_buffer, model_buffer, is_selected);
+                            weight_buffer, model_buffer, is_selected, meta_data,
+                            antenna_names, child_gridders);
         break;
     }
   }
@@ -424,10 +438,9 @@ class MSGridderBase {
   template <size_t PolarizationCount>
   std::complex<float>& InlineApplyWeightsAndCorrections(
       const std::vector<std::string>& antenna_names,
-      const aocommon::BandData& cur_band, float* scratch_weight_buffer,
-      float* weight_buffer, std::complex<float>* visibility_buffer,
-      size_t visibility_index, size_t row, size_t channel,
-      const MSProvider::MetaData& meta_data);
+      const aocommon::BandData& cur_band,
+      std::complex<float>* visibility_buffer, size_t visibility_index,
+      size_t row, size_t channel, const MSProvider::MetaData& meta_data);
 
   template <size_t PolarizationCount>
   void ApplyWeightsAndCorrections(const std::vector<std::string>& antenna_names,
@@ -436,10 +449,7 @@ class MSGridderBase {
                                   float* weight_buffer,
                                   const MSProvider::MetaData& meta_data);
 
-  void PreCacheCorrections(const MSProvider::MetaData& metaData,
-                           const std::vector<std::string>& antenna_names,
-                           const aocommon::BandData& curBand);
-
+ protected:
   /**
    * Read a row of visibility and weights from the msprovider
    *
@@ -520,21 +530,21 @@ class MSGridderBase {
       const MSProvider::MetaData& meta_data) {
     switch (n_vis_polarizations_) {
       case 1:
-        CalculateWeights<1>(row_data, cur_band, weight_buffer, model_buffer,
-                            is_selected);
+        // CalculateWeights<1>(row_data, cur_band, weight_buffer, model_buffer,
+        // is_selected);
         ApplyWeightsAndCorrections<1>(antenna_names, row_data, cur_band,
                                       weight_buffer, meta_data);
         break;
       case 2:
-        CalculateWeights<2>(row_data, cur_band, weight_buffer, model_buffer,
-                            is_selected);
+        // CalculateWeights<2>(row_data, cur_band, weight_buffer, model_buffer,
+        // is_selected);
         ApplyWeightsAndCorrections<2>(antenna_names, row_data, cur_band,
                                       weight_buffer, meta_data);
         internal::CollapseData<2>(cur_band.ChannelCount(), row_data.data);
         break;
       case 4:
-        CalculateWeights<4>(row_data, cur_band, weight_buffer, model_buffer,
-                            is_selected);
+        // CalculateWeights<4>(row_data, cur_band, weight_buffer, model_buffer,
+        // is_selected);
         ApplyWeightsAndCorrections<4>(antenna_names, row_data, cur_band,
                                       weight_buffer, meta_data);
         internal::CollapseData<4>(cur_band.ChannelCount(), row_data.data);
@@ -600,8 +610,10 @@ class MSGridderBase {
 
   double totalWeight() const { return total_weight_; }
 
+ public:
   void initializeMSDataVector(std::vector<MSData>& msDataVector);
 
+ protected:
   template <size_t PolarizationCount>
   static void rotateVisibilities(const aocommon::BandData& bandData,
                                  double shiftFactor,
@@ -648,7 +660,10 @@ class MSGridderBase {
                                 MetaDataCache::Entry& cacheEntry,
                                 bool isCacheInitialized);
 
+ public:
   void calculateOverallMetaData(const std::vector<MSData>& msDataVector);
+
+ private:
   bool hasWGridSize() const { return w_grid_size_ != 0; }
   void initializeBandData(const casacore::MeasurementSet& ms, MSData& msData);
   void initializePointResponse(const MSData& msData);
@@ -658,9 +673,13 @@ class MSGridderBase {
                                const aocommon::BandData& curBand,
                                float* weightBuffer,
                                std::complex<float>* modelBuffer,
-                               const bool* isSelected) {
-    CalculateWeights<PolarizationCount>(rowData.uvw, rowData.data, curBand,
-                                        weightBuffer, modelBuffer, isSelected);
+                               const bool* isSelected,
+                               const MSProvider::MetaData& meta_data,
+                               const std::vector<std::string>& antenna_names,
+                               std::vector<MSGridderBase*> child_gridders) {
+    CalculateWeights<PolarizationCount>(
+        rowData.uvw, rowData.data, curBand, weightBuffer, modelBuffer,
+        isSelected, meta_data, antenna_names, child_gridders);
   }
 
   template <size_t PolarizationCount>
@@ -668,7 +687,10 @@ class MSGridderBase {
                         std::complex<float>* visibility_buffer,
                         const aocommon::BandData& cur_band,
                         float* weight_buffer, std::complex<float>* model_buffer,
-                        const bool* is_selected);
+                        const bool* is_selected,
+                        const MSProvider::MetaData& meta_data,
+                        const std::vector<std::string>& antenna_names,
+                        std::vector<MSGridderBase*> child_gridders);
 
   // Equivalent functionality to 'ApplyWeightsAndCorrections' however written so
   // that it can apply the corrections inlines and out of order e.g. from within
@@ -678,8 +700,7 @@ class MSGridderBase {
   template <size_t PolarizationCount, GainMode GainEntry>
   inline std::complex<float>& InlineApplyWeightsAndCorrections(
       const std::vector<std::string>& antenna_names,
-      const aocommon::BandData& curBand, float* scratch_weight_buffer,
-      float* weight_buffer, std::complex<float>* visibility_buffer,
+      const aocommon::BandData& curBand, std::complex<float>* visibility_buffer,
       size_t visibility_index, size_t row, size_t channel,
       const MSProvider::MetaData& metaData) {
     const size_t channel_count = curBand.ChannelCount();
@@ -693,13 +714,6 @@ class MSGridderBase {
     thread_local static size_t last_row = std::numeric_limits<size_t>::max();
     thread_local static uint8_t row_index = 0;
 
-    // We might be applying these same weights/corrections multiple times, so
-    // ensure it only counts towards the totals the first time around
-    bool already_counted = already_counted_weights[row];
-    if (!already_counted) {
-      already_counted_weights[row] = true;
-    }
-
     if (last_row != row) {
       last_row = row;
       ++row_index;
@@ -708,10 +722,6 @@ class MSGridderBase {
       // without touching the original underlying data
       std::copy_n(&visibility_buffer[row * data_size], data_size,
                   visibility_row[row_index].data());
-      float* row_scratch_weights = &scratch_weight_buffer[row * channel_count];
-      float* row_weight_iter = &weight_buffer[row * data_size];
-      std::complex<float>* row_visibility_iter =
-          visibility_row[row_index].data();
 
       // Apply corrections
       if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
@@ -729,50 +739,11 @@ class MSGridderBase {
         } else if (visibility_modifier_.HasH5Parm()) {
           visibility_modifier_
               .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
-                  visibility_row[row_index].data(), row_weight_iter,
-                  row_scratch_weights, ms_index_, channel_count,
+                  visibility_row[row_index].data(), ms_index_, channel_count,
                   antenna_names.size(), metaData.antenna1, metaData.antenna2,
-                  apply_forward, time_offsets_[ms_index_][row],
-                  !already_counted);
+                  apply_forward, time_offsets_[ms_index_][row]);
         }
       }
-
-      // Adjust these values locally then only set them once to the shared
-      // variable, this way we reduce contention and reduce the need for locking
-      double local_visibility_weight_sum = 0.0;
-      double local_max_gridded_weight = 0.0;
-      double local_total_weight = 0.0;
-      size_t local_visibility_count = 0;
-      // Apply visibility and imaging weights
-      for (size_t ch = 0; ch != channel_count; ++ch) {
-        for (size_t p = 0; p != PolarizationCount; ++p) {
-          double cum_weight = *row_weight_iter * row_scratch_weights[ch];
-
-          if (p == 0 && cum_weight != 0.0) {
-            // Visibility weight sum is the sum of weights excluding imaging
-            // weights
-            local_visibility_weight_sum += *row_weight_iter;
-            local_max_gridded_weight =
-                std::max(cum_weight, local_max_gridded_weight);
-            ++local_visibility_count;
-          }
-          // Total weight includes imaging weights
-          local_total_weight += cum_weight;
-
-          *row_visibility_iter *= cum_weight;
-          ++row_visibility_iter;
-          ++row_weight_iter;
-        }
-      }
-      total_weight_mutex_.lock();
-      if (!already_counted) {
-        visibility_weight_sum_ += local_visibility_weight_sum;
-        max_gridded_weight_ =
-            std::max(local_max_gridded_weight, max_gridded_weight_);
-        gridded_visibility_count_ += local_visibility_count;
-        total_weight_ += local_total_weight;
-      }
-      total_weight_mutex_.unlock();
     }
 
     // Return the actual visibility that has been asked for from the cache
@@ -875,7 +846,7 @@ class MSGridderBase {
   size_t trim_height_ = 0;
   size_t w_grid_size_ = 0;
   size_t actual_w_grid_size_ = 0;
-  std::vector<std::unique_ptr<MSProvider>> measurement_sets_;
+  std::vector<MSProvider*> measurement_sets_;
   std::string data_column_name_;
   PsfMode psf_mode_ = PsfMode::kNone;
   bool do_subtract_model_ = false;
@@ -907,7 +878,6 @@ class MSGridderBase {
   double start_time_ = 0.0;
 
  public:
-  std::vector<bool> already_counted_weights;
   std::map<size_t, std::vector<size_t>> time_offsets_;
 
   size_t gridded_visibility_count_ = 0;
@@ -932,8 +902,7 @@ class MSGridderBase {
 template <size_t PolarizationCount>
 inline std::complex<float>& MSGridderBase::InlineApplyWeightsAndCorrections(
     const std::vector<std::string>& antenna_names,
-    const aocommon::BandData& cur_band, float* scratch_weight_buffer,
-    float* weight_buffer, std::complex<float>* visibility_buffer,
+    const aocommon::BandData& cur_band, std::complex<float>* visibility_buffer,
     size_t visibility_index, size_t row, size_t channel,
     const MSProvider::MetaData& meta_data) {
   switch (gain_mode_) {
@@ -941,32 +910,32 @@ inline std::complex<float>& MSGridderBase::InlineApplyWeightsAndCorrections(
       if constexpr (PolarizationCount == 1) {
         return InlineApplyWeightsAndCorrections<PolarizationCount,
                                                 GainMode::kXX>(
-            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
-            visibility_buffer, visibility_index, row, channel, meta_data);
+            antenna_names, cur_band, visibility_buffer, visibility_index, row,
+            channel, meta_data);
       }
       break;
     case GainMode::kYY:
       if constexpr (PolarizationCount == 1) {
         return InlineApplyWeightsAndCorrections<PolarizationCount,
                                                 GainMode::kYY>(
-            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
-            visibility_buffer, visibility_index, row, channel, meta_data);
+            antenna_names, cur_band, visibility_buffer, visibility_index, row,
+            channel, meta_data);
       }
       break;
     case GainMode::kDiagonal:
       if constexpr (PolarizationCount == 1 || PolarizationCount == 2) {
         return InlineApplyWeightsAndCorrections<PolarizationCount,
                                                 GainMode::kDiagonal>(
-            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
-            visibility_buffer, visibility_index, row, channel, meta_data);
+            antenna_names, cur_band, visibility_buffer, visibility_index, row,
+            channel, meta_data);
       }
       break;
     case GainMode::kFull:
       if constexpr (PolarizationCount == 4) {
         return InlineApplyWeightsAndCorrections<PolarizationCount,
                                                 GainMode::kFull>(
-            antenna_names, cur_band, scratch_weight_buffer, weight_buffer,
-            visibility_buffer, visibility_index, row, channel, meta_data);
+            antenna_names, cur_band, visibility_buffer, visibility_index, row,
+            channel, meta_data);
       } else {
         throw std::runtime_error(
             "Invalid combination of visibility polarizations and gain mode");
