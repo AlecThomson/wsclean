@@ -30,7 +30,7 @@ class GriddingTask {
   GriddingTask& operator=(GriddingTask&& source) noexcept;
 
   uint32_t unique_id;
-  enum Operation { Invert, Predict } operation;
+  enum Operation { Invert, Predict, Block } operation;
   bool imagePSF;       // Only for invert tasks.
   bool subtractModel;  // Only for invert tasks.
   aocommon::PolarizationEnum polarization;
@@ -83,6 +83,12 @@ class GriddingTask {
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
+
+  // Stop scheduler resource blockers from closing until task is complete
+  std::shared_ptr<std::mutex> batch_task_mutex{nullptr};
+  // Number of parallel gridders that we are allowed to launch. NB! This is not
+  // necessarilly the same as the global number.
+  size_t num_parallel_gridders_{1};
 };
 
 #endif

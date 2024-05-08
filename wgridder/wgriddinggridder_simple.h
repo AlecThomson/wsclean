@@ -22,12 +22,14 @@ class cvirtmembuf {
     // many at once
     return callback(i);
   };
+  // wgridder doesn't use this part of the interface and if it were to use it
+  // then this virtual interface would fail because we can't support that. we
+  // implement it with a static_assert to ensure that we are correct that it is
+  // unused.
   const T *data() const {
-    // wgridder doesn't actually use this part of the interface; for now for
-    // prototyping purposes implement it and cause an obvious error if it gets
-    // called, for a final solution we will need to do better in terms of
-    // design.
-    exit(500);
+#if __GNUC__ > 12
+    static_assert(0, "Calling data() on cvirtmembuf is not supported");
+#endif
     return nullptr;
   };
   std::function<T &(size_t index)> callback;
@@ -38,6 +40,9 @@ class WGriddingGridderBase {
   virtual ~WGriddingGridderBase() = default;
   virtual void MemoryUsage(size_t &constant, size_t &per_vis) const = 0;
   virtual void InitializeInversion() = 0;
+  virtual void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
+                                const double *freq,
+                                const std::complex<float> *vis) = 0;
   virtual void AddInversionData(
       size_t nrows, size_t nchan, const double *uvw, const double *freq,
       cmav<std::complex<float>, 2, cvirtmembuf<std::complex<float>>> &ms) = 0;
@@ -114,6 +119,26 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   /** Add more data to the current inversion operation.
    * The visibilities will be gridded, and the dirty image
    * will be updated accordingly.
+   * visibilities with value 0 will be skipped entirely.
+   * @param nrows The number of MS rows being passed
+   * @param nchan The number of frequency channels
+   * @param uvw pointer to nrows*3 doubles containing UVW in m.
+   *        U(row) := uvw[3*row  ]
+   *        V(row) := uvw[3*row+1]
+   *        W(row) := uvw[3*row+2]
+   * @param freq pointer to nchan doubles containing channel frequencies
+   * @param vis pointer to nrow*nchan complex<float> containing weighted
+   *        visibilities
+   *        visibility(row, chan) := vis[row*nchan + chan]
+   */
+  void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
+                        const double *freq,
+                        const std::complex<float> *vis) override;
+
+  /** Add more data to the current inversion operation.
+   * The visibilities will be gridded, and the dirty image
+   * will be updated accordingly.
+   * NB! For this overload frequencies must be in ascending order
    * visibilities with value 0 will be skipped entirely.
    * @param nrows The number of MS rows being passed
    * @param nchan The number of frequency channels

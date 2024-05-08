@@ -45,6 +45,10 @@ void ThreadedScheduler::Run(
   const std::size_t facet_count = task.facets.size();
   TaskData* task_data;
 
+  // Set the amount of parallel gridders for this task
+  task.num_parallel_gridders_ = std::min(
+      GetSettings().parallelGridding, std::max(task.facets.size(), size_t{1}));
+
   // Add an entry in task_data_map_ for the task.
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -55,9 +59,47 @@ void ThreadedScheduler::Run(
   task_data->result.facets.resize(facet_count);
   task_data->callback = std::move(finish_callback);
 
-  // Add sub-tasks for each facet to the task queue.
-  for (std::size_t facet_index = 0; facet_index < facet_count; ++facet_index) {
-    task_queue_.Emplace(task_id, facet_index);
+  if (task_data->task.operation == GriddingTask::Invert) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // There must be N-1 blocker tasks before we can run, giving us N threads in
+    // total as requested
+    // Set up locks so that we only start operating once we have the resources
+    // The scheduler will allocate us resources when the dummy tasks are placed
+    // in the queue
+    task_data->task.batch_task_mutex = std::make_shared<std::mutex>();
+    task_data->task.batch_task_mutex->lock();
+
+    for (size_t block_task_index = 0;
+         block_task_index < task_data->task.num_parallel_gridders_ - 1;
+         ++block_task_index) {
+      size_t block_task_id = std::numeric_limits<size_t>::max() -
+                             (task_id * 1000) - block_task_index;
+      TaskData* block_task_data;
+
+      assert(task_data_map_.count(block_task_id) == 0);
+      block_task_data = &task_data_map_[block_task_id];
+
+      GriddingTask block_task;
+      block_task.operation = GriddingTask::Block;
+      block_task.batch_task_mutex = task_data->task.batch_task_mutex;
+      block_task_data->task = std::move(block_task);
+    }
+  }
+
+  task_queue_.Emplace(task_id, std::numeric_limits<size_t>::max());
+
+  if (task_data->task.operation == GriddingTask::Invert) {
+    // Create some blocking tasks that will take a resource from the scheduler
+    // (when available) and assign it back to us
+    for (size_t block_task_index = 0;
+         block_task_index < task_data->task.num_parallel_gridders_ - 1;
+         ++block_task_index) {
+      size_t block_task_id = std::numeric_limits<size_t>::max() -
+                             (task_data->task.unique_id * 1000) -
+                             block_task_index;
+      task_queue_.Emplace(block_task_id, 0);
+    }
   }
 
   ProcessReadyList();
@@ -70,19 +112,49 @@ void ThreadedScheduler::ProcessQueue() {
     const std::size_t facet_index = facet_task_pair.second;
     TaskData& task_data = task_data_map_[task_id];
     try {
-      RunDirect(task_data.task, {facet_index}, resources_per_task_,
-                task_data.result, task_data.result_mutex);
+      if (facet_index == std::numeric_limits<size_t>::max()) {
+        std::vector<size_t> facet_indexes;
+        for (const auto& facet : task_data.task.facets) {
+          facet_indexes.push_back(facet.index);
+        }
+        Resources task_resources = resources_per_task_;
+        task_resources =
+            resources_per_task_.GetCombined(GetSettings().parallelGridding);
+        RunDirect(task_data.task, facet_indexes, task_resources,
+                  task_data.result, task_data.result_mutex);
+      } else {
+        RunDirect(task_data.task, {facet_index}, resources_per_task_,
+                  task_data.result, task_data.result_mutex);
+      }
     } catch (std::exception&) {
       std::lock_guard<std::mutex> lock(mutex_);
       latest_exception_ = std::current_exception();
+    }
+
+    if (task_data.task.operation == GriddingTask::Block) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      task_data_map_.erase(task_id);
+      continue;
+    }
+
+    if (facet_index == std::numeric_limits<size_t>::max()) {
+      task_data.finished_facet_count += task_data.task.facets.size();
+    } else {
+      task_data.finished_facet_count++;
     }
 
     // Extract the new value from task_data.finished_facet_count directly.
     // When extracting the new value later, another thread may also have
     // incremented the atomic value in the mean time, and multiple threads
     // will think they have processed the last facet.
-    const size_t finished_facet_count = ++task_data.finished_facet_count;
-    if (finished_facet_count == task_data.task.facets.size()) {
+    bool process = false;
+    task_data.result_mutex.lock();
+    if (task_data.finished_facet_count == task_data.task.facets.size()) {
+      process = true;
+      task_data.finished_facet_count = 0;
+    }
+    task_data.result_mutex.unlock();
+    if (process) {
       if (GetSettings().UseMpi()) {
         // Execute callback immediately, from the processing thread.
         // The MPIScheduler stores the result at the main node.

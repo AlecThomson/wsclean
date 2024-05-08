@@ -376,6 +376,7 @@ void WSMSGridder::predictWriteThread(
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
 
   _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
@@ -502,6 +503,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
+  calculateOverallMetaData(msDataVector);
 
   _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),

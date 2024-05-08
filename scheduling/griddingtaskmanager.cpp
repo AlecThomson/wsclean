@@ -66,21 +66,50 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
 
-  std::unique_ptr<MSGridderBase> gridder;
+  if (task.operation == GriddingTask::Block) {
+    std::lock_guard<std::mutex> lk(*task.batch_task_mutex);
+    return;
+  }
 
+  std::unique_ptr<MSGridderBase> baseGridder = ConstructGridder(resources);
+  baseGridder->num_parallel_nested_ = task.num_parallel_gridders_;
+
+  std::vector<std::unique_ptr<MSProvider>> msProviders;
+  for (auto& p : task.msList) {
+    msProviders.emplace_back(p->GetProvider());
+  }
+
+  bool first = true;
   for (size_t facet_index : facet_indices) {
     assert(facet_index < task.facets.size());
     GriddingTask::FacetData& facet_task = task.facets[facet_index];
-    GriddingResult::FacetData& facet_result = result.facets[facet_index];
 
-    // Create a new gridder for each facet / sub-task, since gridders do not
-    // support reusing them for multiple tasks.
-    gridder = ConstructGridder(resources);
+    MSGridderBase* gridder;
+
+    if (first) {
+      gridder = baseGridder.get();
+    } else {
+      // Create a new gridder for each facet / sub-task, since gridders do not
+      // support reusing them for multiple tasks.
+      auto uni_ptr = ConstructGridder(resources);
+      gridder = uni_ptr.get();
+      uni_ptr.release();
+    }
+    baseGridder->addNestedGridder(gridder);
+    first = false;
+
     InitializeGridderForTask(*gridder, task);
+    gridder->ClearMeasurementSetList();
+    size_t providerIndex = 0;
+    for (auto& p : task.msList) {
+      gridder->AddMeasurementSet(msProviders[providerIndex].get(),
+                                 p->Selection());
+      ++providerIndex;
+    }
 
     const bool has_input_average_beam(facet_task.averageBeam);
     if (has_input_average_beam) {
-      assert(dynamic_cast<IdgMsGridder*>(gridder.get()));
+      assert(dynamic_cast<IdgMsGridder*>(gridder));
       IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(*gridder);
       idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
     }
@@ -88,10 +117,19 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
     InitializeGridderForFacet(*gridder, facet_task);
 
     if (task.operation == GriddingTask::Invert) {
-      gridder->Invert();
     } else {
       gridder->Predict(std::move(facet_task.modelImages));
     }
+  }
+
+  if (task.operation == GriddingTask::Invert) {
+    baseGridder->Invert();
+  }
+
+  for (size_t facet_index : facet_indices) {
+    GriddingTask::FacetData& facet_task = task.facets[facet_index];
+    GriddingResult::FacetData& facet_result = result.facets[facet_index];
+    auto& gridder = baseGridder->nestedGridders[facet_index];
 
     // Add facet-specific result values to the result.
     facet_result.images = gridder->ResultImages();
@@ -114,7 +152,8 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
 
     // If the average beam already exists on input, IDG will not recompute it,
     // so in that case there is no need to return the unchanged average beam.
-    IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder.get());
+    const bool has_input_average_beam(facet_task.averageBeam);
+    IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder);
     if (idgGridder && !has_input_average_beam) {
       facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
     }
@@ -123,8 +162,15 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   if (facet_indices.front() == 0) {
     // Store result values that are equal for all facets.
     result.unique_id = task.unique_id;
-    result.startTime = gridder->StartTime();
-    result.beamSize = gridder->BeamSize();
+    result.startTime = baseGridder->StartTime();
+    result.beamSize = baseGridder->BeamSize();
+  }
+
+  if (task.operation == GriddingTask::Invert) {
+    if (task.batch_task_mutex) {
+      task.batch_task_mutex->unlock();
+      task.batch_task_mutex = nullptr;
+    }
   }
 }
 
@@ -194,12 +240,6 @@ void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
   } else {
     gridder.SetWriterLockManager(_writerLockManager);
-  }
-
-  gridder.ClearMeasurementSetList();
-  for (const std::unique_ptr<MSDataDescription>& description : task.msList) {
-    gridder.AddMeasurementSet(description->GetProvider(),
-                              description->Selection());
   }
 }
 

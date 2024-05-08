@@ -266,7 +266,6 @@ void MSGridderBase::initializeMSDataVector(
     initializeMeasurementSet(msDataVector[i], meta_data_cache_->msDataVector[i],
                              hasCache);
   }
-  calculateOverallMetaData(msDataVector);
 }
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
@@ -465,12 +464,13 @@ template void MSGridderBase::WriteInstrumentalVisibilities<4, GainMode::kFull>(
     MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount>
-void MSGridderBase::CalculateWeights(double* uvw_buffer,
-                                     std::complex<float>* visibility_buffer,
-                                     const aocommon::BandData& curBand,
-                                     float* weightBuffer,
-                                     std::complex<float>* modelBuffer,
-                                     const bool* isSelected) {
+void MSGridderBase::CalculateWeights(
+    double* uvw_buffer, std::complex<float>* visibility_buffer,
+    const aocommon::BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected,
+    const MSProvider::MetaData& meta_data,
+    const std::vector<std::string>& antenna_names,
+    std::vector<MSGridderBase*> child_gridders) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (GetPsfMode() != PsfMode::kNone) {
     // Visibilities for a point source at the phase centre are all ones
@@ -536,18 +536,44 @@ void MSGridderBase::CalculateWeights(double* uvw_buffer,
     const double v = uvw_buffer[1] / curBand.ChannelWavelength(ch);
     scratch_image_weights_[ch] = GetImageWeights()->GetWeight(u, v);
   }
-}
 
-void MSGridderBase::PreCacheCorrections(
-    const MSProvider::MetaData& metaData,
-    const std::vector<std::string>& antenna_names,
-    const aocommon::BandData& curBand) {
   if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
     if (visibility_modifier_.HasH5Parm()) {
-      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                             curBand, ms_index_);
-      (time_offsets_[ms_index_])
-          .push_back(visibility_modifier_._timeOffset[ms_index_]);
+      for (auto& gridder : child_gridders) {
+        gridder->visibility_modifier_.CacheParmResponse(
+            meta_data.time, antenna_names, curBand, ms_index_);
+
+        (gridder->time_offsets_[ms_index_])
+            .push_back(visibility_modifier_._timeOffset[ms_index_]);
+
+        gridder->visibility_modifier_
+            .PreApplyConjugatedParmResponse<1, GainMode::kDiagonal>(
+                visibility_buffer, weightBuffer, scratch_image_weights_.data(),
+                ms_index_, curBand.ChannelCount(), antenna_names.size(),
+                meta_data.antenna1, meta_data.antenna2,
+                gridder->visibility_modifier_._timeOffset[ms_index_]);
+      }
+    }
+  }
+
+  // Apply visibility and imaging weights
+  std::complex<float>* dataIter = visibility_buffer;
+  float* weightIter = weightBuffer;
+  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+    for (size_t p = 0; p != PolarizationCount; ++p) {
+      const double cumWeight = *weightIter * scratch_image_weights_[ch];
+      if (p == 0 && cumWeight != 0.0) {
+        // Visibility weight sum is the sum of weights excluding imaging weights
+        visibility_weight_sum_ += *weightIter;
+        max_gridded_weight_ = std::max(cumWeight, max_gridded_weight_);
+        ++gridded_visibility_count_;
+      }
+      // Total weight includes imaging weights
+      total_weight_ += cumWeight;
+      *weightIter = cumWeight;
+      *dataIter *= cumWeight;
+      ++dataIter;
+      ++weightIter;
     }
   }
 }
@@ -586,33 +612,12 @@ void MSGridderBase::ApplyWeightsAndCorrections(
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, ms_index_);
 
-      visibility_modifier_
+      /*visibility_modifier_
           .ApplyConjugatedParmResponse<PolarizationCount, GainEntry>(
               rowData.data, weightBuffer, scratch_image_weights_.data(),
               ms_index_, curBand.ChannelCount(), antenna_names.size(),
               metaData.antenna1, metaData.antenna2, apply_forward,
-              visibility_modifier_._timeOffset[ms_index_], true);
-    }
-  }
-
-  // Apply visibility and imaging weights
-  std::complex<float>* dataIter = rowData.data;
-  float* weightIter = weightBuffer;
-  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    for (size_t p = 0; p != PolarizationCount; ++p) {
-      const double cumWeight = *weightIter * scratch_image_weights_[ch];
-      if (p == 0 && cumWeight != 0.0) {
-        // Visibility weight sum is the sum of weights excluding imaging weights
-        visibility_weight_sum_ += *weightIter;
-        max_gridded_weight_ = std::max(cumWeight, max_gridded_weight_);
-        ++gridded_visibility_count_;
-      }
-      // Total weight includes imaging weights
-      total_weight_ += cumWeight;
-      *weightIter = cumWeight;
-      *dataIter *= cumWeight;
-      ++dataIter;
-      ++weightIter;
+              visibility_modifier_._timeOffset[ms_index_]);*/
     }
   }
 }
@@ -620,19 +625,27 @@ void MSGridderBase::ApplyWeightsAndCorrections(
 template void MSGridderBase::CalculateWeights<1>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& meta_data,
+    const std::vector<std::string>& antenna_names,
+    std::vector<MSGridderBase*> child_gridders);
 template void MSGridderBase::CalculateWeights<2>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& meta_data,
+    const std::vector<std::string>& antenna_names,
+    std::vector<MSGridderBase*> child_gridders);
 template void MSGridderBase::CalculateWeights<3>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& meta_data,
+    const std::vector<std::string>& antenna_names,
+    std::vector<MSGridderBase*> child_gridders);
 template void MSGridderBase::CalculateWeights<4>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    const bool* isSelected, const MSProvider::MetaData& meta_data,
+    const std::vector<std::string>& antenna_names,
+    std::vector<MSGridderBase*> child_gridders);
 
 template void MSGridderBase::ApplyWeightsAndCorrections<1, GainMode::kXX>(
     const std::vector<std::string>& antenna_names, InversionRow& newItem,
