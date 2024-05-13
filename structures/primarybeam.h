@@ -68,11 +68,11 @@ class PrimaryBeam {
     return Load(image_name, kFullIndices);
   }
   PrimaryBeamImageSet LoadDiagonal(const ImageFilename& image_name) {
-    const std::set<size_t> kDiagonalIndices = {0, 3, 8, 15};
+    const std::set<size_t> kDiagonalIndices = {0, 9, 10, 15};
     return Load(image_name, kDiagonalIndices);
   }
   PrimaryBeamImageSet LoadStokesI(const ImageFilename& image_name) {
-    const std::set<size_t> kStokesIIndices = {0, 15};
+    const std::set<size_t> kStokesIIndices = {0, 9, 15};
     return Load(image_name, kStokesIIndices);
   }
 

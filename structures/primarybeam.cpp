@@ -83,14 +83,21 @@ void WriteBeamImages(const ImageFilename& image_name,
                                   entry.polarization == Polarization::LL);
   const bool stokes_i_correction = settings.polarizations.size() == 1 &&
                                    entry.polarization == Polarization::StokesI;
+  const bool diagonal_correction =
+      settings.polarizations ==
+      std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
+                                           aocommon::Polarization::YY};
   if (pseudo_correction || stokes_i_correction) {
-    // m_00 and m_33 ; see aocommon::HMC4x4::Data()
-    required_elements = {0, 15};
-  } else if (settings.polarizations ==
-             std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
-                                                  aocommon::Polarization::YY}) {
-    // m_00, m_11, m_22 and m_33
-    required_elements = {0, 3, 8, 15};
+    // Require: m_00, m_03, m_30 and m_33 ; see aocommon::HMC4x4::Data()
+    // m_03 is complex conjugate of m_30. The imaginary value is not
+    // necessary for Stokes I correction as it cancels out.
+    required_elements = {0, 9, 15};
+  } else if (diagonal_correction) {
+    // In diagonal (=xx,yy) correction, a 2x2 matrix with the xx-to-xx,
+    // xx-to-yy, yy-to-xx and yy-to-yy values needs to be inverted. This
+    // matrix inversion is affected (I think) by the imaginary value of
+    // the off-diagonal, so we need image 10 too.
+    required_elements = {0, 9, 10, 15};
   } else {
     required_elements = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   }
@@ -342,8 +349,8 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
          i != settings_.trimmedImageWidth * settings_.trimmedImageHeight; ++i)
       beam_images[0][i] = std::sqrt(beam_images[0][i]);
 
-    // Copy zero entry to images on the diagonal (see aocommon::HMC4x4)
-    std::array<size_t, 3> diagonal_entries = {3, 8, 15};
+    // Copy image zero to images on the diagonal (see aocommon::HMC4x4)
+    const std::array<size_t, 3> diagonal_entries = {3, 8, 15};
     for (size_t element : diagonal_entries) {
       if (elements.count(element)) beam_images[element] = beam_images[0];
     }

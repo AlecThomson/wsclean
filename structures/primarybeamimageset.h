@@ -36,9 +36,8 @@ class PrimaryBeamImageSet {
   }
 
   double GetUnpolarizedCorrectionFactor(size_t x, size_t y) const {
-    const aocommon::HMC4x4 beam = Value(x, y);
-    const double sum = beam.Data(0) + beam.Data(15);
-    return sum != 0.0 ? (2.0 / sum) : 0.0;
+    const double stokes_i = StokesIValue(x + y * Width());
+    return stokes_i != 0.0 ? (1.0 / stokes_i) : 0.0;
   }
 
   const aocommon::Image& operator[](size_t index) const {
@@ -64,17 +63,14 @@ class PrimaryBeamImageSet {
   }
 
   void ApplyStokesI(float* stokes_i, double beam_limit) const {
-    // The beam will be compared to a squared quantity (matrix norm), so square
-    // it:
-    beam_limit = beam_limit * beam_limit;
+    assert(beam_limit >= 0);
     const size_t size = _beamImages[0].Size();
     for (size_t j = 0; j != size; ++j) {
-      const aocommon::HMC4x4 beam = Value(j);
-      const std::array<double, 4> diagonal = beam.DiagonalValues();
-      if (beam.Norm() <= beam_limit || diagonal[0] + diagonal[3] == 0.0) {
+      const double beam_value = StokesIValue(j);
+      if (beam_value <= beam_limit) {
         stokes_i[j] = std::numeric_limits<float>::quiet_NaN();
       } else {
-        const double inverted_beam = 2.0 / (diagonal[0] + diagonal[3]);
+        const double inverted_beam = 1.0 / beam_value;
         stokes_i[j] *= inverted_beam;
       }
     }
@@ -86,16 +82,16 @@ class PrimaryBeamImageSet {
     beamLimit = beamLimit * beamLimit;
     const size_t size = _beamImages[0].Size();
     for (size_t j = 0; j != size; ++j) {
-      aocommon::HMC4x4 beam = Value(j);
-      if (beam.Norm() > beamLimit) {
-        if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-        aocommon::Vector4 v{images[0][j], 0., 0., images[1][j]};
-        // Implementation could be made more efficient - at the expense of
-        // explicitness - since only a few entries in the beam matrix are
-        // relevant
-        v = beam * v;
-        images[0][j] = v[0].real();
-        images[1][j] = v[3].real();
+      // xx' = xx * m_00 + yy * m_03
+      // yy' = xx * m_30 + yy * m_33
+      // Simplify the Mueller matrix to a 2x2 matrix so it can be
+      // properly inverted.
+      aocommon::MC2x2 beam = Value2x2(j);
+      if (beam.Norm() > beamLimit && beam.Invert()) {
+        const double xx = images[0][j];
+        const double yy = images[1][j];
+        images[0][j] = xx * beam[0].real() + yy * beam[1].real();
+        images[1][j] = xx * beam[2].real() + yy * beam[3].real();
       } else {
         for (size_t p = 0; p != 2; ++p)
           images[p][j] = std::numeric_limits<float>::quiet_NaN();
@@ -163,6 +159,34 @@ class PrimaryBeamImageSet {
       }
     }
     return beam_values;
+  }
+
+  /**
+   * Returns a 2x2 matrix for diagonal correction.
+   */
+  aocommon::MC2x2 Value2x2(size_t pixel_index) const {
+    const double xx_to_xx = _beamImages[0][pixel_index];   // m_00
+    const double yy_to_yy = _beamImages[15][pixel_index];  // m_33
+    const double xx_to_yy_r =
+        _beamImages[9].Empty() ? 0.0 : _beamImages[9][pixel_index];
+    const double xx_to_yy_i =
+        _beamImages[10].Empty() ? 0.0 : _beamImages[10][pixel_index];
+    return aocommon::MC2x2{xx_to_xx,
+                           {xx_to_yy_r, -xx_to_yy_i},
+                           {xx_to_yy_r, xx_to_yy_i},
+                           yy_to_yy};
+  }
+
+  double StokesIValue(size_t pixel_index) const {
+    const double xx_to_xx = _beamImages[0][pixel_index];   // m_00
+    const double yy_to_yy = _beamImages[15][pixel_index];  // m_33
+    const double xx_to_yy = _beamImages[9].Empty()
+                                ? 0.0
+                                : _beamImages[9][pixel_index];  // real(m_30)
+    // (xx_to_xx + yy_to_yy + m_30 + m_03) / 2
+    // = 0.5 * (xx_to_xx + yy_to_yy + m_30 + conj(m_30))
+    // = 0.5 * (xx_to_xx + yy_to_yy) + real(m_30)
+    return 0.5 * (xx_to_xx + yy_to_yy) + xx_to_yy;
   }
 
   static constexpr size_t kNImages = 16;

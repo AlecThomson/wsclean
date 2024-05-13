@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(apply_stokes_i) {
 
   float stokes_i[kWidth * kHeight] = {1.0, 1.0, 1.0, 1.0};
   beams.ApplyStokesI(stokes_i, 0.1);
-  const float expected = 2.0 / (beams[0][0] + beams[15][0]);
+  const float expected = 2.0 / (beams[0][0] + 2.0 * beams[9][0] + beams[15][0]);
   BOOST_CHECK_CLOSE_FRACTION(stokes_i[0], expected, 1e-6);
 
   // According to the beam, the other pixels do not have enough
