@@ -44,38 +44,39 @@ enum class PsfMode {
 namespace internal {
 
 template <size_t PolarizationCount>
-inline void CollapseData(size_t n_channels, std::complex<float>* buffer) {
-  // PolarizationCount is either 2 or 4. In the case it is two, we need to add
-  // element 0 and 1. In the case it is four, we need to add element 0 and 3.
-  for (size_t ch = 0; ch != n_channels; ++ch) {
-    buffer[ch] = buffer[ch * PolarizationCount] +
-                 buffer[(ch * PolarizationCount + (PolarizationCount - 1))];
-  }
+inline void CollapseData(size_t n_channels, std::complex<float>* buffer,
+                         aocommon::PolarizationEnum polarization) {
+  if constexpr (PolarizationCount == 2) {
+    for (size_t ch = 0; ch != n_channels; ++ch) {
+      buffer[ch] = buffer[ch * PolarizationCount] +
+                   buffer[(ch * PolarizationCount + (PolarizationCount - 1))];
+    }
+  } else if constexpr (PolarizationCount == 4) {
+    for (size_t ch = 0; ch != n_channels; ++ch) {
+      buffer[ch] = aocommon::Polarization::ConvertFromLinear(
+          buffer + ch * PolarizationCount, polarization);
+    }
+  } else
+    throw std::runtime_error("Invalid polarization conversion");
 }
 
 template <size_t PolarizationCount>
 inline void ExpandData(size_t n_channels, std::complex<float>* buffer,
-                       std::complex<float>* output);
-
-template <>
-inline void ExpandData<2>(size_t n_channels, std::complex<float>* buffer,
-                          std::complex<float>* output) {
-  for (size_t ch = 0; ch != n_channels; ++ch) {
-    output[ch * 2] = buffer[ch];
-    output[ch * 2 + 1] = buffer[ch];
-  }
-}
-
-template <>
-inline void ExpandData<4>(size_t n_channels, std::complex<float>* buffer,
-                          std::complex<float>* output) {
-  for (size_t i = 0; i != n_channels; ++i) {
-    const size_t ch = n_channels - 1 - i;
-    output[ch * 4] = buffer[ch];
-    output[ch * 4 + 1] = 0.0;
-    output[ch * 4 + 2] = 0.0;
-    output[ch * 4 + 3] = buffer[ch];
-  }
+                       std::complex<float>* output,
+                       aocommon::PolarizationEnum polarization) {
+  if constexpr (PolarizationCount == 2) {
+    for (size_t ch = 0; ch != n_channels; ++ch) {
+      output[ch * 2] = buffer[ch];
+      output[ch * 2 + 1] = buffer[ch];
+    }
+  } else if constexpr (PolarizationCount == 4) {
+    for (size_t i = 0; i != n_channels; ++i) {
+      const size_t ch = n_channels - 1 - i;
+      aocommon::Polarization::ConvertToLinear(buffer[ch], polarization,
+                                              &output[ch * 4]);
+    }
+  } else
+    throw std::runtime_error("Invalid polarization conversion");
 }
 
 }  // namespace internal
@@ -497,14 +498,16 @@ class MSGridderBase {
                             is_selected);
         ApplyWeightsAndCorrections(antenna_names, row_data, cur_band,
                                    weight_buffer, meta_data);
-        internal::CollapseData<2>(cur_band.ChannelCount(), row_data.data);
+        internal::CollapseData<2>(cur_band.ChannelCount(), row_data.data,
+                                  Polarization());
         break;
       case 4:
         CalculateWeights<4>(row_data, cur_band, weight_buffer, model_buffer,
                             is_selected);
         ApplyWeightsAndCorrections(antenna_names, row_data, cur_band,
                                    weight_buffer, meta_data);
-        internal::CollapseData<4>(cur_band.ChannelCount(), row_data.data);
+        internal::CollapseData<4>(cur_band.ChannelCount(), row_data.data,
+                                  Polarization());
         break;
     }
   }
@@ -531,13 +534,13 @@ class MSGridderBase {
         break;
       case 2:
         internal::ExpandData<2>(cur_band.ChannelCount(), buffer,
-                                scratch_model_data_.data());
+                                scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, antenna_names, cur_band,
                                       scratch_model_data_.data(), meta_data);
         break;
       case 4:
         internal::ExpandData<4>(cur_band.ChannelCount(), buffer,
-                                scratch_model_data_.data());
+                                scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, antenna_names, cur_band,
                                       scratch_model_data_.data(), meta_data);
         break;
