@@ -87,7 +87,7 @@ class PrimaryBeamImageSet {
       // Simplify the Mueller matrix to a 2x2 matrix so it can be
       // properly inverted.
       aocommon::MC2x2 beam = Value2x2(j);
-      if (beam.Norm() > beamLimit && beam.Invert()) {
+      if (Norm(beam) > beamLimit && beam.Invert()) {
         const double xx = images[0][j];
         const double yy = images[1][j];
         images[0][j] = xx * beam[0].real() + yy * beam[1].real();
