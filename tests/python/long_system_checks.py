@@ -241,7 +241,7 @@ class TestLongSystem:
 
     def test_facet_beam(self):
         # Test facet beam, using 4 polarizations
-        s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
+        s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv -join-polarizations \
             -facet-regions {tcf.FACETFILE_NFACETS} {tcf.DIMS_RECTANGULAR} \
                 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())

@@ -338,6 +338,13 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
+  if ((applyFacetBeam || !facetSolutionFiles.empty()) &&
+      polarizations.size() > 1 && !joinedPolarizationDeconvolution) {
+    throw std::runtime_error(
+        "Applying beam or solutions per facet for multiple polarizations "
+        "required joining or linking the polarizations.");
+  }
+
   if (reuseDirty && (gridWithBeam || !atermConfigFilename.empty())) {
     throw std::runtime_error(
         "Reusing dirty image and beam/aterm corrections"
