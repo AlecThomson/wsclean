@@ -26,6 +26,17 @@ namespace math {
 void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
                                    std::array<aocommon::Image*, 4>& images);
 
+/**
+ * Like @ref CorrectImagesForMuellerMatrix(), but for XX/YY correction. It
+ * is assumed that the XY/YX values are zero. This function does not do a
+ * Stokes correction (unlike @ref CorrectImagesForMuellerMatrix()); instead
+ * the input images are already assumed to have the same polarization system
+ * as the Mueller matrix (i.e., linear for a linearly polarized telescope).
+ */
+void CorrectDualImagesForMuellerMatrix(
+    const aocommon::HMC4x4& mueller_correction,
+    std::array<aocommon::Image*, 2>& images);
+
 }  // namespace math
 
 class ImageOperations {

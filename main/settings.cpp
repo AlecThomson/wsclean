@@ -409,6 +409,20 @@ void Settings::checkPolarizations() const {
         "w-stacking gridder. Either add '-gridder wstacking' to the command "
         "line, or image a different set of polarizations (e.g. iquv).");
   }
+  if (applyFacetBeam || !facetSolutionFiles.empty()) {
+    const bool is_i =
+        (polarizations == std::set{aocommon::PolarizationEnum::StokesI});
+    const bool is_xx_yy =
+        (polarizations == std::set{aocommon::PolarizationEnum::XX,
+                                   aocommon::PolarizationEnum::YY});
+    const bool is_iquv =
+        aocommon::Polarization::HasFullStokesPolarization(polarizations);
+    if (!(is_i || is_xx_yy || is_iquv)) {
+      throw std::runtime_error(
+          "Facet imaging with facet corrections is only possible for Stokes I, "
+          "XX+YY or Stokes IQUV imaging");
+    }
+  }
 }
 
 void Settings::Propagate(bool verbose) {

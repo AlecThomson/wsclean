@@ -53,6 +53,26 @@ void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
   }
 }
 
+void CorrectDualImagesForMuellerMatrix(
+    const aocommon::HMC4x4& mueller_correction,
+    std::array<aocommon::Image*, 2>& images) {
+  assert(images[0] && images[1]);
+  assert(images[0]->Width() == images[1]->Width() &&
+         images[0]->Height() == images[1]->Height());
+
+  float* a = images[0]->Data();
+  float* b = images[1]->Data();
+
+  for (size_t i = 0; i != images[0]->Size(); ++i) {
+    const aocommon::Vector4 v =
+        mueller_correction * aocommon::Vector4{*a, 0.0, 0.0, *b};
+    *a = v[0].real();
+    ++a;
+    *b = v[3].real();
+    ++b;
+  }
+}
+
 }  // namespace math
 
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
