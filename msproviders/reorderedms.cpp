@@ -213,22 +213,8 @@ ReorderedMs::Handle ReorderedMs::Partition(
     bool includeModel, bool initialModelRequired, const Settings& settings) {
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
-  if (settings.gridderType == GridderType::IDG) {
-    if (settings.polarizations.size() == 1) {
-      if ((settings.ddPsfGridWidth > 1 || settings.ddPsfGridHeight > 1) &&
-          settings.gridWithBeam) {
-        polsOut.insert(aocommon::Polarization::StokesI);
-      } else {
-        polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
-      }
-    } else {
-      polsOut.insert(aocommon::Polarization::Instrumental);
-    }
-  } else if (settings.diagonalSolutions) {
-    polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
-  } else {
-    polsOut = settings.polarizations;
-  }
+  for (aocommon::PolarizationEnum p : settings.polarizations)
+    polsOut.insert(settings.GetProviderPolarization(p));
   const size_t polarizationsPerFile =
       aocommon::Polarization::GetVisibilityCount(*polsOut.begin());
   const std::string& temporaryDirectory = settings.temporaryDirectory;
