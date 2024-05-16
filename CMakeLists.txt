@@ -91,10 +91,11 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   endif()
 endif()
 
-# Include aocommon
+# Include aocommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
 # Schaapcommon
+set(SCHAAPCOMMON_MODULES facets fft fitters h5parm)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 

@@ -248,7 +248,8 @@ void GriddingTaskManager::LoadSolutions() {
     second_solutions_.reserve(solution_files.size());
 
   for (const std::string& solution_file : solution_files) {
-    schaapcommon::h5parm::H5Parm& h5parm = h5parms_.emplace_back(solution_file);
+    schaapcommon::h5parm::H5Parm& h5parm =
+        h5parms_.emplace_back(solution_file, solution_table_names);
 
     if (solution_table_names.size() == 1) {
       first_solutions_.emplace_back(&h5parm.GetSolTab(solution_table_names[0]));
