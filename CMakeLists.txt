@@ -322,6 +322,7 @@ add_library(
   main/settings.cpp
   main/stopwatch.cpp
   main/wsclean.cpp
+  gridding/averagecorrection.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
   gridding/visibilitymodifier.cpp

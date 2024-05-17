@@ -8,6 +8,7 @@ add_executable(
   testparsetreader.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
+  gridding/taveragecorrection.cpp
   gridding/tvisibilitymodifier.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
