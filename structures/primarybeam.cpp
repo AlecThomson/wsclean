@@ -106,9 +106,9 @@ void WriteBeamImages(const ImageFilename& image_name,
   for (size_t element : required_elements) {
     Logger::Debug << "Upsampling beam element " << element << "...\n";
     using everybeam::griddedresponse::GriddedResponse;
-    GriddedResponse::UpsampleResponse(upsampled.Data(), element,
-                                      coordinates.width, coordinates.height,
-                                      beam, undersampling_factor);
+    GriddedResponse::UpsampleCorrection(upsampled.Data(), element,
+                                        coordinates.width, coordinates.height,
+                                        beam, undersampling_factor);
     WriteBeamElement(image_name, upsampled, settings, element, writer);
   }
 }
@@ -549,9 +549,9 @@ double PrimaryBeam::MakeBeamForMS(
       // Compute MS weight
       ms_weight = std::accumulate(baseline_weights.begin(),
                                   baseline_weights.end(), 0.0);
-      result = grid_response->UndersampledIntegratedResponse(
+      result = grid_response->UndersampledIntegratedCorrection(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
-          baseline_weights);
+          baseline_weights, false);
     } break;
     // Using 'default:' gives compatibility with different EveryBeam versions
     default: {
@@ -573,9 +573,9 @@ double PrimaryBeam::MakeBeamForMS(
         Logger::Warn << "       : The beam will be calculated only for the "
                         "first field!\n";
       }
-      result = grid_response->UndersampledIntegratedResponse(
+      result = grid_response->UndersampledIntegratedCorrection(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
-          baseline_weights);
+          baseline_weights, false);
     } break;
     case everybeam::TelescopeType::kUnknownTelescope:
       throw std::runtime_error(
