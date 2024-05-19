@@ -51,6 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "ducc0/infra/mav.h"
+#include <algorithm>
 #include <cmath>
 
 namespace ducc0 {
