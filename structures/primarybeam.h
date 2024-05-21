@@ -41,36 +41,24 @@ class PrimaryBeam {
   }
 
   /**
-   * Read the beam images in and multiply facets with their gain corrections.
+   * Read the beam images in and multiply facets with their solution
+   * gain corrections.
    */
   void CorrectBeamForFacetGain(const ImageFilename& image_name,
                                const ImagingTable::Group& group,
                                const OutputChannelInfo& channel_info);
-
-  void CorrectImages(const ImageFilename& image_name,
-                     std::vector<float*>& images) {
-    if (settings_.polarizations.size() == 1 &&
-        *settings_.polarizations.begin() == aocommon::Polarization::StokesI) {
-      const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);
-      beam_images.ApplyStokesI(images[0], settings_.primaryBeamLimit);
-    } else if (settings_.polarizations.size() == 4 &&
-               aocommon::Polarization::HasFullStokesPolarization(
-                   settings_.polarizations)) {
-      const PrimaryBeamImageSet beam_images = LoadFull(image_name);
-      beam_images.ApplyFullStokes(images.data(), settings_.primaryBeamLimit);
-    } else
-      throw std::runtime_error("Unsupported primary beam correction");
-  }
 
   PrimaryBeamImageSet LoadFull(const ImageFilename& image_name) {
     const std::set<size_t> kFullIndices = {0, 1, 2,  3,  4,  5,  6,  7,
                                            8, 9, 10, 11, 12, 13, 14, 15};
     return Load(image_name, kFullIndices);
   }
+
   PrimaryBeamImageSet LoadDiagonal(const ImageFilename& image_name) {
     const std::set<size_t> kDiagonalIndices = {0, 9, 10, 15};
     return Load(image_name, kDiagonalIndices);
   }
+
   PrimaryBeamImageSet LoadStokesI(const ImageFilename& image_name) {
     const std::set<size_t> kStokesIIndices = {0, 9, 15};
     return Load(image_name, kStokesIIndices);
@@ -84,18 +72,13 @@ class PrimaryBeam {
                    size_t field_id);
 
   /**
-   * @brief Correct images for the primary beam by multiplying the input image
-   * by the (simplified) inverse of the beam. Before the beam is applied, the
-   * beam is corrected by solutions obtained from an H5 solution file if @param
-   * requiresH5Correction is true. In that case, the beam images are overwritten
-   * by their corrected counterparts.
+   * Correct images for the primary beam by multiplying the input image
+   * by the (simplified) inverse of the beam.
    *
-   * @param writer FitsWriter
+   * @param writer used for writing the beam fits images.
    * @param image_name Image name object from which prefixes or polarization can
    * be derived.
-   * @param filename_kind string specifying which image will be corrected
-   * @param requires_gain_correction Correct beam images for piecewise constant
-   * h5 solution?
+   * @param filename_kind string specifying which image will be corrected.
    */
   void CorrectImages(aocommon::FitsWriter& writer,
                      const ImageFilename& image_name,
