@@ -110,6 +110,15 @@ class ReorderedMs final : public MSProvider {
                           bool initialModelRequired,
                           const class Settings& settings);
 
+  static Handle GenerateHandleFromReorderedData(
+      const std::string& msPath, const string& dataColumnName,
+      const std::string& temporaryDirectory,
+      const std::vector<ChannelRange>& channels, bool initialModelRequired,
+      bool modelUpdateRequired,
+      const std::set<aocommon::PolarizationEnum>& polarizations,
+      const MSSelection& selection, const aocommon::MultiBandData& bands,
+      size_t nAntennas, bool keepTemporaryFiles);
+
   const aocommon::BandData& Band() override {
     return _handle._data->_bands[_dataDescId];
   }
@@ -137,7 +146,8 @@ class ReorderedMs final : public MSProvider {
                  bool initialModelRequired, bool modelUpdateRequired,
                  const std::set<aocommon::PolarizationEnum>& polarizations,
                  const MSSelection& selection,
-                 const aocommon::MultiBandData& bands, size_t nAntennas)
+                 const aocommon::MultiBandData& bands, size_t nAntennas,
+                 bool keepTemporaryFiles)
           : _msPath(msPath),
             _dataColumnName(dataColumnName),
             _temporaryDirectory(temporaryDirectory),
@@ -148,7 +158,8 @@ class ReorderedMs final : public MSProvider {
             _selection(selection),
             _bands(bands),
             _nAntennas(nAntennas),
-            _isCopy(false) {}
+            _isCopy(false),
+            _keepTemporaryFiles(keepTemporaryFiles) {}
 
       ~HandleData();
 
@@ -160,6 +171,7 @@ class ReorderedMs final : public MSProvider {
       aocommon::MultiBandData _bands;
       size_t _nAntennas;
       bool _isCopy;
+      bool _keepTemporaryFiles;
 
       void Serialize(aocommon::SerialOStream& stream) const;
       void Unserialize(aocommon::SerialIStream& stream);
@@ -172,11 +184,11 @@ class ReorderedMs final : public MSProvider {
            bool modelUpdateRequired,
            const std::set<aocommon::PolarizationEnum>& polarizations,
            const MSSelection& selection, const aocommon::MultiBandData& bands,
-           size_t nAntennas)
+           size_t nAntennas, bool keepTemporaryFiles)
         : _data(std::make_shared<HandleData>(
               msPath, dataColumnName, temporaryDirectory, channels,
               initialModelRequired, modelUpdateRequired, polarizations,
-              selection, bands, nAntennas)) {}
+              selection, bands, nAntennas, keepTemporaryFiles)) {}
   };
 
  private:

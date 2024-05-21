@@ -8,6 +8,93 @@
 
 using aocommon::Logger;
 
+const std::vector<ReorderedMs::ChannelRange> MsHelper::GenerateChannelInfo(
+    const ImagingTable& imaging_table, size_t ms_index) const {
+  const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
+  std::vector<ReorderedMs::ChannelRange> channels;
+  // The partIndex needs to increase per data desc ids and channel ranges
+  std::map<aocommon::PolarizationEnum, size_t> next_index;
+  for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
+       ++sq_index) {
+    const ImagingTable::Groups facet_groups =
+        imaging_table.FacetGroups([sq_index](const ImagingTableEntry& e) {
+          return e.squaredDeconvolutionIndex == sq_index;
+        });
+    for (const ImagingTable::Group& facet_group : facet_groups) {
+      // The band information is determined from the first facet in the group.
+      // After this, all facet entries inside the group are updated.
+      const ImagingTableEntry& entry = *facet_group.front();
+      for (size_t d = 0; d != band_data.DataDescCount(); ++d) {
+        MSSelection selection{global_selection_};
+        const size_t band_index = band_data.GetBandIndex(d);
+
+        if (settings_.IsBandSelected(band_index) &&
+            selection.SelectMsChannels(band_data, d, entry)) {
+          if (entry.polarization == *settings_.polarizations.begin()) {
+            ReorderedMs::ChannelRange r;
+            r.dataDescId = d;
+            r.start = selection.ChannelRangeStart();
+            r.end = selection.ChannelRangeEnd();
+            channels.push_back(r);
+          }
+          for (const std::shared_ptr<ImagingTableEntry>& facet_entry :
+               facet_group) {
+            facet_entry->msData[ms_index].bands[d].partIndex =
+                next_index[entry.polarization];
+          }
+          ++next_index[entry.polarization];
+        }
+      }
+    }
+  }
+
+  return channels;
+}
+
+void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
+  assert(reordered_ms_handles_.empty());
+
+  reordered_ms_handles_.resize(settings_.filenames.size());
+  bool initial_model_required =
+      settings_.subtractModel || settings_.continuedRun;
+
+  Logger::Info << "Reading pre-generated reordered data...\n";
+
+  for (size_t ms_index = 0; ms_index < settings_.filenames.size(); ++ms_index) {
+    const std::vector<ReorderedMs::ChannelRange> channels =
+        GenerateChannelInfo(imaging_table, ms_index);
+    std::set<aocommon::PolarizationEnum> polarization_type;
+    if (settings_.gridderType == GridderType::IDG) {
+      if (settings_.polarizations.size() == 1) {
+        if ((settings_.ddPsfGridWidth > 1 || settings_.ddPsfGridHeight > 1) &&
+            settings_.gridWithBeam) {
+          polarization_type.insert(aocommon::Polarization::StokesI);
+        } else {
+          polarization_type.insert(
+              aocommon::Polarization::DiagonalInstrumental);
+        }
+      } else {
+        polarization_type.insert(aocommon::Polarization::Instrumental);
+      }
+    } else if (settings_.diagonalSolutions) {
+      polarization_type.insert(aocommon::Polarization::DiagonalInstrumental);
+    } else {
+      polarization_type = settings_.polarizations;
+    }
+
+    casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
+    const size_t nAntennas = ms_data_obj.antenna().nrow();
+    const aocommon::MultiBandData bands(ms_data_obj);
+    ReorderedMs::Handle part_ms = ReorderedMs::GenerateHandleFromReorderedData(
+        settings_.filenames[ms_index], settings_.dataColumnName,
+        settings_.temporaryDirectory, channels, initial_model_required,
+        settings_.modelUpdateRequired, polarization_type, global_selection_,
+        bands, nAntennas, settings_.saveReorder);
+
+    reordered_ms_handles_[ms_index] = std::move(part_ms);
+  }
+}
+
 void MsHelper::PerformReordering(const ImagingTable& imaging_table,
                                  bool is_predict_mode) {
   std::mutex mutex;
@@ -25,45 +112,9 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   aocommon::CountingSemaphore semaphore(settings_.parallelReordering);
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
-    const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
-    std::vector<ReorderedMs::ChannelRange> channels;
-    // The partIndex needs to increase per data desc ids and channel ranges
-    std::map<aocommon::PolarizationEnum, size_t> next_index;
-    for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
-         ++sq_index) {
-      const ImagingTable::Groups facet_groups =
-          imaging_table.FacetGroups([sq_index](const ImagingTableEntry& e) {
-            return e.squaredDeconvolutionIndex == sq_index;
-          });
-      for (const ImagingTable::Group& facet_group : facet_groups) {
-        // The band information is determined from the first facet in the group.
-        // After this, all facet entries inside the group are updated.
-        const ImagingTableEntry& entry = *facet_group.front();
-        for (size_t d = 0; d != band_data.DataDescCount(); ++d) {
-          MSSelection selection{global_selection_};
-          const size_t band_index = band_data.GetBandIndex(d);
-
-          if (settings_.IsBandSelected(band_index) &&
-              selection.SelectMsChannels(band_data, d, entry)) {
-            if (entry.polarization == *settings_.polarizations.begin()) {
-              ReorderedMs::ChannelRange r;
-              r.dataDescId = d;
-              r.start = selection.ChannelRangeStart();
-              r.end = selection.ChannelRangeEnd();
-              channels.push_back(r);
-            }
-            for (const std::shared_ptr<ImagingTableEntry>& facet_entry :
-                 facet_group) {
-              facet_entry->msData[ms_index].bands[d].partIndex =
-                  next_index[entry.polarization];
-            }
-            ++next_index[entry.polarization];
-          }
-        }
-      }
-    }
-
+    std::vector<ReorderedMs::ChannelRange> channels =
+        GenerateChannelInfo(imaging_table, ms_index);
     ReorderedMs::Handle part_ms = ReorderedMs::Partition(
         settings_.filenames[ms_index], channels, global_selection_,
         settings_.dataColumnName, use_model, initial_model_required, settings_);

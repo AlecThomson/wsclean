@@ -107,7 +107,11 @@ class Settings {
   std::string reusePsfPrefix, reuseDirtyPrefix;
   bool writeImagingWeightSpectrumColumn = false;
   std::string temporaryDirectory;
-  bool forceReorder = false, forceNoReorder = false, doReorder = true;
+  bool forceReorder = false;
+  bool forceNoReorder = false;
+  bool doReorder = true;
+  bool reuseReorder = false;
+  bool saveReorder = false;
   bool subtractModel = false, modelUpdateRequired = true, mfWeighting = false;
   size_t fullResOffset = 0, fullResWidth = 0, fullResPad = 0;
   std::string beamModel, beamMode = "default";

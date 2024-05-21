@@ -30,6 +30,11 @@ class MsHelper {
     return reordered_ms_handles_;
   }
 
+  const std::vector<ReorderedMs::ChannelRange> GenerateChannelInfo(
+      const ImagingTable& imaging_table, size_t ms_index) const;
+
+  void ReuseReorderedFiles(const ImagingTable& imaging_table);
+
   void PerformReordering(const ImagingTable& imaging_table,
                          bool is_predict_mode);
 

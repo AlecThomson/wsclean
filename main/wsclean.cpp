@@ -684,7 +684,12 @@ void WSClean::RunClean() {
     _msHelper =
         std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
 
-    if (_settings.doReorder) _msHelper->PerformReordering(_imagingTable, false);
+    // Read reordered files if the option reuse-reordered is
+    // specified.
+    if (_settings.reuseReorder)
+      _msHelper->ReuseReorderedFiles(_imagingTable);
+    else if (_settings.doReorder)
+      _msHelper->PerformReordering(_imagingTable, false);
 
     _infoPerChannel.assign(_settings.channelsOut,
                            OutputChannelInfo(std::max<size_t>(1, _facetCount),
@@ -713,7 +718,7 @@ void WSClean::RunClean() {
     _griddingTaskFactory.reset();
     _image_weight_initializer.reset();
     // Resetting the MsHelper will destroy its reordered ms handles and
-    // thereby clear the temporary files.
+    // thereby clear the temporary files if -save-reordered is not present.
     _msHelper.reset();
 
     if (_settings.channelsOut > 1) {
@@ -890,7 +895,10 @@ void WSClean::RunPredict() {
 
     _msHelper =
         std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
-    if (_settings.doReorder) _msHelper->PerformReordering(_imagingTable, true);
+    if (_settings.reuseReorder)
+      _msHelper->ReuseReorderedFiles(_imagingTable);
+    else if (_settings.doReorder)
+      _msHelper->PerformReordering(_imagingTable, true);
 
     _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
         _settings, _globalSelection, _msBands,

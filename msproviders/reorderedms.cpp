@@ -467,9 +467,23 @@ ReorderedMs::Handle ReorderedMs::Partition(
   }
   progress2.reset();
 
-  return Handle(msPath, dataColumnName, temporaryDirectory, channels,
-                initialModelRequired, modelUpdateRequired, polsOut, selection,
-                bands, nAntennas);
+  return ReorderedMs::GenerateHandleFromReorderedData(
+      msPath, dataColumnName, temporaryDirectory, channels,
+      initialModelRequired, modelUpdateRequired, polsOut, selection, bands,
+      nAntennas, settings.saveReorder);
+}
+
+ReorderedMs::Handle ReorderedMs::GenerateHandleFromReorderedData(
+    const std::string& ms_path, const string& data_column_name,
+    const std::string& temporary_directory,
+    const std::vector<ChannelRange>& channels, bool initial_model_required,
+    bool model_update_required,
+    const std::set<aocommon::PolarizationEnum>& polarizations,
+    const MSSelection& selection, const aocommon::MultiBandData& bands,
+    size_t num_antennas, bool keep_temporary_files) {
+  return Handle(ms_path, data_column_name, temporary_directory, channels,
+                initial_model_required, model_update_required, polarizations,
+                selection, bands, num_antennas, keep_temporary_files);
 }
 
 void ReorderedMs::unpartition(const ReorderedMs::Handle::HandleData& handle) {
@@ -617,7 +631,7 @@ void ReorderedMs::unpartition(const ReorderedMs::Handle::HandleData& handle) {
 }
 
 ReorderedMs::Handle::HandleData::~HandleData() {
-  if (!_isCopy) {
+  if (!(_isCopy || _keepTemporaryFiles)) {
     // We can't throw inside destructor, so catch potential exceptions that
     // occur during writing the measurement sets.
     try {
