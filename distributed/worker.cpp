@@ -45,6 +45,8 @@ void Worker::Run() {
         scheduler_.GrantLock(message.lockId);
         break;
       default:
+        aocommon::Logger::Warn
+            << "wsclean-mp MPI worker received an unknown message type!\n";
         break;
     }
 
