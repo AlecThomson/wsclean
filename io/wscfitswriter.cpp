@@ -254,10 +254,21 @@ void WSCFitsWriter::Restore(const Settings& settings) {
     beamPA = imgReader.BeamPositionAngle();
   }
 
-  schaapcommon::fft::RestoreImage(
-      image.data(), model.data(), imgReader.ImageWidth(),
-      imgReader.ImageHeight(), beamMaj, beamMin, beamPA, imgReader.PixelSizeX(),
-      imgReader.PixelSizeY());
+  long double pixel_size_x = imgReader.PixelSizeX();
+  long double pixel_size_y = imgReader.PixelSizeY();
+  if (pixel_size_x == 0.0 || pixel_size_y == 0.0) {
+    pixel_size_x = settings.pixelScaleX;
+    pixel_size_y = settings.pixelScaleY;
+    if (pixel_size_x == 0.0 || pixel_size_y == 0.0) {
+      throw std::runtime_error(
+          "Input fits file specifies no pixel size and no -scale was given: "
+          "can't restore with no pixel size");
+    }
+  }
+  schaapcommon::fft::RestoreImage(image.data(), model.data(),
+                                  imgReader.ImageWidth(),
+                                  imgReader.ImageHeight(), beamMaj, beamMin,
+                                  beamPA, pixel_size_x, pixel_size_y);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
