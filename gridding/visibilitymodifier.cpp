@@ -85,10 +85,10 @@ void ApplyGain(std::complex<float>* visibilities, const MC2x2F& gain1,
   } else if constexpr (Mode == GainMode::kYY) {
     *visibilities = gain1[3] * (*visibilities) * std::conj(gain2[3]);
   } else if constexpr (Mode == GainMode::kTrace) {
-    // Stokes-I. Have to calculate v <- G1 x v x G2^H:
-    // v <- 0.5 (V_xx + V_yy) with V = v x (G1 x G2^H)
+    // Stokes-I. Have to calculate v' = G1 x v x G2^H:
+    // v' = 0.5 (V_xx + V_yy) with V = v x (G1 x G2^H)
     // V_xx = v x (g1_xx g2_xx* + g1_yx g2_yx*), V_yy = v x (g1_xy g2_xy* +
-    // g1_yy g2_yy*) Hence v <- 0.5 * double_dot(G1, G2*)
+    // g1_yy g2_yy*). Hence v' = 0.5 * double_dot(G1, G2*)
     *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
     visibilities[0] = gain1[0] * visibilities[0] * std::conj(gain2[0]);
@@ -119,6 +119,7 @@ void ApplyConjugatedGain(std::complex<float>* visibilities, const MC2x2F& gain1,
   } else if constexpr (Mode == GainMode::kYY) {
     *visibilities = std::conj(gain1[3]) * (*visibilities) * gain2[3];
   } else if constexpr (Mode == GainMode::kTrace) {
+    // See calculation in ApplyGain() for explanation of double dot.
     *visibilities *= 0.5f * gain2.DoubleDot(gain1.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
     visibilities[0] = std::conj(gain1[0]) * visibilities[0] * gain2[0];

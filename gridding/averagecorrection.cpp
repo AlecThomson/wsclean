@@ -17,13 +17,13 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
   std::complex<double> a[16];
   for (size_t col = 0; col != 4; ++col) {
     for (size_t row = 0; row != 4; ++row) {
-      // LAPACK uses col-first, HMC4x4 uses row first, so translate:
+      // LAPACK uses col-first, HMC4x4 uses row first, so transpose:
       a[col * 4 + row] = matrix[row * 4 + col];
     }
   }
   const char job_mode = 'V';        // Get eigenvalues and eigenvectors
   const char upper_or_lower = 'L';  // Lower triangle of A is stored
-  // CHEEV computes all eigenvalues and, optionally, eigenvectors of a
+  // ZHEEV computes all eigenvalues and, optionally, eigenvectors of a
   // complex Hermitian matrix.
   zheev_(&job_mode, &upper_or_lower,
          &n,  // Order of A
@@ -50,9 +50,9 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
       // corresponding eigenvalues, Λii = λi.
       //
       // Note that LAPACK uses row-first ordering, HMC4x4 uses col first.
-      // Therefore, the LAPACK results are translated. Because the last term
-      // (A^H) was already translated, it is translated twice and thus does not
-      // need to be translated.
+      // Therefore, the LAPACK results are transposed Because the last term
+      // (A^H) was already transposed, it is transposed twice and thus does not
+      // need to be transposed.
       return aocommon::HMC4x4{
           // Row 1
           std::norm(a[0]) * ev[0] + std::norm(a[4]) * ev[1] +
