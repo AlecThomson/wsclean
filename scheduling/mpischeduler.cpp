@@ -30,12 +30,10 @@ MPIScheduler::MPIScheduler(const Settings& settings)
       _isRunning(false),
       _isFinishing(false),
       _mutex(),
-      _send_mutex(),
       _receiveThread(),
       _readyList(),
       _callbacks(),
       _availableRoom(),
-      _writerLockQueues(),
       _localScheduler(settings) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -94,13 +92,17 @@ void MPIScheduler::Finish() {
 
 void MPIScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
-  _writerLockQueues.resize(nWriterGroups);
-}
 
-std::unique_ptr<GriddingTaskManager::WriterLock> MPIScheduler::GetLock(
-    size_t writer_group_index) {
-  assert(writer_group_index < _writerLockQueues.size());
-  return std::make_unique<MasterWriterLock>(*this, writer_group_index);
+  const uint32_t mpi_writer_groups = nWriterGroups;
+  for (size_t rank = 1; rank < _availableRoom.size(); ++rank) {
+    assert(_availableRoom[rank] > 0 &&
+           size_t(_availableRoom[rank]) == GetSettings().parallelGridding);
+    MPI_Send(&mpi_writer_groups, 1, MPI_UINT32_T, rank, kTag, MPI_COMM_WORLD);
+  }
+
+  if (GetSettings().masterDoesWork) {
+    _localScheduler.Start(nWriterGroups);
+  }
 }
 
 void MPIScheduler::send(GriddingTask&& task,
@@ -129,7 +131,6 @@ void MPIScheduler::send(GriddingTask&& task,
     message.Serialize(taskMessageStream);
     assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
 
-    std::unique_lock<std::mutex> lock(_send_mutex);
     MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
              0, MPI_COMM_WORLD);
     MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
@@ -176,12 +177,6 @@ void MPIScheduler::receiveLoop() {
       switch (message.type) {
         case TaskMessage::Type::kGriddingResult:
           processGriddingResult(node, message.bodySize);
-          break;
-        case TaskMessage::Type::kLockRequest:
-          processLockRequest(node, message.lockId);
-          break;
-        case TaskMessage::Type::kLockRelease:
-          processLockRelease(node, message.lockId);
           break;
         default:
           throw std::runtime_error("Invalid message sent by node " +
@@ -232,88 +227,4 @@ void MPIScheduler::StoreResult(GriddingResult&& result, int node) {
   _availableRoom[node] += result.facets.size();
   _readyList.emplace_back(std::move(result));
   _notify.notify_all();
-}
-
-void MPIScheduler::processLockRequest(int node, size_t lockId) {
-  if (lockId >= _writerLockQueues.size()) {
-    throw std::runtime_error("Node " + std::to_string(node) +
-                             " requests invalid lock " +
-                             std::to_string(lockId));
-  }
-
-  std::unique_lock<std::mutex> lock(_mutex);
-
-  // Idle nodes shouldn't request locks.
-  assert(_availableRoom[node] <
-         static_cast<int>(GetSettings().parallelGridding));
-
-  _writerLockQueues[lockId].PushBack(node);
-
-  if (_writerLockQueues[lockId].Size() == 1) {
-    // Grant the lock immediately.
-    lock.unlock();
-    grantLock(node, lockId);
-  }  // else processLockRelease will grant the lock once it's released.
-}
-
-void MPIScheduler::processLockRelease(int node, size_t lockId) {
-  if (lockId >= _writerLockQueues.size()) {
-    throw std::runtime_error("Node " + std::to_string(node) +
-                             " releases invalid lock id " +
-                             std::to_string(lockId));
-  }
-
-  std::unique_lock<std::mutex> lock(_mutex);
-  if (_writerLockQueues[lockId].Empty() ||
-      _writerLockQueues[lockId][0] != node) {
-    throw std::runtime_error("Node " + std::to_string(node) +
-                             " releases not-granted lock id " +
-                             std::to_string(lockId));
-  }
-
-  _writerLockQueues[lockId].PopFront();
-  if (!_writerLockQueues[lockId].Empty()) {
-    const int waiting_node = _writerLockQueues[lockId][0];
-    if (waiting_node == 0) {
-      // Notify the worker thread, which waits in MasterWriterLock::lock.
-      _notify.notify_all();
-    } else {
-      lock.unlock();
-      grantLock(waiting_node, lockId);
-    }
-  }
-}
-
-void MPIScheduler::grantLock(int node, size_t lockId) {
-  const TaskMessage message(TaskMessage::Type::kLockGrant, lockId);
-  aocommon::SerialOStream taskMessageStream;
-  message.Serialize(taskMessageStream);
-  assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
-
-  // Using asynchronous MPI_ISend is possible here, however, a synchronous
-  // MPI_Send is much simpler. Since the message is small and the receiver
-  // is already waiting for the message, the overhead of synchronous
-  // communication should be limited.
-  std::unique_lock<std::mutex> lock(_send_mutex);
-  MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
-           0, MPI_COMM_WORLD);
-}
-
-MPIScheduler::MasterWriterLock::MasterWriterLock(MPIScheduler& scheduler,
-                                                 size_t writer_group_index)
-    : scheduler_(scheduler), writer_group_index_(writer_group_index) {
-  std::unique_lock<std::mutex> lock(scheduler_._mutex);
-  assert(scheduler_._availableRoom[0] <
-         static_cast<int>(scheduler_.GetSettings().parallelGridding));
-  scheduler_._writerLockQueues[writer_group_index].PushBack(0);
-
-  while (scheduler_._writerLockQueues[writer_group_index][0] != 0) {
-    // Wait for lock in the worker thread on the master node.
-    // processLockRelease notifies the worker thread when the lock is available.
-    scheduler_._notify.wait(lock);
-  }
-}
-
-MPIScheduler::MasterWriterLock::~MasterWriterLock() {
-  scheduler_.processLockRelease(0, writer_group_index_);
 }

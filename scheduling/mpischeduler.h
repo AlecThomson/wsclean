@@ -28,21 +28,11 @@ class MPIScheduler final : public GriddingTaskManager {
 
   void Start(size_t nWriterGroups) override;
 
-  std::unique_ptr<WriterLock> GetLock(size_t writerGroupIndex) override;
-
- private:
-  class MasterWriterLock : public WriterLock {
-   public:
-    explicit MasterWriterLock(MPIScheduler& scheduler,
-                              size_t writer_group_index);
-    ~MasterWriterLock() override;
-
-   private:
-    MPIScheduler& scheduler_;    ///< For accessing the scheduler's internals.
-    size_t writer_group_index_;  ///< Index of the lock that must be acquired.
-  };
-
-  friend class MasterWriterLock;
+  std::unique_ptr<WriterLock> GetLock(size_t writerGroupIndex) override {
+    // Since WSClean uses a static outputchannel-to-node mapping,
+    // synchronisation of writes only needs to happen within a node.
+    return _localScheduler.GetLock(writerGroupIndex);
+  }
 
   /**
    * Send a task to a worker node or run it on the master
@@ -96,15 +86,10 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   void StoreResult(GriddingResult&& result, int node);
 
-  void processLockRequest(int node, size_t lockId);
-  void processLockRelease(int node, size_t lockId);
-  void grantLock(int node, size_t lockId);
-
   bool _isRunning;
   bool _isFinishing;
   std::condition_variable _notify;
   std::mutex _mutex;
-  std::mutex _send_mutex;  // Serializes MPI_Send's from different threads.
   std::thread _receiveThread;
   /** Stores results of ready tasks. */
   std::vector<GriddingResult> _readyList;
@@ -125,14 +110,6 @@ class MPIScheduler final : public GriddingTaskManager {
    *   of waiting for a new task.
    */
   std::vector<int> _availableRoom;
-
-  /**
-   * For each lock, a queue with the nodes that are waiting for the lock.
-   * The first node in a queue currently has the lock.
-   * Successive nodes are waiting for the lock.
-   * If a queue is empty, nobody has the lock.
-   */
-  std::vector<aocommon::Queue<int>> _writerLockQueues;
 
   /**
    * The lower-level local scheduler on an MPI node.

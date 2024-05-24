@@ -7,16 +7,14 @@
 struct TaskMessage {
   enum class Type {
     kInvalid,
+    kStart,
     kFinish,
     kGriddingRequest,
     kGriddingResult,
-    kLockRequest,
-    kLockGrant,
-    kLockRelease
   } type;
   union {
-    size_t bodySize;  // For kGridding* types.
-    size_t lockId;    // For kLock* types.
+    size_t nWriterGroups;  // For kStart type.
+    size_t bodySize;       // For kGridding* types.
   };
 
   TaskMessage() : type(Type::kInvalid), bodySize(0) {}
