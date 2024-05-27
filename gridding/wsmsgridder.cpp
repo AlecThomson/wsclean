@@ -442,7 +442,7 @@ void WSMSGridder::Invert() {
     Logger::Debug << '\n';
   }
 
-  _gridder->FinalizeImage(1.0 / totalWeight());
+  _gridder->FinalizeImage(1.0 / ImageWeight());
   if (IsFirstTask()) {
     Logger::Info << "Gridded visibility count: "
                  << double(GriddedVisibilityCount());

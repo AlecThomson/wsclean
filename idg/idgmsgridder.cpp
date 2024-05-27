@@ -113,7 +113,7 @@ void IdgMsGridder::Invert() {
     _image.assign(n_image_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
 
-    Logger::Debug << "Total weight: " << totalWeight() << '\n';
+    Logger::Debug << "Total weight: " << ImageWeight() << '\n';
   } else {
     // Compute a dirty/residual image
     // with application of the a term

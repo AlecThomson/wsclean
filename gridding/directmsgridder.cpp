@@ -54,7 +54,7 @@ void DirectMSGridder<num_t>::Invert() {
 
   // Wrap the image correctly and normalize it
   _image = aocommon::Image(TrimWidth(), TrimHeight());
-  double wFactor = 1.0 / totalWeight();
+  double wFactor = 1.0 / ImageWeight();
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;

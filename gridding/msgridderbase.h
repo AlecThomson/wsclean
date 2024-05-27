@@ -242,7 +242,9 @@ class MSGridderBase {
   bool HasDenormalPhaseCentre() const {
     return l_shift_ != 0.0 || m_shift_ != 0.0;
   }
-  double ImageWeight() const { return total_weight_; }
+  double ImageWeight() const {
+    return total_weight_ / GetNVisibilities(gain_mode_);
+  }
   /**
    * @return The normalization factor, which is always equal to
    * the image weight in the current implementation.
@@ -251,7 +253,7 @@ class MSGridderBase {
    * since they are conceptually different and the implementation of
    * NormalizationFactor may change in the future.
    */
-  double NormalizationFactor() const { return total_weight_; }
+  double NormalizationFactor() const { return ImageWeight(); }
   double BeamSize() const { return theoretical_beam_size_; }
 
   /**
@@ -275,7 +277,7 @@ class MSGridderBase {
    * (10 + 5 x 4) / 10 = 3
    */
   double EffectiveGriddedVisibilityCount() const {
-    return totalWeight() / MaxGriddedWeight();
+    return ImageWeight() / MaxGriddedWeight();
   }
 
   void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) {
@@ -566,8 +568,6 @@ class MSGridderBase {
     max_gridded_weight_ = 0.0;
     visibility_weight_sum_ = 0.0;
   }
-
-  double totalWeight() const { return total_weight_; }
 
   void initializeMSDataVector(std::vector<MSData>& msDataVector);
 

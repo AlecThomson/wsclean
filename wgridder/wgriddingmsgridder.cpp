@@ -230,7 +230,7 @@ void WGriddingMSGridder::Invert() {
     gridMeasurementSet(msData);
   }
 
-  gridder_->FinalizeImage(1.0 / totalWeight());
+  gridder_->FinalizeImage(1.0 / ImageWeight());
 
   Logger::Info << "Gridded visibility count: "
                << double(GriddedVisibilityCount());
