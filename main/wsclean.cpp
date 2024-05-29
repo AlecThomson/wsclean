@@ -73,20 +73,22 @@ WSClean::WSClean()
 WSClean::~WSClean() = default;
 
 void WSClean::loadExistingImage(ImagingTableEntry& entry, bool isPSF) {
-  if (isPSF)
-    Logger::Info << "Loading existing PSF from disk...\n";
-  else
-    Logger::Info << "Loading existing dirty image from disk...\n";
-
   std::string name;
   if (isPSF) {
+    if (entry.isDdPsf)
+      Logger::Info << "Loading existing DD PSF from disk...\n";
+    else
+      Logger::Info << "Loading existing PSF from disk...\n";
     Settings modifiedSettings(_settings);
     modifiedSettings.prefixName = _settings.reusePsfPrefix;
+    std::optional<size_t> dd_psf_index;
+    if (entry.isDdPsf) dd_psf_index = entry.facetIndex;
     name =
         ImageFilename::GetPSFPrefix(modifiedSettings, entry.outputChannelIndex,
-                                    entry.outputIntervalIndex) +
+                                    entry.outputIntervalIndex, dd_psf_index) +
         "-psf.fits";
   } else {
+    Logger::Info << "Loading existing dirty image from disk...\n";
     Settings modifiedSettings(_settings);
     modifiedSettings.prefixName = _settings.reuseDirtyPrefix;
     name = ImageFilename::GetPrefix(modifiedSettings, entry.polarization,
@@ -95,10 +97,23 @@ void WSClean::loadExistingImage(ImagingTableEntry& entry, bool isPSF) {
            "-dirty.fits";
   }
   aocommon::FitsReader reader(name);
-  if (reader.ImageWidth() != _settings.trimmedImageWidth ||
-      reader.ImageHeight() != _settings.trimmedImageHeight)
-    throw std::runtime_error(
-        "Image width and height of reused PSF don't match with given settings");
+  const size_t expected_width =
+      entry.isDdPsf ? entry.facet->GetTrimmedBoundingBox().Width()
+                    : _settings.trimmedImageWidth;
+  const size_t expected_height =
+      entry.isDdPsf ? entry.facet->GetTrimmedBoundingBox().Height()
+                    : _settings.trimmedImageHeight;
+  if (reader.ImageWidth() != expected_width ||
+      reader.ImageHeight() != expected_height) {
+    const std::string type = isPSF ? "PSF" : "image";
+    throw std::runtime_error("Image width and height of reused " + type +
+                             " don't match with given settings. Expected: " +
+                             std::to_string(_settings.trimmedImageWidth) +
+                             " x " +
+                             std::to_string(_settings.trimmedImageHeight) +
+                             ", got: " + std::to_string(reader.ImageWidth()) +
+                             " x " + std::to_string(reader.ImageHeight()));
+  }
   Image image(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(image.Data());
 
@@ -117,11 +132,16 @@ void WSClean::loadExistingImage(ImagingTableEntry& entry, bool isPSF) {
   entry.normalizationFactor = channel_info.normalizationFactor;
 
   if (isPSF) {
-    processFullPSF(image, entry);
+    processFullPSF(image, entry, false);
 
     _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
-    _psfImages.Store(image.Data(), *_settings.polarizations.begin(),
-                     channel_index, false);
+    if (entry.isDdPsf)
+      _psfImages.StoreFacet(image, *_settings.polarizations.begin(),
+                            channel_index, entry.facetIndex, entry.facet,
+                            false);
+    else
+      _psfImages.Store(image.Data(), *_settings.polarizations.begin(),
+                       channel_index, false);
   } else {
     // maxFacetGroupIndex is always 1
     const size_t maxFacetGroupIndex = 1;
@@ -233,7 +253,8 @@ void WSClean::ImagePsfCallback(ImagingTable::Group facet_group,
   }
 }
 
-void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
+void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry,
+                             bool apply_corrections) {
   Settings settings(_settings);
   settings.trimmedImageWidth = image.Width();
   settings.trimmedImageHeight = image.Height();
@@ -242,26 +263,27 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
       (settings.trimmedImageHeight / 2) * settings.trimmedImageWidth;
   const size_t channelIndex = entry.outputChannelIndex;
 
-  // When imaging with dd psfs, facet corrections are applied, so correct for
-  // this. di psfs do not receive facet corrections and do not require this
-  // multiplication.
-  if (entry.isDdPsf &&
-      (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-    const double factor =
-        _infoPerChannel[channelIndex].averageDdPsfCorrection[entry.facetIndex];
-    image *= 1.0 / factor;
+  double normFactor = 1.0;
+  if (apply_corrections) {
+    // When imaging with dd psfs, facet corrections are applied, so correct for
+    // this. di psfs do not receive facet corrections and do not require this
+    // multiplication.
+    if (entry.isDdPsf &&
+        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
+      const double factor = _infoPerChannel[channelIndex]
+                                .averageDdPsfCorrection[entry.facetIndex];
+      image *= 1.0 / factor;
+    }
+
+    if (image[centralIndex] != 0.0)
+      normFactor = 1.0 / image[centralIndex];
+    else
+      normFactor = 0.0;
+
+    image *= normFactor * entry.siCorrection;
+    Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
+    image.RemoveNans();
   }
-
-  double normFactor;
-  if (image[centralIndex] != 0.0)
-    normFactor = 1.0 / image[centralIndex];
-  else
-    normFactor = 0.0;
-
-  image *= normFactor * entry.siCorrection;
-  Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
-
-  image.RemoveNans();
   double minPixelScale = std::min(settings.pixelScaleX, settings.pixelScaleY);
   double initialFitSize =
       std::max(_infoPerChannel[channelIndex].beamSizeEstimate, minPixelScale);
@@ -1003,7 +1025,13 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         });
     if (_settings.reusePsf) {
       for (ImagingTable::Group& facet_group : facet_groups) {
-        loadExistingImage(*facet_group.front(), true);
+        if (doMakeDdPsf) {
+          for (std::shared_ptr<ImagingTableEntry>& dd_psf : facet_group) {
+            loadExistingImage(*dd_psf, true);
+          }
+        } else {
+          loadExistingImage(*facet_group.front(), true);
+        }
       }
     } else {
       for (ImagingTable::Group& facet_group : facet_groups) {

@@ -172,7 +172,8 @@ class WSClean {
                    const OutputChannelInfo& channel_info, bool isImaginary,
                    const std::string& prefix) const;
 
-  void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry);
+  void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry,
+                      bool apply_corrections = false);
 
   /**
    * @brief Stitch facets for all FacetGroups
