@@ -134,6 +134,10 @@ void ThreadedScheduler::ProcessReadyList() {
     latest_exception_ = std::exception_ptr();
   }
 
+  // Check for exceptions before calling callbacks, since results
+  // are typically invalid when an exception occurred.
+  if (local_exception) std::rethrow_exception(local_exception);
+
   // Call callbacks for any finished tasks
   for (std::size_t task_id : local_ready_list) {
     TaskData& task_data = task_data_map_[task_id];
@@ -147,6 +151,4 @@ void ThreadedScheduler::ProcessReadyList() {
       task_data_map_.erase(task_id);
     }
   }
-
-  if (local_exception) std::rethrow_exception(local_exception);
 }
