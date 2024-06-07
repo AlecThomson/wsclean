@@ -12,7 +12,10 @@
 #include "../io/findmwacoefffile.h"
 
 #include <aocommon/matrix2x2.h>
+#include <aocommon/scalar/vector4.h>
 
+using aocommon::HMatrix4x4;
+using aocommon::MC2x2;
 using aocommon::MC2x2F;
 
 namespace {
@@ -21,50 +24,6 @@ void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
     if (!std::isfinite(v.real()) || !std::isfinite(v.imag())) {
       v = 0.0;
     }
-  }
-}
-
-/**
- * @brief Compute the gain from the given solution matrices.
- *
- * @tparam GainEntry Which entry or entries from the gain matrices should be
- * taken into account? See GainMode for further documentation.
- */
-template <GainMode Mode>
-std::complex<float> ComputeGain(const MC2x2F& gain1, const MC2x2F& gain2) {
-  if constexpr (Mode == GainMode::kXX)
-    return gain2[0] * std::conj(gain1[0]);
-  else if constexpr (Mode == GainMode::kYY)
-    return gain2[3] * std::conj(gain1[3]);
-  else if constexpr (Mode == GainMode::kTrace ||
-                     Mode == GainMode::k2VisDiagonal)
-    return 0.5f *
-           (gain2[0] * std::conj(gain1[0]) + gain2[3] * std::conj(gain1[3]));
-  else
-    throw std::runtime_error("ComputeGain<GainMode::kFull> not implemented!");
-}
-
-/**
- * @brief Compute the weighted squared gain based on the given gain matrices.
- *
- * @tparam Mode Which entry or entries from the gain matrices should be
- * taken into account? See GainMode for further documentation.
- */
-template <GainMode Mode>
-float ComputeWeightedSquaredGain(const MC2x2F& gain1, const MC2x2F& gain2,
-                                 const float* weights) {
-  if constexpr (Mode == GainMode::k2VisDiagonal) {
-    // The real gain is the average of these two terms, so requires an
-    // extra factor of 2. This is however corrected in the normalization
-    // later on.
-    return std::norm(gain1[0]) * std::norm(gain2[0]) * weights[0] +
-           std::norm(gain1[3]) * std::norm(gain2[3]) * weights[1];
-    // TODO is this better? :
-    // const std::complex<float> g = ComputeGain<Mode>(gain1, gain2);
-    // return std::norm(g) * (weights[0] + weights[1]);
-  } else {  // XX / YY / trace
-    const std::complex<float> g = ComputeGain<Mode>(gain1, gain2);
-    return std::norm(g) * *weights;
   }
 }
 
@@ -91,8 +50,10 @@ void ApplyGain(std::complex<float>* visibilities, const MC2x2F& gain1,
     // g1_yy g2_yy*). Hence v' = 0.5 * double_dot(G1, G2*)
     *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
-    visibilities[0] = gain1[0] * visibilities[0] * std::conj(gain2[0]);
-    visibilities[1] = gain1[3] * visibilities[1] * std::conj(gain2[3]);
+    visibilities[0] = gain1[0] * visibilities[0] * std::conj(gain2[0]) +
+                      gain1[1] * visibilities[1] * std::conj(gain2[1]);
+    visibilities[1] = gain1[3] * visibilities[1] * std::conj(gain2[3]) +
+                      gain1[2] * visibilities[0] * std::conj(gain2[2]);
   } else if constexpr (Mode == GainMode::kFull) {
     // All polarizations
     const MC2x2F visibilities_mc2x2(visibilities);
@@ -122,31 +83,16 @@ void ApplyConjugatedGain(std::complex<float>* visibilities, const MC2x2F& gain1,
     // See calculation in ApplyGain() for explanation of double dot.
     *visibilities *= 0.5f * gain2.DoubleDot(gain1.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
-    visibilities[0] = std::conj(gain1[0]) * visibilities[0] * gain2[0];
-    visibilities[1] = std::conj(gain1[3]) * visibilities[1] * gain2[3];
+    visibilities[0] = std::conj(gain1[0]) * visibilities[0] * gain2[0] +
+                      std::conj(gain1[2]) * visibilities[1] * gain2[2];
+    visibilities[1] = std::conj(gain1[3]) * visibilities[1] * gain2[3] +
+                      std::conj(gain1[1]) * visibilities[0] * gain2[1];
   } else if constexpr (Mode == GainMode::kFull) {
     // All polarizations
     const MC2x2F visibilities_mc2x2(visibilities);
     const MC2x2F result =
         gain1.HermThenMultiply(visibilities_mc2x2).Multiply(gain2);
     result.AssignTo(visibilities);
-  }
-}
-
-/**
- * @brief Apply conjugated gains to the visibilities.
- *
- * @tparam GainEntry decides which entry or entries from the gain matrices
- * should be taken into account in the product, only the diagonal, or the full
- * matrix? See also the documentation of GainMode.
- */
-template <GainMode Mode>
-MC2x2F MultiplyGains(const MC2x2F& gain_a, const MC2x2F& gain_b) {
-  if constexpr (Mode == GainMode::kFull) {
-    // All polarizations
-    return gain_a.Multiply(gain_b);
-  } else {
-    return MC2x2F(gain_a[0] * gain_b[0], 0, 0, gain_a[3] * gain_b[3]);
   }
 }
 
@@ -310,7 +256,6 @@ template <GainMode Mode>
 void VisibilityModifier::ApplyConjugatedBeamResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward) {
-  double local_correction_sum = 0.0;
   for (size_t ch = 0; ch < n_channels; ++ch) {
     const size_t offset = ch * _pointResponseBufferSize;
     const size_t offset1 = offset + antenna1 * 4u;
@@ -322,14 +267,12 @@ void VisibilityModifier::ApplyConjugatedBeamResponse(
       ApplyGain<Mode>(data, gain1, gain2);
     }
     ApplyConjugatedGain<Mode>(data, gain1, gain2);
-    const float weighted_squared_gain =
-        ComputeWeightedSquaredGain<Mode>(gain1, gain2, weights);
-    local_correction_sum += image_weights[ch] * weighted_squared_gain;
+    // This assumes that the weights of the polarizations are the same
+    correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
 
     data += GetNVisibilities(Mode);
     weights += GetNVisibilities(Mode);
   }
-  correction_sum_ += local_correction_sum;
 }
 
 template void VisibilityModifier::ApplyConjugatedBeamResponse<GainMode::kXX>(
@@ -417,8 +360,6 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     size_t antenna2, bool apply_forward) {
   const size_t nparms = NParms(ms_index);
 
-  double local_correction_sum = 0.0;
-
   // Conditional could be templated once C++ supports partial function
   // specialization
   if (nparms == 2) {
@@ -436,9 +377,8 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
         ApplyGain<Mode>(data, gain1, gain2);
       }
       ApplyConjugatedGain<Mode>(data, gain1, gain2);
-      const float weighted_squared_gain =
-          ComputeWeightedSquaredGain<Mode>(gain1, gain2, weights);
-      local_correction_sum += image_weights[ch] * weighted_squared_gain;
+      // This multiplies a lot of zeros so could be done more efficiently
+      correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
 
       data += GetNVisibilities(Mode);
       weights += GetNVisibilities(Mode);
@@ -456,15 +396,13 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
         ApplyGain<Mode>(data, gain1, gain2);
       }
       ApplyConjugatedGain<Mode>(data, gain1, gain2);
-      const float weighted_squared_gain =
-          ComputeWeightedSquaredGain<Mode>(gain1, gain2, weights);
-      local_correction_sum += image_weights[ch] * weighted_squared_gain;
+      // Assumes that the weights of the polarizations are the same
+      correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
 
       data += GetNVisibilities(Mode);
       weights += GetNVisibilities(Mode);
     }
   }
-  correction_sum_ += local_correction_sum;
 }
 
 template void VisibilityModifier::ApplyConjugatedParmResponse<GainMode::kXX>(
@@ -499,8 +437,6 @@ void VisibilityModifier::ApplyConjugatedDual(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward) {
-  double correctionSum = 0.0;
-  double h5Sum = 0.0;
   const size_t nparms = NParms(ms_index);
 
   // Conditional could be templated once C++ supports partial function
@@ -527,23 +463,18 @@ void VisibilityModifier::ApplyConjugatedDual(
                              _cachedParmResponse[ms_index][h5_offset2 + 1]);
 
       // Combine H5parm and beam
-      const MC2x2F gain_combined_1 = MultiplyGains<Mode>(gain_h5_1, gain_b_1);
-      const MC2x2F gain_combined_2 = MultiplyGains<Mode>(gain_h5_2, gain_b_2);
+      const MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
+      const MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
 
       if (apply_forward) {
         ApplyGain<Mode>(data, gain_combined_1, gain_combined_2);
       }
       ApplyConjugatedGain<Mode>(data, gain_combined_1, gain_combined_2);
 
-      const float weighted_squared_gain_h5 =
-          ComputeWeightedSquaredGain<Mode>(gain_h5_1, gain_h5_2, weights);
-      h5Sum += weighted_squared_gain_h5 * image_weights[ch];
-
-      const float weighted_squared_gain_combined =
-          ComputeWeightedSquaredGain<Mode>(gain_combined_1, gain_combined_2,
-                                           weights);
-
-      correctionSum += weighted_squared_gain_combined * image_weights[ch];
+      beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
+                                     weights[0] * image_weights[ch]);
+      correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
+                                weights[0] * image_weights[ch]);
 
       data += GetNVisibilities(Mode);
       weights += GetNVisibilities(Mode);
@@ -573,27 +504,19 @@ void VisibilityModifier::ApplyConjugatedDual(
         ApplyGain<Mode>(data, gain_h5_1, gain_h5_2);
       }
       ApplyConjugatedGain<Mode>(data, gain_h5_1, gain_h5_2);
-      const float weighted_squared_gain_h5 =
-          ComputeWeightedSquaredGain<Mode>(gain_h5_1, gain_h5_2, weights);
-      h5Sum += weighted_squared_gain_h5 * image_weights[ch];
-
+      // TODO why are not all four values of the gains used?
       const MC2x2F gain_combined_1(gain_b_1[0] * gain_h5_1[0], 0, 0,
                                    gain_b_1[3] * gain_h5_1[3]);
       const MC2x2F gain_combined_2(gain_b_2[0] * gain_h5_2[0], 0, 0,
                                    gain_b_2[3] * gain_h5_2[3]);
-
-      const float weighted_squared_gain_combined =
-          ComputeWeightedSquaredGain<Mode>(gain_combined_1, gain_combined_2,
-                                           weights);
-
-      correctionSum += weighted_squared_gain_combined * image_weights[ch];
-
+      beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
+                                     weights[0] * image_weights[ch]);
+      correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
+                                weights[0] * image_weights[ch]);
       data += GetNVisibilities(Mode);
       weights += GetNVisibilities(Mode);
     }
   }
-  correction_sum_ += correctionSum;
-  h5_correction_sum_ += h5Sum;
 }
 
 template void VisibilityModifier::ApplyConjugatedDual<GainMode::kXX>(

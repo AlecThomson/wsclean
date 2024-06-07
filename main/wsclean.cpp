@@ -216,8 +216,8 @@ void WSClean::ImagePsfCallback(ImagingTable::Group facet_group,
     } else {
       channel_info.averageFacetCorrection[entry.facetIndex] =
           facet_result.averageCorrection;
-      channel_info.averageH5FacetCorrection[entry.facetIndex] =
-          facet_result.averageH5Correction;
+      channel_info.averageBeamFacetCorrection[entry.facetIndex] =
+          facet_result.averageBeamCorrection;
     }
 
     _griddingTaskFactory->SetMetaDataCacheEntry(entry,
@@ -245,11 +245,27 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   // When imaging with dd psfs, facet corrections are applied, so correct for
   // this. di psfs do not receive facet corrections and do not require this
   // multiplication.
-  if (entry.isDdPsf &&
-      (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-    const double factor =
-        _infoPerChannel[channelIndex].averageDdPsfCorrection[entry.facetIndex];
-    image *= 1.0 / factor;
+  if (entry.isDdPsf && _settings.UseFacetCorrections()) {
+    // This is by itself an ineffective correction, because PSFs are normalized
+    // to unity in the centre, so this scaling is lost. It is still useful
+    // because by correcting this we get a PSF normalization factor that is more
+    // sensible (see ~10 lines below this), and this may be displayed to the
+    // user. It's also used to scale the normal images in the same way.
+    //
+    // Nevertheless, for the PSF we do not correct polarization leakage, because
+    // we only make a Stokes I beam, hence we cannot do a full Mueller matrix
+    // correction as we do for facets.
+    //
+    // One could imagine scenarios where the I and the Q,U,V PSFs are different.
+    // For example when most of the time either the X dipole or the Y dipole is
+    // active, and only a fraction of the time both dipoles are active. Then
+    // Stokes I still has good uv-coverage, while Q,U,V have poor uv-coverage.
+    // In practice that won't happen. The final deconvolution result is not
+    // sensitive to small errors in the PSF anyway.
+    const double factor = _infoPerChannel[channelIndex]
+                              .averageDdPsfCorrection[entry.facetIndex]
+                              .GetStokesIValue();
+    image *= 1.0 / std::sqrt(factor);
   }
 
   double normFactor;
@@ -397,11 +413,11 @@ void WSClean::ImageMainCallback(ImagingTable::Group facet_group,
     channel_info.weight = facet_result.imageWeight;
     channel_info.normalizationFactor = facet_result.normalizationFactor;
 
-    if (facet_result.averageCorrection != 0.0) {
+    if (!facet_result.averageCorrection.IsZero()) {
       channel_info.averageFacetCorrection[entry.facetIndex] =
           facet_result.averageCorrection;
-      channel_info.averageH5FacetCorrection[entry.facetIndex] =
-          facet_result.averageH5Correction;
+      channel_info.averageBeamFacetCorrection[entry.facetIndex] =
+          facet_result.averageBeamCorrection;
     }
 
     using PolImagesPair = std::pair<const PolarizationEnum, std::vector<Image>>;
@@ -914,9 +930,7 @@ void WSClean::RunPredict() {
                                    _imagingTable[0].outputChannelIndex,
                                    _imagingTable[0].outputIntervalIndex, false);
       const std::string suffix =
-          (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())
-              ? "-model-pb.fits"
-              : "-model.fits";
+          _settings.UseFacetCorrections() ? "-model-pb.fits" : "-model.fits";
       aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
       if (intervalIndex == 0) {
@@ -1212,10 +1226,14 @@ void WSClean::partitionSingleGroup(const ImagingTable::Group& facetGroup,
     facetImage.SetFacet(*facetEntry->facet, true);
     facetImage.CopyToFacet({fullImage.Data()});
     if (!isPredictOnly) {
-      if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
+      if (_settings.UseFacetCorrections()) {
+        // Before deconvolution, the images are converted to 'flat noise' image
+        // by multiplying them with the sqrt(average squared correction). This
+        // is undone here to convert the model image back to flat gain.
         const double factor =
             _infoPerChannel[channelIndex]
-                .averageFacetCorrection[facetEntry->facetIndex];
+                .averageFacetCorrection[facetEntry->facetIndex]
+                .GetStokesIValue();
         facetImage *= 1.0 / std::sqrt(factor);
       }
     }
@@ -1257,8 +1275,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
         entry.outputIntervalIndex, i == 1);
 
     const std::string suffix =
-        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty() ||
-         griddingUsesATerms())
+        (_settings.UseFacetCorrections() || griddingUsesATerms())
             ? "-model-pb.fits"
             : "-model.fits";
     aocommon::FitsReader reader(prefix + suffix);
@@ -1718,6 +1735,63 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
   writer.WriteUV(prefix + "-imag.fits", imagUV.Data());
 }
 
+void WSClean::ApplyFacetCorrectionForSingleChannel(
+    const ImagingTable& squared_group, CachedImageSet& image_cache) {
+  for (size_t facet_entry_index = 0;
+       facet_entry_index != squared_group.FacetCount(); ++facet_entry_index) {
+    const ImagingTable polarized_entries =
+        squared_group.GetFacet(facet_entry_index);
+    // Load the image data of this set of polarizations into facet_images
+    std::vector<Image> facet_images;
+    for (const ImagingTableEntry& facet_entry : polarized_entries) {
+      const schaapcommon::facets::BoundingBox& box =
+          facet_entry.facet->GetTrimmedBoundingBox();
+      Image& facet_image = facet_images.emplace_back(box.Width(), box.Height());
+      image_cache.LoadFacet(facet_image.Data(), facet_entry.polarization,
+                            facet_entry.outputChannelIndex,
+                            facet_entry.facetIndex, facet_entry.facet, false);
+    }
+
+    const size_t channel_index = polarized_entries.begin()->outputChannelIndex;
+    const size_t facet_index = polarized_entries.begin()->facetIndex;
+    const double stokes_i_sqrt =
+        std::sqrt(_infoPerChannel[channel_index]
+                      .averageFacetCorrection[facet_index]
+                      .GetStokesIValue());
+    aocommon::HMC4x4 matrix = _infoPerChannel[channel_index]
+                                  .averageFacetCorrection[facet_index]
+                                  .GetMatrixValue();
+    if (matrix.Invert()) {
+      if (facet_images.size() == 4) {
+        std::array<Image*, 4> images{&facet_images[0], &facet_images[1],
+                                     &facet_images[2], &facet_images[3]};
+        math::CorrectImagesForMuellerMatrix(matrix * stokes_i_sqrt, images);
+      } else if (facet_images.size() == 2) {
+        std::array<Image*, 2> images{&facet_images[0], &facet_images[1]};
+        math::CorrectDualImagesForMuellerMatrix(matrix * stokes_i_sqrt, images);
+      } else {
+        throw std::runtime_error(
+            "A polarized facet correction was requested that is not "
+            "implemented");
+      }
+    } else {
+      for (Image& image : facet_images)
+        image = std::numeric_limits<float>::quiet_NaN();
+    }
+
+    // Save the image data of this set of polarizations
+    for (size_t polarization_index = 0;
+         polarization_index != facet_images.size(); ++polarization_index) {
+      Image& facet_image = facet_images[polarization_index];
+      const ImagingTableEntry& facet_entry =
+          polarized_entries[polarization_index];
+      image_cache.StoreFacet(facet_image, facet_entry.polarization,
+                             facet_entry.outputChannelIndex,
+                             facet_entry.facetIndex, facet_entry.facet, false);
+    }
+  }
+}
+
 void WSClean::stitchFacets(const ImagingTable& table,
                            CachedImageSet& image_cache, bool write_dirty,
                            bool is_psf) {
@@ -1726,21 +1800,34 @@ void WSClean::stitchFacets(const ImagingTable& table,
     // Allocate full image
     Image full_image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
 
-    // Initialize FacetImage with properties of stitched image.
-    // There's only one image, because WSClean uses only 1 spectral term.
-    schaapcommon::facets::FacetImage facet_image(
-        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     std::unique_ptr<Image> weight_image;
-    for (const ImagingTable::Group& facet_group : table.FacetGroups()) {
-      // The PSF is only once imaged for all polarizations
-      if (!is_psf || facet_group.front()->polarization ==
-                         *_settings.polarizations.begin()) {
-        const size_t image_count = facet_group.front()->imageCount;
-        for (size_t image_index = 0; image_index != image_count;
-             ++image_index) {
-          stitchSingleGroup(facet_group, image_index, image_cache, write_dirty,
-                            is_psf, full_image, weight_image, facet_image,
-                            table.MaxFacetGroupIndex());
+    // This loop iterates over the output channels
+    for (size_t sq_group = 0; sq_group != table.SquaredGroupCount();
+         ++sq_group) {
+      const ImagingTable squared_group = table.GetSquaredGroup(sq_group);
+      const bool apply_correction = !is_psf && _settings.UseFacetCorrections();
+      const bool apply_matrix = _settings.polarizations.size() != 1;
+      if (apply_correction && apply_matrix) {
+        ApplyFacetCorrectionForSingleChannel(squared_group, image_cache);
+      }
+
+      // Initialize FacetImage with properties of stitched image.
+      // There's only one image, because WSClean uses only 1 spectral term.
+      schaapcommon::facets::FacetImage facet_image(
+          _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+      for (const ImagingTable::Group& facet_group :
+           squared_group.FacetGroups()) {
+        // The PSF is only once imaged for all polarizations
+        if (!is_psf || facet_group.front()->polarization ==
+                           *_settings.polarizations.begin()) {
+          const size_t image_count = facet_group.front()->imageCount;
+          for (size_t image_index = 0; image_index != image_count;
+               ++image_index) {
+            stitchSingleGroup(facet_group, image_index, image_cache,
+                              write_dirty, is_psf, full_image, weight_image,
+                              facet_image, table.MaxFacetGroupIndex(),
+                              apply_correction && !apply_matrix);
+          }
         }
       }
     }
@@ -1752,7 +1839,7 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
                                 bool writeDirty, bool isPSF, Image& fullImage,
                                 std::unique_ptr<Image>& weight_image,
                                 schaapcommon::facets::FacetImage& facetImage,
-                                size_t maxFacetGroupIndex) {
+                                size_t maxFacetGroupIndex, bool apply_scalar) {
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;
   if (_settings.GetFeatherSize() != 0) {
@@ -1768,14 +1855,16 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
                          facetEntry->outputChannelIndex, facetEntry->facetIndex,
                          facetEntry->facet, isImaginary);
 
-    if (!isPSF &&
-        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
+    // Apply beam/h5parm correction to the image
+    if (apply_scalar) {
       const size_t channelIndex = facetEntry->outputChannelIndex;
       const double factor = _infoPerChannel[channelIndex]
-                                .averageFacetCorrection[facetEntry->facetIndex];
+                                .averageFacetCorrection[facetEntry->facetIndex]
+                                .GetStokesIValue();
       facetImage *= 1.0 / std::sqrt(factor);
     }
 
+    // Place facet image on full image
     const size_t feather_size = _settings.GetFeatherSize();
     if (feather_size != 0) {
       aocommon::Image mask = facetImage.MakeMask();
@@ -2171,7 +2260,8 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
       facetImage.SetFacet(*entry->facet, true);
       const size_t channelIndex = entry->outputChannelIndex;
       const double factor = _infoPerChannel[channelIndex]
-                                .averageFacetCorrection[entry->facetIndex];
+                                .averageFacetCorrection[entry->facetIndex]
+                                .GetStokesIValue();
       facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
     }
 

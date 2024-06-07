@@ -253,6 +253,14 @@ class Settings {
   aocommon::PolarizationEnum GetProviderPolarization(
       aocommon::PolarizationEnum entry_polarization) const;
 
+  /**
+   * True if either a h5parm solution file was specified or the beam is applied
+   * while faceting.
+   */
+  bool UseFacetCorrections() const {
+    return applyFacetBeam || !facetSolutionFiles.empty();
+  }
+
  private:
   void checkPolarizations() const;
   bool determineReorder() const;

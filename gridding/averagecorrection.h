@@ -42,8 +42,8 @@ class AverageCorrection {
           aocommon::MC2x2(gain1), aocommon::MC2x2(gain2));
       const aocommon::Matrix4x4 b = aocommon::Matrix4x4::KroneckerProduct(
           aocommon::MC2x2(gain2), aocommon::MC2x2(gain1));
-      matrix_ +=
-          (a.HermitianSquare() + b.HermitianSquare()) * visibility_weight;
+      matrix_ += (a.HermitianSquare() + b.HermitianSquare()) *
+                 (0.5 * visibility_weight);
     }
   }
 
@@ -86,13 +86,11 @@ class AverageCorrection {
     return matrix_;
   }
 
-  double GetStokesISquareRoot() const {
+  double GetStokesIValue() const {
     if (matrix_ == aocommon::HMatrix4x4::Zero()) {
-      return std::sqrt(sum_);
+      return sum_;
     } else {
-      const double stokes_i =
-          0.5 * (matrix_.Data(0) + 2.0 * matrix_.Data(9) + matrix_.Data(15));
-      return std::sqrt(stokes_i);
+      return 0.5 * (matrix_.Data(0) + 2.0 * matrix_.Data(9) + matrix_.Data(15));
     }
   }
 

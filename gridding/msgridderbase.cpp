@@ -258,6 +258,7 @@ void MSGridderBase::initializeMSDataVector(
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.ResetCache(MeasurementSetCount());
   }
+  visibility_modifier_.ResetSums();
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;

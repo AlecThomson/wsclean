@@ -76,13 +76,16 @@ struct ModifierFixture {
     const float a2_beam_norm_y = std::norm(kAntenna2BeamGainY);
     const float y_correction_reference =
         a1_parm_norm_y * a2_parm_norm_y * a1_beam_norm_y * a2_beam_norm_y;
-    BOOST_CHECK_CLOSE_FRACTION(modifier.CorrectionSum(),
-                               x_correction_reference + y_correction_reference,
-                               1e-5);
-    const float x_h5_reference = a1_parm_norm_x * a2_parm_norm_x;
-    const float y_h5_reference = a1_parm_norm_y * a2_parm_norm_y;
-    BOOST_CHECK_CLOSE_FRACTION(modifier.H5CorrectionSum(),
-                               x_h5_reference + y_h5_reference, 1e-5);
+    const aocommon::HMC4x4 correction =
+        modifier.TotalCorrectionSum().GetMatrixValue();
+    BOOST_CHECK_CLOSE_FRACTION(correction[0], x_correction_reference, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(correction[15], y_correction_reference, 1e-5);
+    const float x_b_reference = a1_beam_norm_x * a2_beam_norm_x;
+    const float y_b_reference = a1_beam_norm_y * a2_beam_norm_y;
+    const aocommon::HMC4x4 beam_correction =
+        modifier.BeamCorrectionSum().GetMatrixValue();
+    BOOST_CHECK_CLOSE_FRACTION(beam_correction[0], x_b_reference, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(beam_correction[15], y_b_reference, 1e-5);
     const std::complex<float> backward_x =
         std::conj(kAntenna1BeamGainX) * kAntenna2BeamGainX *
         std::conj(kAntenna1ParmGainX) * kAntenna2ParmGainX;
@@ -121,9 +124,15 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugate_h5parm, ModifierFixture<2>) {
       std::norm(kAntenna1ParmGainX) * std::norm(kAntenna2ParmGainX);
   const float reference_y_correction =
       std::norm(kAntenna1ParmGainY) * std::norm(kAntenna2ParmGainY);
-  BOOST_CHECK_CLOSE_FRACTION(modifier.CorrectionSum(),
-                             reference_x_correction + reference_y_correction,
-                             1e-5);
+  const float reference_xy_correction =
+      0.5 * (std::norm(kAntenna1ParmGainX * std::conj(kAntenna2ParmGainY)) +
+             std::norm(kAntenna2ParmGainX * std::conj(kAntenna1ParmGainY)));
+  const aocommon::HMC4x4 correction =
+      modifier.TotalCorrectionSum().GetMatrixValue();
+  BOOST_CHECK_CLOSE_FRACTION(correction[0], reference_x_correction, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction[5], reference_xy_correction, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction[10], reference_xy_correction, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction[15], reference_y_correction, 1e-5);
   CheckClose(data[0], kXx * std::conj(kAntenna1ParmGainX) * kAntenna2ParmGainX);
   CheckClose(data[1], kYy * std::conj(kAntenna1ParmGainY) * kAntenna2ParmGainY);
 }
@@ -140,6 +149,31 @@ BOOST_FIXTURE_TEST_CASE(apply_beam, ModifierFixture<2>) {
   CheckClose(data[1], kYy * kAntenna1BeamGainY * std::conj(kAntenna2BeamGainY));
 }
 
+BOOST_AUTO_TEST_CASE(apply_unit_beam) {
+  constexpr float kXx = 1.0;
+  constexpr float kYy = 1.0;
+  const std::vector<std::complex<double>> beam_response = {
+      1.0, 0.0, 0.0, 1.0,  // antenna 1
+      1.0, 0.0, 0.0, 1.0   // antenna 2
+  };
+  const std::vector<std::complex<float>> gain_response = {
+      1.0, 0.0, 0.0, 1.0,  // antenna 1
+      1.0, 0.0, 0.0, 1.0   // antenna 2
+  };
+  VisibilityModifier modifier;
+  modifier.InitializeMockResponse(kNStations, kNChannels, beam_response,
+                                  gain_response);
+  std::complex<float> data[] = {kXx, kYy};
+  modifier.ApplyConjugatedBeamResponse<GainMode::k2VisDiagonal>(
+      data, kWeights, kImageWeights, kNChannels, kAntenna1, kAntenna2, false);
+  const AverageCorrection correction = modifier.TotalCorrectionSum();
+  BOOST_CHECK_CLOSE_FRACTION(correction.GetMatrixValue()[0], 1.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction.GetMatrixValue()[15], 1.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction.GetStokesIValue(), 1.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(data[0].real(), 1.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(data[1].real(), 1.0, 1e-5);
+}
+
 BOOST_FIXTURE_TEST_CASE(apply_conjugate_beam, ModifierFixture<2>) {
   constexpr float kXx = 3.14;
   constexpr float kYy = -1.0;
@@ -150,9 +184,10 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugate_beam, ModifierFixture<2>) {
       std::norm(kAntenna1BeamGainX) * std::norm(kAntenna2BeamGainX);
   const float reference_y_correction =
       std::norm(kAntenna1BeamGainY) * std::norm(kAntenna2BeamGainY);
-  BOOST_CHECK_CLOSE_FRACTION(modifier.CorrectionSum(),
-                             reference_x_correction + reference_y_correction,
-                             1e-5);
+  const aocommon::HMC4x4 correction =
+      modifier.TotalCorrectionSum().GetMatrixValue();
+  BOOST_CHECK_CLOSE_FRACTION(correction[0], reference_x_correction, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction[15], reference_y_correction, 1e-5);
   CheckClose(data[0], kXx * std::conj(kAntenna1BeamGainX) * kAntenna2BeamGainX);
   CheckClose(data[1], kYy * std::conj(kAntenna1BeamGainY) * kAntenna2BeamGainY);
 }
@@ -202,13 +237,16 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugated_dual_forward, ModifierFixture<2>) {
   const float a2_beam_norm_y = std::norm(kAntenna2BeamGainY);
   const float y_correction_reference =
       a1_parm_norm_y * a2_parm_norm_y * a1_beam_norm_y * a2_beam_norm_y;
-  BOOST_CHECK_CLOSE_FRACTION(modifier.CorrectionSum(),
-                             x_correction_reference + y_correction_reference,
-                             1e-5);
-  const float x_h5_reference = a1_parm_norm_x * a2_parm_norm_x;
-  const float y_h5_reference = a1_parm_norm_y * a2_parm_norm_y;
-  BOOST_CHECK_CLOSE_FRACTION(modifier.H5CorrectionSum(),
-                             x_h5_reference + y_h5_reference, 1e-5);
+  const aocommon::HMC4x4 correction =
+      modifier.TotalCorrectionSum().GetMatrixValue();
+  BOOST_CHECK_CLOSE_FRACTION(correction[0], x_correction_reference, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(correction[15], y_correction_reference, 1e-5);
+  const float x_b_reference = a1_beam_norm_x * a2_beam_norm_x;
+  const float y_b_reference = a1_beam_norm_y * a2_beam_norm_y;
+  const aocommon::HMC4x4 beam_correction =
+      modifier.BeamCorrectionSum().GetMatrixValue();
+  BOOST_CHECK_CLOSE_FRACTION(beam_correction[0], x_b_reference, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(beam_correction[15], y_b_reference, 1e-5);
   const std::complex<float> backward_x =
       std::conj(kAntenna1BeamGainX) * kAntenna2BeamGainX *
       std::conj(kAntenna1ParmGainX) * kAntenna2ParmGainX;

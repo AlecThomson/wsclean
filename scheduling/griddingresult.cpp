@@ -35,8 +35,8 @@ void GriddingResult::FacetData::Serialize(
       .Double(normalizationFactor)
       .UInt64(actualWGridSize)
       .Double(effectiveGriddedVisibilityCount)
-      .Double(averageCorrection)
-      .Double(averageH5Correction)
+      .Object(averageCorrection)
+      .Object(averageBeamCorrection)
       .Ptr(cache)
       .Ptr(averageBeam);
 }
@@ -47,8 +47,8 @@ void GriddingResult::FacetData::Unserialize(aocommon::SerialIStream& stream) {
       .Double(normalizationFactor)
       .UInt64(actualWGridSize)
       .Double(effectiveGriddedVisibilityCount)
-      .Double(averageCorrection)
-      .Double(averageH5Correction)
+      .Object(averageCorrection)
+      .Object(averageBeamCorrection)
       .Ptr(cache)
       .Ptr(averageBeam);
 }

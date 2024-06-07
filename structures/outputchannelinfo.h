@@ -5,10 +5,12 @@
 #include <cstring>
 #include <vector>
 
+#include "../gridding/averagecorrection.h"
+
 struct OutputChannelInfo {
   OutputChannelInfo(size_t n_facets = 0, size_t n_dd_psfs = 0)
       : averageFacetCorrection(n_facets),
-        averageH5FacetCorrection(n_facets),
+        averageBeamFacetCorrection(n_facets),
         averageDdPsfCorrection(n_dd_psfs) {}
   double weight = 0.0;
   double normalizationFactor = 1.0;
@@ -28,10 +30,10 @@ struct OutputChannelInfo {
   // psf.
   std::size_t centralPsfIndex = 0;
   // See VisibilityModifier for an explanation
-  std::vector<double> averageFacetCorrection;
-  std::vector<double> averageH5FacetCorrection;
+  std::vector<AverageCorrection> averageFacetCorrection;
+  std::vector<AverageCorrection> averageBeamFacetCorrection;
   // Same as averageFacetCorrection, but then for the DD PSF facets
-  std::vector<double> averageDdPsfCorrection;
+  std::vector<AverageCorrection> averageDdPsfCorrection;
 };
 
 /**

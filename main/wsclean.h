@@ -174,6 +174,9 @@ class WSClean {
 
   void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry);
 
+  void ApplyFacetCorrectionForSingleChannel(const ImagingTable& squared_group,
+                                            CachedImageSet& image_cache);
+
   /**
    * @brief Stitch facets for all FacetGroups
    *
@@ -197,7 +200,7 @@ class WSClean {
                          aocommon::Image& fullImage,
                          std::unique_ptr<aocommon::Image>& weight_image,
                          schaapcommon::facets::FacetImage& facetImage,
-                         size_t maxFacetGroupIndex);
+                         size_t maxFacetGroupIndex, bool apply_scalar);
   /**
    * Partition model image into facets and save them into fits files
    */

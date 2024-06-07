@@ -13,7 +13,6 @@ import config_vars as tcf
 
 class TestReuseReorder:
     def test_reuse_reorder_multi_spw(self):
-
         # Run WSClean with save-reordered and save the temporary reordered files
         save_cmd = f"""{tcf.WSCLEAN} -no-update-model-required -verbose -save-reordered \
             -size 768 768 -scale 0.05arcsec -pol QU -mgain 0.85 -niter 1000 \

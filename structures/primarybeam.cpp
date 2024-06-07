@@ -18,6 +18,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <optional>
 #include <stdexcept>
 
 #ifdef HAVE_EVERYBEAM
@@ -49,18 +50,32 @@ aocommon::FitsWriter MakeWriter(const CoordinateSystem& coordinates,
   return writer;
 }
 
+std::string BeamFilename(const Settings& settings,
+                         const ImageFilename& image_name,
+                         std::optional<size_t> element_index) {
+  const std::string prefix = image_name.GetBeamPrefix(settings);
+  return element_index ? prefix + "-" + std::to_string(*element_index) + ".fits"
+                       : prefix + ".fits";
+}
+
+/**
+ * @param element_index when given, the index is used in the filename (e.g.
+ * "wsclean-beam-3.fits"). Otherwise, a filename without index is used (e.g.
+ * "wsclean-beam.fits").
+ */
 void WriteBeamElement(const ImageFilename& image_name, const Image& beam_image,
-                      const Settings& settings, size_t element_index,
+                      const Settings& settings,
+                      std::optional<size_t> element_index,
                       const aocommon::FitsWriter& writer) {
-  writer.Write(image_name.GetBeamPrefix(settings) + "-" +
-                   std::to_string(element_index) + ".fits",
-               beam_image.Data());
+  const std::string filename =
+      BeamFilename(settings, image_name, element_index);
+  writer.Write(filename, beam_image.Data());
 }
 
 aocommon::Image Load(const Settings& settings, const ImageFilename& image_name,
-                     size_t element) {
-  const std::string filename = image_name.GetBeamPrefix(settings) + "-" +
-                               std::to_string(element) + ".fits";
+                     std::optional<size_t> element_index) {
+  const std::string filename =
+      BeamFilename(settings, image_name, element_index);
   if (boost::filesystem::exists(filename)) {
     aocommon::FitsReader reader(filename);
     Image image(reader.ImageWidth(), reader.ImageHeight());
@@ -73,43 +88,61 @@ aocommon::Image Load(const Settings& settings, const ImageFilename& image_name,
 
 #ifdef HAVE_EVERYBEAM
 void WriteBeamImages(const ImageFilename& image_name,
-                     const std::vector<aocommon::HMC4x4>& beam,
+                     std::vector<aocommon::HMC4x4>& beam,
                      const Settings& settings, const ImagingTableEntry& entry,
                      const CoordinateSystem& coordinates,
                      size_t undersampling_factor) {
-  std::vector<size_t> required_elements;
-  const bool pseudo_correction = settings.polarizations.size() == 1 &&
-                                 (entry.polarization == Polarization::RR ||
-                                  entry.polarization == Polarization::LL);
-  const bool stokes_i_correction = settings.polarizations.size() == 1 &&
-                                   entry.polarization == Polarization::StokesI;
-  const bool diagonal_correction =
-      settings.polarizations ==
-      std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
-                                           aocommon::Polarization::YY};
-  if (pseudo_correction || stokes_i_correction) {
-    // Require: m_00, m_03, m_30 and m_33 ; see aocommon::HMC4x4::Data()
-    // m_03 is complex conjugate of m_30. The imaginary value is not
-    // necessary for Stokes I correction as it cancels out.
-    required_elements = {0, 9, 15};
-  } else if (diagonal_correction) {
-    // In diagonal (=xx,yy) correction, a 2x2 matrix with the xx-to-xx,
-    // xx-to-yy, yy-to-xx and yy-to-yy values needs to be inverted. This
-    // matrix inversion is affected (I think) by the imaginary value of
-    // the off-diagonal, so we need image 10 too.
-    required_elements = {0, 9, 10, 15};
-  } else {
-    required_elements = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-  }
+  using everybeam::griddedresponse::GriddedResponse;
+  const bool use_squared_beam = settings.UseFacetCorrections();
   const aocommon::FitsWriter writer = MakeWriter(coordinates, entry);
   Image upsampled(coordinates.width, coordinates.height);
-  for (size_t element : required_elements) {
-    Logger::Debug << "Upsampling beam element " << element << "...\n";
-    using everybeam::griddedresponse::GriddedResponse;
-    GriddedResponse::UpsampleCorrection(upsampled.Data(), element,
-                                        coordinates.width, coordinates.height,
-                                        beam, undersampling_factor);
-    WriteBeamElement(image_name, upsampled, settings, element, writer);
+  if (use_squared_beam) {
+    for (aocommon::HMC4x4& pixel : beam) {
+      const double stokes_i =
+          0.5 * (pixel.Data(0) + 2.0 * pixel.Data(9) + pixel.Data(15));
+      // This is still a squared value. The sqrt is taken during correction.
+      // TODO it would be better to correct it here, and do the same for IDG,
+      // because then the beam image has normal units and can be used as
+      // weight image for use-cases that require mosaicking.
+      pixel.Data(0) = stokes_i;
+    }
+    GriddedResponse::UpsampleCorrection(upsampled.Data(), 0, coordinates.width,
+                                        coordinates.height, beam,
+                                        undersampling_factor);
+    WriteBeamElement(image_name, upsampled, settings, {}, writer);
+  } else {
+    std::vector<size_t> required_elements;
+    const bool pseudo_correction = settings.polarizations.size() == 1 &&
+                                   (entry.polarization == Polarization::RR ||
+                                    entry.polarization == Polarization::LL);
+    const bool stokes_i_correction =
+        settings.polarizations.size() == 1 &&
+        entry.polarization == Polarization::StokesI;
+    const bool diagonal_correction =
+        settings.polarizations ==
+        std::set{aocommon::Polarization::XX, aocommon::Polarization::YY};
+    if (pseudo_correction || stokes_i_correction) {
+      // Require: m_00, m_03, m_30 and m_33 ; see aocommon::HMC4x4::Data()
+      // m_03 is complex conjugate of m_30. The imaginary value is not
+      // necessary for Stokes I correction as it cancels out.
+      required_elements = {0, 9, 15};
+    } else if (diagonal_correction) {
+      // In diagonal (=xx,yy) correction, a 2x2 matrix with the xx-to-xx,
+      // xx-to-yy, yy-to-xx and yy-to-yy values needs to be inverted. This
+      // matrix inversion is affected (I think) by the imaginary value of
+      // the off-diagonal, so we need image 10 too.
+      required_elements = {0, 9, 10, 15};
+    } else {
+      required_elements = {0, 1, 2,  3,  4,  5,  6,  7,
+                           8, 9, 10, 11, 12, 13, 14, 15};
+    }
+    for (size_t element : required_elements) {
+      Logger::Debug << "Upsampling beam element " << element << "...\n";
+      GriddedResponse::UpsampleCorrection(upsampled.Data(), element,
+                                          coordinates.width, coordinates.height,
+                                          beam, undersampling_factor);
+      WriteBeamElement(image_name, upsampled, settings, element, writer);
+    }
   }
 }
 #endif
@@ -138,24 +171,42 @@ void ApplyFacetCorrections(const ImageFilename& image_name,
     // frequency are equal inside a FacetGroup
     const aocommon::FitsWriter writer = MakeWriter(coordinates, *group.front());
 
-    // Process the images one by one to avoid loading all of them in memory
-    // at the same time.
-    for (size_t i = 0; i != 16; ++i) {
-      Image beam_image = Load(settings, image_name, i);
-      if (!beam_image.Empty()) {
-        std::vector<float*> image_pointer = {beam_image.Data()};
-        for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-          // The final image needs to be corrected by 1/sqrt(..). However, since
-          // we are scaling the beam images, we need to apply the inverse of
-          // that.
-          const float factor = std::sqrt(
-              channel_info.averageH5FacetCorrection[entry->facetIndex]);
-          facet_image.SetFacet(*entry->facet, true);
-          facet_image.MultiplyImageInsideFacet(image_pointer, factor);
-        }
-
-        WriteBeamElement(image_name, beam_image, settings, i, writer);
+    // When facet corrections are applied, only a scalar correction is left to
+    // be applied on the images.
+    Image beam_image = Load(settings, image_name, {});
+    if (!beam_image.Empty()) {
+      std::vector<float*> image_pointer = {beam_image.Data()};
+      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+        // The visibilities are weighted by the beam and h5 facet solutions
+        // when gridding, and the visibilities themselves are "apparent"
+        // causing the images to be weighted by the square of those gains.
+        // The images are then per facet fully Mueller corrected to make them
+        // flat gain (=true instrinsic flux), after which they are again divided
+        // by the sqrt of the Stokes I gain (a scalar correction) to make them
+        // approximately flat noise for deconvolution. What's left to do here is
+        // therefore to take out that sqrt of Stokes I gain. This is done in
+        // two steps: an estimate of the average squared beam is corrected as a
+        // smooth image correction, whereas the residual facet solution gains
+        // are facet-based. In case the facet gains are near unity, this would
+        // result in a smooth image. Otherwise, the beam and solution
+        // contributions aren't easily separable (as they are averages of
+        // squares), so we just use (full_correction / beam_correction) as
+        // factor. The final image needs to be divided by this factor. However,
+        // since we are scaling the beam images, we need to apply the inverse of
+        // that. Also be aware that at this point the image on disk is still
+        // the squared correction (see TODO comment in WriteBeamImages()).
+        const double beam_factor =
+            channel_info.averageBeamFacetCorrection[entry->facetIndex]
+                .GetStokesIValue();
+        const double full_factor =
+            channel_info.averageFacetCorrection[entry->facetIndex]
+                .GetStokesIValue();
+        facet_image.SetFacet(*entry->facet, true);
+        facet_image.MultiplyImageInsideFacet(image_pointer,
+                                             full_factor / beam_factor);
       }
+
+      WriteBeamElement(image_name, beam_image, settings, {}, writer);
     }
   }
 }
@@ -333,12 +384,13 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
   // This function will be called for Stokes I, diagonal or Full Jones
   // correction, so we can assume that the first element is always required:
   assert(*elements.begin() == 0);
-  if (settings_.gridderType == GridderType::IDG) {
+  const bool use_squared_beam = settings_.UseFacetCorrections();
+  if (use_squared_beam || settings_.gridderType == GridderType::IDG) {
     PrimaryBeamImageSet beam_images;
-    // IDG produces only a Stokes I beam, and has already corrected for the
-    // rest. Currently we just load that beam into the diagonal entries of the
-    // real component of XX and YY. This is
-    // a bit wasteful so might require a better strategy for big images.
+    // IDG and facet-based imaging produce only a Stokes I beam, and images
+    // have already been corrected for the rest. Currently we just load that
+    // beam into the diagonal entries of the real component of XX and YY. This
+    // is a bit wasteful so might require a better strategy for big images.
     ImageFilename pol_name(image_name);
     pol_name.SetPolarization(aocommon::Polarization::StokesI);
     aocommon::FitsReader reader(pol_name.GetBeamPrefix(settings_) + ".fits");
@@ -549,9 +601,10 @@ double PrimaryBeam::MakeBeamForMS(
       // Compute MS weight
       ms_weight = std::accumulate(baseline_weights.begin(),
                                   baseline_weights.end(), 0.0);
+      const bool use_squared_beam = settings_.UseFacetCorrections();
       result = grid_response->UndersampledIntegratedCorrection(
           beam_mode_, time_array, central_frequency, field_id, undersample_,
-          baseline_weights, false);
+          baseline_weights, use_squared_beam);
     } break;
     // Using 'default:' gives compatibility with different EveryBeam versions
     default: {

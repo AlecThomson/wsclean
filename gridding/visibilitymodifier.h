@@ -15,86 +15,10 @@
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
+#include "averagecorrection.h"
+#include "gainmode.h"
+
 class SynchronizedMS;
-
-/**
- * This enum summarizes the number of polarizations stored in the
- * measurement set provider for gridding, together with the type
- * of polarizations. It is mainly used for templating.
- */
-enum class GainMode {
-  /// Correct visibilities only with the X solution.
-  kXX,
-  /// Correct visibilities only with the Y solution.
-  kYY,
-  /// Correct Stokes I visibilities with the trace of the
-  /// X and Y solutions.
-  kTrace,
-  /// Apply X and Y separately to the XX and YY visibilities.
-  k2VisDiagonal,
-  /// TODO to be added: Multiply the diagonal [X 0 ; 0 Y] matrix with the 2x2
-  /// visibility matrix.
-  // k4VisDiagonal,
-  /// Correct visibilities with the full 2x2 complex matrix.
-  kFull
-};
-
-constexpr size_t GetNVisibilities(GainMode mode) {
-  switch (mode) {
-    case GainMode::kXX:
-    case GainMode::kYY:
-    case GainMode::kTrace:
-      return 1;
-    case GainMode::k2VisDiagonal:
-      return 2;
-    case GainMode::kFull:
-      return 4;
-  }
-  return 0;
-}
-
-/**
- * @param polarization The polarization requested
- */
-inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
-                            size_t n_visibility_polarizations) {
-  switch (n_visibility_polarizations) {
-    case 1:
-      switch (polarization) {
-        case aocommon::Polarization::XX:
-          return GainMode::kXX;
-        case aocommon::Polarization::YY:
-          return GainMode::kYY;
-        case aocommon::Polarization::StokesI:
-          // polarization might also be RR. We still need to provide a GainMode,
-          // so we also return trace in those cases.
-        default:
-          return GainMode::kTrace;
-      }
-      break;
-    case 2:
-      // When 2 polarizations are stored (XX, YY), it might be because Stokes I
-      // is being imaged with diagonal solutions, but it might also be that both
-      // polarizations are requested independently and imaged at the same time.
-      // IDG could in theory do this, although it's currently not implemented.
-      if (polarization == aocommon::Polarization::StokesI ||
-          polarization == aocommon::Polarization::DiagonalInstrumental)
-        return GainMode::k2VisDiagonal;
-      break;
-    case 4:
-      // TODO how will we handle individually gridded polarizations (e.g. with
-      // wgridder) with full or diagonal polarization correction?
-      if (polarization == aocommon::Polarization::FullStokes ||
-          polarization == aocommon::Polarization::Instrumental)
-        return GainMode::kFull;
-      break;
-  }
-  throw std::runtime_error(
-      "Invalid combination of polarization (" +
-      aocommon::Polarization::TypeToFullString(polarization) +
-      ") and n_visibility_polarizations (" +
-      std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
-}
 
 /**
  * Applies beam and h5parm solutions to visibilities.
@@ -237,8 +161,37 @@ class VisibilityModifier {
   }
   double FacetDirectionRA() const { return _facetDirectionRA; }
   double FacetDirectionDec() const { return _facetDirectionDec; }
-  long double CorrectionSum() const { return correction_sum_; }
-  long double H5CorrectionSum() const { return h5_correction_sum_; }
+  void ResetSums() {
+    correction_sum_ = AverageCorrection();
+    beam_correction_sum_ = AverageCorrection();
+  }
+  /**
+   * Sum of the full corrections applied to the visibilities. In case both
+   * beam and h5parm solutions are applied, this is the weighed sum over the
+   * (squared) product of both. Otherwise it is over the (squared) contribution
+   * of either the beam or solutions.
+   *
+   * It is not an average yet, because this class doesn't store the sum of
+   * weights. It would be a redundant calculation, because the gridder
+   * already calculates the sum of weights.
+   */
+  const AverageCorrection& TotalCorrectionSum() const {
+    return correction_sum_;
+  }
+  /**
+   * In case both beam and solution gains are applied, this represents the beam
+   * part of the corrections. In that case, it is the weighed sum of the squared
+   * beam matrices. This is used in the final primary beam correction to
+   * (approximately) separate the beam and solution parts to be able to apply a
+   * smooth beam correction. If only one correction is applied, this value
+   * remains zero.
+   *
+   * Like @ref TotalCorrectionSum(), this should be divided by the sum of
+   * weights to turn it into the average correction.
+   */
+  const AverageCorrection& BeamCorrectionSum() const {
+    return beam_correction_sum_;
+  }
 
   inline size_t NParms(size_t ms_index) const {
     using schaapcommon::h5parm::GainType;
@@ -289,25 +242,8 @@ class VisibilityModifier {
   size_t _pointResponseBufferSize = 0;
   double _facetDirectionRA = 0.0;
   double _facetDirectionDec = 0.0;
-  /** @{
-   * These variables are incremented with a comparatively small value for each
-   * gridded visibility, hence a long double is used to accommodate sufficient
-   * precision. The h5_correction_sum is only used when both beam and h5parm
-   * solutions are applied. When only one of h5parm or beam solutions are
-   * applied, the sum is stored in correction_sum and h5_correction_sum is
-   * unused.
-   *
-   * The correction_sum is always the full combined correction needed for a
-   * facet, i.e. the visibilities only need to be corrected by that (combined)
-   * correction_sum. However, for correcting the beam, the beam part is
-   * recalculated when doing the final image-based beam correction. In order to
-   * do so, the h5 sum must be separately stored.
-   */
-  long double correction_sum_ = 0.0;
-  long double h5_correction_sum_ = 0.0;
-  /**
-   * @}
-   */
+  AverageCorrection correction_sum_;
+  AverageCorrection beam_correction_sum_;
 };
 
 #endif

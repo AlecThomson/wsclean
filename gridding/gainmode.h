@@ -71,13 +71,17 @@ inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
       // polarizations are requested independently and imaged at the same time.
       // IDG could in theory do this, although it's currently not implemented.
       if (polarization == aocommon::Polarization::StokesI ||
-          polarization == aocommon::Polarization::DiagonalInstrumental)
+          polarization == aocommon::Polarization::DiagonalInstrumental ||
+          polarization == aocommon::Polarization::XX ||
+          polarization == aocommon::Polarization::YY)
         return GainMode::k2VisDiagonal;
       break;
     case 4:
       if (polarization == aocommon::Polarization::FullStokes ||
           polarization == aocommon::Polarization::Instrumental ||
-          aocommon::Polarization::IsStokes(polarization))
+          aocommon::Polarization::IsStokes(polarization) ||
+          polarization == aocommon::Polarization::XX ||
+          polarization == aocommon::Polarization::YY)
         return GainMode::kFull;
       break;
   }

@@ -287,11 +287,31 @@ class MSGridderBase {
     return std::move(meta_data_cache_);
   }
 
-  double AverageCorrection() const {
-    return visibility_modifier_.CorrectionSum() / total_weight_;
+  /**
+   * The average squared Mueller correction of all applied corrections.
+   * This is the weighted sum of squared Mueller matrices, divided by the sum of
+   * weights. It is zero if no corrections are applied.
+   * @sa VisibilityModifier::TotalCorrectionSum().
+   */
+  AverageCorrection GetAverageCorrection() const {
+    if (ImageWeight() != 0.0) {
+      return visibility_modifier_.TotalCorrectionSum() / ImageWeight();
+    } else {
+      return AverageCorrection();
+    }
   }
-  double AverageH5Correction() const {
-    return visibility_modifier_.H5CorrectionSum() / total_weight_;
+  /**
+   * The average squared Mueller correction. This is the weighted sum of
+   * squared Mueller matrices, divided by the sum of weights.
+   * It is zero if not both beam and solution corrections are applied.
+   * @sa VisibilityModifier::TotalCorrectionSum().
+   */
+  AverageCorrection GetAverageBeamCorrection() const {
+    if (ImageWeight() != 0.0) {
+      return visibility_modifier_.BeamCorrectionSum() / ImageWeight();
+    } else {
+      return AverageCorrection();
+    }
   }
 
  protected:

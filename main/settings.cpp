@@ -330,16 +330,15 @@ void Settings::Validate() const {
         "implies you have to specify -fit-spectral-log-pol <N>, with N the"
         "number of terms.");
 
-  if (parallelGridding != 1 &&
-      (applyFacetBeam || !facetSolutionFiles.empty()) &&
+  if (parallelGridding != 1 && UseFacetCorrections() &&
       !schaapcommon::h5parm::H5Parm::IsThreadSafe()) {
     throw std::runtime_error(
         "Parallel gridding in combination with a facet beam or facet solutions,"
         " requires an HDF5 library that supports multi-threading.");
   }
 
-  if ((applyFacetBeam || !facetSolutionFiles.empty()) &&
-      polarizations.size() > 1 && !joinedPolarizationDeconvolution) {
+  if (UseFacetCorrections() && polarizations.size() > 1 &&
+      !joinedPolarizationDeconvolution) {
     throw std::runtime_error(
         "Applying beam or solutions per facet for multiple polarizations "
         "required joining or linking the polarizations.");
@@ -409,7 +408,7 @@ void Settings::checkPolarizations() const {
         "w-stacking gridder. Either add '-gridder wstacking' to the command "
         "line, or image a different set of polarizations (e.g. iquv).");
   }
-  if (applyFacetBeam || !facetSolutionFiles.empty()) {
+  if (UseFacetCorrections()) {
     const bool is_i =
         (polarizations == std::set{aocommon::PolarizationEnum::StokesI});
     const bool is_xx_yy =
@@ -576,9 +575,14 @@ radler::Settings Settings::GetRadlerSettings() const {
 
 aocommon::PolarizationEnum Settings::GetProviderPolarization(
     aocommon::PolarizationEnum entry_polarization) const {
+  const bool xx_and_yy =
+      polarizations ==
+      std::set{aocommon::PolarizationEnum::XX, aocommon::PolarizationEnum::YY};
+  const bool stokes_i =
+      polarizations.size() == 1 &&
+      (*polarizations.begin()) == aocommon::Polarization::StokesI;
   if (gridderType == GridderType::IDG) {
-    if (polarizations.size() == 1 &&
-        *polarizations.begin() == aocommon::Polarization::StokesI) {
+    if (stokes_i) {
       if ((ddPsfGridWidth > 1 || ddPsfGridHeight > 1) && gridWithBeam) {
         return aocommon::Polarization::StokesI;
       } else {
@@ -589,8 +593,22 @@ aocommon::PolarizationEnum Settings::GetProviderPolarization(
     }
   } else if (diagonalSolutions) {
     return aocommon::Polarization::DiagonalInstrumental;
+  } else if ((xx_and_yy || stokes_i) && UseFacetCorrections()) {
+    return aocommon::Polarization::Instrumental;
   } else {
-    return entry_polarization;
+    bool requires_instrumental = false;
+    for (aocommon::PolarizationEnum p : polarizations) {
+      if (aocommon::Polarization::IsStokes(p) &&
+          p != aocommon::PolarizationEnum::StokesI) {
+        requires_instrumental = UseFacetCorrections();
+        break;
+      }
+    }
+    if (requires_instrumental) {
+      return aocommon::Polarization::Instrumental;
+    } else {
+      return entry_polarization;
+    }
   }
 }
 

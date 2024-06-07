@@ -103,8 +103,8 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
     // Add facet-specific result values to the result.
     facet_result.images = gridder->ResultImages();
     facet_result.actualWGridSize = gridder->ActualWGridSize();
-    facet_result.averageCorrection = gridder->AverageCorrection();
-    facet_result.averageH5Correction = gridder->AverageH5Correction();
+    facet_result.averageCorrection = gridder->GetAverageCorrection();
+    facet_result.averageBeamCorrection = gridder->GetAverageBeamCorrection();
     facet_result.cache = gridder->AcquireMetaDataCache();
 
     // The gridder resets visibility counters in each gridding invocation,
