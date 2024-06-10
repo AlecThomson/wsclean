@@ -1106,13 +1106,12 @@ void WSClean::saveRestoredImagesForGroup(
     Logger::Info << "DONE\n";
     restoredImage.Reset();
 
-    const bool correct_beam_for_facet_gains =
-        (_settings.applyFacetBeam && !_settings.facetSolutionFiles.empty());
+    const bool has_facet_solutions = !_settings.facetSolutionFiles.empty();
     ImageFilename imageName =
         ImageFilename(channel_index, tableEntry.outputIntervalIndex);
 
-    // This conditional ensures that the images are available before applying
-    // the primarybeam
+    // Checking for the _last_ polarization ensures that all images are
+    // available before applying the primarybeam
     if (curPol == *_settings.polarizations.rbegin()) {
       if (griddingUsesATerms()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
@@ -1126,8 +1125,9 @@ void WSClean::saveRestoredImagesForGroup(
           IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName,
                                               "model", _settings);
         }
-      } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-        if (correct_beam_for_facet_gains)
+      } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                 has_facet_solutions) {
+        if (has_facet_solutions)
           primaryBeam->CorrectBeamForFacetGain(imageName, group, channel_info);
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
         if (_settings.savePsfPb)
@@ -1136,21 +1136,6 @@ void WSClean::saveRestoredImagesForGroup(
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
         }
-      }
-    }
-
-    // Apply the H5 solutions to the facets. In case a H5 solution file is
-    // provided, but no primary beam correction was applied.
-    // This can be done on a per-polarization basis (as long as we do not
-    // fully support a Full Jones correction).
-    if (!_settings.facetSolutionFiles.empty() &&
-        !correct_beam_for_facet_gains) {
-      correctImagesH5(writer.Writer(), group, imageName, "image");
-      if (_settings.savePsfPb)
-        correctImagesH5(writer.Writer(), group, imageName, "psf");
-      if (_settings.deconvolutionIterationCount != 0) {
-        correctImagesH5(writer.Writer(), group, imageName, "residual");
-        correctImagesH5(writer.Writer(), group, imageName, "model");
       }
     }
   }
@@ -1493,7 +1478,8 @@ void WSClean::runFirstInversionGroup(
     if (isLastPol) {
       ImageFilename imageName =
           ImageFilename(entry->outputChannelIndex, entry->outputIntervalIndex);
-      if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+      if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+          !_settings.facetSolutionFiles.empty()) {
         std::vector<std::unique_ptr<MSDataDescription>> msList =
             _msHelper->InitializeMsList(*entry);
         std::shared_ptr<ImageWeights> weights =
@@ -1507,8 +1493,15 @@ void WSClean::runFirstInversionGroup(
                                     _m_shift);
         // Only generate beam images for facetIndex == 0 in facet group
         if (entry->facetIndex == 0) {
-          primaryBeam->MakeOrReuse(imageName, *entry, std::move(weights),
-                                   _settings.fieldIds[0]);
+          if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+            primaryBeam->MakeOrReuse(imageName, *entry, std::move(weights),
+                                     _settings.fieldIds[0]);
+          } else {
+            // This condition happens when no beam is constructed but facet
+            // solutions have been applied. Make a unitary beam to be able to
+            // apply the facet corrections later on.
+            primaryBeam->MakeUnitary(*entry, imageName, _settings);
+          }
         }
       }
     }
@@ -2231,45 +2224,4 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
       entry, polarization, isImaginary, _settings, _deconvolution,
       _observationInfo, _l_shift, _m_shift, _majorIterationNr, _commandLine,
       _infoPerChannel[entry.outputChannelIndex], isModel, _lastStartTime);
-}
-
-void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
-                              const ImagingTable::Group& group,
-                              const ImageFilename& imageName,
-                              const std::string& filenameKind) const {
-  const PolarizationEnum pol = group.front()->polarization;
-
-  if (pol == Polarization::StokesI || pol == Polarization::XX ||
-      pol == Polarization::YY) {
-    ImageFilename iName(imageName);
-    iName.SetPolarization(pol);
-    std::string prefix;
-    if (filenameKind == "psf")
-      prefix = iName.GetPSFPrefix(_settings);
-    else
-      prefix = iName.GetPrefix(_settings);
-
-    aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
-    Image image(reader.ImageWidth(), reader.ImageHeight());
-    reader.Read(image.Data());
-
-    schaapcommon::facets::FacetImage facetImage(
-        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
-    std::vector<float*> imagePtr{image.Data()};
-    for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-      facetImage.SetFacet(*entry->facet, true);
-      const size_t channelIndex = entry->outputChannelIndex;
-      const double factor = _infoPerChannel[channelIndex]
-                                .averageFacetCorrection[entry->facetIndex]
-                                .GetStokesIValue();
-      facetImage.MultiplyImageInsideFacet(imagePtr, 1.0 / std::sqrt(factor));
-    }
-
-    // Always write to -pb.fits
-    writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.Data());
-  } else {
-    throw std::runtime_error(
-        "H5 correction is requested, but this is not supported "
-        "when imaging a single polarization that is not Stokes I, XX, or YY.");
-  }
 }

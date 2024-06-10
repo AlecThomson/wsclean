@@ -152,62 +152,50 @@ void ApplyFacetCorrections(const ImageFilename& image_name,
                            const CoordinateSystem& coordinates,
                            const ImagingTable::Group& group,
                            const OutputChannelInfo& channel_info) {
-  if (settings.polarizations ==
-      std::set<PolarizationEnum>{Polarization::XX, Polarization::YY}) {
-    // FIXME: to be implemented
-    // This should multiply the 16 images (representing a Hermitian 4x4
-    // matrix) with the diagonal 4x4 matrix with diagonal entries [1/sqrt(mx*
-    // mx) ; 0 ; 0 ; 1/sqrt(my* my)] where mx the weighted h5 sum for the
-    // XX-polarization and my the weighted h5sum for the YY-polarization the
-    // result is, however, not Hermitian anymore.
-    throw std::runtime_error(
-        "Correcting the restored image both for H5Parm solutions and beam "
-        "effects is not yet implemented for XX/YY imaging.");
-  } else {
-    schaapcommon::facets::FacetImage facet_image(coordinates.width,
-                                                 coordinates.height, 1);
+  schaapcommon::facets::FacetImage facet_image(coordinates.width,
+                                               coordinates.height, 1);
 
-    // group.front() can be used, because the central frequency and start/end
-    // frequency are equal inside a FacetGroup
-    const aocommon::FitsWriter writer = MakeWriter(coordinates, *group.front());
+  // group.front() can be used, because the central frequency and start/end
+  // frequency are equal inside a FacetGroup
+  const aocommon::FitsWriter writer = MakeWriter(coordinates, *group.front());
 
-    // When facet corrections are applied, only a scalar correction is left to
-    // be applied on the images.
-    Image beam_image = Load(settings, image_name, {});
-    if (!beam_image.Empty()) {
-      std::vector<float*> image_pointer = {beam_image.Data()};
-      for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
-        // The visibilities are weighted by the beam and h5 facet solutions
-        // when gridding, and the visibilities themselves are "apparent"
-        // causing the images to be weighted by the square of those gains.
-        // The images are then per facet fully Mueller corrected to make them
-        // flat gain (=true instrinsic flux), after which they are again divided
-        // by the sqrt of the Stokes I gain (a scalar correction) to make them
-        // approximately flat noise for deconvolution. What's left to do here is
-        // therefore to take out that sqrt of Stokes I gain. This is done in
-        // two steps: an estimate of the average squared beam is corrected as a
-        // smooth image correction, whereas the residual facet solution gains
-        // are facet-based. In case the facet gains are near unity, this would
-        // result in a smooth image. Otherwise, the beam and solution
-        // contributions aren't easily separable (as they are averages of
-        // squares), so we just use (full_correction / beam_correction) as
-        // factor. The final image needs to be divided by this factor. However,
-        // since we are scaling the beam images, we need to apply the inverse of
-        // that. Also be aware that at this point the image on disk is still
-        // the squared correction (see TODO comment in WriteBeamImages()).
-        const double beam_factor =
-            channel_info.averageBeamFacetCorrection[entry->facetIndex]
-                .GetStokesIValue();
-        const double full_factor =
-            channel_info.averageFacetCorrection[entry->facetIndex]
-                .GetStokesIValue();
-        facet_image.SetFacet(*entry->facet, true);
-        facet_image.MultiplyImageInsideFacet(image_pointer,
-                                             full_factor / beam_factor);
-      }
-
-      WriteBeamElement(image_name, beam_image, settings, {}, writer);
+  // When facet corrections are applied, only a scalar correction is left to
+  // be applied on the images.
+  Image beam_image = Load(settings, image_name, {});
+  if (!beam_image.Empty()) {
+    std::vector<float*> image_pointer = {beam_image.Data()};
+    for (const std::shared_ptr<ImagingTableEntry>& entry : group) {
+      // The visibilities are weighted by the beam and h5 facet solutions
+      // when gridding, and the visibilities themselves are "apparent"
+      // causing the images to be weighted by the square of those gains.
+      // The images are then per facet fully Mueller corrected to make them
+      // flat gain (=true instrinsic flux), after which they are again divided
+      // by the sqrt of the Stokes I gain (a scalar correction) to make them
+      // approximately flat noise for deconvolution. What's left to do here is
+      // therefore to take out that sqrt of Stokes I gain. This is done in
+      // two steps: an estimate of the average squared beam is corrected as a
+      // smooth image correction, whereas the residual facet solution gains
+      // are facet-based. In case the facet gains are near unity, this would
+      // result in a smooth image. Otherwise, the beam and solution
+      // contributions aren't easily separable (as they are averages of
+      // squares), so we just use (full_correction / beam_correction) as
+      // factor. The final image needs to be divided by this factor. However,
+      // since we are scaling the beam images, we need to apply the inverse of
+      // that. Also be aware that at this point the image on disk is still
+      // the squared correction (see TODO comment in WriteBeamImages()).
+      const double beam_factor =
+          channel_info.averageBeamFacetCorrection[entry->facetIndex]
+              .GetStokesIValue();
+      const double full_factor =
+          channel_info.averageFacetCorrection[entry->facetIndex]
+              .GetStokesIValue();
+      const double correction =
+          beam_factor == 0.0 ? full_factor : full_factor / beam_factor;
+      facet_image.SetFacet(*entry->facet, true);
+      facet_image.MultiplyImageInsideFacet(image_pointer, correction);
     }
+
+    WriteBeamElement(image_name, beam_image, settings, {}, writer);
   }
 }
 
@@ -416,6 +404,25 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
     }
     return beam_images;
   }
+}
+
+void PrimaryBeam::MakeUnitary(const ImagingTableEntry& entry,
+                              const ImageFilename& image_name,
+                              const Settings& settings) {
+  const size_t width = settings.trimmedImageWidth;
+  const size_t height = settings.trimmedImageHeight;
+  const aocommon::CoordinateSystem coordinates{width,
+                                               height,
+                                               phase_centre_ra_,
+                                               phase_centre_dec_,
+                                               settings_.pixelScaleX,
+                                               settings_.pixelScaleY,
+                                               l_shift_,
+                                               m_shift_};
+  const aocommon::FitsWriter writer = MakeWriter(coordinates, entry);
+  const Image image(width, height, 1.0f);
+  Logger::Debug << "Writing unitary beam...\n";
+  WriteBeamElement(image_name, image, settings, {}, writer);
 }
 
 #ifndef HAVE_EVERYBEAM

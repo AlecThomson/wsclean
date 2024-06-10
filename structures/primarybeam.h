@@ -71,6 +71,9 @@ class PrimaryBeam {
                    std::shared_ptr<ImageWeights> image_weights,
                    size_t field_id);
 
+  void MakeUnitary(const ImagingTableEntry& entry,
+                   const ImageFilename& image_name, const Settings& settings);
+
   /**
    * Correct images for the primary beam by multiplying the input image
    * by the (simplified) inverse of the beam.
