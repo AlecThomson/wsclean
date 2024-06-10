@@ -1,11 +1,11 @@
 from wsgiref import validate
+import h5py
 import pytest
 import os, glob
 import sys
 from astropy.io import fits
 import numpy as np
 from utils import validate_call, compute_rms
-
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -24,6 +24,64 @@ measurement sets. Tests contained in this file can be invoked via various routes
 
 def name(name: str):
     return os.path.join(tcf.RESULTS_DIR, name)
+
+
+"""
+Checks if a specified pixel in a fits file is within 0.03 units
+of the given expected value.
+"""
+
+
+def check_image_pixel(position, expected_value, filename):
+    with fits.open(filename) as image:
+        value = image[0].data[position]
+    assert expected_value - 0.03 < value < expected_value + 0.03
+
+
+@pytest.fixture
+def model_file_fixture():
+    model_3c196 = """Format = Name, Patch, Type, Ra, Dec, I, Q, U, V, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
+,a,POINT, 08:13:36.0, 48.13.03.000,
+,b,POINT, 08:23:36.0, 48.13.03.000,
+,c,POINT, 08:03:36.0, 48.13.03.000,
+,d,POINT, 08:13:36.0, 49.45.00.000,
+,e,POINT, 08:13:36.0, 47.15.00.000,
+3c196, a, POINT, 08:13:36.0, 48.13.03.000, 0, 1, 0, 0, [0.0], false, , , ,
+left, b, POINT, 08:23:36.0, 48.13.03.000, 0, 0, 1, 0, [0.0], false, , , ,
+right, c, POINT, 08:03:36.0, 48.13.03.000, 0, 0, 0, 1, [0.0], false, , , ,
+top, d, POINT, 08:13:36.0, 49.45.00.000, 1, 0, 0, 0, [0.0], false, , , ,
+bottom, e, POINT, 08:13:36.0, 47.15.00.000, 0, -1, 0, 0, [0.0], false, , , ,
+"""
+    with open("testmodel.txt", "w") as f:
+        f.write(model_3c196)
+
+
+@pytest.fixture
+def region_file_fixture():
+    # Created using:
+    # ds9_facet_generator.py --h5 out.h5 --ms LOFAR_3C196.ms/ --imsize 2500 --pixelscale 600 --outputfile 3c196-with-5-facets.reg
+    # The h5 parm can be created with Dp3, e.g.:
+    # DP3 msin=3c196-simulation.ms/ msout=test.ms msout.overwrite=True steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm=out.h5 ddecal.solint=100 ddecal.mode=scalar ddecal.solveralgorithm=directioniterative
+    facets_3c196 = """# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1
+fk5
+
+polygon(124.65026,47.72693,124.65027,48.97713,122.14973,48.97713,122.14974,47.72693)
+polygon(170.51499,-18.67893,242.70949,37.18997,245.26832,39.29522,124.65027,48.97713,124.65026,47.72693,156.25106,-22.65241)
+polygon(4.05193,37.22353,76.33129,-18.69386,90.54899,-22.65230,122.14974,47.72693,122.14973,48.97713,1.53191,39.29548)
+polygon(1.53191,39.29548,122.14973,48.97713,124.65027,48.97713,245.26832,39.29522)
+polygon(156.25106,-22.65241,124.65026,47.72693,122.14974,47.72693,90.54899,-22.65230)
+"""
+    with open("3c196-with-5-facets.reg", "w") as f:
+        f.write(facets_3c196)
+
+
+# Dimensions are pol, freq, y, x
+i_source_pos = (0, 0, 1802, 1250)
+q_source_pos = (0, 0, 1250, 1250)
+negative_q_source_pos = (0, 0, 902, 1250)
+u_source_pos = (0, 0, 1260, 651)
+v_source_pos = (0, 0, 1260, 1850)
 
 
 @pytest.mark.usefixtures("prepare_large_ms")
@@ -559,3 +617,138 @@ class TestLongSystem:
                 assert os.path.isfile(image_name)
                 image_name = prefix + "-MFS-" + postfix
                 assert os.path.isfile(image_name)
+
+    def test_iquv_facet_beam_corrections(
+        self, model_file_fixture, region_file_fixture
+    ):
+        # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[predict] predict.sourcedb=testmodel.txt predict.usebeammodel=True"
+        validate_call(dp3_run.split())
+
+        base_cmd = f"""{tcf.WSCLEAN} -name facet-iquv-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
+-size 2500 2500 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
+-nmiter 1 -maxuvw-m 20000 -no-update-model-required"""
+        cmd = base_cmd + " 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-iquv-corrections-image-pb.fits"
+        )
+
+        cmd = base_cmd + " -pol iquv -join-polarizations 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-iquv-corrections-I-image-pb.fits"
+        )
+        check_image_pixel(
+            q_source_pos, 1.0, "facet-iquv-corrections-Q-image-pb.fits"
+        )
+        check_image_pixel(
+            negative_q_source_pos,
+            -1.0,
+            "facet-iquv-corrections-Q-image-pb.fits",
+        )
+        check_image_pixel(
+            u_source_pos, 1.0, "facet-iquv-corrections-U-image-pb.fits"
+        )
+        check_image_pixel(
+            v_source_pos, 1.0, "facet-iquv-corrections-V-image-pb.fits"
+        )
+
+        cmd = (
+            base_cmd
+            + " -pol xx,yy -join-polarizations -squared-channel-joining 3c196-simulation.ms"
+        )
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-iquv-corrections-XX-image-pb.fits"
+        )
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-iquv-corrections-YY-image-pb.fits"
+        )
+        check_image_pixel(
+            q_source_pos, 1.0, "facet-iquv-corrections-XX-image-pb.fits"
+        )
+        check_image_pixel(
+            q_source_pos, -1.0, "facet-iquv-corrections-YY-image-pb.fits"
+        )
+        check_image_pixel(
+            negative_q_source_pos,
+            -1.0,
+            "facet-iquv-corrections-XX-image-pb.fits",
+        )
+        check_image_pixel(
+            negative_q_source_pos,
+            1.0,
+            "facet-iquv-corrections-YY-image-pb.fits",
+        )
+
+    def test_iquv_facet_dual_corrections(
+        self, model_file_fixture, region_file_fixture
+    ):
+        # Perform simple solve to get a hdf5 parm file
+        solution_file = "dual_correction_solutions.h5"
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.maxiter=1"
+        validate_call(dp3_run.split())
+
+        with h5py.File(solution_file, "a") as table:
+            solset = table["sol000"]
+            # times, freq, ant, dir, pol
+            for i in range(0, 5):
+                solset["amplitude000/val"][:, :, :, i, :] = i + 2
+                solset["phase000/val"][:, :, :, i, :] = 0
+            solset["amplitude000/weight"][:] = 1
+            solset["phase000/weight"][:] = 1
+
+        # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[h5parmpredict] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000"
+        validate_call(dp3_run.split())
+
+        base_cmd = f"""{tcf.WSCLEAN} -name facet-dual-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
+-apply-facet-solutions {solution_file} amplitude000,phase000 -size 2500 2500
+-scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8 -nmiter 1
+-maxuvw-m 20000 -no-update-model-required"""
+        cmd = base_cmd + " 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-dual-corrections-image-pb.fits"
+        )
+
+        cmd = base_cmd + " -pol iquv -join-polarizations 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-dual-corrections-I-image-pb.fits"
+        )
+        check_image_pixel(
+            q_source_pos, 1.0, "facet-dual-corrections-Q-image-pb.fits"
+        )
+        check_image_pixel(
+            negative_q_source_pos,
+            -1.0,
+            "facet-dual-corrections-Q-image-pb.fits",
+        )
+        check_image_pixel(
+            u_source_pos, 1.0, "facet-dual-corrections-U-image-pb.fits"
+        )
+        check_image_pixel(
+            v_source_pos, 1.0, "facet-dual-corrections-V-image-pb.fits"
+        )
+
+        # Prepare for applying solutions to diagonal (XX,YY) vis. To do so, first
+        # apply the beam so that the element's projection effect are removed. For diagonal
+        # visibilities, we want to have as little power in xy,yx as possible, since it is 'lost'.
+        dp3_run = f"DP3 msin=3c196-simulation.ms msout= steps=[applybeam]"
+        validate_call(dp3_run.split())
+
+        cmd = base_cmd + " -diagonal-solutions 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-dual-corrections-image-pb.fits"
+        )

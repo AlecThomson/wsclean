@@ -92,6 +92,16 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
+ExternalProject_Add(
+  lofar_3c196_ms
+  URL ${WSCLEAN_DATA_URL}/LOFAR_3C196.ms.tar.bz2
+  URL_HASH
+    SHA256=f834f4eefb2ceffc09194791744c53ebc5154e947a5437a8ea42d259ccdd5fc3
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/LOFAR_3C196.ms
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+
 set(TEST_LIBRARIES ${ALL_LIBRARIES} pybind11::embed
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
