@@ -224,9 +224,50 @@ std::unique_ptr<everybeam::telescope::Telescope> PrepareEveryBeam(
   // Make telescope
   return everybeam::Load(ms.MS(), options);
 }
+
 #endif  // HAVE_EVERYBEAM
 
 }  // namespace
+
+/**
+ * Returns the intervals to which a beam is calculated over.
+ * The returned vector holds for each interval the start and
+ * end row indices, as well as the central time of the interval.
+ */
+std::vector<BeamInterval> GetBeamIntervals(MSProvider& ms_provider,
+                                           double seconds_before_beam_update) {
+  double start_time = 0.0;
+  double previous_time = 0.0;
+  std::unique_ptr<MSReader> ms_reader = ms_provider.MakeReader();
+  size_t row = 0;
+  size_t start_row = 0;
+  std::vector<BeamInterval> result;
+  if (ms_reader->CurrentRowAvailable()) {
+    MSProvider::MetaData meta;
+    ms_reader->ReadMeta(meta);
+    start_time = meta.time;
+    previous_time = meta.time;
+    ms_reader->NextInputRow();
+    ++row;
+    while (ms_reader->CurrentRowAvailable()) {
+      ms_reader->ReadMeta(meta);
+      if (std::abs(meta.time - start_time) > seconds_before_beam_update) {
+        result.emplace_back(BeamInterval{start_row, row - 1,
+                                         (start_time + previous_time) * 0.5});
+        start_row = row;
+        start_time = meta.time;
+      }
+      previous_time = meta.time;
+      ms_reader->NextInputRow();
+      ++row;
+    }
+    if (row - 1 != start_row)
+      result.emplace_back(
+          BeamInterval{start_row, row - 1, (start_time + previous_time) * 0.5});
+  }
+
+  return result;
+}
 
 PrimaryBeam::PrimaryBeam(const Settings& settings)
     : settings_(settings),
@@ -543,11 +584,10 @@ double PrimaryBeam::MakeBeamForMS(
     const MSSelection& selection, const ImageWeights& image_weights,
     const aocommon::CoordinateSystem& coordinateSystem,
     double central_frequency, size_t field_id) {
-  // Get time info
-  double start_time;
-  double end_time;
-  size_t interval_count;
-  std::tie(start_time, end_time, interval_count) = GetTimeInfo(ms_provider);
+  Logger::Debug << "Counting timesteps...\n";
+  const std::vector<BeamInterval> intervals =
+      GetBeamIntervals(ms_provider, seconds_before_beam_update_);
+  Logger::Debug << "Dividing MS in " << intervals.size() << " intervals.\n";
 
   SynchronizedMS ms = ms_provider.MS();
   const everybeam::TelescopeType telescope_type =
@@ -576,28 +616,28 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kOSKARTelescope:
     case everybeam::TelescopeType::kSkaMidTelescope:
     case everybeam::TelescopeType::kOvroLwaTelescope: {
-      std::vector<double> baseline_weights(n_baselines * interval_count, 0);
-      std::vector<double> time_array(interval_count, 0);
+      std::vector<double> baseline_weights(n_baselines * intervals.size(), 0.0);
+      std::vector<double> time_array(intervals.size(), 0.0);
       // Loop over the intervalCounts
-      ms_provider.ResetWritePosition();
-      for (size_t interval_index = 0; interval_index != interval_count;
+      std::unique_ptr<MSReader> reader = ms_provider.MakeReader();
+      size_t current_row = 0;
+
+      for (size_t interval_index = 0; interval_index != intervals.size();
            ++interval_index) {
-        // Find the mid time step
-        double first_time = start_time + (end_time - start_time) *
-                                             interval_index / interval_count;
-        double last_time = start_time + (end_time - start_time) *
-                                            (interval_index + 1) /
-                                            interval_count;
-        casacore::MEpoch time_epoch = casacore::MEpoch(
-            casacore::MVEpoch((0.5 / 86400.0) * (first_time + last_time)),
-            time_column(0).getRef());
+        const BeamInterval& interval = intervals[interval_index];
+
+        // Skip to the start row
+        while (current_row < interval.start_row) {
+          reader->NextInputRow();
+          ++current_row;
+        }
 
         // Set value in time array
-        time_array[interval_index] = time_epoch.getValue().get() * 86400.0;
+        time_array[interval_index] = interval.central_time;
 
         WeightMatrix weights(telescope->GetNrStations());
-        CalculateStationWeights(image_weights, weights, ms, ms_provider,
-                                selection, last_time);
+        CalculateStationWeights(image_weights, weights, ms, *reader, selection,
+                                current_row, interval.end_row);
 
         // Get the baseline weights from the baseline_weight matrix
         aocommon::UVector<double> interval_weights =
@@ -649,9 +689,9 @@ double PrimaryBeam::MakeBeamForMS(
 void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
                                           WeightMatrix& baselineWeights,
                                           SynchronizedMS& ms,
-                                          MSProvider& msProvider,
+                                          MSReader& ms_reader,
                                           const MSSelection& selection,
-                                          double endTime) {
+                                          size_t& current_row, size_t end_row) {
   casacore::MSAntenna antenna_table(ms->antenna());
   aocommon::UVector<double> per_antenna_weights(antenna_table.nrow(), 0.0);
 
@@ -659,15 +699,13 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
                                      ms->dataDescription());
   const size_t n_channels =
       selection.ChannelRangeEnd() - selection.ChannelRangeStart();
-  const size_t n_polarizations = msProvider.NPolarizations();
+  const size_t n_polarizations = ms_reader.NPolarizations();
   aocommon::UVector<float> weight_array(n_channels * n_polarizations);
-  std::unique_ptr<MSReader> ms_reader = msProvider.MakeReader();
-  const aocommon::BandData band = multi_band[msProvider.DataDescId()];
-  while (ms_reader->CurrentRowAvailable()) {
+  const aocommon::BandData band = multi_band[ms_reader.DataDescId()];
+  while (ms_reader.CurrentRowAvailable() && current_row <= end_row) {
     MSProvider::MetaData meta_data;
-    ms_reader->ReadMeta(meta_data);
-    if (meta_data.time >= endTime) break;
-    ms_reader->ReadWeights(weight_array.data());
+    ms_reader.ReadMeta(meta_data);
+    ms_reader.ReadWeights(weight_array.data());
 
     for (size_t ch = 0; ch != n_channels; ++ch) {
       const double u = meta_data.uInM / band.ChannelWavelength(ch);
@@ -676,48 +714,11 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
       const double w = weight_array[ch * n_polarizations] * iw;
       baselineWeights.Value(meta_data.antenna1, meta_data.antenna2) += w;
     }
-    ms_reader->NextInputRow();
+    ms_reader.NextInputRow();
+    ++current_row;
   }
 }
 
-std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
-    MSProvider& ms_provider) {
-  Logger::Debug << "Counting timesteps...\n";
-  ms_provider.ResetWritePosition();
-  size_t n_timesteps = 0;
-  double start_time = 0.0;
-  double end_time = 0.0;
-  std::unique_ptr<MSReader> ms_reader = ms_provider.MakeReader();
-  if (ms_reader->CurrentRowAvailable()) {
-    MSProvider::MetaData meta;
-    ms_reader->ReadMeta(meta);
-    start_time = meta.time;
-    end_time = meta.time;
-    ++n_timesteps;
-    ms_reader->NextInputRow();
-    while (ms_reader->CurrentRowAvailable()) {
-      ms_reader->ReadMeta(meta);
-      if (end_time != meta.time) {
-        ++n_timesteps;
-        end_time = meta.time;
-      }
-      ms_reader->NextInputRow();
-    }
-  }
-  if (start_time == end_time) {
-    ++end_time;
-    --start_time;
-  }
-  const double total_seconds = end_time - start_time;
-  size_t n_intervals =
-      std::max<size_t>(1, (total_seconds + seconds_before_beam_update_ - 1) /
-                              seconds_before_beam_update_);
-  if (n_intervals > n_timesteps) n_intervals = n_timesteps;
-
-  Logger::Debug << "MS spans " << total_seconds << " seconds, dividing in "
-                << n_intervals << " intervals.\n";
-  return std::make_tuple(start_time, end_time, n_intervals);
-}
 #endif  // HAVE_EVERYBEAM
 
 size_t PrimaryBeam::computeUndersamplingFactor(const Settings& settings) {

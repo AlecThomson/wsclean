@@ -16,13 +16,14 @@ add_executable(
   math/ttophatconvolution.cpp
   model/tbbsmodel.cpp
   msproviders/tnoisemsrowprovider.cpp
-  msproviders/tbdamsrowproviderdata.cpp
   msproviders/tbdamsrowprovider.cpp
+  msproviders/tbdamsrowproviderdata.cpp
   msproviders/tmsrowproviderbase.cpp
   scheduling/tgriddingtaskfactory.cpp
   structures/timagingtable.cpp
   structures/tfacetutil.cpp
   structures/toutputchannelinfo.cpp
+  structures/tprimarybeam.cpp
   structures/tprimarybeamimageset.cpp
   structures/tresources.cpp
   system/tmappedfile.cpp

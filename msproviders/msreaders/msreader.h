@@ -68,6 +68,11 @@ class MSReader {
    */
   virtual void WriteImagingWeights(const float* buffer) = 0;
 
+  /// @returns MSProvider::NPolarizations().
+  size_t NPolarizations() const { return _msProvider->NPolarizations(); }
+  /// @returns MSProvider::DataDescId().
+  size_t DataDescId() const { return _msProvider->DataDescId(); }
+
  protected:
   MSProvider* _msProvider;
 };

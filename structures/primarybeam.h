@@ -2,6 +2,7 @@
 #define STRUCTURES_PRIMARY_BEAM_H_
 
 #include <string>
+#include <vector>
 
 #include "primarybeamimageset.h"
 
@@ -27,6 +28,15 @@
 class ImageWeights;
 class MSDataDescription;
 class Settings;
+
+struct BeamInterval {
+  size_t start_row;
+  size_t end_row;
+  double central_time;
+};
+
+std::vector<BeamInterval> GetBeamIntervals(MSProvider& ms_provider,
+                                           double seconds_before_beam_update);
 
 class PrimaryBeam {
  public:
@@ -177,12 +187,11 @@ class PrimaryBeam {
                        const aocommon::CoordinateSystem& coordinate_system,
                        double central_frequency, size_t field_id);
 
-  std::tuple<double, double, size_t> GetTimeInfo(MSProvider& ms_provider);
-
-  void CalculateStationWeights(const ImageWeights& image_weights,
-                               WeightMatrix& baseline_weights,
-                               SynchronizedMS& ms, MSProvider& ms_provider,
-                               const MSSelection& selection, double end_time);
+  static void CalculateStationWeights(const ImageWeights& image_weights,
+                                      WeightMatrix& baseline_weights,
+                                      SynchronizedMS& ms, MSReader& ms_reader,
+                                      const MSSelection& selection,
+                                      size_t& current_row, size_t end_row);
 #endif  // HAVE_EVERYBEAM
 };
 
