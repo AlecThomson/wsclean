@@ -1,17 +1,15 @@
 add_executable(
   unittest
   test.cpp
-  testbaselinedependentaveraging.cpp
-  testcommandline.cpp
-  testfitsdateobstime.cpp
-  testcachedimageset.cpp
-  testparsetreader.cpp
-  testprimarybeamimageset.cpp
-  testserialization.cpp
+  tbaselinedependentaveraging.cpp
+  tfitsdateobstime.cpp
+  tserialization.cpp
   gridding/taveragecorrection.cpp
   gridding/tvisibilitymodifier.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
+  io/tparsetreader.cpp
+  main/tcommandline.cpp
   main/tsettings.cpp
   math/timageoperations.cpp
   math/trenderer.cpp
@@ -22,7 +20,7 @@ add_executable(
   msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
   scheduling/tgriddingtaskfactory.cpp
-  structures/testimagingtable.cpp
+  structures/timagingtable.cpp
   structures/tfacetutil.cpp
   structures/toutputchannelinfo.cpp
   structures/tprimarybeamimageset.cpp
