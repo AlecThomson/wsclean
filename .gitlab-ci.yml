@@ -63,9 +63,9 @@ build-debug-without-everybeam:
     - cd build
     - sed -i 's=-O3=-O1=' ../CMakeLists.txt # Disable optimizations
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
-    - make
-    - make doc
-    - make install
+    - make -j`nproc`
+    - make -j`nproc` doc
+    - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
     - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
     - gcovr --gcov-ignore-parse-errors -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json

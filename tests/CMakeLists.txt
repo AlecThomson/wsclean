@@ -26,13 +26,19 @@ add_executable(
   structures/tprimarybeam.cpp
   structures/tprimarybeamimageset.cpp
   structures/tresources.cpp
-  system/tmappedfile.cpp
-  ${WSCLEANFILES})
+  system/tmappedfile.cpp)
 
-add_definitions(
-  -DFACET_DEFINITION_FILE_2FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_2facets.reg"
-  -DFACET_DEFINITION_FILE_4FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_4facets.reg"
+target_compile_definitions(
+  unittest
+  PRIVATE
+    FACET_DEFINITION_FILE_2FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_2facets.reg"
+    FACET_DEFINITION_FILE_4FACETS="${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_4facets.reg"
 )
+
+target_link_libraries(
+  unittest
+  PRIVATE wsclean-lib ${CASACORE_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY}
+          ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 add_custom_target(
   download_mocks
@@ -100,11 +106,6 @@ ExternalProject_Add(
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
-
-set(TEST_LIBRARIES ${ALL_LIBRARIES} pybind11::embed
-                   ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-
-target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   unitchecks

@@ -388,9 +388,9 @@ add_dependencies(wsclean-object radler-module)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
+target_link_libraries(wsclean-object PUBLIC schaapcommon)
 
-set(ALL_LIBRARIES
+set(EXTERNAL_LIBRARIES
     ${CASACORE_LIBRARIES}
     ${FFTW3_LIB}
     ${FFTW3_THREADS_LIB}
@@ -408,24 +408,32 @@ set(ALL_LIBRARIES
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
     ${EVERYBEAM_LIB}
-    schaapcommon)
+    schaapcommon
+    pybind11::embed)
 
 # Perform the BLAS check from aocommon
 include("${CMAKE_CURRENT_LIST_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
-check_blas(LIBRARIES ${ALL_LIBRARIES})
+check_blas(LIBRARIES ${EXTERNAL_LIBRARIES})
 # Radler lib cannot be checked on BLAS consistenty as it doesn't exist
 # at cmake time. It needs to be first in the link order because Radler
-# itself also depends on some of the libraries in the ALL_LIBRARIES list.
-list(PREPEND ALL_LIBRARIES ${RADLER_LIB})
+# itself also depends on some of the libraries in the EXTERNAL_LIBRARIES list.
+list(PREPEND EXTERNAL_LIBRARIES ${RADLER_LIB})
 
-add_library(wsclean-lib STATIC ${WSCLEANFILES})
-target_link_libraries(wsclean-lib PRIVATE ${ALL_LIBRARIES} pybind11::embed)
+add_library(wsclean-lib STATIC)
+target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-add_library(wsclean-shared SHARED ${WSCLEANFILES})
-target_link_libraries(wsclean-shared PRIVATE ${ALL_LIBRARIES} pybind11::embed)
+add_library(wsclean-shared SHARED)
+target_link_libraries(wsclean-shared PRIVATE ${EXTERNAL_LIBRARIES}
+                                             wsclean-object)
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
+
+# Make schaapcommon a PUBLIC dependency, since some WSClean headers use
+# schaapcommon headers. An application/test linking to wsclean-lib or
+# wsclean-shared thus needs schaapcommon as well.
+target_link_libraries(wsclean-lib PUBLIC schaapcommon)
+target_link_libraries(wsclean-shared PUBLIC schaapcommon)
 
 add_executable(wsclean main/main.cpp)
 target_link_libraries(wsclean wsclean-lib)
@@ -440,12 +448,12 @@ target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
                       ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
 add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp)
-target_link_libraries(wsuvbinning PRIVATE wsclean-lib ${ALL_LIBRARIES})
+target_link_libraries(wsuvbinning PRIVATE wsclean-lib)
 
 add_executable(
   wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp
                                        gridding/wstackinggridder.cpp)
-target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
+target_link_libraries(wspredictionexample ${EXTERNAL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
