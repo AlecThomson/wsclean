@@ -95,11 +95,10 @@ endif()
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
 # Schaapcommon
-set(SCHAAPCOMMON_MODULES facets fft fitters h5parm)
+set(SCHAAPCOMMON_MODULES ducc0 facets fft fitters h5parm)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
-
-include_directories(external/wgridder)
+include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
 
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
@@ -372,12 +371,6 @@ add_library(
   system/pythonfilepath.cpp
   wgridder/wgriddingmsgridder.cpp
   wgridder/wgriddinggridder_simple.cpp
-  external/wgridder/ducc0/math/gridding_kernel.cc
-  external/wgridder/ducc0/math/gl_integrator.cc
-  external/wgridder/ducc0/infra/threading.cc
-  external/wgridder/ducc0/infra/mav.cc
-  external/wgridder/ducc0/infra/string_utils.cc
-  external/wgridder/ducc0/wgridder/wgridder.cc
   ${IDG_FILES}
   ${MPI_CPP_FILES})
 
