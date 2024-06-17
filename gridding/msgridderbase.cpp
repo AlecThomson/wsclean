@@ -337,9 +337,10 @@ void MSGridderBase::calculateOverallMetaData(
 
   theoretical_beam_size_ = 1.0 / maxBaseline;
   if (IsFirstTask()) {
-    Logger::Info << "Theoretic beam = "
-                 << aocommon::units::Angle::ToNiceString(theoretical_beam_size_)
-                 << "\n";
+    Logger::Info << "Theoretic beam = " +
+                        aocommon::units::Angle::ToNiceString(
+                            theoretical_beam_size_) +
+                        "\n";
   }
   if (w_limit_ != 0.0) {
     max_w_ *= (1.0 - w_limit_);
@@ -366,9 +367,10 @@ void MSGridderBase::calculateOverallMetaData(
       const size_t newHeight =
           std::max(std::min(optHeight, actual_inversion_height_), size_t(32));
       if (IsFirstTask()) {
-        Logger::Info << "Minimal inversion size: " << minWidth << " x "
-                     << minHeight << ", using optimal: " << newWidth << " x "
-                     << newHeight << "\n";
+        Logger::Info << "Minimal inversion size: " + std::to_string(minWidth) +
+                            " x " + std::to_string(minHeight) +
+                            ", using optimal: " + std::to_string(newWidth) +
+                            " x " + std::to_string(newHeight) + "\n";
       }
       actual_pixel_size_x_ =
           (double(actual_inversion_width_) * actual_pixel_size_x_) /

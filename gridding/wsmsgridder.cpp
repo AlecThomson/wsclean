@@ -444,12 +444,13 @@ void WSMSGridder::Invert() {
 
   _gridder->FinalizeImage(1.0 / ImageWeight());
   if (IsFirstTask()) {
-    Logger::Info << "Gridded visibility count: "
-                 << double(GriddedVisibilityCount());
-    if (Weighting().IsNatural())
-      Logger::Info << ", effective count after weighting: "
-                   << EffectiveGriddedVisibilityCount();
-    Logger::Info << '\n';
+    std::string log_message =
+        "Gridded visibility count: " + std::to_string(GriddedVisibilityCount());
+    if (Weighting().IsNatural()) {
+      log_message += ", effective count after weighting: " +
+                     std::to_string(EffectiveGriddedVisibilityCount());
+    }
+    Logger::Info << log_message + '\n';
   }
 
   _realImage = _gridder->RealImageFloat();
