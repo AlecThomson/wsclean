@@ -8,8 +8,7 @@
 using aocommon::Logger;
 
 std::shared_ptr<ImageWeights> ImageWeightInitializer::Initialize(
-    const ImagingTableEntry& entry,
-    const std::vector<std::unique_ptr<MSDataDescription>>& ms_list,
+    const ImagingTableEntry& entry, const std::vector<MsListItem>& ms_list,
     ImageWeightCache& cache) const {
   if (settings_.mfWeighting) {
     return cache.GetMFWeights();

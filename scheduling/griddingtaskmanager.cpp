@@ -204,9 +204,9 @@ void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
   }
 
   gridder.ClearMeasurementSetList();
-  for (const std::unique_ptr<MSDataDescription>& description : task.msList) {
-    gridder.AddMeasurementSet(description->GetProvider(),
-                              description->Selection());
+  for (const MsListItem& item : task.msList) {
+    gridder.AddMeasurementSet(item.ms_description->GetProvider(),
+                              item.ms_description->Selection(), item.ms_index);
   }
 }
 

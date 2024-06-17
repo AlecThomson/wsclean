@@ -2,9 +2,8 @@
 #define IMAGE_WEIGHT_CACHE_H
 
 #include "../structures/imageweights.h"
+#include "../structures/mslistitem.h"
 #include "../structures/weightmode.h"
-
-#include "../msproviders/msdatadescription.h"
 
 #include <aocommon/logger.h>
 
@@ -46,9 +45,9 @@ class ImageWeightCache {
     _edgeTukeyTaperInLambda = edgeTukeyTaperInLambda;
   }
 
-  std::shared_ptr<ImageWeights> Get(
-      const std::vector<std::unique_ptr<MSDataDescription>>& msList,
-      size_t outChannelIndex, size_t outIntervalIndex) {
+  std::shared_ptr<ImageWeights> Get(const std::vector<MsListItem>& msList,
+                                    size_t outChannelIndex,
+                                    size_t outIntervalIndex) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (outChannelIndex != _currentWeightChannel ||
         outIntervalIndex != _currentWeightInterval) {
@@ -81,13 +80,13 @@ class ImageWeightCache {
 
  private:
   std::unique_ptr<ImageWeights> recalculateWeights(
-      const std::vector<std::unique_ptr<MSDataDescription>>& msList) {
+      const std::vector<MsListItem>& msList) {
     aocommon::Logger::Info << "Precalculating weights for "
                            << _weightMode.ToString() << " weighting...\n";
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
-    for (size_t i = 0; i != msList.size(); ++i) {
-      std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
-      const MSSelection& selection = msList[i]->Selection();
+    for (const MsListItem& item : msList) {
+      std::unique_ptr<MSProvider> provider = item.ms_description->GetProvider();
+      const MSSelection& selection = item.ms_description->Selection();
       const aocommon::BandData selectedBand =
           selection.HasChannelRange()
               ? aocommon::BandData(provider->Band(),

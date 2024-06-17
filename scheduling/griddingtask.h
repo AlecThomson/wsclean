@@ -6,9 +6,8 @@
 #include <aocommon/polarization.h>
 
 #include "../structures/imageweights.h"
+#include "../structures/mslistitem.h"
 #include "../structures/observationinfo.h"
-
-#include "../msproviders/msdatadescription.h"
 
 #include "metadatacache.h"
 
@@ -38,7 +37,7 @@ class GriddingTask {
   bool storeImagingWeights;  // Only for invert tasks.
 
   std::shared_ptr<ImageWeights> imageWeights;
-  std::vector<std::unique_ptr<MSDataDescription>> msList;
+  std::vector<MsListItem> msList;
 
   ObservationInfo observationInfo;
 

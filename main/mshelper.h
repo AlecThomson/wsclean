@@ -6,9 +6,9 @@
 
 #include <aocommon/multibanddata.h>
 
-#include "../msproviders/msdatadescription.h"
 #include "../msproviders/reorderedms.h"
 #include "../structures/imagingtable.h"
+#include "../structures/mslistitem.h"
 #include "../structures/msselection.h"
 
 #include "settings.h"
@@ -18,6 +18,10 @@
  */
 class MsHelper {
  public:
+  /**
+   * @param ms_bands List such that element ms_bands[i] holds the bands for
+   * settings.filenames[i].
+   */
   explicit MsHelper(const Settings& settings,
                     const MSSelection& global_selection,
                     const std::vector<aocommon::MultiBandData>& ms_bands)
@@ -38,7 +42,7 @@ class MsHelper {
   void PerformReordering(const ImagingTable& imaging_table,
                          bool is_predict_mode);
 
-  std::vector<std::unique_ptr<MSDataDescription>> InitializeMsList(
+  std::vector<MsListItem> InitializeMsList(
       const ImagingTableEntry& entry) const;
 
  private:

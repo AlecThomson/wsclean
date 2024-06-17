@@ -126,12 +126,12 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   });
 }
 
-std::vector<std::unique_ptr<MSDataDescription>> MsHelper::InitializeMsList(
+std::vector<MsListItem> MsHelper::InitializeMsList(
     const ImagingTableEntry& entry) const {
   const aocommon::PolarizationEnum polarization =
       settings_.GetProviderPolarization(entry.polarization);
 
-  std::vector<std::unique_ptr<MSDataDescription>> ms_list;
+  std::vector<MsListItem> ms_list;
 
   for (size_t ms_index = 0; ms_index != settings_.filenames.size();
        ++ms_index) {
@@ -145,17 +145,18 @@ std::vector<std::unique_ptr<MSDataDescription>> MsHelper::InitializeMsList(
 
       if (settings_.IsBandSelected(band_index) &&
           selection.SelectMsChannels(band_data, data_description_id, entry)) {
-        std::unique_ptr<MSDataDescription> data_description;
+        MsListItem item;
         if (settings_.doReorder)
-          data_description = MSDataDescription::ForReordered(
+          item.ms_description = MSDataDescription::ForReordered(
               reordered_ms_handles_[ms_index], selection,
               entry.msData[ms_index].bands[data_description_id].partIndex,
               polarization, data_description_id, settings_.UseMpi());
         else
-          data_description = MSDataDescription::ForContiguous(
+          item.ms_description = MSDataDescription::ForContiguous(
               settings_.filenames[ms_index], settings_.dataColumnName,
               selection, polarization, data_description_id, settings_.UseMpi());
-        ms_list.emplace_back(std::move(data_description));
+        item.ms_index = ms_index;
+        ms_list.emplace_back(std::move(item));
       }
     }
   }

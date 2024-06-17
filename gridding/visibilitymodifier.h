@@ -65,9 +65,9 @@ class VisibilityModifier {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
     // object would be re-used for multiple gridding tasks.
-    _cachedParmResponse.assign(n_measurement_sets, {});
-    _cachedMSTimes.assign(n_measurement_sets, {});
-    _timeOffset.assign(n_measurement_sets, 0u);
+    _cachedParmResponse.clear();
+    _cachedMSTimes.clear();
+    _timeOffsets.clear();
   }
 
   /**
@@ -216,12 +216,27 @@ class VisibilityModifier {
   std::string _beamModeString;
   std::string _beamNormalisationMode;
   /**
-   * _cachedParmResponse[ms_index] is a vector of complex gains of
+   * Element ms_index is a vector of complex gains of
    * size n_times x n_channels x n_stations x n_parameters, where n_parameters
    * is the fastest changing. n_parameters is 2 (for diagonal) or
    * 4 (for full jones).
+   *
+   * The ms_index may not be a consecutive index because this gridder
+   * may not have to grid all measurement sets that were specified to
+   * wsclean.
    */
-  std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
+  std::map<size_t, std::vector<std::complex<float>>> _cachedParmResponse;
+  /**
+   * Each element holds a vector with the measurement set times. The map
+   * is indexed by a (non-consecutive) ms_index.
+   */
+  std::map<size_t, std::vector<double>> _cachedMSTimes;
+  /**
+   * Each element holds the current offset position into the _cachedParmResponse
+   * and _cachedMSTimes elements of the same ms_index. The map is indexed by a
+   * (non-consecutive) ms_index.
+   */
+  std::map<size_t, size_t> _timeOffsets;
   /**
    * Optional pointers to vectors with h5parm solution objects.
    * The GriddingTaskManager, which always outlives GriddingTasks and their
@@ -237,8 +252,6 @@ class VisibilityModifier {
   const std::vector<schaapcommon::h5parm::SolTab*>* _secondSolutions = nullptr;
   const std::vector<schaapcommon::h5parm::GainType>* _gainTypes = nullptr;
   /** @} */
-  std::vector<std::vector<double>> _cachedMSTimes;
-  std::vector<size_t> _timeOffset;
   size_t _pointResponseBufferSize = 0;
   double _facetDirectionRA = 0.0;
   double _facetDirectionDec = 0.0;

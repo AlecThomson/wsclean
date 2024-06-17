@@ -1423,10 +1423,9 @@ void WSClean::resetModelColumns(const ImagingTable::Groups& facet_groups) {
 }
 
 void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
-  std::vector<std::unique_ptr<MSDataDescription>> ms_list =
-      _msHelper->InitializeMsList(entry);
+  std::vector<MsListItem> ms_list = _msHelper->InitializeMsList(entry);
   for (auto& ms : ms_list) {
-    ms->GetProvider()->ResetModelColumn();
+    ms.ms_description->GetProvider()->ResetModelColumn();
   }
 }
 
@@ -1480,14 +1479,13 @@ void WSClean::runFirstInversionGroup(
           ImageFilename(entry->outputChannelIndex, entry->outputIntervalIndex);
       if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
           !_settings.facetSolutionFiles.empty()) {
-        std::vector<std::unique_ptr<MSDataDescription>> msList =
-            _msHelper->InitializeMsList(*entry);
+        std::vector<MsListItem> msList = _msHelper->InitializeMsList(*entry);
         std::shared_ptr<ImageWeights> weights =
             _image_weight_initializer->Initialize(*entry, msList,
                                                   *_imageWeightCache);
         primaryBeam = std::make_unique<PrimaryBeam>(_settings);
-        for (std::unique_ptr<MSDataDescription>& description : msList)
-          primaryBeam->AddMS(std::move(description));
+        for (MsListItem& item : msList)
+          primaryBeam->AddMS(std::move(item.ms_description));
         primaryBeam->SetPhaseCentre(_observationInfo.phaseCentreRA,
                                     _observationInfo.phaseCentreDec, _l_shift,
                                     _m_shift);

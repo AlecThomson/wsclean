@@ -102,22 +102,29 @@ class MSGridderBase {
   double PixelSizeY() const { return settings_.pixelScaleY; }
   size_t ActualWGridSize() const { return actual_w_grid_size_; }
 
-  void ClearMeasurementSetList() {
-    measurement_sets_.clear();
-    selections_.clear();
-  }
+  void ClearMeasurementSetList() { measurement_sets_.clear(); }
   const Settings& GetSettings() const { return settings_; }
-  MSProvider& MeasurementSet(size_t index) const {
-    return *measurement_sets_[index];
+  MSProvider& MeasurementSet(size_t internal_ms_index) const {
+    return *std::get<0>(measurement_sets_[internal_ms_index]);
   }
-  const MSSelection& Selection(size_t index) const {
-    return selections_[index];
+  const MSSelection& Selection(size_t internal_ms_index) const {
+    return std::get<1>(measurement_sets_[internal_ms_index]);
+  }
+  /**
+   * Maps an internal ms index to its original (command line) index.
+   */
+  size_t MeasurementSetIndex(size_t internal_ms_index) const {
+    return std::get<2>(measurement_sets_[internal_ms_index]);
   }
   size_t MeasurementSetCount() const { return measurement_sets_.size(); }
+
+  /**
+   * @param index the original command line index of this measurement set. This
+   * allows associating the measurement set with the right h5parm solution file.
+   */
   void AddMeasurementSet(std::unique_ptr<MSProvider> ms_provider,
-                         const MSSelection& selection) {
-    measurement_sets_.push_back(std::move(ms_provider));
-    selections_.push_back(selection);
+                         const MSSelection& selection, size_t index) {
+    measurement_sets_.emplace_back(std::move(ms_provider), selection, index);
   }
 
   const std::string& DataColumnName() const { return data_column_name_; }
@@ -323,7 +330,8 @@ class MSGridderBase {
   struct MSData {
    public:
     MSProvider* ms_provider = nullptr;
-    size_t msIndex = 0;
+    size_t internal_ms_index = 0;
+    size_t original_ms_index = 0;
     size_t dataDescId = 0;
     aocommon::BandData bandData;
     size_t startChannel = 0;
@@ -734,7 +742,7 @@ class MSGridderBase {
   /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
   /// only relevant for prediction.
   size_t facet_group_index_ = 0;
-  size_t ms_index_ = 0;
+  size_t original_ms_index_ = 0;
   /// @see SetIsFacet()
   bool is_facet_ = false;
   double image_padding_ = 1.0;
@@ -744,7 +752,9 @@ class MSGridderBase {
   size_t trim_height_ = 0;
   size_t w_grid_size_ = 0;
   size_t actual_w_grid_size_ = 0;
-  std::vector<std::unique_ptr<MSProvider>> measurement_sets_;
+  /// tuple consists of the ms, selection, and index.
+  std::vector<std::tuple<std::unique_ptr<MSProvider>, MSSelection, size_t>>
+      measurement_sets_;
   std::string data_column_name_;
   PsfMode psf_mode_ = PsfMode::kNone;
   bool do_subtract_model_ = false;
@@ -761,7 +771,6 @@ class MSGridderBase {
   bool is_complex_ = false;
   WeightMode weighting_ = WeightMode(WeightMode::UniformWeighted);
   bool is_first_task_ = false;
-  std::vector<MSSelection> selections_;
   VisibilityWeightingMode visibility_weighting_mode_ =
       VisibilityWeightingMode::NormalVisibilityWeighting;
   GriddingKernelMode grid_mode_ = GriddingKernelMode::KaiserBessel;

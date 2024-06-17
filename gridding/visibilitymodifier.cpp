@@ -145,8 +145,8 @@ void VisibilityModifier::InitializeMockResponse(
 #ifdef HAVE_EVERYBEAM
   _cachedBeamResponse.assign(beam_response.begin(), beam_response.end());
 #endif
-  _cachedParmResponse.emplace_back(parm_response);
-  _timeOffset = {0};
+  _cachedParmResponse.emplace(0, parm_response);
+  _timeOffsets = {std::pair(0, 0)};
 }
 
 void VisibilityModifier::CacheParmResponse(
@@ -185,11 +185,12 @@ void VisibilityModifier::CacheParmResponse(
   }
 
   const auto it =
-      std::find(_cachedMSTimes[ms_index].begin() + _timeOffset[ms_index],
+      std::find(_cachedMSTimes[ms_index].begin() + _timeOffsets[ms_index],
                 _cachedMSTimes[ms_index].end(), time);
   if (it != _cachedMSTimes[ms_index].end()) {
     // Update _timeOffset value with index
-    _timeOffset[ms_index] = std::distance(_cachedMSTimes[ms_index].begin(), it);
+    _timeOffsets[ms_index] =
+        std::distance(_cachedMSTimes[ms_index].begin(), it);
   } else {
     throw std::runtime_error(
         "Time not found in cached times. A potential reason could be that the "
@@ -308,7 +309,7 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
@@ -322,7 +323,7 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
@@ -366,7 +367,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
@@ -387,7 +388,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
@@ -454,7 +455,7 @@ void VisibilityModifier::ApplyConjugatedDual(
       // Get H5 solutions
       // Column major indexing
       const size_t h5_offset =
-          (_timeOffset[ms_index] * n_channels + ch) * n_stations * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_stations * nparms;
       const size_t h5_offset1 = h5_offset + antenna1 * nparms;
       const size_t h5_offset2 = h5_offset + antenna2 * nparms;
       const MC2x2F gain_h5_1(_cachedParmResponse[ms_index][h5_offset1], 0, 0,
@@ -495,7 +496,7 @@ void VisibilityModifier::ApplyConjugatedDual(
       // Apply h5
       // Column major indexing
       const size_t offset_h5 =
-          (_timeOffset[ms_index] * n_channels + ch) * n_stations * nparms;
+          (_timeOffsets[ms_index] * n_channels + ch) * n_stations * nparms;
       const size_t offset_h5_1 = offset_h5 + antenna1 * nparms;
       const size_t offset_h5_2 = offset_h5 + antenna2 * nparms;
       const MC2x2F gain_h5_1(&_cachedParmResponse[ms_index][offset_h5_1]);

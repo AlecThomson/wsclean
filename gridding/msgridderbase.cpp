@@ -114,7 +114,7 @@ void MSGridderBase::initializePointResponse(
 void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
                                         bool isPredict) {
   initializePointResponse(msData);
-  ms_index_ = msData.msIndex;
+  original_ms_index_ = msData.original_ms_index;
   n_vis_polarizations_ = msData.ms_provider->NPolarizations();
   gain_mode_ = GetGainMode(Polarization(), n_vis_polarizations_);
   const size_t n_channels = msData.SelectedBand().ChannelCount();
@@ -129,9 +129,10 @@ void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
 void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
                                        MSGridderBase::MSData& msData) {
   msData.bandData = aocommon::MultiBandData(ms)[msData.dataDescId];
-  if (Selection(msData.msIndex).HasChannelRange()) {
-    msData.startChannel = Selection(msData.msIndex).ChannelRangeStart();
-    msData.endChannel = Selection(msData.msIndex).ChannelRangeEnd();
+  if (Selection(msData.internal_ms_index).HasChannelRange()) {
+    msData.startChannel =
+        Selection(msData.internal_ms_index).ChannelRangeStart();
+    msData.endChannel = Selection(msData.internal_ms_index).ChannelRangeEnd();
     Logger::Debug << "Selected channels: " << msData.startChannel << '-'
                   << msData.endChannel << '\n';
     if (msData.startChannel >= msData.bandData.ChannelCount() ||
@@ -261,7 +262,8 @@ void MSGridderBase::initializeMSDataVector(
   visibility_modifier_.ResetSums();
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    msDataVector[i].msIndex = i;
+    msDataVector[i].internal_ms_index = i;
+    msDataVector[i].original_ms_index = MeasurementSetIndex(i);
     initializeMeasurementSet(msDataVector[i], meta_data_cache_->msDataVector[i],
                              hasCache);
   }
@@ -271,7 +273,7 @@ void MSGridderBase::initializeMSDataVector(
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
                                              bool isCacheInitialized) {
-  MSProvider& ms_provider = MeasurementSet(msData.msIndex);
+  MSProvider& ms_provider = MeasurementSet(msData.internal_ms_index);
   msData.ms_provider = &ms_provider;
   SynchronizedMS ms(ms_provider.MS());
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
@@ -310,7 +312,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   }
 
   if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.SetMSTimes(msData.msIndex,
+    visibility_modifier_.SetMSTimes(msData.original_ms_index,
                                     SelectUniqueTimes(*msData.ms_provider));
   }
 }
@@ -411,11 +413,11 @@ void MSGridderBase::WriteInstrumentalVisibilities(
   if (visibility_modifier_.HasH5Parm()) {
     assert(!settings_.facetRegionFilename.empty());
     visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                           curBand, ms_index_);
+                                           curBand, original_ms_index_);
 
     visibility_modifier_.ApplyParmResponse<Mode>(
-        buffer, ms_index_, curBand.ChannelCount(), antenna_names.size(),
-        metaData.antenna1, metaData.antenna2);
+        buffer, original_ms_index_, curBand.ChannelCount(),
+        antenna_names.size(), metaData.antenna1, metaData.antenna2);
   }
 
 #ifdef HAVE_EVERYBEAM
@@ -430,7 +432,7 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
   {
     const size_t lock_index =
-        facet_group_index_ * MeasurementSetCount() + ms_index_;
+        facet_group_index_ * MeasurementSetCount() + original_ms_index_;
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(lock_index);
     ms_provider.WriteModel(buffer, IsFacet());
@@ -550,11 +552,11 @@ void MSGridderBase::ApplyWeightsAndCorrections(
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                              curBand);
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                             curBand, ms_index_);
+                                             curBand, original_ms_index_);
       visibility_modifier_.ApplyConjugatedDual<Mode>(
           rowData.data, weightBuffer, scratch_image_weights_.data(),
           curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
-          metaData.antenna2, ms_index_, apply_forward);
+          metaData.antenna2, original_ms_index_, apply_forward);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
@@ -567,12 +569,12 @@ void MSGridderBase::ApplyWeightsAndCorrections(
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                             curBand, ms_index_);
+                                             curBand, original_ms_index_);
 
       visibility_modifier_.ApplyConjugatedParmResponse<Mode>(
-          rowData.data, weightBuffer, scratch_image_weights_.data(), ms_index_,
-          curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
-          metaData.antenna2, apply_forward);
+          rowData.data, weightBuffer, scratch_image_weights_.data(),
+          original_ms_index_, curBand.ChannelCount(), antenna_names.size(),
+          metaData.antenna1, metaData.antenna2, apply_forward);
     }
   }
 

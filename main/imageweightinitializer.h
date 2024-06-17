@@ -8,10 +8,10 @@
 #include <aocommon/polarization.h>
 
 #include "../io/imageweightcache.h"
-#include "../msproviders/msdatadescription.h"
 #include "../msproviders/reorderedms.h"
 #include "../structures/imageweights.h"
 #include "../structures/imagingtable.h"
+#include "../structures/mslistitem.h"
 #include "../structures/msselection.h"
 
 #include "settings.h"
@@ -33,8 +33,7 @@ class ImageWeightInitializer {
   const Settings& GetSettings() const { return settings_; }
 
   std::shared_ptr<ImageWeights> Initialize(
-      const ImagingTableEntry& entry,
-      const std::vector<std::unique_ptr<MSDataDescription>>& ms_list,
+      const ImagingTableEntry& entry, const std::vector<MsListItem>& ms_list,
       ImageWeightCache& cache) const;
 
   void InitializeMf(const ImagingTable& imaging_table, ImageWeightCache& cache);

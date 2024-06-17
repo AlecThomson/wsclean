@@ -28,8 +28,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
 
   // msList
   stream.UInt64(msList.size());
-  for (const std::unique_ptr<MSDataDescription>& dataDesc : msList)
-    dataDesc->Serialize(stream);
+  for (const MsListItem& item : msList) item.Serialize(stream);
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
@@ -48,8 +47,7 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
 
   // msList
   msList.resize(stream.UInt64());
-  for (std::unique_ptr<MSDataDescription>& dataDesc : msList)
-    dataDesc = MSDataDescription::Unserialize(stream);
+  for (MsListItem& item : msList) item.Unserialize(stream);
 }
 
 GriddingTask::FacetData::FacetData(
