@@ -88,7 +88,7 @@ aocommon::Image Load(const Settings& settings, const ImageFilename& image_name,
 
 #ifdef HAVE_EVERYBEAM
 void WriteBeamImages(const ImageFilename& image_name,
-                     std::vector<aocommon::HMC4x4>& beam,
+                     std::vector<aocommon::HMC4x4>&& beam,
                      const Settings& settings, const ImagingTableEntry& entry,
                      const CoordinateSystem& coordinates,
                      size_t undersampling_factor) {
@@ -98,13 +98,13 @@ void WriteBeamImages(const ImageFilename& image_name,
   Image upsampled(coordinates.width, coordinates.height);
   if (use_squared_beam) {
     for (aocommon::HMC4x4& pixel : beam) {
-      const double stokes_i =
-          0.5 * (pixel.Data(0) + 2.0 * pixel.Data(9) + pixel.Data(15));
-      // This is still a squared value. The sqrt is taken during correction.
-      // TODO it would be better to correct it here, and do the same for IDG,
-      // because then the beam image has normal units and can be used as
-      // weight image for use-cases that require mosaicking.
-      pixel.Data(0) = stokes_i;
+      if (pixel.Invert()) {
+        const double stokes_i_sqrt = std::sqrt(
+            0.5 * (pixel.Data(0) + 2.0 * pixel.Data(9) + pixel.Data(15)));
+        pixel.Data(0) = stokes_i_sqrt == 0.0 ? 0.0 : 1.0 / stokes_i_sqrt;
+      } else {
+        pixel.Data(0) = 0.0;
+      }
     }
     GriddedResponse::UpsampleCorrection(upsampled.Data(), 0, coordinates.width,
                                         coordinates.height, beam,
@@ -181,8 +181,7 @@ void ApplyFacetCorrections(const ImageFilename& image_name,
       // squares), so we just use (full_correction / beam_correction) as
       // factor. The final image needs to be divided by this factor. However,
       // since we are scaling the beam images, we need to apply the inverse of
-      // that. Also be aware that at this point the image on disk is still
-      // the squared correction (see TODO comment in WriteBeamImages()).
+      // that.
       const double beam_factor =
           channel_info.averageBeamFacetCorrection[entry->facetIndex]
               .GetStokesIValue();
@@ -192,7 +191,8 @@ void ApplyFacetCorrections(const ImageFilename& image_name,
       const double correction =
           beam_factor == 0.0 ? full_factor : full_factor / beam_factor;
       facet_image.SetFacet(*entry->facet, true);
-      facet_image.MultiplyImageInsideFacet(image_pointer, correction);
+      facet_image.MultiplyImageInsideFacet(image_pointer,
+                                           std::sqrt(correction));
     }
 
     WriteBeamElement(image_name, beam_image, settings, {}, writer);
@@ -418,17 +418,14 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
     PrimaryBeamImageSet beam_images;
     // IDG and facet-based imaging produce only a Stokes I beam, and images
     // have already been corrected for the rest. Currently we just load that
-    // beam into the diagonal entries of the real component of XX and YY. This
-    // is a bit wasteful so might require a better strategy for big images.
+    // beam into the 4 diagonal entries. This is a bit wasteful so might
+    // require a better strategy for big images.
     ImageFilename pol_name(image_name);
     pol_name.SetPolarization(aocommon::Polarization::StokesI);
     aocommon::FitsReader reader(pol_name.GetBeamPrefix(settings_) + ".fits");
     beam_images[0] =
         Image(settings_.trimmedImageWidth, settings_.trimmedImageHeight);
     reader.Read(beam_images[0].Data());
-    for (size_t i = 0;
-         i != settings_.trimmedImageWidth * settings_.trimmedImageHeight; ++i)
-      beam_images[0][i] = std::sqrt(beam_images[0][i]);
 
     // Copy image zero to images on the diagonal (see aocommon::HMC4x4)
     const std::array<size_t, 3> diagonal_entries = {3, 8, 15};
@@ -575,7 +572,7 @@ void PrimaryBeam::MakeImage(const ImageFilename& image_name,
     result[i] /= ms_weight_sum;
   }
 
-  WriteBeamImages(image_name, result, settings_, entry, coordinates,
+  WriteBeamImages(image_name, std::move(result), settings_, entry, coordinates,
                   undersample_);
 }
 
