@@ -20,11 +20,11 @@ Gridding with the beam
 ----------------------
 To combine observations weighted with the beam, each visibility should be gridded with the corresponding beam. This is only possible with the IDG gridder, hence the IDG gridder has to be used (add ``-use-idg`` and optionally ``-idg-mode hybrid`` to use GPUs: see :doc:`image domain gridding <image_domain_gridding>`).
 
-WSClean needs to know the beam shape. A few arrays are supported 'out of the box', such as LOFAR, MWA and VLA. In that case, simply adding ``-grid-with-beam`` is enough. Otherwise, a FITS file can be specified with the appropriate beams; see :doc:`a-term correction <a_term_correction>`.
+WSClean needs to know the beam shape. A few arrays are supported 'out of the box', such as LOFAR, MWA and VLA. In that case, simply adding ``-grid-with-beam`` is enough. Otherwise, a FITS file can be specified with the appropriate beams; see :doc:`a-term correction <idg_a_term_correction>`.
 
 WSClean needs the beam to have a certain level of smoothness, which results in a certain support of the kernel. In case the beam has unsmooth parts (e.g. near the horizon, or near the estimated response), the default settings might not be enough. Option ``-aterm-kernel-size`` can be used to change the default. Most beams are quite smooth, and don't require a kernel larger than 5..16 pixels. Hence, a safe start is to use a size of 16 and tweak later on for performance.
 
-It is possible to apply other direction-dependent corrections during the imaging. To do so, the list of a-terms needs to be defined using a separate config file as explained on :doc:`the a-term correction page <a_term_correction>`. Such a config file can also specify the beam gridding settings, which means that in that case the parameters like ``-grid-with-beam`` do not have to be set on the command line.
+It is possible to apply other direction-dependent corrections during the imaging. To do so, the list of a-terms needs to be defined using a separate config file as explained on :doc:`the a-term correction page <idg_a_term_correction>`. Such a config file can also specify the beam gridding settings, which means that in that case the parameters like ``-grid-with-beam`` do not have to be set on the command line.
 
 PAF settings
 ------------
@@ -40,7 +40,7 @@ To perform such 'paf' imaging, it is expected that the data for each beam is sto
 measurement set. Each beam and/or antenna may provide a separate beam fits file. The fits file may also have
 a frequency axis. Additionally, the beam can be corrected for the frequency of  the visibilities.
 
-This information can be provided by an a-term config file as described in the chapter :doc:`a-term correction <a_term_correction>`.
+This information can be provided by an a-term config file as described in the chapter :doc:`a-term correction <idg_a_term_correction>`.
 Here is an example:
 
 .. code-block:: text

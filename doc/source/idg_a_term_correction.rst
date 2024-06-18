@@ -1,7 +1,7 @@
-A-Term correction
-=================
+IDG with a-term correction
+==========================
 
-A-term correction is available in WSClean when gridding with the Image Domain Gridder (IDG). Info on how to enable and effectively use IDG can be found on the :doc:`IDG page <image_domain_gridding>`.
+Smooth screen a-term correction is available in WSClean when gridding with the Image Domain Gridder (IDG). Info on how to enable and effectively use IDG can be found on the :doc:`IDG page <image_domain_gridding>`.
 
 Gridding with a-term screens
 ----------------------------

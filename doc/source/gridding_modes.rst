@@ -5,6 +5,6 @@ Gridding modes
    :maxdepth: 2
  
    image_domain_gridding
-   a_term_correction
+   idg_a_term_correction
    combining_pointings
    wgridding

@@ -2,13 +2,12 @@ Facet-based imaging
 ===================
 
 WSClean supports facet-based imaging with correction of direction-dependent effects.
-A facet is a (polygonal-shaped) subsection of the full image. WSClean supports both convex and concave polygons.
+A facet is a (polygonal-shaped) subsection of the full image. 
 
-Facet-based imaging supports the correction of each facet with a previously found (direction-dependent) gain solution. 
-In some cases, facet-based imaging can also speed up imaging or reduce the memory footprint.
+Facet-based imaging supports the correction of each facet with a direction-dependent gain from a h5parm solution file. Additionally, the facet can be corrected for the primary beam of the instrument, which is calculated using EveryBeam. In some cases, facet-based imaging can also speed up imaging or reduce the memory footprint.
 
-Command-line options
---------------------
+Enabling faceting mode
+-----------------------
 
 To enable facet-based imaging in WSClean, a file containing the facet definitions should be provided via the :code:`-facet-regions` option on the command line:
 
@@ -17,7 +16,10 @@ To enable facet-based imaging in WSClean, a file containing the facet definition
     -facet-regions <MY_REGIONS_FILE>
 
 in which :code:`[MY_REGIONS_FILE]` is a file containing the facet definitions in the DS9 region file format.
-For a detailed explanation on the expected file format, see the explanation on :doc:`ds9_facet_file`.
+For a detailed explanation on the expected file format, see the explanation on :doc:`ds9_facet_file`. WSClean supports both convex and concave polygons in the region file.
+
+Beam correction
+~~~~~~~~~~~~~~~
 
 Enabling the facet beam correction can be done with the option
 
@@ -33,7 +35,10 @@ The facet beam update interval (in seconds) can be defined by specifying:
 
 The default value for the update interval is 120s.
 
-Direction-dependent corrections per facet can be read and applied from an ``h5parm`` file, which is a HDF5 file with gain solutions in a particular format. This format is for example supported by tools like `DP3 <https://dp3.readthedocs.io/>`_ and `losoto <https://github.com/revoltek/losoto>`_.
+Correction with gain solutions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Direction-dependent corrections per facet can be read and applied from an ``h5parm`` file, which is a HDF5 file with gain solutions in a particular format. This format is for example supported by tools like `DP3 <https://dp3.readthedocs.io/>`_ and `losoto <https://github.com/revoltek/losoto>`_. WSClean supports correction using various gain solution configurations, including scalar, diagonal and full-Jones solutions with amplitude, phase or combined terms. 
 
 The ``h5parm`` file is specified via the command-line option:
 
@@ -41,22 +46,9 @@ The ``h5parm`` file is specified via the command-line option:
 
     -apply-facet-solutions <path-to-h5parm> <name1[,name2]>
 
-where :code:`<path-to-h5parm>` is the path to the ``h5parm`` solution file and :code:`<name1[,name2]>`
-is a comma-separated list of strings specifying which "soltabs" from the provided ``h5parm`` solution file are used.
-Acceptable names are :code:`ampl000` and/or :code:`phase000`.
+where :code:`<path-to-h5parm>` is the path to the ``h5parm`` solution file and :code:`<name1[,name2]>` is a comma-separated list of strings specifying which "soltabs" from the provided ``h5parm`` solution file are used. Example names are :code:`amplitude000` and/or :code:`phase000`. 
 
-WSClean supports application of ``h5parm`` with various polarizations:
-
-- The simplest way is to apply "scalar" solutions. For example, if the solution file specifies ``X`` or ``R`` solutions, a scalar correction can be applied to create corrected ``XX`` or ``RR`` images, respectively. If the solution file specifies multiple polarizations, it is possible to image and correct multiple polarization at once (e.g. ``-pol xx,yy``). This way, diagonal solutions can be applied, but it requires imaging the ``xx`` and ``yy`` images separately, which is not always desired.
-- Stokes I images with diagonal solutions can be made without imaging ``xx`` and ``yy`` separately by using the option ``-diagonal-solutions``. This makes WSClean read the ``xx`` and ``yy`` visibilities (or ``rr`` and ``ll``), apply the corresponding solutions to them and average them together before gridding.
-- Full-polarization IQUV imaging with diagonal or full-Jones solutions is still a work in progress.
-
-In case multiple measurement sets are specified, it is possible to either specify one ``h5parm`` solution file, or a separate ``h5parm`` solution
-file per seasurement set.
-The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is required to be identical for all ``h5parm`` solution files.
-As an illustration, assume that :code:`N` measurement sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a
-scalar amplitude correction.
-The syntax for applying the facet solution files on its corresponding measurement set thus becomes:
+In case multiple measurement sets are specified, it is possible to either specify one ``h5parm`` solution file, or a separate ``h5parm`` solution file per measurement set. The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is required to be identical for all ``h5parm`` solution files. As an illustration, assume that :code:`N` measurement sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a scalar amplitude correction. The syntax for applying the facet solution files on its corresponding measurement set thus becomes:
 
 .. code-block:: text
 
@@ -68,6 +60,20 @@ The syntax for applying the facet solution files on its corresponding measuremen
     the smallest (Euclidean) distance in the solution file.
     For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9_facet_file`.
 
+Beam output file an ``-pb.fits`` files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When either beam or gain solutions are applied, WSClean will output a "beam" fits file (per output channel), and each output image and model file will be accompanied by a ``-pb.fits`` file. The beam fits file represents the Stokes I response. It is a combination of the average beam and average gain solution corrections. It can therefore be used for weighting when mosaicking (optimal weighting should square the values). The ``-pb.fits`` file holds the fully corrected images that hold correct flux values, whereas the normal (non-``-pb.fits``) files contain "flat noise" images.
+
+The average beam is corrected "smoothly", which (in perfect situations) means that the facet edge is not visible. In reality, the facet edge may be still visible in the ``-pb.fits`` and beam images because of the gain solutions, because the average correction is corrected discretely per facet and not smoothly.
+
+Reading / reordering consequences and ``-diagonal-solutions``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When applying solutions or beam in facet mode, WSClean will by default reorder and go through the four (instrumental) polarizations, e.g. XX/XY/YX/YY, for every requested output polarization. This is necessary to correct for leakage terms that the beam or solutions might have. This will obviously cause more reading and writing, while it might not always be necessary to use all visibilities. For the case where no leakage terms are expected, the option ``-diagonal-solutions`` can be used: this will *only* use the XX and YY polarizations and assume XY and YX are zero (and similar for circular feeds).
+
+.. note::
+    The text above describes the current meaning of ``-diagonal-solutions``: its meaning has changed between WSClean versions :doc:`changelogs/v3.4` and :doc:`changelogs/v3.5`.
 
 Examples
 --------
@@ -84,11 +90,11 @@ This is an example facet-based imaging command that applies both a facet-based b
     -size 1024 1024 -scale 1amin \
     ${ms}
 
-In case the solution files contains separate ``x`` and ``y`` solutions, option ``-diagional-solutions`` should be added.
+In case the solution files contains separate ``x`` and ``y`` solutions, option ``-diagonal-solutions`` should be added.
     
 Availability
 ------------
-Initial support for facetting is made available in WSClean :doc:`version 3.0 <changelogs/v3.0>`. In subsequent versions,
+Initial support for faceting is made available in WSClean :doc:`version 3.0 <changelogs/v3.0>`. In subsequent versions,
 several bugs were fixed and support for different solution types was added. WSClean :doc:`version 3.4 <changelogs/v3.4>`
 has support for scalar and diagonal solutions, and is considered stable.
 

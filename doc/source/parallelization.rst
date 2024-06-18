@@ -85,7 +85,7 @@ When using a single compute node, using MPI is discouraged, since multi-threaded
 gridding using the ``-parallel-gridding`` is more efficient. When using multiple
 nodes, the best performance is normally achieved using one MPI process with
 multiple parallel gridders per node. The total number of threads per node
- (``-j`` option) should equal to the number of cores per node,
+(``-j`` option) should equal to the number of cores per node,
 which is the default setting.
 
 Processing related facets on one node (Work in progress!)

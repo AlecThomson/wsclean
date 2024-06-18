@@ -302,7 +302,7 @@ Options can be:
 -wstack-kernel-size <size>
    Gridding antialiasing kernel size. Default: 7.
 -wstack-oversampling <factor>
-   Oversampling factor used during gridding. Default: 63.
+   Oversampling factor used during gridding. Default: 1023.
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
