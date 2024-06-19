@@ -66,8 +66,6 @@ void ApplyGain(std::complex<float>* visibilities, const MC2x2F& gain1,
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
- * gridders.
  * @tparam Mode Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
  * documentation of GainMode.
@@ -158,7 +156,7 @@ void VisibilityModifier::CacheParmResponse(
 
   // Only extract DD solutions if the corresponding cache entry is empty.
   if (_cachedParmResponse[ms_index].empty()) {
-    const size_t nparms = NParms(ms_index);
+    const size_t nparms = NValuesPerSolution(ms_index);
     const std::vector<double> freqs(band.begin(), band.end());
     const size_t responseSize = _cachedMSTimes[ms_index].size() * freqs.size() *
                                 antennaNames.size() * nparms;
@@ -304,7 +302,7 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
                                            size_t ms_index, size_t n_channels,
                                            size_t n_antennas, size_t antenna1,
                                            size_t antenna2) {
-  const size_t nparms = NParms(ms_index);
+  const size_t nparms = NValuesPerSolution(ms_index);
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
@@ -359,7 +357,7 @@ void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward) {
-  const size_t nparms = NParms(ms_index);
+  const size_t nparms = NValuesPerSolution(ms_index);
 
   // Conditional could be templated once C++ supports partial function
   // specialization
@@ -438,10 +436,7 @@ void VisibilityModifier::ApplyConjugatedDual(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward) {
-  const size_t nparms = NParms(ms_index);
-
-  // Conditional could be templated once C++ supports partial function
-  // specialization
+  const size_t nparms = NValuesPerSolution(ms_index);
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Compute facet beam
@@ -463,7 +458,8 @@ void VisibilityModifier::ApplyConjugatedDual(
       const MC2x2F gain_h5_2(_cachedParmResponse[ms_index][h5_offset2], 0, 0,
                              _cachedParmResponse[ms_index][h5_offset2 + 1]);
 
-      // Combine H5parm and beam
+      // Combine H5parm and beam. The beam is applied first on the data,
+      // and therefore needs to be the last in the multiplication.
       const MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
       const MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
 
@@ -481,19 +477,17 @@ void VisibilityModifier::ApplyConjugatedDual(
       weights += GetNVisibilities(Mode);
     }
   } else {
+    // This branch handles full jones H5 parm files (nparms == 4)
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      // Apply facet beam
+      // Get facet beam
       const size_t beam_offset = ch * _pointResponseBufferSize;
       const size_t beam_offset1 = beam_offset + antenna1 * 4u;
       const size_t beam_offset2 = beam_offset + antenna2 * 4u;
 
       const MC2x2F gain_b_1(&_cachedBeamResponse[beam_offset1]);
       const MC2x2F gain_b_2(&_cachedBeamResponse[beam_offset2]);
-      if (apply_forward) {
-        ApplyGain<Mode>(data, gain_b_1, gain_b_2);
-      }
-      ApplyConjugatedGain<Mode>(data, gain_b_1, gain_b_2);
-      // Apply h5
+
+      // Get h5 solution
       // Column major indexing
       const size_t offset_h5 =
           (_timeOffsets[ms_index] * n_channels + ch) * n_stations * nparms;
@@ -501,15 +495,17 @@ void VisibilityModifier::ApplyConjugatedDual(
       const size_t offset_h5_2 = offset_h5 + antenna2 * nparms;
       const MC2x2F gain_h5_1(&_cachedParmResponse[ms_index][offset_h5_1]);
       const MC2x2F gain_h5_2(&_cachedParmResponse[ms_index][offset_h5_2]);
+
+      // Combine H5parm and beam. The beam is applied first on the data,
+      // and therefore needs to be the last in the multiplication.
+      const MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
+      const MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
+
+      ApplyConjugatedGain<Mode>(data, gain_combined_1, gain_combined_2);
       if (apply_forward) {
-        ApplyGain<Mode>(data, gain_h5_1, gain_h5_2);
+        ApplyGain<Mode>(data, gain_combined_1, gain_combined_2);
       }
-      ApplyConjugatedGain<Mode>(data, gain_h5_1, gain_h5_2);
-      // TODO why are not all four values of the gains used?
-      const MC2x2F gain_combined_1(gain_b_1[0] * gain_h5_1[0], 0, 0,
-                                   gain_b_1[3] * gain_h5_1[3]);
-      const MC2x2F gain_combined_2(gain_b_2[0] * gain_h5_2[0], 0, 0,
-                                   gain_b_2[3] * gain_h5_2[3]);
+
       beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
                                      weights[0] * image_weights[ch]);
       correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,

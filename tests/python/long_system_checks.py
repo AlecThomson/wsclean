@@ -41,16 +41,16 @@ def check_image_pixel(position, expected_value, filename):
 @pytest.fixture
 def model_file_fixture():
     model_3c196 = """Format = Name, Patch, Type, Ra, Dec, I, Q, U, V, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
-,a,POINT, 08:13:36.0, 48.13.03.000,
-,b,POINT, 08:23:36.0, 48.13.03.000,
-,c,POINT, 08:03:36.0, 48.13.03.000,
-,d,POINT, 08:13:36.0, 49.45.00.000,
-,e,POINT, 08:13:36.0, 47.15.00.000,
-3c196, a, POINT, 08:13:36.0, 48.13.03.000, 0, 1, 0, 0, [0.0], false, , , ,
-left, b, POINT, 08:23:36.0, 48.13.03.000, 0, 0, 1, 0, [0.0], false, , , ,
-right, c, POINT, 08:03:36.0, 48.13.03.000, 0, 0, 0, 1, [0.0], false, , , ,
-top, d, POINT, 08:13:36.0, 49.45.00.000, 1, 0, 0, 0, [0.0], false, , , ,
-bottom, e, POINT, 08:13:36.0, 47.15.00.000, 0, -1, 0, 0, [0.0], false, , , ,
+,A,POINT, 08:13:36.0, 48.13.03.000,
+,B,POINT, 08:23:36.0, 48.13.03.000,
+,C,POINT, 08:03:36.0, 48.13.03.000,
+,D,POINT, 08:13:36.0, 49.45.00.000,
+,E,POINT, 08:13:36.0, 47.15.00.000,
+3c196, A, POINT, 08:13:36.0, 48.13.03.000, 0, 1, 0, 0, [0.0], false, , , ,
+left, B, POINT, 08:23:36.0, 48.13.03.000, 0, 0, 1, 0, [0.0], false, , , ,
+right, C, POINT, 08:03:36.0, 48.13.03.000, 0, 0, 0, 1, [0.0], false, , , ,
+top, D, POINT, 08:13:36.0, 49.45.00.000, 1, 0, 0, 0, [0.0], false, , , ,
+bottom, E, POINT, 08:13:36.0, 47.15.00.000, 0, -1, 0, 0, [0.0], false, , , ,
 """
     with open("testmodel.txt", "w") as f:
         f.write(model_3c196)
@@ -751,4 +751,56 @@ class TestLongSystem:
 
         check_image_pixel(
             i_source_pos, 1.0, "facet-dual-corrections-image-pb.fits"
+        )
+
+    def test_full_jones_facet_corrections(
+        self, model_file_fixture, region_file_fixture
+    ):
+        # Perform simple solve to get a hdf5 parm file
+        solution_file = "full_jones_correction_solutions.h5"
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.mode=fulljones ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.maxiter=1"
+        validate_call(dp3_run.split())
+
+        with h5py.File(solution_file, "a") as table:
+            solset = table["sol000"]
+            n_directions = solset["amplitude000/val"].shape[3]
+            for i in range(0, n_directions):
+                # times, freq, ant, dir, pol
+                solset["amplitude000/val"][:, :, :, i, :] = [
+                    0,
+                    i + 2,
+                    i + 2,
+                    0,
+                ]
+                solset["phase000/val"][:, :, :, i, :] = [-0.1, 0.1, -0.2, 0.15]
+            solset["amplitude000/weight"][:] = 1
+            solset["phase000/weight"][:] = 1
+
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[h5parmpredict] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=fulljones h5parmpredict.applycal.soltab=[amplitude000,phase000]"
+        validate_call(dp3_run.split())
+
+        wsclean_run = f"""{tcf.WSCLEAN} -name full-jones-facet-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
+-apply-facet-solutions {solution_file} amplitude000,phase000 -size 2500 2500
+-scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8 -nmiter 1
+-maxuvw-m 20000 -no-update-model-required  -pol iquv -join-polarizations
+3c196-simulation.ms"""
+        validate_call(wsclean_run.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "full-jones-facet-corrections-I-image-pb.fits"
+        )
+        check_image_pixel(
+            q_source_pos, 1.0, "full-jones-facet-corrections-Q-image-pb.fits"
+        )
+        check_image_pixel(
+            negative_q_source_pos,
+            -1.0,
+            "full-jones-facet-corrections-Q-image-pb.fits",
+        )
+        check_image_pixel(
+            u_source_pos, 1.0, "full-jones-facet-corrections-U-image-pb.fits"
+        )
+        check_image_pixel(
+            v_source_pos, 1.0, "full-jones-facet-corrections-V-image-pb.fits"
         )

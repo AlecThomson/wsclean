@@ -410,16 +410,6 @@ void MSGridderBase::WriteInstrumentalVisibilities(
     MSProvider::MetaData& metaData) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
-  if (visibility_modifier_.HasH5Parm()) {
-    assert(!settings_.facetRegionFilename.empty());
-    visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                           curBand, original_ms_index_);
-
-    visibility_modifier_.ApplyParmResponse<Mode>(
-        buffer, original_ms_index_, curBand.ChannelCount(),
-        antenna_names.size(), metaData.antenna1, metaData.antenna2);
-  }
-
 #ifdef HAVE_EVERYBEAM
   if (settings_.applyFacetBeam) {
     visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
@@ -429,6 +419,16 @@ void MSGridderBase::WriteInstrumentalVisibilities(
         buffer, curBand.ChannelCount(), metaData.antenna1, metaData.antenna2);
   }
 #endif
+
+  if (visibility_modifier_.HasH5Parm()) {
+    assert(!settings_.facetRegionFilename.empty());
+    visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
+                                           curBand, original_ms_index_);
+
+    visibility_modifier_.ApplyParmResponse<Mode>(
+        buffer, original_ms_index_, curBand.ChannelCount(),
+        antenna_names.size(), metaData.antenna1, metaData.antenna2);
+  }
 
   {
     const size_t lock_index =

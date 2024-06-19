@@ -193,7 +193,12 @@ class VisibilityModifier {
     return beam_correction_sum_;
   }
 
-  inline size_t NParms(size_t ms_index) const {
+  /**
+   * Number of complex values per solution: 4 in the case of fulljones,
+   * otherwise 2 (scalar solutions are already converted to dual solutions
+   * by the h5parm reader).
+   */
+  inline size_t NValuesPerSolution(size_t ms_index) const {
     using schaapcommon::h5parm::GainType;
     const size_t solution_index = (*_gainTypes).size() == 1 ? 0 : ms_index;
     return (*_gainTypes)[solution_index] == GainType::kFullJones ? 4 : 2;
