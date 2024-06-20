@@ -93,11 +93,16 @@ void MPIScheduler::Finish() {
 void MPIScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
 
-  const uint32_t mpi_writer_groups = nWriterGroups;
+  const TaskMessage message(TaskMessage::Type::kStart, nWriterGroups);
+  aocommon::SerialOStream message_stream;
+  message.Serialize(message_stream);
+  assert(message_stream.size() == TaskMessage::kSerializedSize);
+
   for (size_t rank = 1; rank < _availableRoom.size(); ++rank) {
     assert(_availableRoom[rank] > 0 &&
            size_t(_availableRoom[rank]) == GetSettings().parallelGridding);
-    MPI_Send(&mpi_writer_groups, 1, MPI_UINT32_T, rank, kTag, MPI_COMM_WORLD);
+    MPI_Send(message_stream.data(), TaskMessage::kSerializedSize, MPI_BYTE,
+             rank, kTag, MPI_COMM_WORLD);
   }
 
   if (GetSettings().masterDoesWork) {
@@ -108,10 +113,11 @@ void MPIScheduler::Start(size_t nWriterGroups) {
 void MPIScheduler::send(GriddingTask&& task,
                         std::function<void(GriddingResult&)>&& callback) {
   int node = getNode(task, std::move(callback));
-  Logger::Info << "Sending gridding task " << task.unique_id << " to node "
-               << node << ".\n";
 
   if (node == 0) {
+    Logger::Info << "Running gridding task " << task.unique_id
+                 << " at main node.\n";
+
     _localScheduler.Run(std::move(task), [this](GriddingResult& result) {
       Logger::Info << "Main node has finished gridding task "
                    << result.unique_id << ".\n";
@@ -126,6 +132,9 @@ void MPIScheduler::send(GriddingTask&& task,
     TaskMessage message;
     message.type = TaskMessage::Type::kGriddingRequest;
     message.bodySize = payloadStream.size();
+
+    Logger::Info << "Sending gridding task " << task.unique_id << " to node "
+                 << node << ". Size: " << message.bodySize << "\n";
 
     aocommon::SerialOStream taskMessageStream;
     message.Serialize(taskMessageStream);
