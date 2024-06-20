@@ -538,71 +538,6 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
   }
 }
 
-template <GainMode Mode>
-void MSGridderBase::ApplyWeightsAndCorrections(
-    const std::vector<std::string>& antenna_names, InversionRow& rowData,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData) {
-  if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
-    const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
-    const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
-    if (apply_beam && visibility_modifier_.HasH5Parm()) {
-#ifdef HAVE_EVERYBEAM
-      // Load and apply (in conjugate) both the beam and the h5parm solutions
-      visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
-                                             curBand);
-      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                             curBand, original_ms_index_);
-      visibility_modifier_
-          .ApplyConjugatedDual<ModifierBehaviour::kApplyAndSum, Mode>(
-              rowData.data, weightBuffer, scratch_image_weights_.data(),
-              curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
-              metaData.antenna2, original_ms_index_, apply_forward);
-    } else if (apply_beam) {
-      // Load and apply only the conjugate beam
-      visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
-                                             curBand);
-      visibility_modifier_
-          .ApplyConjugatedBeamResponse<ModifierBehaviour::kApplyAndSum, Mode>(
-              rowData.data, weightBuffer, scratch_image_weights_.data(),
-              curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
-              apply_forward);
-
-#endif  // HAVE_EVERYBEAM
-    } else if (visibility_modifier_.HasH5Parm()) {
-      visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                             curBand, original_ms_index_);
-
-      visibility_modifier_
-          .ApplyConjugatedParmResponse<ModifierBehaviour::kApplyAndSum, Mode>(
-              rowData.data, weightBuffer, scratch_image_weights_.data(),
-              original_ms_index_, curBand.ChannelCount(), antenna_names.size(),
-              metaData.antenna1, metaData.antenna2, apply_forward);
-    }
-  }
-
-  // Apply visibility and imaging weights
-  std::complex<float>* dataIter = rowData.data;
-  float* weightIter = weightBuffer;
-  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    for (size_t p = 0; p != GetNVisibilities(Mode); ++p) {
-      const double cumWeight = *weightIter * scratch_image_weights_[ch];
-      if (p == 0 && cumWeight != 0.0) {
-        // Visibility weight sum is the sum of weights excluding imaging weights
-        visibility_weight_sum_ += *weightIter;
-        max_gridded_weight_ = std::max(cumWeight, max_gridded_weight_);
-        ++gridded_visibility_count_;
-      }
-      // Total weight includes imaging weights
-      total_weight_ += cumWeight;
-      *weightIter = cumWeight;
-      *dataIter *= cumWeight;
-      ++dataIter;
-      ++weightIter;
-    }
-  }
-}
-
 template void MSGridderBase::CalculateWeights<1>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
@@ -619,32 +554,6 @@ template void MSGridderBase::CalculateWeights<4>(
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
-
-template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kXX>(
-    const std::vector<std::string>& antenna_names, InversionRow& newItem,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData);
-
-template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kYY>(
-    const std::vector<std::string>& antenna_names, InversionRow& newItem,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData);
-
-template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kTrace>(
-    const std::vector<std::string>& antenna_names, InversionRow& newItem,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData);
-
-template void
-MSGridderBase::ApplyWeightsAndCorrections<GainMode::k2VisDiagonal>(
-    const std::vector<std::string>& antenna_names, InversionRow& newItem,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData);
-
-template void MSGridderBase::ApplyWeightsAndCorrections<GainMode::kFull>(
-    const std::vector<std::string>& antenna_names, InversionRow& newItem,
-    const aocommon::BandData& curBand, float* weightBuffer,
-    const MSProvider::MetaData& metaData);
 
 template <size_t PolarizationCount>
 void MSGridderBase::rotateVisibilities(const aocommon::BandData& bandData,
