@@ -35,6 +35,10 @@ void Worker::Run() {
         scheduler_.Start(message.nWriterGroups);
         break;
 
+      case TaskMessage::Type::kFinish:
+        // The do..while loop will exit, too.
+        break;
+
       case TaskMessage::Type::kGriddingRequest: {
         buffer.resize(message.bodySize);
         MPI_Recv_Big(buffer.data(), message.bodySize, kMainNode, kTag,
