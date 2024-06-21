@@ -73,9 +73,7 @@ int main(int argc, char* argv[]) {
       shortException = false;
       if (main) {
         CommandLine::Run(wsclean);
-        TaskMessage message;
-        message.type = TaskMessage::Type::kFinish;
-        message.bodySize = 0;
+        const TaskMessage message(TaskMessage::Type::kFinish, 0);
         aocommon::SerialOStream msgStream;
         message.Serialize(msgStream);
         for (int i = 1; i != world_size; ++i) {

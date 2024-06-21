@@ -32,7 +32,7 @@ void Worker::Run() {
 
     switch (message.type) {
       case TaskMessage::Type::kStart:
-        scheduler_.Start(message.nWriterGroups);
+        scheduler_.Start(message.n_writer_groups);
         break;
 
       case TaskMessage::Type::kFinish:
@@ -40,8 +40,8 @@ void Worker::Run() {
         break;
 
       case TaskMessage::Type::kGriddingRequest: {
-        buffer.resize(message.bodySize);
-        MPI_Recv_Big(buffer.data(), message.bodySize, kMainNode, kTag,
+        buffer.resize(message.body_size);
+        MPI_Recv_Big(buffer.data(), message.body_size, kMainNode, kTag,
                      MPI_COMM_WORLD, &status, maximum_message_size);
         aocommon::SerialIStream stream(std::move(buffer));
         stream.UInt64();  // skip the nr of packages

@@ -129,13 +129,11 @@ void MPIScheduler::send(GriddingTask&& task,
     payloadStream.UInt64(0);
     task.Serialize(payloadStream);
 
-    TaskMessage message;
-    message.type = TaskMessage::Type::kGriddingRequest;
-    message.bodySize = payloadStream.size();
-
     Logger::Info << "Sending gridding task " << task.unique_id << " to node "
-                 << node << ". Size: " << message.bodySize << "\n";
+                 << node << ". Size: " << payloadStream.size() << "\n";
 
+    const TaskMessage message(TaskMessage::Type::kGriddingRequest,
+                              payloadStream.size());
     aocommon::SerialOStream taskMessageStream;
     message.Serialize(taskMessageStream);
     assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
@@ -185,7 +183,7 @@ void MPIScheduler::receiveLoop() {
       const int node = status.MPI_SOURCE;
       switch (message.type) {
         case TaskMessage::Type::kGriddingResult:
-          processGriddingResult(node, message.bodySize);
+          processGriddingResult(node, message.body_size);
           break;
         default:
           throw std::runtime_error("Invalid message sent by node " +

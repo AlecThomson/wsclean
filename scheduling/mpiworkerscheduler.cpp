@@ -35,10 +35,8 @@ void MpiWorkerScheduler::Run(
     resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big
     result.Serialize(resStream);
 
-    TaskMessage message;
-    message.type = TaskMessage::Type::kGriddingResult;
-    message.bodySize = resStream.size();
-
+    const TaskMessage message(TaskMessage::Type::kGriddingResult,
+                              resStream.size());
     aocommon::SerialOStream msgStream;
     message.Serialize(msgStream);
     assert(msgStream.size() == TaskMessage::kSerializedSize);
