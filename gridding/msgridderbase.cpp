@@ -553,28 +553,31 @@ void MSGridderBase::ApplyWeightsAndCorrections(
                                              curBand);
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, original_ms_index_);
-      visibility_modifier_.ApplyConjugatedDual<Mode>(
-          rowData.data, weightBuffer, scratch_image_weights_.data(),
-          curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
-          metaData.antenna2, original_ms_index_, apply_forward);
+      visibility_modifier_
+          .ApplyConjugatedDual<ModifierBehaviour::kApplyAndSum, Mode>(
+              rowData.data, weightBuffer, scratch_image_weights_.data(),
+              curBand.ChannelCount(), antenna_names.size(), metaData.antenna1,
+              metaData.antenna2, original_ms_index_, apply_forward);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
       visibility_modifier_.CacheBeamResponse(metaData.time, metaData.fieldId,
                                              curBand);
-      visibility_modifier_.ApplyConjugatedBeamResponse<Mode>(
-          rowData.data, weightBuffer, scratch_image_weights_.data(),
-          curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
-          apply_forward);
+      visibility_modifier_
+          .ApplyConjugatedBeamResponse<ModifierBehaviour::kApplyAndSum, Mode>(
+              rowData.data, weightBuffer, scratch_image_weights_.data(),
+              curBand.ChannelCount(), metaData.antenna1, metaData.antenna2,
+              apply_forward);
 
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
       visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
                                              curBand, original_ms_index_);
 
-      visibility_modifier_.ApplyConjugatedParmResponse<Mode>(
-          rowData.data, weightBuffer, scratch_image_weights_.data(),
-          original_ms_index_, curBand.ChannelCount(), antenna_names.size(),
-          metaData.antenna1, metaData.antenna2, apply_forward);
+      visibility_modifier_
+          .ApplyConjugatedParmResponse<ModifierBehaviour::kApplyAndSum, Mode>(
+              rowData.data, weightBuffer, scratch_image_weights_.data(),
+              original_ms_index_, curBand.ChannelCount(), antenna_names.size(),
+              metaData.antenna1, metaData.antenna2, apply_forward);
     }
   }
 

@@ -21,6 +21,12 @@
 class SynchronizedMS;
 
 /**
+ * Control whether to apply the modifier, sum the corrections or both when
+ * calling methods that apply a modifier e.g. @ref ApplyConjugatedParmResponse()
+ */
+enum class ModifierBehaviour { kApply, kSum, kApplyAndSum };
+
+/**
  * Applies beam and h5parm solutions to visibilities.
  * See the documentation for function @ref ApplyConjugatedParmResponse()
  * for an overview of parameters that hold for most of these functions.
@@ -81,10 +87,10 @@ class VisibilityModifier {
   /**
    * Applies the conjugate (is backward, or imaging direction) h5parm gain
    * to given data.
-   * @tparam PolarizationCount Number of differently-polarized correlations in
-   * the data, e.g. 2 for XX/YY and 4 for full Jones matrices.
-   * @tparam GainEntry Gain application mode that defines how the gain is
-   * applied.
+   * @tparam Behaviour Determines whether we should apply the gain, sum the
+   * correction or both.
+   * @tparam Mode Gain application mode that defines how the gain is
+   * applied, the PolarizationCount is also implied/determined by the gain mode.
    * @param [in,out] data Data array with n_channels x PolarizationCount
    * elements.
    * @param weights Array with for each data value the corresponding weight.
@@ -95,7 +101,7 @@ class VisibilityModifier {
    * applied to the data. This is necessary for calculating direction-dependent
    * PSFs.
    */
-  template <GainMode GainEntry>
+  template <ModifierBehaviour Behaviour, GainMode Mode>
   void ApplyConjugatedParmResponse(std::complex<float>* data,
                                    const float* weights,
                                    const float* image_weights, size_t ms_index,
@@ -137,7 +143,7 @@ class VisibilityModifier {
   void ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
                          size_t antenna1, size_t antenna2);
 
-  template <GainMode Mode>
+  template <ModifierBehaviour Behaviour, GainMode Mode>
   void ApplyConjugatedBeamResponse(std::complex<float>* data,
                                    const float* weights,
                                    const float* image_weights,
@@ -148,7 +154,7 @@ class VisibilityModifier {
    * Correct the data for both the conjugated beam and the
    * conjugated h5parm solutions.
    */
-  template <GainMode Mode>
+  template <ModifierBehaviour Behaviour, GainMode Mode>
   void ApplyConjugatedDual(std::complex<float>* data, const float* weights,
                            const float* image_weights, size_t n_channels,
                            size_t n_stations, size_t antenna1, size_t antenna2,
