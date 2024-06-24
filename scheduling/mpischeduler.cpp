@@ -130,7 +130,7 @@ void MPIScheduler::send(GriddingTask&& task,
     task.Serialize(payloadStream);
 
     Logger::Info << "Sending gridding task " << task.unique_id << " to node "
-                 << node << ". Size: " << payloadStream.size() << "\n";
+                 << node << " (size: " << payloadStream.size() << ").\n";
 
     const TaskMessage message(TaskMessage::Type::kGriddingRequest,
                               payloadStream.size());
