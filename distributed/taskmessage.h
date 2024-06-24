@@ -7,9 +7,23 @@
 struct TaskMessage {
   enum class Type {
     kInvalid,
+    /**
+     * A 'kStart' message corresponds to a GriddingTaskManager::Start() call.
+     * The main node sends it to all workers before sending Predict tasks, so
+     * the workers can initialize their (local) writer locks.
+     */
     kStart,
+    /**
+     * Using a 'kFinish' message, the main node signals the workers that all
+     * workis done and the workers can exit.
+     */
     kFinish,
+    /** Message from the main node to a worker, containing a gridding task. */
     kGriddingRequest,
+    /**
+     * Message from a worker to the main node, containing the result of a
+     * gridding task.
+     */
     kGriddingResult,
   } type;
   union {
