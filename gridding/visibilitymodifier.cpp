@@ -74,8 +74,8 @@ void VisibilityModifier::InitializeMockResponse(
   _timeOffsets = {std::pair(0, 0)};
 }
 
-void VisibilityModifier::CacheParmResponse(
-    double time, const std::vector<std::string>& antennaNames,
+void VisibilityModifier::InitializeCacheParmResponse(
+    const std::vector<std::string>& antennaNames,
     const aocommon::BandData& band, size_t ms_index) {
   using schaapcommon::h5parm::JonesParameters;
 
@@ -108,7 +108,20 @@ void VisibilityModifier::CacheParmResponse(
                                          &parms(0, 0, 0) + responseSize);
     setNonFiniteToZero(_cachedParmResponse[ms_index]);
   }
+}
 
+size_t VisibilityModifier::GetCacheParmResponseSize() const {
+  size_t num_allocated = 0;
+  for (auto iter = _cachedParmResponse.begin();
+       iter != _cachedParmResponse.end(); ++iter) {
+    num_allocated += iter->second.capacity();
+  }
+  return num_allocated * sizeof(std::complex<float>);
+}
+
+void VisibilityModifier::CacheParmResponse(
+    double time, const std::vector<std::string>& antennaNames,
+    const aocommon::BandData& band, size_t ms_index) {
   const auto it =
       std::find(_cachedMSTimes[ms_index].begin() + _timeOffsets[ms_index],
                 _cachedMSTimes[ms_index].end(), time);

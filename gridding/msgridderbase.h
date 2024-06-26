@@ -95,6 +95,11 @@ class MSGridderBase {
                                    gain_types);
   }
 
+  /** @return The memory consumption of cached h5 solutions, in bytes. */
+  size_t GetCachedH5ParmSize() const {
+    return visibility_modifier_.GetCacheParmResponseSize();
+  }
+
   size_t ImageWidth() const { return image_width_; }
   size_t ImageHeight() const { return image_height_; }
   double ImagePadding() const { return image_padding_; }

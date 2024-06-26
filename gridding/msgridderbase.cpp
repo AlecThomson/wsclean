@@ -114,6 +114,10 @@ void MSGridderBase::initializePointResponse(
 void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
                                         bool isPredict) {
   initializePointResponse(msData);
+  if (visibility_modifier_.HasH5Parm()) {
+    visibility_modifier_.InitializeCacheParmResponse(
+        msData.antenna_names, msData.SelectedBand(), msData.original_ms_index);
+  }
   original_ms_index_ = msData.original_ms_index;
   n_vis_polarizations_ = msData.ms_provider->NPolarizations();
   gain_mode_ = GetGainMode(Polarization(), n_vis_polarizations_);
