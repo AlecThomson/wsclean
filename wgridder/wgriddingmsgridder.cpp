@@ -56,6 +56,9 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   size_t constantMem;
   size_t perVisMem;
   gridder_->MemoryUsage(constantMem, perVisMem);
+
+  constantMem += GetCachedH5ParmSize();
+
   if (int64_t(constantMem) >= resources_.Memory()) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers

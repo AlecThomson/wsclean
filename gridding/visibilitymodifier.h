@@ -78,8 +78,22 @@ class VisibilityModifier {
   }
 
   /**
-   * @brief Cache the solutions from a h5 solution file and update the
-   * associated time.
+   * @brief Cache the solutions from a h5 solution file
+   */
+  void InitializeCacheParmResponse(const std::vector<std::string>& antennaNames,
+                                   const aocommon::BandData& band,
+                                   size_t ms_index);
+  /**
+   * @brief Calculate how much memory cached h5 solution files are
+   * consuming after calling @ref InitializeCacheParmResponse()
+   * @return The memory consumption, in bytes.
+   */
+  size_t GetCacheParmResponseSize() const;
+
+  /**
+   * @brief Update the time associated with a cached h5 solution file.
+   * Cache must be initialised once per msData before calling this
+   * method, by calling @ref InitializeCacheParmResponse()
    */
   void CacheParmResponse(double time,
                          const std::vector<std::string>& antennaNames,
