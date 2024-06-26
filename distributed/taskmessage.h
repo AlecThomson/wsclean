@@ -15,7 +15,7 @@ struct TaskMessage {
     kStart,
     /**
      * Using a 'kFinish' message, the main node signals the workers that all
-     * workis done and the workers can exit.
+     * work is done and the workers can exit.
      */
     kFinish,
     /** Message from the main node to a worker, containing a gridding task. */
