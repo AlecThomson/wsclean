@@ -112,9 +112,8 @@ void VisibilityModifier::InitializeCacheParmResponse(
 
 size_t VisibilityModifier::GetCacheParmResponseSize() const {
   size_t num_allocated = 0;
-  std::map<size_t, std::vector<std::complex<float>>>::const_iterator iter =
-      _cachedParmResponse.begin();
-  for (; iter != _cachedParmResponse.end(); ++iter) {
+  for (auto iter = _cachedParmResponse.begin();
+       iter != _cachedParmResponse.end(); ++iter) {
     num_allocated += iter->second.capacity();
   }
   return num_allocated * sizeof(std::complex<float>);

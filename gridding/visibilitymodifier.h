@@ -86,6 +86,7 @@ class VisibilityModifier {
   /**
    * @brief Calculate how much memory cached h5 solution files are
    * consuming after calling @ref InitializeCacheParmResponse()
+   * @return The memory consumption, in bytes.
    */
   size_t GetCacheParmResponseSize() const;
 
