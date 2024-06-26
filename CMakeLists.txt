@@ -28,34 +28,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(PORTABLE "Generate portable code" OFF)
+option(PORTABLE "Build portable binaries (with slightly decreased performance)"
+       OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
 
 set(RADLER_CXX_FLAGS
     " "
     CACHE STRING "Extra C++ flags used for compiling Radler")
-
-include(CheckCXXCompilerFlag)
-if(PORTABLE)
-  if(DEFINED TARGET_CPU)
-    message(WARNING "You have selected to build PORTABLE binaries. "
-                    "TARGET_CPU settings will be ignored.")
-    unset(TARGET_CPU CACHE)
-  endif()
-else()
-  if(DEFINED TARGET_CPU)
-    add_compile_options(-march=${TARGET_CPU})
-    set(RADLER_TARGET_CPU "-DTARGET_CPU=${TARGET_CPU}")
-  else()
-    check_cxx_compiler_flag("-march=native" COMPILER_HAS_MARCH_NATIVE)
-    if(COMPILER_HAS_MARCH_NATIVE)
-      add_compile_options(-march=native)
-    else()
-      message(
-        WARNING "The compiler doesn't support -march=native for your CPU.")
-    endif()
-  endif()
-endif()
 
 set(ExternalSubmoduleDirectories aocommon pybind11 radler schaapcommon)
 foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
@@ -90,6 +69,9 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
   endif()
 endif()
+
+# User may optionally set `TARGET_CPU` if `PORTABLE=OFF`
+include(external/aocommon/CMake/SetTargetCPU.cmake)
 
 # Include aocommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
@@ -250,6 +232,7 @@ ExternalProject_Add(
   CMAKE_ARGS
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
     -DPORTABLE=${PORTABLE}
+    -DTARGET_CPU=${TARGET_CPU}
     -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
@@ -266,7 +249,6 @@ ExternalProject_Add(
     -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    ${RADLER_TARGET_CPU}
     -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
 
 set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
