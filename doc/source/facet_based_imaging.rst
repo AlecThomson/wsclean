@@ -60,8 +60,16 @@ In case multiple measurement sets are specified, it is possible to either specif
     the smallest (Euclidean) distance in the solution file.
     For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9_facet_file`.
 
-Beam output file an ``-pb.fits`` files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Order of beam and solution gains
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+WSClean supports applying direction-dependent full-Jones solutions. It is imortant though that if this is combined with applying the beam, it is applied after the beam (on the model / in the forward direction), whereas e.g. Faraday rotation is practically an effect that happens before the beam. This issue is minimized by applying the pointing centre beam on the observed data, but that will not be perfect. The rationale for this is a combination of things:
+
+- For direction *independent* solving, the correct order of solutions can be maintained by applying an effect (like differential Faraday rotation) on the observed data when it needs to applied before the beam, and applying an effect (like clock or cable delay) to the model when it needs to be applied after the beam.
+- Current solvers also solve after applying the beam on the model (because it is a lot easier), so even if WSClean would first apply the full-Jones solutions and then the beam, there would directly be a way to solve for this order. This effectively means that when solving for and applying direction-dependent differential Faraday rotation, what basically is solved for is more-or-less a solution projected by the beam, so not really Faraday rotation.
+- Another use-case of full Jones solutions is to correct for beam leakage modeling errors, and for those it wouldn't matter much if you do it before or after the beam.
+    
+Beam output file and ``-pb.fits`` files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When either beam or gain solutions are applied, WSClean will output a "beam" fits file (per output channel), and each output image and model file will be accompanied by a ``-pb.fits`` file. The beam fits file represents the Stokes I response. It is a combination of the average beam and average gain solution corrections. It can therefore be used for weighting when mosaicking (optimal weighting should square the values). The ``-pb.fits`` file holds the fully corrected images that hold correct flux values, whereas the normal (non-``-pb.fits``) files contain "flat noise" images.
 
