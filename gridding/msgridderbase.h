@@ -881,7 +881,8 @@ inline void MSGridderBase::ApplyWeights(std::complex<float>* visibility_row,
     for (size_t pol = 0; pol < n_pols; pol++) {
       size_t i = channel * n_pols + pol;
 
-      const float cumWeight = weight_buffer[i] * scratch_image_weights_[channel];
+      const float cumWeight =
+          weight_buffer[i] * scratch_image_weights_[channel];
       const bool noWeight = cumWeight == 0.0;
       if (pol == 0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
