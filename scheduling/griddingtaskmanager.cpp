@@ -1,27 +1,24 @@
 #include "griddingtaskmanager.h"
 
 #include <numeric>
+#include <mutex>
+#include <vector>
 
+#include "griddingtask.h"
+#include "griddingresult.h"
 #include "mpischeduler.h"
 #include "threadedscheduler.h"
 
+#include "../gridding/h5solutiondata.h"
+#include "../gridding/msgriddermanager.h"
 #include "../main/settings.h"
-
-#include "../gridding/msgridderbase.h"
-#include "../gridding/wsmsgridder.h"
-#include "../gridding/directmsgridder.h"
-
-#include "../idg/averagebeam.h"
-#include "../idg/idgmsgridder.h"
-
-#include <schaapcommon/facets/facet.h>
-
-#include "../wgridder/wgriddingmsgridder.h"
+#include "../structures/resources.h"
 
 GriddingTaskManager::GriddingTaskManager(const Settings& settings)
-    : settings_(settings), writer_lock_manager_(this) {
-  LoadSolutions();
-  LoadGainTypes();
+    : settings_(settings),
+      solution_data_(settings),
+      writer_lock_manager_(this) {
+  solution_data_.Load();
 }
 
 GriddingTaskManager::~GriddingTaskManager() {}
@@ -69,258 +66,17 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
 
-  std::unique_ptr<MSGridderBase> gridder;
-
-  for (size_t facet_index : facet_indices) {
-    assert(facet_index < task.facets.size());
-    GriddingTask::FacetData& facet_task = task.facets[facet_index];
-    GriddingResult::FacetData& facet_result = result.facets[facet_index];
-
-    // Create a new gridder for each facet / sub-task, since gridders do not
-    // support reusing them for multiple tasks.
-    gridder = ConstructGridder(resources);
-    if (!h5parms_.empty()) {
-      gridder->SetH5Parm(h5parms_, first_solutions_, second_solutions_,
-                         gain_types_);
-    }
-    InitializeGridderForTask(*gridder, task);
-
-    const bool has_input_average_beam(facet_task.averageBeam);
-    if (has_input_average_beam) {
-      assert(dynamic_cast<IdgMsGridder*>(gridder.get()));
-      IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(*gridder);
-      idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
-    }
-
-    InitializeGridderForFacet(*gridder, facet_task);
-
-    if (task.operation == GriddingTask::Invert) {
-      gridder->Invert();
-    } else {
-      gridder->Predict(std::move(facet_task.modelImages));
-    }
-
-    // Add facet-specific result values to the result.
-    facet_result.images = gridder->ResultImages();
-    facet_result.actualWGridSize = gridder->ActualWGridSize();
-    facet_result.averageCorrection = gridder->GetAverageCorrection();
-    facet_result.averageBeamCorrection = gridder->GetAverageBeamCorrection();
-    facet_result.cache = gridder->AcquireMetaDataCache();
-
-    // The gridder resets visibility counters in each gridding invocation,
-    // so they only contain the statistics of that invocation.
-    facet_result.imageWeight = gridder->ImageWeight();
-    facet_result.normalizationFactor = gridder->NormalizationFactor();
-    facet_result.effectiveGriddedVisibilityCount =
-        gridder->EffectiveGriddedVisibilityCount();
-    {
-      std::lock_guard<std::mutex> result_lock(result_mutex);
-      result.griddedVisibilityCount += gridder->GriddedVisibilityCount();
-      result.visibilityWeightSum += gridder->VisibilityWeightSum();
-    }
-
-    // If the average beam already exists on input, IDG will not recompute it,
-    // so in that case there is no need to return the unchanged average beam.
-    IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder.get());
-    if (idgGridder && !has_input_average_beam) {
-      facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
-    }
-  }
-
-  if (facet_indices.front() == 0) {
-    // Store result values that are equal for all facets.
-    result.unique_id = task.unique_id;
-    result.startTime = gridder->StartTime();
-    result.beamSize = gridder->BeamSize();
-  }
-}
-
-std::unique_ptr<MSGridderBase> GriddingTaskManager::ConstructGridder(
-    const Resources& resources) const {
-  switch (settings_.gridderType) {
-    case GridderType::IDG:
-      return std::make_unique<IdgMsGridder>(settings_, resources);
-    case GridderType::WGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources, false);
-    case GridderType::TunedWGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources, true);
-    case GridderType::DirectFT:
-      switch (settings_.directFTPrecision) {
-        case DirectFTPrecision::Float:
-          return std::make_unique<DirectMSGridder<float>>(settings_, resources);
-        case DirectFTPrecision::Double:
-          return std::make_unique<DirectMSGridder<double>>(settings_,
-                                                           resources);
-        case DirectFTPrecision::LongDouble:
-          return std::make_unique<DirectMSGridder<long double>>(settings_,
-                                                                resources);
-      }
-      break;
-    case GridderType::WStacking:
-      return std::make_unique<WSMSGridder>(settings_, resources);
-  }
-  return {};
-}
-
-void GriddingTaskManager::InitializeGridderForTask(MSGridderBase& gridder,
-                                                   const GriddingTask& task) {
-  gridder.SetGridMode(settings_.gridMode);
-
-  gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  gridder.SetImagePadding(settings_.imagePadding);
-  gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
-  gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
-
-  if (settings_.hasShift) {
-    double main_image_dl = 0.0;
-    double main_image_dm = 0.0;
-    aocommon::ImageCoordinates::RaDecToLM(settings_.shiftRA, settings_.shiftDec,
-                                          task.observationInfo.phaseCentreRA,
-                                          task.observationInfo.phaseCentreDec,
-                                          main_image_dl, main_image_dm);
-    gridder.SetMainImageDL(main_image_dl);
-    gridder.SetMainImageDM(main_image_dm);
-  }
-
-  gridder.SetPolarization(task.polarization);
-  gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
-                       task.polarization == aocommon::Polarization::YX);
-  gridder.SetIsFirstTask(task.isFirstTask);
-  gridder.SetImageWeights(task.imageWeights.get());
+  MSGridderManager manager(settings_, solution_data_);
+  manager.InitializeGridders(task, facet_indices, resources, result.facets,
+                             writer_lock_manager_);
   if (task.operation == GriddingTask::Invert) {
-    if (task.imagePSF) {
-      if (settings_.ddPsfGridWidth > 1 || settings_.ddPsfGridHeight > 1) {
-        gridder.SetPsfMode(PsfMode::kDirectionDependent);
-      } else {
-        gridder.SetPsfMode(PsfMode::kSingle);
-      }
-    } else {
-      gridder.SetPsfMode(PsfMode::kNone);
-    }
-    gridder.SetDoSubtractModel(task.subtractModel);
-    gridder.SetStoreImagingWeights(task.storeImagingWeights);
+    manager.Invert();
   } else {
-    gridder.SetWriterLockManager(writer_lock_manager_);
+    manager.Predict();
   }
-
-  gridder.ClearMeasurementSetList();
-  for (const MsListItem& item : task.msList) {
-    gridder.AddMeasurementSet(item.ms_description->GetProvider(),
-                              item.ms_description->Selection(), item.ms_index);
+  bool store_common_info = (facet_indices.front() == 0);
+  if (store_common_info) {
+    result.unique_id = task.unique_id;
   }
-}
-
-void GriddingTaskManager::InitializeGridderForFacet(
-    MSGridderBase& gridder, GriddingTask::FacetData& facet_task) {
-  const schaapcommon::facets::Facet* facet = facet_task.facet.get();
-  gridder.SetIsFacet(facet != nullptr);
-  if (facet) {
-    gridder.SetFacetIndex(facet_task.index);
-    gridder.SetImageWidth(facet->GetUntrimmedBoundingBox().Width());
-    gridder.SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
-    gridder.SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
-                        facet->GetTrimmedBoundingBox().Height());
-    gridder.SetFacetDirection(facet->RA(), facet->Dec());
-  } else {
-    gridder.SetImageWidth(settings_.paddedImageWidth);
-    gridder.SetImageHeight(settings_.paddedImageHeight);
-    gridder.SetTrimSize(settings_.trimmedImageWidth,
-                        settings_.trimmedImageHeight);
-  }
-  gridder.SetLShift(facet_task.l_shift);
-  gridder.SetMShift(facet_task.m_shift);
-
-  std::unique_ptr<MetaDataCache> cache = std::move(facet_task.cache);
-  if (!cache) cache = std::make_unique<MetaDataCache>();
-  gridder.SetMetaDataCache(std::move(cache));
-}
-
-void GriddingTaskManager::LoadSolutions() {
-  using schaapcommon::h5parm::SolTab;
-
-  const std::vector<std::string>& solution_files = settings_.facetSolutionFiles;
-  const std::vector<std::string>& solution_table_names =
-      settings_.facetSolutionTables;
-
-  h5parms_.reserve(solution_files.size());
-  first_solutions_.reserve(solution_files.size());
-  if (solution_table_names.size() == 2)
-    second_solutions_.reserve(solution_files.size());
-
-  for (const std::string& solution_file : solution_files) {
-    schaapcommon::h5parm::H5Parm& h5parm =
-        h5parms_.emplace_back(solution_file, solution_table_names);
-
-    if (solution_table_names.size() == 1) {
-      first_solutions_.emplace_back(&h5parm.GetSolTab(solution_table_names[0]));
-    } else {  // Use amplitude as first solution and phase as second solution.
-      assert(solution_table_names.size() == 2);
-      const std::string kAmplitude = "amplitude";
-      const std::string kPhase = "phase";
-
-      const std::array<schaapcommon::h5parm::SolTab*, 2> tables{
-          &h5parm.GetSolTab(solution_table_names[0]),
-          &h5parm.GetSolTab(solution_table_names[1])};
-      const std::array<std::string, 2> types{tables[0]->GetType(),
-                                             tables[1]->GetType()};
-
-      if (types[0] == kAmplitude && types[1] == kPhase) {
-        first_solutions_.emplace_back(tables[0]);
-        second_solutions_.emplace_back(tables[1]);
-      } else if (types[0] == kPhase && types[1] == kAmplitude) {
-        first_solutions_.emplace_back(tables[1]);
-        second_solutions_.emplace_back(tables[0]);
-      } else {
-        throw std::runtime_error(
-            "WSClean expects solution tables with names '" + kAmplitude +
-            "' and '" + kPhase + "', but received '" + types[0] + "' and '" +
-            types[1] + "'");
-      }
-    }
-  }
-}
-
-void GriddingTaskManager::LoadGainTypes() {
-  using schaapcommon::h5parm::GainType;
-  using schaapcommon::h5parm::SolTab;
-
-  gain_types_.reserve(h5parms_.size());
-
-  if (second_solutions_.empty()) {
-    for (const SolTab* table : first_solutions_) {
-      gain_types_.emplace_back(
-          schaapcommon::h5parm::JonesParameters::H5ParmTypeStringToGainType(
-              table->GetType()));
-    }
-  } else {
-    assert(second_solutions_.size() == first_solutions_.size());
-
-    const std::string kPol = "pol";
-
-    for (size_t i = 0; i < first_solutions_.size(); ++i) {
-      const size_t n_amplitude_polarizations =
-          first_solutions_[i]->HasAxis(kPol)
-              ? first_solutions_[i]->GetAxis(kPol).size
-              : 1;
-      const size_t n_phase_polarizations =
-          second_solutions_[i]->HasAxis(kPol)
-              ? second_solutions_[i]->GetAxis(kPol).size
-              : 1;
-
-      if (n_amplitude_polarizations == 1 && n_phase_polarizations == 1) {
-        gain_types_.emplace_back(GainType::kScalarComplex);
-      } else if (n_amplitude_polarizations == 2 && n_phase_polarizations == 2) {
-        gain_types_.emplace_back(GainType::kDiagonalComplex);
-      } else if (n_amplitude_polarizations == 4 && n_phase_polarizations == 4) {
-        gain_types_.emplace_back(GainType::kFullJones);
-      } else {
-        throw std::runtime_error(
-            "Incorrect or mismatching number of polarizations in the "
-            "provided amplitude and phase soltabs. The number of polarizations "
-            "should both be either 1, 2 or 4, but received " +
-            std::to_string(n_amplitude_polarizations) + " for amplitude and " +
-            std::to_string(n_phase_polarizations) + " for phase");
-      }
-    }
-  }
+  manager.ProcessResults(result_mutex, result, store_common_info);
 }
