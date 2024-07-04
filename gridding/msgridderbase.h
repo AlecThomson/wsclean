@@ -875,21 +875,25 @@ template <GainMode Mode>
 inline void MSGridderBase::ApplyWeights(std::complex<float>* visibility_row,
                                         const size_t channel_count,
                                         float* weight_buffer) {
-  for (size_t ch = 0; ch != channel_count; ++ch) {
-    for (size_t p = 0; p != GetNVisibilities(Mode); ++p) {
-      const double cumWeight = *weight_buffer * scratch_image_weights_[ch];
-      if (p == 0 && cumWeight != 0.0) {
+  const size_t n_pols = GetNVisibilities(Mode);
+
+  for (size_t channel = 0; channel < channel_count; channel++) {
+    for (size_t pol = 0; pol < n_pols; pol++) {
+      size_t i = channel * n_pols + pol;
+
+      const float cumWeight =
+          weight_buffer[i] * scratch_image_weights_[channel];
+      const bool noWeight = cumWeight == 0.0;
+      if (pol == 0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
-        visibility_weight_sum_ += *weight_buffer;
-        max_gridded_weight_ = std::max(cumWeight, max_gridded_weight_);
-        ++gridded_visibility_count_;
+        visibility_weight_sum_ += weight_buffer[i] * noWeight;
+        max_gridded_weight_ = std::max((double)cumWeight, max_gridded_weight_);
+        gridded_visibility_count_ += !noWeight;
       }
       // Total weight includes imaging weights
       total_weight_ += cumWeight;
-      *weight_buffer = cumWeight;
-      *visibility_row *= cumWeight;
-      ++visibility_row;
-      ++weight_buffer;
+      weight_buffer[i] = cumWeight;
+      visibility_row[i] *= cumWeight;
     }
   }
 }
