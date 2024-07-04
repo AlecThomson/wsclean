@@ -746,7 +746,14 @@ class TestLongSystem:
         dp3_run = f"DP3 msin=3c196-simulation.ms msout= steps=[applybeam]"
         validate_call(dp3_run.split())
 
-        cmd = base_cmd + " -diagonal-solutions 3c196-simulation.ms"
+        cmd = base_cmd + " -diagonal-visibilities 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-dual-corrections-image-pb.fits"
+        )
+
+        cmd = base_cmd + " -scalar-visibilities 3c196-simulation.ms"
         validate_call(cmd.split())
 
         check_image_pixel(

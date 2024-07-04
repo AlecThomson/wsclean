@@ -71,15 +71,18 @@ void Settings::Validate() const {
     throw std::runtime_error(s.str());
   }
 
-  if (diagonalSolutions) {
+  if (visibilityReadMode != VisibilityReadMode::Full) {
     if (facetSolutionFiles.empty()) {
       throw std::runtime_error(
-          "-diagonal-solutions must be combined with -apply-facet-solutions");
+          "-diagonal-visibilities must be combined with "
+          "-apply-facet-solutions");
     }
-    if (polarizations.size() != 1 ||
-        *polarizations.begin() != aocommon::PolarizationEnum::StokesI) {
+    if (visibilityReadMode == VisibilityReadMode::Diagonal &&
+        (polarizations.size() != 1 ||
+         *polarizations.begin() != aocommon::PolarizationEnum::StokesI)) {
       throw std::runtime_error(
-          "-diagonal-solutions can only be used when making Stokes I images");
+          "-diagonal-visibilities can only be used when making Stokes I "
+          "images");
     }
   }
 
@@ -591,8 +594,10 @@ aocommon::PolarizationEnum Settings::GetProviderPolarization(
     } else {
       return aocommon::Polarization::Instrumental;
     }
-  } else if (diagonalSolutions) {
+  } else if (visibilityReadMode == VisibilityReadMode::Diagonal) {
     return aocommon::Polarization::DiagonalInstrumental;
+  } else if (visibilityReadMode == VisibilityReadMode::Scalar) {
+    return entry_polarization;
   } else if ((xx_and_yy || stokes_i) && UseFacetCorrections()) {
     return aocommon::Polarization::Instrumental;
   } else {

@@ -60,36 +60,21 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
 
   Logger::Info << "Reading pre-generated reordered data...\n";
 
+  std::set<aocommon::PolarizationEnum> polarization_types;
+  for (aocommon::PolarizationEnum p : settings_.polarizations)
+    polarization_types.insert(settings_.GetProviderPolarization(p));
+
   for (size_t ms_index = 0; ms_index < settings_.filenames.size(); ++ms_index) {
     const std::vector<ReorderedMs::ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    std::set<aocommon::PolarizationEnum> polarization_type;
-    if (settings_.gridderType == GridderType::IDG) {
-      if (settings_.polarizations.size() == 1) {
-        if ((settings_.ddPsfGridWidth > 1 || settings_.ddPsfGridHeight > 1) &&
-            settings_.gridWithBeam) {
-          polarization_type.insert(aocommon::Polarization::StokesI);
-        } else {
-          polarization_type.insert(
-              aocommon::Polarization::DiagonalInstrumental);
-        }
-      } else {
-        polarization_type.insert(aocommon::Polarization::Instrumental);
-      }
-    } else if (settings_.diagonalSolutions) {
-      polarization_type.insert(aocommon::Polarization::DiagonalInstrumental);
-    } else {
-      polarization_type = settings_.polarizations;
-    }
-
     casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
-    const size_t nAntennas = ms_data_obj.antenna().nrow();
+    const size_t n_antennas = ms_data_obj.antenna().nrow();
     const aocommon::MultiBandData bands(ms_data_obj);
     ReorderedMs::Handle part_ms = ReorderedMs::GenerateHandleFromReorderedData(
         settings_.filenames[ms_index], settings_.dataColumnName,
         settings_.temporaryDirectory, channels, initial_model_required,
-        settings_.modelUpdateRequired, polarization_type, global_selection_,
-        bands, nAntennas, settings_.saveReorder);
+        settings_.modelUpdateRequired, polarization_types, global_selection_,
+        bands, n_antennas, settings_.saveReorder);
 
     reordered_ms_handles_[ms_index] = std::move(part_ms);
   }
