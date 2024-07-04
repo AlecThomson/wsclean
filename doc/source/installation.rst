@@ -60,66 +60,41 @@ to add that directory to the search path. To add multiple directories to the sea
 
     cmake ../ -DCMAKE_PREFIX_PATH="/path/to/casacore;/path/to/cfitsio"
 
-Installed files
----------------
-
-After succesfully running ``make install``, the following programs will be installed:
-
-``wsclean``
-    The main executable
-
-``wsclean-mp``
-    The main executable for distributed runs
-
-``chgcentre``
-    A program to change the phase centre of measurement sets, see :doc:`chgcentre`.
-    
 On Ubuntu and Debian
 --------------------
 
-Binary packages are available on Ubuntu and Debian, and can be installed with ``sudo apt-get install wsclean``. In case that version is new enough for your purpose, you're all done. If you want to compile WSClean from source, the following packages need to be installed:
+Binary packages are available on Ubuntu and Debian, and can be installed with ``sudo apt install wsclean``. In case that version is new enough for your purpose, you're all done. Be aware that this provides a WSClean version that is not optimized for your platform (see next section). If you want to compile WSClean from source, the following packages need to be installed:
 
 .. code-block:: bash
 
-    apt-get install  \
-      casacore-dev libgsl-dev libhdf5-dev \
-      libfftw3-dev libboost-dev \
+    apt install  \
+      casacore-dev cmake g++ \
+      git pkg-config libblas-dev \
       libboost-date-time-dev libboost-filesystem-dev \
       libboost-program-options-dev libboost-system-dev \
-      libcfitsio-dev cmake g++
+      libcfitsio-dev libfftw3-dev libgsl-dev \
+      libhdf5-dev liblapack-dev libopenmpi-dev \
+      libpython3-dev pkg-config
 
 The LOFAR beam and IDG libraries are optional, but need to be installed manually from source if they are required (see elsewhere on this page).
+
+Compiling platform independently / portability
+----------------------------------------------
+
+By default, cmake will create a binary that is optimized for the machine that it is compiled on, and will only work on machines that contain the same instruction set as the compiling machine. In other words, the same binary might not w·ork on other machines, because it might use advanced instructions such as AVX-512 instructions that might not be available. It has been reported that this can e.g. lead to an "Illegal instruction" error. A common use-case where you can run into this issue is when working with Docker containers: when compiling the container on a different machine as where it runs, this can happen.
+
+To make a binary that can be used on multiple platforms, there are two solutions. The recommended method is to set the ``TARGET_CPU`` variable in cmake to a reasonable base architecture that is supported by all machines that you want to run WSClean on. It is for example generally safe to set it to ``haswell``, available since 2013, as almost all machines currently available support this architecture. Moreover, the ``haswell`` target includes AVX, AVX2 and FMA extensions, which can have a significant performance improvement. A slightly newer target would be ``skylake``, which is available since 2015 and includes AVX-512. To compile WSClean with skylake, you would run cmake like this:
+
+.. code-block:: bash
+
+    cmake ../ -DTARGET_CPU=skylake
+
+A more rigorous option is to set ``-DPORTABLE=True`` in cmake. This disables any extra instruction sets, and by that it basically uses only basic instructions that have been available since the beginning of the architecture. This may make the binary considerably slower, so should not be used unless strictly necessary (e.g. for compiling generic packages).
 
 On Red Hat
 ----------
 
 The following document lists some instructions that can be helpful for instaling WSClean on Red Hat and CentOS: :doc:`Installing WSClean on Red Hat and CentOS <installation-rhel>`.
-
-Linking errors
---------------
-
-If you get undefined reference errors in casacore-code when you compile WSClean, e.g. similar to "undefined reference to ``casa::ArrayColumn<float>::get(unsigned int) const``", it probably means that you did not compile Casacore with C++11 support. When you compile Casacore, you need to turn this on explicitly: ::
-
-    anoko@leopard:~/casacore/build$ cmake ../ -DCXX11="ON"
-
-after which cmake should respond with a list of enabled features, including: ::
-
-    -- C++11 support ......... = ON
-
-Whether it is necessary to switch on C++11 depends on the version of the compiler -- with newer compilers it is turned on by default.
-
-Compiling platform independently / portability
-----------------------------------------------
-
-By default, cmake will create a binary that is optimized for the machine that it is compiled on, and will only work on machines that contain the same instruction set as the compiling machine. In other words, the same binary might not work on other machines, because it might use advanced instructions such as AVX instructions that might not be available on another machine. It has been reported that this can e.g. lead to an "Illegal instruction" error (see [ticket 50](tickets:#50)).
-
-If you want to make a binary that can be used on different platforms, you can add -DPORTABLE=True to cmake:
-
-.. code-block:: bash
-
-    cmake ../ -DPORTABLE=True
-    
-You should note that this makes the binary in general slower, so you should not use it unless you have to.
 
 Using the LOFAR/MWA/... beam
 ----------------------------
@@ -159,3 +134,18 @@ The MWA beam requires that a ``.h5`` file with beam coefficients is present in y
    :hidden:
 
    installation-rhel
+
+Installed files
+---------------
+
+After succesfully running ``make install``, the following programs will be installed:
+
+``wsclean``
+    The main executable
+
+``wsclean-mp``
+    The main executable for distributed runs
+
+``chgcentre``
+    A program to change the phase centre of measurement sets, see :doc:`chgcentre`.
+    
