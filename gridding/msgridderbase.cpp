@@ -1,5 +1,8 @@
 #include "msgridderbase.h"
 
+#include "msgriddermanager.h"
+#include "msmanager.h"
+
 #include "../math/calculatefftsize.h"
 
 #include "../msproviders/msprovider.h"
@@ -60,8 +63,10 @@ std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
 // Defined out of class to allow the class the be used in a std::unique_ptr.
 MSGridderBase::~MSGridderBase() = default;
 
-MSGridderBase::MSGridderBase(const Settings& settings)
-    : settings_(settings),
+MSGridderBase::MSGridderBase(const Settings& settings,
+                             const MSManager& measurement_sets)
+    : measurement_sets_(measurement_sets),
+      settings_(settings),
       w_grid_size_(settings.nWLayers),
       data_column_name_(settings.dataColumnName),
       small_inversion_(settings.minGridResolution),
@@ -74,21 +79,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 #endif
 }
 
-std::vector<std::string> MSGridderBase::getAntennaNames(
-    const casacore::MSAntenna& msAntenna) {
-  const casacore::ScalarColumn<casacore::String> antennaNameColumn(
-      msAntenna, msAntenna.columnName(casacore::MSAntenna::NAME));
-
-  std::vector<std::string> antenna_names;
-  antenna_names.reserve(antennaNameColumn.nrow());
-  for (size_t i = 0; i < antennaNameColumn.nrow(); ++i) {
-    antenna_names.push_back(antennaNameColumn(i));
-  }
-  return antenna_names;
-}
-
-void MSGridderBase::initializePointResponse(
-    const MSGridderBase::MSData& msData) {
+void MSGridderBase::initializePointResponse(const MSManager::Data& msData) {
 #ifdef HAVE_EVERYBEAM
   if (settings_.applyFacetBeam || settings_.gridWithBeam) {
     const std::string element_response_string =
@@ -111,7 +102,7 @@ void MSGridderBase::initializePointResponse(
 #endif
 }
 
-void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
+void MSGridderBase::StartMeasurementSet(const MSManager::Data& msData,
                                         bool isPredict) {
   initializePointResponse(msData);
   if (visibility_modifier_.HasH5Parm()) {
@@ -130,207 +121,30 @@ void MSGridderBase::StartMeasurementSet(const MSGridderBase::MSData& msData,
   }
 }
 
-void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
-                                       MSGridderBase::MSData& msData) {
-  msData.bandData = aocommon::MultiBandData(ms)[msData.dataDescId];
-  if (Selection(msData.internal_ms_index).HasChannelRange()) {
-    msData.startChannel =
-        Selection(msData.internal_ms_index).ChannelRangeStart();
-    msData.endChannel = Selection(msData.internal_ms_index).ChannelRangeEnd();
-    Logger::Debug << "Selected channels: " << msData.startChannel << '-'
-                  << msData.endChannel << '\n';
-    if (msData.startChannel >= msData.bandData.ChannelCount() ||
-        msData.endChannel > msData.bandData.ChannelCount() ||
-        msData.startChannel == msData.endChannel) {
-      std::ostringstream str;
-      str << "An invalid channel range was specified! Measurement set only has "
-          << msData.bandData.ChannelCount()
-          << " channels, requested imaging range is " << msData.startChannel
-          << " -- " << msData.endChannel << '.';
-      throw std::runtime_error(str.str());
-    }
-  } else {
-    msData.startChannel = 0;
-    msData.endChannel = msData.bandData.ChannelCount();
-  }
-}
-
-template <size_t NPolInMSProvider>
-void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
-  Logger::Info << "Determining min and max w & theoretical beam size... ";
-  Logger::Info.Flush();
-  msData.maxW = 0.0;
-  msData.maxWWithFlags = 0.0;
-  msData.minW = 1e100;
-  msData.maxBaselineUVW = 0.0;
-  msData.maxBaselineInM = 0.0;
-  const aocommon::BandData selectedBand = msData.SelectedBand();
-  std::vector<float> weightArray(selectedBand.ChannelCount() *
-                                 NPolInMSProvider);
-  double curTimestep = -1, firstTime = -1, lastTime = -1;
-  size_t nTimesteps = 0;
-  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-  const double smallestWavelength = selectedBand.SmallestWavelength();
-  const double longestWavelength = selectedBand.LongestWavelength();
-  while (msReader->CurrentRowAvailable()) {
-    MSProvider::MetaData metaData;
-    msReader->ReadMeta(metaData);
-
-    if (curTimestep != metaData.time) {
-      curTimestep = metaData.time;
-      ++nTimesteps;
-      if (firstTime == -1) firstTime = curTimestep;
-      lastTime = curTimestep;
-    }
-
-    const double wHi = std::fabs(metaData.wInM / smallestWavelength);
-    const double wLo = std::fabs(metaData.wInM / longestWavelength);
-    const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
-                                         metaData.vInM * metaData.vInM +
-                                         metaData.wInM * metaData.wInM);
-    const double halfWidth = 0.5 * ImageWidth();
-    const double halfHeight = 0.5 * ImageHeight();
-    if (wHi > msData.maxW || wLo < msData.minW ||
-        baselineInM / selectedBand.SmallestWavelength() >
-            msData.maxBaselineUVW) {
-      msReader->ReadWeights(weightArray.data());
-      const float* weightPtr = weightArray.data();
-      for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
-        const double wavelength = selectedBand.ChannelWavelength(ch);
-        double wInL = metaData.wInM / wavelength;
-        msData.maxWWithFlags = std::max(msData.maxWWithFlags, fabs(wInL));
-        if (*weightPtr != 0.0) {
-          double uInL = metaData.uInM / wavelength,
-                 vInL = metaData.vInM / wavelength,
-                 x = uInL * PixelSizeX() * ImageWidth(),
-                 y = vInL * PixelSizeY() * ImageHeight(),
-                 imagingWeight = GetImageWeights()->GetWeight(uInL, vInL);
-          if (imagingWeight != 0.0) {
-            if (std::floor(x) > -halfWidth && std::ceil(x) < halfWidth &&
-                std::floor(y) > -halfHeight && std::ceil(y) < halfHeight) {
-              msData.maxW = std::max(msData.maxW, std::fabs(wInL));
-              msData.minW = std::min(msData.minW, std::fabs(wInL));
-              msData.maxBaselineUVW =
-                  std::max(msData.maxBaselineUVW, baselineInM / wavelength);
-              msData.maxBaselineInM =
-                  std::max(msData.maxBaselineInM, baselineInM);
-            }
-          }
-        }
-        weightPtr += NPolInMSProvider;
-      }
-    }
-
-    msReader->NextInputRow();
-  }
-
-  if (msData.minW == 1e100) {
-    msData.minW = 0.0;
-    msData.maxWWithFlags = 0.0;
-    msData.maxW = 0.0;
-  }
-
-  Logger::Info << "DONE (w=[" << msData.minW << ":" << msData.maxW
-               << "] lambdas, maxuvw=" << msData.maxBaselineUVW << " lambda)\n";
-  if (msData.maxWWithFlags != msData.maxW) {
-    Logger::Debug << "Discarded data has higher w value of "
-                  << msData.maxWWithFlags << " lambda.\n";
-  }
-
-  if (lastTime == firstTime || nTimesteps < 2)
-    msData.integrationTime = 1;
-  else
-    msData.integrationTime = (lastTime - firstTime) / (nTimesteps - 1);
-}
-
-template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
-template void MSGridderBase::calculateWLimits<2>(MSGridderBase::MSData& msData);
-template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
-
-void MSGridderBase::initializeMSDataVector(
-    std::vector<MSGridderBase::MSData>& msDataVector) {
-  if (MeasurementSetCount() == 0)
-    throw std::runtime_error(
-        "Something is wrong during inversion: no measurement sets given to "
-        "inversion algorithm");
-  msDataVector = std::vector<MSGridderBase::MSData>(MeasurementSetCount());
-
-  resetMetaData();
-
-  bool hasCache = !meta_data_cache_->msDataVector.empty();
-  if (!hasCache) meta_data_cache_->msDataVector.resize(MeasurementSetCount());
-
-  if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.ResetCache(MeasurementSetCount());
-  }
-  visibility_modifier_.ResetSums();
-
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    msDataVector[i].internal_ms_index = i;
-    msDataVector[i].original_ms_index = MeasurementSetIndex(i);
-    initializeMeasurementSet(msDataVector[i], meta_data_cache_->msDataVector[i],
-                             hasCache);
-  }
-  calculateOverallMetaData(msDataVector);
-}
-
-void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
-                                             MetaDataCache::Entry& cacheEntry,
-                                             bool isCacheInitialized) {
-  MSProvider& ms_provider = MeasurementSet(msData.internal_ms_index);
-  msData.ms_provider = &ms_provider;
-  SynchronizedMS ms(ms_provider.MS());
-  if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
-
-  msData.antenna_names = getAntennaNames(ms->antenna());
-  msData.dataDescId = ms_provider.DataDescId();
-
-  initializeBandData(*ms, msData);
-
-  if (HasDenormalPhaseCentre())
-    Logger::Debug << "Set has denormal phase centre: dl=" << l_shift_
-                  << ", dm=" << m_shift_ << '\n';
-
-  calculateMSLimits(msData.SelectedBand(), ms_provider.StartTime());
-
-  if (isCacheInitialized) {
-    msData.maxW = cacheEntry.max_w;
-    msData.maxWWithFlags = cacheEntry.max_w_with_flags;
-    msData.minW = cacheEntry.min_w;
-    msData.maxBaselineUVW = cacheEntry.max_baseline_uvw;
-    msData.maxBaselineInM = cacheEntry.max_baseline_in_m;
-    msData.integrationTime = cacheEntry.integration_time;
-  } else {
-    if (ms_provider.NPolarizations() == 4)
-      calculateWLimits<4>(msData);
-    else if (ms_provider.NPolarizations() == 2)
-      calculateWLimits<2>(msData);
-    else
-      calculateWLimits<1>(msData);
-    cacheEntry.max_w = msData.maxW;
-    cacheEntry.max_w_with_flags = msData.maxWWithFlags;
-    cacheEntry.min_w = msData.minW;
-    cacheEntry.max_baseline_uvw = msData.maxBaselineUVW;
-    cacheEntry.max_baseline_in_m = msData.maxBaselineInM;
-    cacheEntry.integration_time = msData.integrationTime;
-  }
-
+void MSGridderBase::initializeVisibilityModifierTimes(MSManager::Data& msData) {
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.SetMSTimes(msData.original_ms_index,
                                     SelectUniqueTimes(*msData.ms_provider));
   }
 }
 
+void MSGridderBase::ResetVisibilityModifierCache() {
+  if (visibility_modifier_.HasH5Parm()) {
+    visibility_modifier_.ResetCache(measurement_sets_.Count());
+  }
+  visibility_modifier_.ResetSums();
+}
+
 void MSGridderBase::calculateOverallMetaData(
-    const std::vector<MSData>& msDataVector) {
+    const std::vector<MSManager::FacetData>& ms_facet_data_vector) {
   max_w_ = 0.0;
   min_w_ = std::numeric_limits<double>::max();
   double maxBaseline = 0.0;
 
-  for (const MSData& msData : msDataVector) {
-    maxBaseline = std::max(maxBaseline, msData.maxBaselineUVW);
-    max_w_ = std::max(max_w_, msData.maxW);
-    min_w_ = std::min(min_w_, msData.minW);
+  for (const MSManager::FacetData& ms_facet_data : ms_facet_data_vector) {
+    maxBaseline = std::max(maxBaseline, ms_facet_data.maxBaselineUVW);
+    max_w_ = std::max(max_w_, ms_facet_data.maxW);
+    min_w_ = std::min(min_w_, ms_facet_data.minW);
   }
   if (min_w_ > max_w_) {
     min_w_ = max_w_;
@@ -436,7 +250,7 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
   {
     const size_t lock_index =
-        facet_group_index_ * MeasurementSetCount() + original_ms_index_;
+        facet_group_index_ * measurement_sets_.Count() + original_ms_index_;
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(lock_index);
     ms_provider.WriteModel(buffer, IsFacet());

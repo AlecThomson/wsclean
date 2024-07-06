@@ -44,8 +44,9 @@ namespace {
 constexpr const size_t kGridderIndex = 0;
 }
 
-IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources)
-    : MSGridderBase(settings),
+IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources,
+                           const MSManager& measurement_sets)
+    : MSGridderBase(settings, measurement_sets),
       _averageBeam(nullptr),
       _outputProvider(nullptr),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
@@ -83,11 +84,8 @@ void IdgMsGridder::Invert() {
 
   if (!_averageBeam) _averageBeam.reset(new AverageBeam());
 
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   double max_w = 0;
-  for (const MSData& msData : msDataVector) {
+  for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
     max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
@@ -106,7 +104,7 @@ void IdgMsGridder::Invert() {
     _bufferset->set_apply_aterm(false);
     _bufferset->unset_matrix_inverse_beam();
     resetVisibilityCounters();
-    for (const MSData& msData : msDataVector) {
+    for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
       // Adds the gridding result to _image member
       gridMeasurementSet(msData);
     }
@@ -131,7 +129,7 @@ void IdgMsGridder::Invert() {
       // Compute avg beam
       Logger::Debug << "Computing average beam.\n";
       _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
-      for (const MSData& msData : msDataVector) {
+      for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
         gridMeasurementSet(msData);
       }
       _bufferset->finalize_compute_avg_beam();
@@ -143,7 +141,7 @@ void IdgMsGridder::Invert() {
     }
 
     resetVisibilityCounters();
-    for (const MSData& msData : msDataVector) {
+    for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
       // Adds the gridding result to _image member
       gridMeasurementSet(msData);
     }
@@ -155,7 +153,7 @@ void IdgMsGridder::Invert() {
   // Can be accessed by subsequent calls to ResultImages()
 }
 
-void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
+void IdgMsGridder::gridMeasurementSet(const MSManager::Data& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
@@ -326,11 +324,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
     do_scale = true;
   }
 
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   double max_w = 0;
-  for (const MSData& msData : msDataVector) {
+  for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
     max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
@@ -342,7 +337,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
                    shiftp, _options);
   _bufferset->set_image(_image.data(), do_scale);
 
-  for (const MSData& msData : msDataVector) predictMeasurementSet(msData);
+  for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_)
+    predictMeasurementSet(msData);
 }
 
 void IdgMsGridder::setIdgType() {
@@ -361,7 +357,7 @@ void IdgMsGridder::setIdgType() {
   }
 }
 
-void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
+void IdgMsGridder::predictMeasurementSet(const MSManager::Data& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
@@ -557,12 +553,12 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
 
 #ifdef HAVE_EVERYBEAM
 bool IdgMsGridder::prepareForMeasurementSet(
-    const MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
+    const MSManager::Data& msData, std::unique_ptr<ATermBase>& aTermMaker,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #else
 bool IdgMsGridder::prepareForMeasurementSet(
-    const MSGridderBase::MSData& msData,
+    const MSManager::Data& msData,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #endif  // HAVE_EVERYBEAM
@@ -633,7 +629,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
 #ifdef HAVE_EVERYBEAM
 std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
-    const MSGridderBase::MSData& msData) {
+    const MSManager::Data& msData) {
   SynchronizedMS ms = msData.ms_provider->MS();
   size_t nr_stations = ms->antenna().nrow();
   if (!GetSettings().atermConfigFilename.empty() ||
