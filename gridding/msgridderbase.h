@@ -14,6 +14,7 @@
 
 #include "../msproviders/msreaders/msreader.h"
 
+#include "msmanager.h"
 #include "visibilitymodifier.h"
 #include "visibilityweightingmode.h"
 
@@ -83,7 +84,7 @@ inline void ExpandData(size_t n_channels, std::complex<float>* buffer,
 
 class MSGridderBase {
  public:
-  MSGridderBase(const Settings& settings);
+  MSGridderBase(const Settings& settings, const MSManager& measurement_sets);
   virtual ~MSGridderBase();
 
   void SetH5Parm(
@@ -107,30 +108,7 @@ class MSGridderBase {
   double PixelSizeY() const { return settings_.pixelScaleY; }
   size_t ActualWGridSize() const { return actual_w_grid_size_; }
 
-  void ClearMeasurementSetList() { measurement_sets_.clear(); }
   const Settings& GetSettings() const { return settings_; }
-  MSProvider& MeasurementSet(size_t internal_ms_index) const {
-    return *std::get<0>(measurement_sets_[internal_ms_index]);
-  }
-  const MSSelection& Selection(size_t internal_ms_index) const {
-    return std::get<1>(measurement_sets_[internal_ms_index]);
-  }
-  /**
-   * Maps an internal ms index to its original (command line) index.
-   */
-  size_t MeasurementSetIndex(size_t internal_ms_index) const {
-    return std::get<2>(measurement_sets_[internal_ms_index]);
-  }
-  size_t MeasurementSetCount() const { return measurement_sets_.size(); }
-
-  /**
-   * @param index the original command line index of this measurement set. This
-   * allows associating the measurement set with the right h5parm solution file.
-   */
-  void AddMeasurementSet(std::unique_ptr<MSProvider> ms_provider,
-                         const MSSelection& selection, size_t index) {
-    measurement_sets_.emplace_back(std::move(ms_provider), selection, index);
-  }
 
   const std::string& DataColumnName() const { return data_column_name_; }
   bool IsFacet() const { return is_facet_; }
@@ -250,7 +228,6 @@ class MSGridderBase {
     trim_height_ = trim_height;
   }
 
-  double StartTime() const { return start_time_; }
   bool HasDenormalPhaseCentre() const {
     return l_shift_ != 0.0 || m_shift_ != 0.0;
   }
@@ -292,12 +269,21 @@ class MSGridderBase {
     return ImageWeight() / MaxGriddedWeight();
   }
 
+  bool HasMetaDataCache() { return (!meta_data_cache_->msDataVector.empty()); }
+  void ReserveMetaDataCache(size_t size) {
+    meta_data_cache_->msDataVector.resize(size);
+  }
+  MetaDataCache::Entry& GetMetaDataCacheItem(size_t index) {
+    return meta_data_cache_->msDataVector[index];
+  }
   void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) {
     meta_data_cache_ = std::move(cache);
   }
   std::unique_ptr<MetaDataCache> AcquireMetaDataCache() {
     return std::move(meta_data_cache_);
   }
+
+  void ResetVisibilityModifierCache();
 
   /**
    * The average squared Mueller correction of all applied corrections.
@@ -326,37 +312,19 @@ class MSGridderBase {
     }
   }
 
+  void calculateOverallMetaData(
+      const std::vector<MSManager::FacetData>& ms_facet_data_vector);
+
+  void initializeVisibilityModifierTimes(MSManager::Data& msData);
+
  protected:
   size_t ActualInversionWidth() const { return actual_inversion_width_; }
   size_t ActualInversionHeight() const { return actual_inversion_height_; }
   double ActualPixelSizeX() const { return actual_pixel_size_x_; }
   double ActualPixelSizeY() const { return actual_pixel_size_y_; }
 
-  struct MSData {
-   public:
-    MSProvider* ms_provider = nullptr;
-    size_t internal_ms_index = 0;
-    size_t original_ms_index = 0;
-    size_t dataDescId = 0;
-    aocommon::BandData bandData;
-    size_t startChannel = 0;
-    size_t endChannel = 0;
-    size_t matchingRows = 0;
-    size_t totalRowsProcessed = 0;
-    double minW = 0.0;
-    double maxW = 0.0;
-    double maxWWithFlags = 0.0;
-    double maxBaselineUVW = 0.0;
-    double maxBaselineInM = 0.0;
-    size_t rowStart = 0;
-    size_t rowEnd = 0;
-    double integrationTime = 0.0;
-    std::vector<std::string> antenna_names;
-
-    aocommon::BandData SelectedBand() const {
-      return aocommon::BandData(bandData, startChannel, endChannel);
-    }
-  };
+  // Contains all MS metadata as well as MS specific gridding data
+  const MSManager& measurement_sets_;
 
   struct InversionRow {
     double uvw[3];
@@ -369,8 +337,7 @@ class MSGridderBase {
    * EveryBeam is available and the @c _predictReader data member in case
    * @c isPredict is true.
    */
-  void StartMeasurementSet(const MSGridderBase::MSData& ms_data,
-                           bool is_predict);
+  void StartMeasurementSet(const MSManager::Data& ms_data, bool is_predict);
 
   /**
    * Read a row of visibilities from the msprovider, and apply weights, flags
@@ -610,8 +577,6 @@ class MSGridderBase {
     visibility_weight_sum_ = 0.0;
   }
 
-  void initializeMSDataVector(std::vector<MSData>& msDataVector);
-
   template <size_t PolarizationCount>
   static void rotateVisibilities(const aocommon::BandData& bandData,
                                  double shiftFactor,
@@ -628,40 +593,8 @@ class MSGridderBase {
   double MinimumW() const { return min_w_; }
 
  private:
-  static std::vector<std::string> getAntennaNames(
-      const casacore::MSAntenna& msAntenna);
-
-  void resetMetaData() { has_frequencies_ = false; }
-
-  void calculateMSLimits(const aocommon::BandData& selectedBand,
-                         double startTime) {
-    if (has_frequencies_) {
-      freq_low_ = std::min(freq_low_, selectedBand.LowestFrequency());
-      freq_high_ = std::max(freq_high_, selectedBand.HighestFrequency());
-      band_start_ = std::min(band_start_, selectedBand.BandStart());
-      band_end_ = std::max(band_end_, selectedBand.BandEnd());
-      start_time_ = std::min(start_time_, startTime);
-    } else {
-      freq_low_ = selectedBand.LowestFrequency();
-      freq_high_ = selectedBand.HighestFrequency();
-      band_start_ = selectedBand.BandStart();
-      band_end_ = selectedBand.BandEnd();
-      start_time_ = startTime;
-      has_frequencies_ = true;
-    }
-  }
-
-  template <size_t NPolInMSProvider>
-  void calculateWLimits(MSGridderBase::MSData& msData);
-
-  void initializeMeasurementSet(MSGridderBase::MSData& msData,
-                                MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized);
-
-  void calculateOverallMetaData(const std::vector<MSData>& msDataVector);
   bool hasWGridSize() const { return w_grid_size_ != 0; }
-  void initializeBandData(const casacore::MeasurementSet& ms, MSData& msData);
-  void initializePointResponse(const MSData& msData);
+  void initializePointResponse(const MSManager::Data& msData);
 
   template <size_t PolarizationCount>
   void CalculateWeights(InversionRow& row_data,
@@ -765,9 +698,9 @@ class MSGridderBase {
   double main_image_dm_ = 0.0;
   size_t facet_index_ = 0;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
-  /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
-  /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
-  /// only relevant for prediction.
+  /// measurement_sets_.Count() determine the index in the _writerGroupLocks
+  /// vector, having size FacetGroupCount() * measurement_sets_.Count(). These
+  /// variable are only relevant for prediction.
   size_t facet_group_index_ = 0;
   size_t original_ms_index_ = 0;
   /// @see SetIsFacet()
@@ -779,9 +712,6 @@ class MSGridderBase {
   size_t trim_height_ = 0;
   size_t w_grid_size_ = 0;
   size_t actual_w_grid_size_ = 0;
-  /// tuple consists of the ms, selection, and index.
-  std::vector<std::tuple<std::unique_ptr<MSProvider>, MSSelection, size_t>>
-      measurement_sets_;
   std::string data_column_name_;
   PsfMode psf_mode_ = PsfMode::kNone;
   bool do_subtract_model_ = false;
@@ -803,13 +733,6 @@ class MSGridderBase {
   GriddingKernelMode grid_mode_ = GriddingKernelMode::KaiserBessel;
   bool store_imaging_weights_ = false;
   double theoretical_beam_size_ = 0.0;
-
-  bool has_frequencies_ = false;
-  double freq_high_ = 0.0;
-  double freq_low_ = 0.0;
-  double band_start_ = 0.0;
-  double band_end_ = 0.0;
-  double start_time_ = 0.0;
 
   size_t gridded_visibility_count_ = 0;
   double total_weight_ = 0.0;
