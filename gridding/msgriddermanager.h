@@ -53,7 +53,7 @@ class MSGridderManager {
 
  private:
   std::unique_ptr<MSGridderBase> ConstructGridder(
-      const Resources& resources) const;
+      const Resources& resources, const size_t gridder_index) const;
   struct GriddingFacetTask {
     std::unique_ptr<MSGridderBase> facet_gridder;
     GriddingTask::FacetData& facet_task;

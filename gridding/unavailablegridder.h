@@ -13,8 +13,9 @@
 class UnavailableGridder final : public MSGridderBase {
  public:
   UnavailableGridder(const class Settings& settings, const Resources& resources,
-                     const MSManager& measurement_sets)
-      : MSGridderBase(settings, measurement_sets) {
+                     const MSManager& measurement_sets,
+                     const size_t gridder_index)
+      : MSGridderBase(settings, measurement_sets, gridder_index) {
     doThrow();
   }
 

@@ -25,8 +25,9 @@ using aocommon::Image;
 using aocommon::Logger;
 
 WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources,
-                         const MSManager& measurement_sets)
-    : MSGridderBase(settings, measurement_sets),
+                         const MSManager& measurement_sets,
+                         const size_t gridder_index)
+    : MSGridderBase(settings, measurement_sets, gridder_index),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
       _resources(resources),
@@ -398,8 +399,8 @@ void WSMSGridder::Invert() {
   }
 
   if (IsFirstTask() && Logger::IsVerbose()) {
-    for (size_t i = 0; i != measurement_sets_.Count(); ++i)
-      countSamplesPerLayer(measurement_sets_.ms_data_vector_[i]);
+    for (size_t i = 0; i != ms_count_; ++i)
+      countSamplesPerLayer(ms_data_vector_[i]);
   }
 
   resetVisibilityCounters();
@@ -412,8 +413,8 @@ void WSMSGridder::Invert() {
 
     _gridder->StartInversionPass(pass);
 
-    for (size_t i = 0; i != measurement_sets_.Count(); ++i) {
-      const MSManager::Data& msData = measurement_sets_.ms_data_vector_[i];
+    for (size_t i = 0; i != ms_count_; ++i) {
+      const MSManager::Data& msData = ms_data_vector_[i];
 
       const aocommon::BandData selectedBand(msData.SelectedBand());
 
@@ -428,9 +429,9 @@ void WSMSGridder::Invert() {
 
   if (IsFirstTask()) {
     size_t totalRowsRead = 0, totalMatchingRows = 0;
-    for (size_t i = 0; i != measurement_sets_.Count(); ++i) {
-      totalRowsRead += measurement_sets_.ms_data_vector_[i].totalRowsProcessed;
-      totalMatchingRows += measurement_sets_.ms_data_vector_[i].matchingRows;
+    for (size_t i = 0; i != ms_count_; ++i) {
+      totalRowsRead += ms_data_vector_[i].totalRowsProcessed;
+      totalMatchingRows += ms_data_vector_[i].matchingRows;
     }
 
     Logger::Debug << "Total rows read: " << totalRowsRead;
@@ -517,8 +518,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
                            MinimumW(), MaximumW());
 
   if (IsFirstTask()) {
-    for (size_t i = 0; i != measurement_sets_.Count(); ++i)
-      countSamplesPerLayer(measurement_sets_.ms_data_vector_[i]);
+    for (size_t i = 0; i != ms_count_; ++i)
+      countSamplesPerLayer(ms_data_vector_[i]);
   }
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
@@ -572,15 +573,15 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->StartPredictionPass(pass);
 
     Logger::Info << "Predicting...\n";
-    for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
-      predictMeasurementSet(msData, GetGainMode(Polarization(), 1));
+    for (size_t i = 0; i != ms_count_; ++i) {
+      predictMeasurementSet(ms_data_vector_[i], GetGainMode(Polarization(), 1));
     }
   }
 
   size_t totalRowsWritten = 0, totalMatchingRows = 0;
-  for (size_t i = 0; i != measurement_sets_.Count(); ++i) {
-    totalRowsWritten += measurement_sets_.ms_data_vector_[i].totalRowsProcessed;
-    totalMatchingRows += measurement_sets_.ms_data_vector_[i].matchingRows;
+  for (size_t i = 0; i != ms_count_; ++i) {
+    totalRowsWritten += ms_data_vector_[i].totalRowsProcessed;
+    totalMatchingRows += ms_data_vector_[i].matchingRows;
   }
 
   Logger::Debug << "Total rows written: " << totalRowsWritten;
