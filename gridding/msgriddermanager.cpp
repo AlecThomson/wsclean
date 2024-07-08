@@ -66,34 +66,24 @@ void MSGridderManager::InitializeGridders(
 }
 
 void MSGridderManager::Invert() {
-  std::vector<MSGridderBase*> gridders;
-  gridders.reserve(facet_tasks_.size());
-  for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
-    gridders.push_back(gridder.get());
-  }
-  measurement_sets_.InitializeMSDataVector(gridders);
+  InitializeMSDataVectors();
 
   size_t gridder_index = 0;
-  for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
-    gridder->calculateOverallMetaData(
+  for (const GriddingFacetTask& task : facet_tasks_) {
+    task.facet_gridder->calculateOverallMetaData(
         measurement_sets_.ms_facet_data_vector_[gridder_index++]);
-    gridder->Invert();
+    task.facet_gridder->Invert();
   }
 }
 
 void MSGridderManager::Predict() {
-  std::vector<MSGridderBase*> gridders;
-  gridders.reserve(facet_tasks_.size());
-  for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
-    gridders.push_back(gridder.get());
-  }
-  measurement_sets_.InitializeMSDataVector(gridders);
+  InitializeMSDataVectors();
 
   size_t gridder_index = 0;
-  for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
-    gridder->calculateOverallMetaData(
+  for (const GriddingFacetTask& task : facet_tasks_) {
+    task.facet_gridder->calculateOverallMetaData(
         measurement_sets_.ms_facet_data_vector_[gridder_index++]);
-    gridder->Predict(std::move(facet_task.modelImages));
+    task.facet_gridder->Predict(std::move(task.facet_task.modelImages));
   }
 }
 

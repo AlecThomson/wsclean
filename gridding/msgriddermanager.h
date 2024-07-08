@@ -61,6 +61,15 @@ class MSGridderManager {
   };
   std::vector<GriddingFacetTask> facet_tasks_;
 
+  inline void InitializeMSDataVectors() {
+    std::vector<MSGridderBase*> gridders;
+    gridders.reserve(facet_tasks_.size());
+    for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
+      gridders.push_back(gridder.get());
+    }
+    measurement_sets_.InitializeMSDataVector(gridders);
+  }
+
   /** Initializes 'gridder' with values that are equal for all facets. */
   void InitializeGridderForTask(MSGridderBase& gridder,
                                 const GriddingTask& task,
