@@ -1,7 +1,8 @@
 #include "directmsgridder.h"
 
-#include "../main/progressbar.h"
+#include "msgriddermanager.h"
 
+#include "../main/progressbar.h"
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
@@ -10,16 +11,17 @@
 
 template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
-                                        const Resources& resources)
-    : MSGridderBase(settings), _resources(resources) {}
+                                        const Resources& resources,
+                                        const MSManager& measurement_sets,
+                                        const size_t gridder_index)
+    : MSGridderBase(settings, measurement_sets, gridder_index),
+      _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
   initializeSqrtLMLookupTable();
   const size_t width = TrimWidth(), height = TrimHeight();
 
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
   resetVisibilityCounters();
 
   ProgressBar progress("Performing direct Fourier transform");
@@ -35,8 +37,8 @@ void DirectMSGridder<num_t>::Invert() {
         [&](size_t threadIndex) { inversionWorker(threadIndex); }, t);
   }
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    MSData& msData = msDataVector[i];
+  for (size_t i = 0; i != ms_count_; ++i) {
+    const MSManager::Data& msData = ms_data_vector_[i];
     invertMeasurementSet(msData, progress, i);
   }
 
@@ -122,9 +124,9 @@ void DirectMSGridder<num_t>::inversionWorker(size_t layer) {
 }
 
 template <typename num_t>
-void DirectMSGridder<num_t>::invertMeasurementSet(
-    const MSGridderBase::MSData& msData, ProgressBar& progress,
-    size_t msIndex) {
+void DirectMSGridder<num_t>::invertMeasurementSet(const MSManager::Data& msData,
+                                                  ProgressBar& progress,
+                                                  size_t msIndex) {
   StartMeasurementSet(msData, false);
   const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const aocommon::BandData selectedBand(msData.SelectedBand());
@@ -145,7 +147,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
-                         MeasurementSetCount() * idToMSRow.size());
+                         ms_count_ * idToMSRow.size());
 
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);

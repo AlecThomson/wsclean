@@ -1,8 +1,8 @@
-
 #include "wgriddingmsgridder.h"
 
 #include "wgriddinggridder_simple.h"
 
+#include "../gridding/msgriddermanager.h"
 #include "../msproviders/msreaders/msreader.h"
 
 #include "../msproviders/msprovider.h"
@@ -23,8 +23,10 @@ using aocommon::Logger;
 
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
                                        const Resources& resources,
+                                       const MSManager& measurement_sets,
+                                       const size_t gridder_index,
                                        bool use_tuned_wgridder)
-    : MSGridderBase(settings),
+    : MSGridderBase(settings, measurement_sets, gridder_index),
       resources_(resources),
       accuracy_(GetSettings().wgridderAccuracy),
       use_tuned_wgridder_(use_tuned_wgridder) {
@@ -80,7 +82,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   return maxNRows;
 }
 
-void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::gridMeasurementSet(const MSManager::Data& msData) {
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, false);
 
@@ -144,7 +146,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::predictMeasurementSet(const MSManager::Data& msData) {
   msData.ms_provider->ReopenRW();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, true);
@@ -218,9 +220,6 @@ void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
 }
 
 void WGriddingMSGridder::Invert() {
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   size_t trimmedWidth, trimmedHeight;
   getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
@@ -229,8 +228,8 @@ void WGriddingMSGridder::Invert() {
 
   resetVisibilityCounters();
 
-  for (MSData& msData : msDataVector) {
-    gridMeasurementSet(msData);
+  for (size_t i = 0; i != ms_count_; ++i) {
+    gridMeasurementSet(ms_data_vector_[i]);
   }
 
   gridder_->FinalizeImage(1.0 / ImageWeight());
@@ -271,9 +270,6 @@ void WGriddingMSGridder::Invert() {
 }
 
 void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   size_t trimmedWidth, trimmedHeight;
   getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
@@ -302,7 +298,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   gridder_->InitializePrediction(images[0].Data());
   images[0].Reset();
 
-  for (MSData& msData : msDataVector) {
-    predictMeasurementSet(msData);
+  for (size_t i = 0; i != ms_count_; ++i) {
+    predictMeasurementSet(ms_data_vector_[i]);
   }
 }

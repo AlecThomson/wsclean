@@ -6,6 +6,7 @@
 
 #include "h5solutiondata.h"
 #include "msgridderbase.h"
+#include "msmanager.h"
 
 #include "../main/settings.h"
 #include "../scheduling/griddingresult.h"
@@ -38,6 +39,8 @@ class MSGridderManager {
   MSGridderManager(const MSGridderManager&) = delete;
   MSGridderManager& operator=(const MSGridderManager&) = delete;
 
+  void InitializeMS(GriddingTask& task);
+
   void InitializeGridders(GriddingTask& task,
                           const std::vector<size_t>& facet_indices,
                           const Resources& resources,
@@ -50,13 +53,22 @@ class MSGridderManager {
 
  private:
   std::unique_ptr<MSGridderBase> ConstructGridder(
-      const Resources& resources) const;
+      const Resources& resources, const size_t gridder_index) const;
   struct GriddingFacetTask {
     std::unique_ptr<MSGridderBase> facet_gridder;
     GriddingTask::FacetData& facet_task;
     GriddingResult::FacetData& facet_result;
   };
   std::vector<GriddingFacetTask> facet_tasks_;
+
+  inline void InitializeMSDataVectors() {
+    std::vector<MSGridderBase*> gridders;
+    gridders.reserve(facet_tasks_.size());
+    for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
+      gridders.push_back(gridder.get());
+    }
+    measurement_sets_.InitializeMSDataVector(gridders);
+  }
 
   /** Initializes 'gridder' with values that are equal for all facets. */
   void InitializeGridderForTask(MSGridderBase& gridder,
@@ -69,5 +81,6 @@ class MSGridderManager {
 
   const Settings& settings_;
   const H5SolutionData& solution_data_;
+  MSManager measurement_sets_;
 };
 #endif

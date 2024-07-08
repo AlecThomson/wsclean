@@ -13,7 +13,8 @@ class WGriddingGridderBase;
 class WGriddingMSGridder final : public MSGridderBase {
  public:
   WGriddingMSGridder(const Settings& settings, const Resources& resources,
-                     bool use_tuned_wgridder);
+                     const MSManager& measurement_sets,
+                     const size_t gridder_index, bool use_tuned_wgridder);
   ~WGriddingMSGridder();
 
   virtual void Invert() override;
@@ -34,9 +35,9 @@ class WGriddingMSGridder final : public MSGridderBase {
   std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
                                                     size_t height) const;
 
-  void gridMeasurementSet(MSData& msData);
+  void gridMeasurementSet(const MSManager::Data& msData);
 
-  void predictMeasurementSet(MSData& msData);
+  void predictMeasurementSet(const MSManager::Data& msData);
 
   size_t calculateMaxNRowsInMemory(size_t channelCount) const;
 
