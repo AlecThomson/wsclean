@@ -24,8 +24,9 @@ using aocommon::Logger;
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
                                        const Resources& resources,
                                        const MSManager& measurement_sets,
+                                       const size_t gridder_index,
                                        bool use_tuned_wgridder)
-    : MSGridderBase(settings, measurement_sets),
+    : MSGridderBase(settings, measurement_sets, gridder_index),
       resources_(resources),
       accuracy_(GetSettings().wgridderAccuracy),
       use_tuned_wgridder_(use_tuned_wgridder) {
@@ -227,8 +228,8 @@ void WGriddingMSGridder::Invert() {
 
   resetVisibilityCounters();
 
-  for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
-    gridMeasurementSet(msData);
+  for (size_t i = 0; i != ms_count_; ++i) {
+    gridMeasurementSet(ms_data_vector_[i]);
   }
 
   gridder_->FinalizeImage(1.0 / ImageWeight());
@@ -297,7 +298,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   gridder_->InitializePrediction(images[0].Data());
   images[0].Reset();
 
-  for (const MSManager::Data& msData : measurement_sets_.ms_data_vector_) {
-    predictMeasurementSet(msData);
+  for (size_t i = 0; i != ms_count_; ++i) {
+    predictMeasurementSet(ms_data_vector_[i]);
   }
 }

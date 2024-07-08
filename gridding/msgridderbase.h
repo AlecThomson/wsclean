@@ -84,7 +84,8 @@ inline void ExpandData(size_t n_channels, std::complex<float>* buffer,
 
 class MSGridderBase {
  public:
-  MSGridderBase(const Settings& settings, const MSManager& measurement_sets);
+  MSGridderBase(const Settings& settings, const MSManager& measurement_sets,
+                const size_t gridder_index);
   virtual ~MSGridderBase();
 
   void SetH5Parm(
@@ -324,7 +325,9 @@ class MSGridderBase {
   double ActualPixelSizeY() const { return actual_pixel_size_y_; }
 
   // Contains all MS metadata as well as MS specific gridding data
-  const MSManager& measurement_sets_;
+  const size_t ms_count_;
+  const std::vector<MSManager::Data>& ms_data_vector_;
+  const std::vector<MSManager::FacetData>& ms_facet_data_vector_;
 
   struct InversionRow {
     double uvw[3];
@@ -698,8 +701,8 @@ class MSGridderBase {
   double main_image_dm_ = 0.0;
   size_t facet_index_ = 0;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
-  /// measurement_sets_.Count() determine the index in the _writerGroupLocks
-  /// vector, having size FacetGroupCount() * measurement_sets_.Count(). These
+  /// ms_count_ determine the index in the _writerGroupLocks
+  /// vector, having size FacetGroupCount() * ms_count_. These
   /// variable are only relevant for prediction.
   size_t facet_group_index_ = 0;
   size_t original_ms_index_ = 0;

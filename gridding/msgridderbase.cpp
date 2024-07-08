@@ -64,8 +64,12 @@ std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
 MSGridderBase::~MSGridderBase() = default;
 
 MSGridderBase::MSGridderBase(const Settings& settings,
-                             const MSManager& measurement_sets)
-    : measurement_sets_(measurement_sets),
+                             const MSManager& measurement_sets,
+                             const size_t gridder_index)
+    : ms_count_(measurement_sets.Count()),
+      ms_data_vector_(measurement_sets.ms_data_vector_),
+      ms_facet_data_vector_(
+          measurement_sets.ms_facet_data_vector_[gridder_index]),
       settings_(settings),
       w_grid_size_(settings.nWLayers),
       data_column_name_(settings.dataColumnName),
@@ -130,7 +134,7 @@ void MSGridderBase::initializeVisibilityModifierTimes(MSManager::Data& msData) {
 
 void MSGridderBase::ResetVisibilityModifierCache() {
   if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.ResetCache(measurement_sets_.Count());
+    visibility_modifier_.ResetCache(ms_count_);
   }
   visibility_modifier_.ResetSums();
 }
@@ -250,7 +254,7 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
   {
     const size_t lock_index =
-        facet_group_index_ * measurement_sets_.Count() + original_ms_index_;
+        facet_group_index_ * ms_count_ + original_ms_index_;
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(lock_index);
     ms_provider.WriteModel(buffer, IsFacet());

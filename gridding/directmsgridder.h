@@ -17,7 +17,8 @@ class DirectMSGridder final : public MSGridderBase {
       (sizeof(num_t) + sizeof(double) - 1) / sizeof(double);
 
   DirectMSGridder(const Settings& settings, const Resources& resources,
-                  const MSManager& measurement_sets);
+                  const MSManager& measurement_sets,
+                  const size_t gridder_index);
 
   virtual void Invert() override;
 

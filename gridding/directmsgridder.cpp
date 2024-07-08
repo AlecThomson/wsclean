@@ -12,8 +12,10 @@
 template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
                                         const Resources& resources,
-                                        const MSManager& measurement_sets)
-    : MSGridderBase(settings, measurement_sets), _resources(resources) {}
+                                        const MSManager& measurement_sets,
+                                        const size_t gridder_index)
+    : MSGridderBase(settings, measurement_sets, gridder_index),
+      _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
@@ -35,8 +37,8 @@ void DirectMSGridder<num_t>::Invert() {
         [&](size_t threadIndex) { inversionWorker(threadIndex); }, t);
   }
 
-  for (size_t i = 0; i != measurement_sets_.Count(); ++i) {
-    const MSManager::Data& msData = measurement_sets_.ms_data_vector_[i];
+  for (size_t i = 0; i != ms_count_; ++i) {
+    const MSManager::Data& msData = ms_data_vector_[i];
     invertMeasurementSet(msData, progress, i);
   }
 
@@ -145,7 +147,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(const MSManager::Data& msData,
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
-                         measurement_sets_.Count() * idToMSRow.size());
+                         ms_count_ * idToMSRow.size());
 
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);

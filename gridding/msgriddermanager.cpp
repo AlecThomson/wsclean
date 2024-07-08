@@ -35,12 +35,14 @@ void MSGridderManager::InitializeGridders(
     const Resources& resources,
     std::vector<GriddingResult::FacetData>& facet_results,
     GriddingTaskManager* writer_lock_manager) {
+  size_t gridder_index = 0;
   for (size_t facet_index : facet_indices) {
     assert(facet_index < task.facets.size());
 
     // Create a new gridder for each facet / sub-task, since gridders do not
     // support reusing them for multiple tasks.
-    std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
+    std::unique_ptr<MSGridderBase> gridder =
+        ConstructGridder(resources, gridder_index++);
     GriddingTask::FacetData& facet_task = task.facets[facet_index];
     GriddingResult::FacetData& facet_result = facet_results[facet_index];
 
@@ -127,33 +129,33 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
 }
 
 std::unique_ptr<MSGridderBase> MSGridderManager::ConstructGridder(
-    const Resources& resources) const {
+    const Resources& resources, const size_t gridder_index) const {
   switch (settings_.gridderType) {
     case GridderType::IDG:
       return std::make_unique<IdgMsGridder>(settings_, resources,
-                                            measurement_sets_);
+                                            measurement_sets_, gridder_index);
     case GridderType::WGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources,
-                                                  measurement_sets_, false);
+      return std::make_unique<WGriddingMSGridder>(
+          settings_, resources, measurement_sets_, gridder_index, false);
     case GridderType::TunedWGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources,
-                                                  measurement_sets_, true);
+      return std::make_unique<WGriddingMSGridder>(
+          settings_, resources, measurement_sets_, gridder_index, true);
     case GridderType::DirectFT:
       switch (settings_.directFTPrecision) {
         case DirectFTPrecision::Float:
-          return std::make_unique<DirectMSGridder<float>>(settings_, resources,
-                                                          measurement_sets_);
+          return std::make_unique<DirectMSGridder<float>>(
+              settings_, resources, measurement_sets_, gridder_index);
         case DirectFTPrecision::Double:
-          return std::make_unique<DirectMSGridder<double>>(settings_, resources,
-                                                           measurement_sets_);
+          return std::make_unique<DirectMSGridder<double>>(
+              settings_, resources, measurement_sets_, gridder_index);
         case DirectFTPrecision::LongDouble:
           return std::make_unique<DirectMSGridder<long double>>(
-              settings_, resources, measurement_sets_);
+              settings_, resources, measurement_sets_, gridder_index);
       }
       break;
     case GridderType::WStacking:
       return std::make_unique<WSMSGridder>(settings_, resources,
-                                           measurement_sets_);
+                                           measurement_sets_, gridder_index);
   }
   return {};
 }
