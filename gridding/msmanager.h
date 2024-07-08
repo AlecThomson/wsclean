@@ -14,6 +14,18 @@
 
 class MSGridderBase;
 
+/**
+ * MSManager is responsible for managing the set of measurement sets on which
+ * one or multiple gridders will operate, as well as computing and storing
+ * metadata about the MS that will be used by the gridders
+ *
+ * Metadata is split and stored in three different structs
+ * `Data` contains shared data for a MS that is the same across all facets in a
+ * facet group (One instance per MS) `FacetData` contains facet specific data
+ * for a MS that is unique to each facet and can't be shared across other facets
+ * in the facet group (Instace per facet per MS) `Limits` contains data that is
+ * calculated across all MS and is (One instance for multiple MS)
+ */
 class MSManager {
  public:
   struct Data {
@@ -73,12 +85,14 @@ class MSManager {
 
   void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders);
 
-  // Computes/stores per MS metadata that is relevant/shared for all
-  // facets/gridders
+  /** Computes/stores per MS metadata that is shared for all facets/gridders in
+   * a facet group */
   std::vector<Data> ms_data_vector_;
-  // Computes/stores per MS metadata that is unique to an
-  // individrelevant/shared for all facets/gridders
-  /// First index is gridder/facet, second index is MS
+
+  /**  Computes/stores per MS metadata that is unique to each individual
+   * facet/gridder in a facet group Outer index is gridder/facet Inner index is
+   * MS
+   */
   std::vector<std::vector<FacetData>> ms_facet_data_vector_;
 
  private:
@@ -93,7 +107,7 @@ class MSManager {
       Data& ms_data, std::vector<std::vector<FacetData>>& ms_facet_data_vector,
       const std::vector<MSGridderBase*>& gridders, bool is_cached);
 
-  // Computes/stores frequency limits across all measurement sets
+  /** Computes/stores frequency limits across all measurement sets */
   struct {
    public:
     bool has_frequencies_ = false;
