@@ -20,6 +20,6 @@ module load py-pytest/6.2.5
 module load py-six/1.16.0
 
 module load dysco/1.2
-module load dp3/6.0
+module load dp3/6.1
 module load everybeam/0.6.0
 module load idg/1.1.0
