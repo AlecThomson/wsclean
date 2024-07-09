@@ -1,30 +1,15 @@
 #ifndef GRIDDING_TASK_MANAGER_H_
 #define GRIDDING_TASK_MANAGER_H_
 
-#include <cstring>
-#include <functional>
-#include <memory>
+#include <mutex>
 #include <vector>
-
-#include <aocommon/lane.h>
-#include <aocommon/polarization.h>
-
-#include <schaapcommon/h5parm/jonesparameters.h>
-#include <schaapcommon/h5parm/h5parm.h>
-#include <schaapcommon/h5parm/soltab.h>
-
-#include "../structures/imageweights.h"
-#include "../structures/observationinfo.h"
-#include "../structures/msselection.h"
-
-#include "../msproviders/msdatadescription.h"
 
 #include "griddingtask.h"
 #include "griddingresult.h"
 
-class MSGridderBase;
-class Resources;
-class Settings;
+#include "../gridding/h5solutiondata.h"
+#include "../main/settings.h"
+#include "../structures/resources.h"
 
 class GriddingTaskManager {
  public:
@@ -109,39 +94,9 @@ class GriddingTaskManager {
                  std::mutex& result_mutex);
 
  private:
-  std::unique_ptr<MSGridderBase> ConstructGridder(
-      const Resources& resources) const;
-
-  /** Initializes 'gridder' with values that are equal for all facets. */
-  void InitializeGridderForTask(MSGridderBase& gridder,
-                                const GriddingTask& task);
-
-  /** Initializes 'gridder' with facet-specific values. */
-  void InitializeGridderForFacet(MSGridderBase& gridder,
-                                 GriddingTask::FacetData& facet_task);
-
-  void LoadSolutions();
-  void LoadGainTypes();
-
   const Settings& settings_;
 
-  /** For each solution, an H5Parm object for accessing the values. */
-  std::vector<schaapcommon::h5parm::H5Parm> h5parms_;
-
-  /**
-   * For each solution, a pointer into h5parms_ for the first part.
-   * If there are two solution tables, it contains the amplitudes.
-   */
-  std::vector<schaapcommon::h5parm::SolTab*> first_solutions_;
-
-  /**
-   * For each solution, a pointer into h5parms_ for the second (phase) part.
-   * This vector remains empty if there is a single solution table.
-   */
-  std::vector<schaapcommon::h5parm::SolTab*> second_solutions_;
-
-  /** For each solution, the corresponding gain type. */
-  std::vector<schaapcommon::h5parm::GainType> gain_types_;
+  H5SolutionData solution_data_;
 
   /**
    * Writer lock manager for the scheduler.
