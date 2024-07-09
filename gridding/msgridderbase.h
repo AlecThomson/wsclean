@@ -674,13 +674,16 @@ class MSGridderBase {
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
    *
-   * @tparam Behaviour Controls whether we apply the modifier, calculate the
-   * weights of the combined effect, or both.
-   * If setting Behaviour to kApply it is assumed that kSum has previously been
-   * applied, results will not be correct without doing this.
+   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
+   * ApplyConjugatedParmResponse for more information
+   * @tparam LoadResponse This should always be true unless the calling code
+   * knows the response has already been loaded previously, e.g. if we first
+   * call `ApplyCorrections<Mode, kSum, true>(...)` we can then afterwards call
+   * `ApplyCorrection<Mode, kApply, false>(...)` for the same values
    */
   template <GainMode Mode,
-            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum>
+            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
+            bool LoadResponse = true>
   void ApplyCorrections(const std::vector<std::string>& antenna_names,
                         std::complex<float>* visibility_row,
                         const aocommon::BandData& cur_band,
@@ -833,7 +836,7 @@ class MSGridderBase {
   VisibilityModifier visibility_modifier_;
 };
 
-template <GainMode Mode, ModifierBehaviour Behaviour>
+template <GainMode Mode, ModifierBehaviour Behaviour, bool LoadResponse>
 inline void MSGridderBase::ApplyCorrections(
     const std::vector<std::string>& antenna_names,
     std::complex<float>* visibility_row, const aocommon::BandData& cur_band,
@@ -844,7 +847,7 @@ inline void MSGridderBase::ApplyCorrections(
     if (apply_beam && visibility_modifier_.HasH5Parm()) {
 #ifdef HAVE_EVERYBEAM
       // Load and apply (in conjugate) both the beam and the h5parm solutions
-      if constexpr (internal::ShouldSumCorrection(Behaviour)) {
+      if constexpr (LoadResponse) {
         visibility_modifier_.CacheBeamResponse(meta_data.time,
                                                meta_data.fieldId, cur_band);
         visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
@@ -856,7 +859,7 @@ inline void MSGridderBase::ApplyCorrections(
           meta_data.antenna2, original_ms_index_, apply_forward);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
-      if constexpr (internal::ShouldSumCorrection(Behaviour)) {
+      if constexpr (LoadResponse) {
         visibility_modifier_.CacheBeamResponse(meta_data.time,
                                                meta_data.fieldId, cur_band);
       }
@@ -868,7 +871,7 @@ inline void MSGridderBase::ApplyCorrections(
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
       // Load and apply the h5parm solutions
-      if constexpr (internal::ShouldSumCorrection(Behaviour)) {
+      if constexpr (LoadResponse) {
         visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
                                                cur_band, original_ms_index_);
       }
