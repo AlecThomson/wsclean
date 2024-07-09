@@ -325,9 +325,13 @@ Options can be:
    Apply solutions from the provided (h5) file per facet when gridding facet based images.
    Provided file is assumed to be in H5Parm format.
    Filename is followed by a comma separated list of strings specifying which sol tabs from the provided H5Parm file are used.
--diagonal-solutions
-   Will apply diagonal (h5) solutions separately to the specified polarizations. This allows
-   separate correction of XX and YY while only making Stokes I images.
+-scalar-visibilities
+   Only read the visibilities as a single polarization (e.g. Stokes I). When imaging a single polarization and when the solutions
+   are also scalar, this option may make IO faster. By default, all four correlated visibilities (e.g. xx, xy, yx, yy) are read
+   when solutions (or beam gain) are applied, and the solutions are applied to those four.
+-diagonal-visibilities
+   Will read only diagonal visibilities (e.g. xx/yy) and apply solutions separately to these visibilities. This allows
+   separate correction of XX and YY while only making Stokes I images, without needing all the visibilities.
 -apply-facet-beam
    Apply beam gains to facet center when gridding facet based images or direction dependent psfs
 -facet-beam-update <seconds>
@@ -1245,8 +1249,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "List of solution tables (soltabs) should contain at most two "
             "entries.");
       }
-    } else if (param == "diagonal-solutions") {
-      settings.diagonalSolutions = true;
+    } else if (param == "scalar-visibilities") {
+      settings.visibilityReadMode = VisibilityReadMode::Scalar;
+    } else if (param == "diagonal-solutions" ||
+               param == "diagonal-visibilities") {
+      // Deprecated July 2024
+      CheckDeprecated(isSlave, argv[argi], "diagonal-visibilities");
+      settings.visibilityReadMode = VisibilityReadMode::Diagonal;
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {

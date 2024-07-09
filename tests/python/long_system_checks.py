@@ -38,6 +38,21 @@ def check_image_pixel(position, expected_value, filename):
     assert expected_value - 0.03 < value < expected_value + 0.03
 
 
+def set_test_gains_in_solution_file(solution_file):
+    with h5py.File(solution_file, "a") as table:
+        solset = table["sol000"]
+        # times, freq, ant, dir, pol
+        for i in range(0, 5):
+            if solset["amplitude000/val"].ndim == 5:
+                solset["amplitude000/val"][:, :, :, i, :] = i + 2
+                solset["phase000/val"][:, :, :, i, :] = 0
+            else:
+                solset["amplitude000/val"][:, :, :, i] = i + 2
+                solset["phase000/val"][:, :, :, i] = 0
+        solset["amplitude000/weight"][:] = 1
+        solset["phase000/weight"][:] = 1
+
+
 @pytest.fixture
 def model_file_fixture():
     model_3c196 = """Format = Name, Patch, Type, Ra, Dec, I, Q, U, V, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
@@ -686,6 +701,32 @@ class TestLongSystem:
             "facet-iquv-corrections-YY-image-pb.fits",
         )
 
+    def test_facet_scalar_corrections(
+        self, model_file_fixture, region_file_fixture
+    ):
+        # Perform simple solve to get a hdf5 parm file
+        solution_file = "scalar_correction_solutions.h5"
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.mode=scalar ddecal.maxiter=1"
+        validate_call(dp3_run.split())
+
+        set_test_gains_in_solution_file(solution_file)
+
+        # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[h5parmpredict] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000"
+        validate_call(dp3_run.split())
+
+        base_cmd = f"""{tcf.WSCLEAN} -name facet-scalar-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -size 2500 2500
+-apply-facet-solutions {solution_file} amplitude000,phase000
+-scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
+-nmiter 1 -maxuvw-m 20000 -no-update-model-required"""
+        cmd = base_cmd + " -scalar-visibilities 3c196-simulation.ms"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "facet-scalar-corrections-image-pb.fits"
+        )
+
     def test_iquv_facet_dual_corrections(
         self, model_file_fixture, region_file_fixture
     ):
@@ -694,14 +735,7 @@ class TestLongSystem:
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.maxiter=1"
         validate_call(dp3_run.split())
 
-        with h5py.File(solution_file, "a") as table:
-            solset = table["sol000"]
-            # times, freq, ant, dir, pol
-            for i in range(0, 5):
-                solset["amplitude000/val"][:, :, :, i, :] = i + 2
-                solset["phase000/val"][:, :, :, i, :] = 0
-            solset["amplitude000/weight"][:] = 1
-            solset["phase000/weight"][:] = 1
+        set_test_gains_in_solution_file(solution_file)
 
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[h5parmpredict] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000"
@@ -746,7 +780,7 @@ class TestLongSystem:
         dp3_run = f"DP3 msin=3c196-simulation.ms msout= steps=[applybeam]"
         validate_call(dp3_run.split())
 
-        cmd = base_cmd + " -diagonal-solutions 3c196-simulation.ms"
+        cmd = base_cmd + " -diagonal-visibilities 3c196-simulation.ms"
         validate_call(cmd.split())
 
         check_image_pixel(
