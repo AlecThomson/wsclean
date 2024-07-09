@@ -43,8 +43,12 @@ def set_test_gains_in_solution_file(solution_file):
         solset = table["sol000"]
         # times, freq, ant, dir, pol
         for i in range(0, 5):
-            solset["amplitude000/val"][:, :, :, i, :] = i + 2
-            solset["phase000/val"][:, :, :, i, :] = 0
+            if solset["amplitude000/val"].ndim == 5:
+                solset["amplitude000/val"][:, :, :, i, :] = i + 2
+                solset["phase000/val"][:, :, :, i, :] = 0
+            else:
+                solset["amplitude000/val"][:, :, :, i] = i + 2
+                solset["phase000/val"][:, :, :, i] = 0
         solset["amplitude000/weight"][:] = 1
         solset["phase000/weight"][:] = 1
 
@@ -712,7 +716,9 @@ class TestLongSystem:
         validate_call(dp3_run.split())
 
         base_cmd = f"""{tcf.WSCLEAN} -name facet-scalar-corrections
--parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -size 2500 2500 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -size 2500 2500
+-apply-facet-solutions {solution_file} amplitude000,phase000
+-scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
 -nmiter 1 -maxuvw-m 20000 -no-update-model-required"""
         cmd = base_cmd + " -scalar-visibilities 3c196-simulation.ms"
         validate_call(cmd.split())

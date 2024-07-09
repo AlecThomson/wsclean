@@ -72,10 +72,10 @@ void Settings::Validate() const {
   }
 
   if (visibilityReadMode != VisibilityReadMode::Full) {
-    if (facetSolutionFiles.empty()) {
+    if (!UseFacetCorrections()) {
       throw std::runtime_error(
-          "-diagonal-visibilities must be combined with "
-          "-apply-facet-solutions");
+          "-scalar-visibilities and -diagonal-visibilities must be combined "
+          "with -apply-facet-solutions or -apply-facet-beam");
     }
     if (visibilityReadMode == VisibilityReadMode::Diagonal &&
         (polarizations.size() != 1 ||
