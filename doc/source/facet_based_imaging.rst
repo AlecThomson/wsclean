@@ -73,7 +73,7 @@ Selecting visibilities to read / reorder
 When applying solutions or the beam in facet mode, WSClean will by default reorder and go through the four (instrumental) polarizations, e.g. XX/XY/YX/YY, for every requested output polarization. This is necessary to correct for leakage terms that the beam or solutions might have. This will obviously cause more reading and writing, while it might not always be necessary to use all visibilities. For the case where no leakage terms are expected, the option ``-diagonal-visibilities`` can be used. This will in the case of linear polarizations *only* use the diagonal visibilities (e.g. XX/YY) and assume the off-diagonal visibilities (e.g. XY/YX) are zero. When differences between the two diagonal correlations can also be ignored, option ``-scalar-visibilities`` can be used, which will reduce polarizations to the single requested polarization (e.g. Stokes I) and therefore limit I/O further.
 
 .. note::
-    Option ``-diagonal-visibilities`` used to be called ``-diagonal-solutions``, but its meaning has changed between WSClean versions :doc:`v3.4 <changelogs/v3.4>` and :doc:`v3.5 <changelogs/v3.5>`, and to make its intend clearer it was renamed.
+    The effect of using ``-diagonal-visibilities`` changed between WSClean versions :doc:`v3.4 <changelogs/v3.4>` and :doc:`v3.5 <changelogs/v3.5>`: the text above describes the new behaviour. An older name for ``-diagonal-visibilities`` was ``-diagonal-solutions``; these are synonyms, but the second is deprecated now.
 
 Examples
 --------
@@ -90,8 +90,6 @@ This is an example facet-based imaging command that applies both a facet-based b
     -size 1024 1024 -scale 1amin \
     ${ms}
 
-In case the solution files contains separate ``x`` and ``y`` solutions, option ``-diagonal-solutions`` should be added.
-    
 Availability
 ------------
 Initial support for faceting is made available in WSClean :doc:`version 3.0 <changelogs/v3.0>`. In subsequent versions,
