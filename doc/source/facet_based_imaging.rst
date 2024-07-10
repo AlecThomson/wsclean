@@ -67,13 +67,13 @@ When either beam or gain solutions are applied, WSClean will output a "beam" fit
 
 The average beam is corrected "smoothly", which (in perfect situations) means that the facet edge is not visible. In reality, the facet edge may be still visible in the ``-pb.fits`` and beam images because of the gain solutions, because the average correction is corrected discretely per facet and not smoothly.
 
-Reading / reordering consequences and ``-diagonal-solutions``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Selecting visibilities to read / reorder
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When applying solutions or beam in facet mode, WSClean will by default reorder and go through the four (instrumental) polarizations, e.g. XX/XY/YX/YY, for every requested output polarization. This is necessary to correct for leakage terms that the beam or solutions might have. This will obviously cause more reading and writing, while it might not always be necessary to use all visibilities. For the case where no leakage terms are expected, the option ``-diagonal-solutions`` can be used: this will *only* use the XX and YY polarizations and assume XY and YX are zero (and similar for circular feeds).
+When applying solutions or the beam in facet mode, WSClean will by default reorder and go through the four (instrumental) polarizations, e.g. XX/XY/YX/YY, for every requested output polarization. This is necessary to correct for leakage terms that the beam or solutions might have. This will obviously cause more reading and writing, while it might not always be necessary to use all visibilities. For the case where no leakage terms are expected, the option ``-diagonal-visibilities`` can be used. This will in the case of linear polarizations *only* use the diagonal visibilities (e.g. XX/YY) and assume the off-diagonal visibilities (e.g. XY/YX) are zero. When differences between the two diagonal correlations can also be ignored, option ``-scalar-visibilities`` can be used, which will reduce polarizations to the single requested polarization (e.g. Stokes I) and therefore limit I/O further.
 
 .. note::
-    The text above describes the current meaning of ``-diagonal-solutions``: its meaning has changed between WSClean versions :doc:`changelogs/v3.4` and :doc:`changelogs/v3.5`.
+    Option ``-diagonal-visibilities`` used to be called ``-diagonal-solutions``, but its meaning has changed between WSClean versions :doc:`v3.4 <changelogs/v3.4>` and :doc:`v3.5 <changelogs/v3.5>`, and to make its intend clearer it was renamed.
 
 Examples
 --------

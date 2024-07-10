@@ -21,6 +21,7 @@
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
 enum class GridderType { WStacking, WGridder, TunedWGridder, DirectFT, IDG };
+enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
 
 /**
  * This class describes all settings for a single WSClean run.
@@ -130,7 +131,7 @@ class Settings {
   double beamAtermUpdateTime = 300.0;  // in seconds.
   std::vector<std::string> facetSolutionFiles;
   std::vector<std::string> facetSolutionTables;
-  bool diagonalSolutions = false;
+  VisibilityReadMode visibilityReadMode = VisibilityReadMode::kFull;
   bool applyFacetBeam = false;
   double facetBeamUpdateTime = 120.0;  // in seconds.
   bool saveATerms = false;

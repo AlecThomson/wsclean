@@ -44,8 +44,9 @@ enum class PsfMode {
 namespace internal {
 
 template <size_t PolarizationCount>
-inline void CollapseData(size_t n_channels, std::complex<float>* buffer,
-                         aocommon::PolarizationEnum polarization) {
+inline void CollapseData(
+    size_t n_channels, std::complex<float>* buffer,
+    [[maybe_unused]] aocommon::PolarizationEnum polarization) {
   if constexpr (PolarizationCount == 2) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
       buffer[ch] = buffer[ch * PolarizationCount] +
@@ -61,9 +62,9 @@ inline void CollapseData(size_t n_channels, std::complex<float>* buffer,
 }
 
 template <size_t PolarizationCount>
-inline void ExpandData(size_t n_channels, std::complex<float>* buffer,
-                       std::complex<float>* output,
-                       aocommon::PolarizationEnum polarization) {
+inline void ExpandData(
+    size_t n_channels, std::complex<float>* buffer, std::complex<float>* output,
+    [[maybe_unused]] aocommon::PolarizationEnum polarization) {
   if constexpr (PolarizationCount == 2) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
       output[ch * 2] = buffer[ch];
