@@ -673,8 +673,17 @@ class MSGridderBase {
    * @brief Applies the selected visibility modifier (selected by Mode)
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
+   *
+   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
+   * ApplyConjugatedParmResponse for more information
+   * @tparam LoadResponse This should always be true unless the calling code
+   * knows the response has already been loaded previously, e.g. if we first
+   * call `ApplyCorrections<Mode, kSum, true>(...)` we can then afterwards call
+   * `ApplyCorrection<Mode, kApply, false>(...)` for the same values
    */
-  template <GainMode Mode>
+  template <GainMode Mode,
+            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
+            bool LoadResponse = true>
   void ApplyCorrections(const std::vector<std::string>& antenna_names,
                         std::complex<float>* visibility_row,
                         const aocommon::BandData& cur_band,
@@ -827,7 +836,7 @@ class MSGridderBase {
   VisibilityModifier visibility_modifier_;
 };
 
-template <GainMode Mode>
+template <GainMode Mode, ModifierBehaviour Behaviour, bool LoadResponse>
 inline void MSGridderBase::ApplyCorrections(
     const std::vector<std::string>& antenna_names,
     std::complex<float>* visibility_row, const aocommon::BandData& cur_band,
@@ -838,35 +847,38 @@ inline void MSGridderBase::ApplyCorrections(
     if (apply_beam && visibility_modifier_.HasH5Parm()) {
 #ifdef HAVE_EVERYBEAM
       // Load and apply (in conjugate) both the beam and the h5parm solutions
-      visibility_modifier_.CacheBeamResponse(meta_data.time, meta_data.fieldId,
-                                             cur_band);
-      visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
-                                             cur_band, original_ms_index_);
-      visibility_modifier_
-          .ApplyConjugatedDual<ModifierBehaviour::kApplyAndSum, Mode>(
-              visibility_row, weight_buffer, scratch_image_weights_.data(),
-              cur_band.ChannelCount(), antenna_names.size(), meta_data.antenna1,
-              meta_data.antenna2, original_ms_index_, apply_forward);
+      if constexpr (LoadResponse) {
+        visibility_modifier_.CacheBeamResponse(meta_data.time,
+                                               meta_data.fieldId, cur_band);
+        visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
+                                               cur_band, original_ms_index_);
+      }
+      visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode>(
+          visibility_row, weight_buffer, scratch_image_weights_.data(),
+          cur_band.ChannelCount(), antenna_names.size(), meta_data.antenna1,
+          meta_data.antenna2, original_ms_index_, apply_forward);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
-      visibility_modifier_.CacheBeamResponse(meta_data.time, meta_data.fieldId,
-                                             cur_band);
-      visibility_modifier_
-          .ApplyConjugatedBeamResponse<ModifierBehaviour::kApplyAndSum, Mode>(
-              visibility_row, weight_buffer, scratch_image_weights_.data(),
-              cur_band.ChannelCount(), meta_data.antenna1, meta_data.antenna2,
-              apply_forward);
+      if constexpr (LoadResponse) {
+        visibility_modifier_.CacheBeamResponse(meta_data.time,
+                                               meta_data.fieldId, cur_band);
+      }
+      visibility_modifier_.ApplyConjugatedBeamResponse<Behaviour, Mode>(
+          visibility_row, weight_buffer, scratch_image_weights_.data(),
+          cur_band.ChannelCount(), meta_data.antenna1, meta_data.antenna2,
+          apply_forward);
 
 #endif  // HAVE_EVERYBEAM
     } else if (visibility_modifier_.HasH5Parm()) {
-      visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
-                                             cur_band, original_ms_index_);
-
-      visibility_modifier_
-          .ApplyConjugatedParmResponse<ModifierBehaviour::kApplyAndSum, Mode>(
-              visibility_row, weight_buffer, scratch_image_weights_.data(),
-              original_ms_index_, cur_band.ChannelCount(), antenna_names.size(),
-              meta_data.antenna1, meta_data.antenna2, apply_forward);
+      // Load and apply the h5parm solutions
+      if constexpr (LoadResponse) {
+        visibility_modifier_.CacheParmResponse(meta_data.time, antenna_names,
+                                               cur_band, original_ms_index_);
+      }
+      visibility_modifier_.ApplyConjugatedParmResponse<Behaviour, Mode>(
+          visibility_row, weight_buffer, scratch_image_weights_.data(),
+          original_ms_index_, cur_band.ChannelCount(), antenna_names.size(),
+          meta_data.antenna1, meta_data.antenna2, apply_forward);
     }
   }
 }
