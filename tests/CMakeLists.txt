@@ -124,7 +124,8 @@ add_custom_target(check DEPENDS unitchecks;integrationchecks)
 add_custom_target(
   coverage
   DEPENDS check
-  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*')
+  COMMAND gcovr -r ${CMAKE_SOURCE_DIR} -e '.*/tests/.*' -e '.*/external/.*' -e
+          '.*/CompilerIdCXX/.*' ${CMAKE_BINARY_DIR})
 
 # Collect all tests that should run on das5 in a single target
 add_custom_target(nightlychecks DEPENDS integrationchecks;facetchecks)
