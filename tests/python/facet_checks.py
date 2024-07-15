@@ -161,7 +161,7 @@ class TestFacets:
     # but they fail on the taql assertion
     @pytest.mark.parametrize("gridder", ["wgridder"])
     @pytest.mark.parametrize("apply_facet_beam", [False, True])
-    def test_predict(self, gridder, apply_facet_beam):
+    def test_predict(self, gridder, apply_facet_beam, tmp_mwa_mock_facet):
         """
         Test predict only run
 
@@ -171,12 +171,12 @@ class TestFacets:
             wsclean compatible description of gridder to be used.
         """
 
-        predict_facet_image(tcf.MWA_MOCK_FACET, gridder, apply_facet_beam)
+        predict_facet_image(tmp_mwa_mock_facet, gridder, apply_facet_beam)
 
         # A numerical check can only be performed in case no DD effects were applied.
         if not apply_facet_beam:
             predict_full_image(tcf.MWA_MOCK_FULL, gridder)
-            taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
+            taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tmp_mwa_mock_facet} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
             assert_taql(taql_command)
 
     @pytest.mark.parametrize("gridder", ["wgridder"])
@@ -249,14 +249,14 @@ class TestFacets:
             validate_call(chmod.split())
 
     @pytest.mark.parametrize("mpi", [False, True])
-    def test_facetbeamimages(self, mpi):
+    def test_facetbeamimages(self, mpi, tmp_mwa_mock_facet):
         """
         Basic checks of the generated images when using facet beams. For each image,
         test that the pixel values are valid (not NaN/Inf) and check the percentage
         of zero pixels.
         """
 
-        deconvolve_facets(tcf.MWA_MOCK_FACET, "wgridder", True, mpi, True)
+        deconvolve_facets(tmp_mwa_mock_facet, "wgridder", True, mpi, True)
 
         basic_image_check("facet-imaging-reorder-psf.fits")
         basic_image_check("facet-imaging-reorder-dirty.fits")

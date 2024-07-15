@@ -79,6 +79,13 @@ def prepare_mock_ms():
         shutil.copytree(tcf.MWA_MOCK_MS, tcf.MWA_MOCK_FACET)
 
 
+@pytest.fixture(scope="function")
+def tmp_mwa_mock_facet(tmp_path):
+    mwa_mock_facet_path = tmp_path / tcf.MWA_MOCK_FACET
+    shutil.copytree(tcf.MWA_MOCK_FACET, mwa_mock_facet_path)
+    return mwa_mock_facet_path
+
+
 @pytest.fixture(scope="class")
 def prepare_model_image():
     if not os.path.isfile(tcf.MODEL_IMAGE):
