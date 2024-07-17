@@ -8,6 +8,8 @@
 #include <thread>
 #include <vector>
 
+#include <aocommon/threadpool.h>
+
 template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
                                         const Resources& resources)
@@ -15,7 +17,7 @@ DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
-  initializeSqrtLMLookupTable();
+  _sqrtLMTable = GetSqrtLMLookupTable();
   const size_t width = TrimWidth(), height = TrimHeight();
 
   std::vector<MSData> msDataVector;
@@ -26,14 +28,20 @@ void DirectMSGridder<num_t>::Invert() {
 
   _inversionLane.resize(_resources.NCpus() * 1024);
 
-  std::vector<std::thread> threads;
-  threads.reserve(_resources.NCpus());
   for (size_t t = 0; t != _resources.NCpus(); ++t) {
-    _layers.emplace_back(allocate());
-    std::fill(_layers[t], _layers[t] + width * height, num_t(0.0));
-    threads.emplace_back(
-        [&](size_t threadIndex) { inversionWorker(threadIndex); }, t);
+    _layers.emplace_back(aocommon::ImageBase<num_t>(ImageWidth(), ImageHeight(),
+                                                    static_cast<num_t>(0.0)));
   }
+
+  aocommon::ThreadPool& thread_pool = aocommon::ThreadPool::GetInstance();
+  thread_pool.SetNThreads(_resources.NCpus() + 1);
+  thread_pool.StartParallelExecution([&](size_t thread_index) {
+    const size_t layer = thread_index - 1;
+    InversionSample sample;
+    while (_inversionLane.read(sample)) {
+      gridSample(sample, layer);
+    }
+  });
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
@@ -41,20 +49,21 @@ void DirectMSGridder<num_t>::Invert() {
   }
 
   _inversionLane.write_end();
-  for (std::thread& t : threads) t.join();
-  threads.clear();
+  thread_pool.FinishParallelExecution();
 
-  num_t* scratch;
-  scratch = std::move(_layers.back());
+  aocommon::ImageBase<num_t> scratch = std::move(_layers.back());
   _layers.pop_back();
 
-  for (const num_t* layer : _layers) {
-    for (size_t i = 0; i != width * height; ++i) scratch[i] += layer[i];
+  for (const aocommon::ImageBase<num_t>& layer : _layers) {
+    scratch += layer;
   }
+
+  _layers.clear();
+  _sqrtLMTable.Reset();
 
   // Wrap the image correctly and normalize it
   _image = aocommon::Image(TrimWidth(), TrimHeight());
-  double wFactor = 1.0 / ImageWeight();
+  const double weight_factor = 1.0 / ImageWeight();
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
@@ -63,14 +72,9 @@ void DirectMSGridder<num_t>::Invert() {
       size_t xSrc = x + width / 2;
       if (xSrc >= width) xSrc -= width;
 
-      _image[x + y * width] = scratch[xSrc + ySrc * width] * wFactor;
+      _image[x + y * width] = scratch[xSrc + ySrc * width] * weight_factor;
     }
   }
-
-  freeImg(scratch);
-  for (num_t* layer : _layers) freeImg(layer);
-  _layers.clear();
-  freeImg(_sqrtLMTable);
 }
 
 template <typename num_t>
@@ -85,14 +89,17 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
   //   Adding those together gives one real value:
   //     I+Ic = real(V) 2 cos (2 pi (ul + vm + w (sqrt(1 - l^2 - m^2) - 1))) -
   //            imag(V) 2 sin (2 pi (ul + vm + w (sqrt(1 - l^2 - m^2) - 1)))
-  num_t* layer = _layers[layerIndex];
+  aocommon::ImageBase<num_t>& layer = _layers[layerIndex];
   const std::complex<num_t> val = sample.sample;
-  const size_t width = TrimWidth(), height = TrimHeight();
-  const num_t minTwoPi = num_t(-2.0 * M_PI), u = sample.uInLambda,
-              v = sample.vInLambda, w = sample.wInLambda;
+  const size_t width = TrimWidth();
+  const size_t height = TrimHeight();
+  constexpr num_t minTwoPi = num_t(-2.0 * M_PI);
+  const num_t u = sample.uInLambda;
+  const num_t v = sample.vInLambda;
+  const num_t w = sample.wInLambda;
 
   for (size_t y = 0; y != height; ++y) {
-    size_t yIndex = y * height;
+    const size_t yIndex = y * height;
 
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
@@ -105,19 +112,11 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
       const num_t l =
           num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + LShift());
 
-      size_t index = yIndex + x;
-      num_t angle = minTwoPi * (u * l + v * m + w * _sqrtLMTable[index]);
+      const size_t index = yIndex + x;
+      const num_t angle = minTwoPi * (u * l + v * m + w * _sqrtLMTable[index]);
       layer[index] +=
           val.real() * std::cos(angle) - val.imag() * std::sin(angle);
     }
-  }
-}
-
-template <typename num_t>
-void DirectMSGridder<num_t>::inversionWorker(size_t layer) {
-  InversionSample sample;
-  while (_inversionLane.read(sample)) {
-    gridSample(sample, layer);
   }
 }
 
@@ -178,10 +177,12 @@ void DirectMSGridder<num_t>::Predict(std::vector<aocommon::Image>&& /*image*/) {
 }
 
 template <typename num_t>
-void DirectMSGridder<num_t>::initializeSqrtLMLookupTable() {
-  const size_t width = TrimWidth(), height = TrimHeight();
-  _sqrtLMTable = allocate();
-  num_t* iter = _sqrtLMTable;
+aocommon::ImageBase<num_t> DirectMSGridder<num_t>::GetSqrtLMLookupTable()
+    const {
+  const size_t width = TrimWidth();
+  const size_t height = TrimHeight();
+  aocommon::ImageBase<num_t> sqrtLMTable(ImageWidth(), ImageHeight());
+  num_t* iter = sqrtLMTable.Data();
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
@@ -199,6 +200,7 @@ void DirectMSGridder<num_t>::initializeSqrtLMLookupTable() {
       ++iter;
     }
   }
+  return sqrtLMTable;
 }
 
 template class DirectMSGridder<float>;

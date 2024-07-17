@@ -363,8 +363,8 @@ add_library(
 # allowed. Note that visibilities can be NaN hence this can not be turned
 # on for all files.
 set_source_files_properties(
-  wsclean/wstackinggridder.cpp wgridder/wgriddinggridder_simple.cpp
-  PROPERTIES COMPILE_FLAGS -ffast-math)
+  wsclean/directmsgridder.cpp wsclean/wstackinggridder.cpp
+  wgridder/wgriddinggridder_simple.cpp PROPERTIES COMPILE_FLAGS -ffast-math)
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}
