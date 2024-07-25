@@ -12,6 +12,8 @@ using aocommon::Image;
 using aocommon::ImageBase;
 using aocommon::Logger;
 
+namespace wsclean {
+
 template <typename T>
 WStackingGridder<T>::WStackingGridder(size_t width, size_t height,
                                       double pixelSizeX, double pixelSizeY,
@@ -1023,3 +1025,5 @@ Image WStackingGridder<double>::ImaginaryImageFloat() {
 
 template class WStackingGridder<double>;
 template class WStackingGridder<float>;
+
+}  // namespace wsclean

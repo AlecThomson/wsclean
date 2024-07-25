@@ -5,6 +5,8 @@
 
 #include <aocommon/uvector.h>
 
+namespace wsclean {
+
 class TimestepBufferReader;
 
 /**
@@ -76,5 +78,7 @@ class TimestepBuffer final : public MSProvider {
 
   bool _readModel;
 };
+
+}  // namespace wsclean
 
 #endif

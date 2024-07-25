@@ -13,6 +13,8 @@
 
 #include "../structures/msselection.h"
 
+namespace wsclean {
+
 void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
@@ -85,3 +87,5 @@ ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
 
   return obsInfo;
 }
+
+}  // namespace wsclean

@@ -9,6 +9,8 @@
 #include "../distributed/taskmessage.h"
 #include "../distributed/mpibig.h"
 
+namespace wsclean {
+
 namespace {
 constexpr int kMainNode = 0;
 constexpr int kTag = 0;
@@ -48,3 +50,5 @@ void MpiWorkerScheduler::Run(
                  MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
   });
 }
+
+}  // namespace wsclean

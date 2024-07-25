@@ -7,6 +7,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+namespace wsclean {
+
 struct ObservationInfo {
   double phaseCentreRA = 0.0;
   double phaseCentreDec = 0.0;
@@ -29,5 +31,7 @@ struct ObservationInfo {
 /// Generates observation info from the measurement set tables.
 struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
                                            size_t fieldId);
+
+}  // namespace wsclean
 
 #endif

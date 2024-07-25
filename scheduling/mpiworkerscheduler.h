@@ -12,6 +12,8 @@
 
 #include "griddingresult.h"
 
+namespace wsclean {
+
 class MpiWorkerScheduler final : public GriddingTaskManager {
  public:
   MpiWorkerScheduler(const class Settings& settings);
@@ -55,5 +57,7 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
    */
   ThreadedScheduler local_scheduler_;
 };
+
+}  // namespace wsclean
 
 #endif  // SCHEDULING_MPI_WORKER_SCHEDULER_H_

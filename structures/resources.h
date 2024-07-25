@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstddef>
 
+namespace wsclean {
+
 class Resources {
  public:
   Resources() = default;
@@ -31,5 +33,7 @@ class Resources {
  * @returns available memory in bytes.
  */
 int64_t GetAvailableMemory(double memory_fraction, double abs_memory_limit);
+
+}  // namespace wsclean
 
 #endif

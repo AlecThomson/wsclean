@@ -6,6 +6,8 @@
 
 #include <sstream>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(noise_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(noise_baseline_map) {
@@ -37,3 +39,5 @@ BOOST_AUTO_TEST_CASE(noise_baseline_map) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

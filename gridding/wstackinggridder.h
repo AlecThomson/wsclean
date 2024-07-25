@@ -22,6 +22,8 @@
 #include <stack>
 #include <thread>
 
+namespace wsclean {
+
 /**
  * This class grids and/or samples visibilities to/from UV space.
  * It also executes the FFT(s) required and performs the w-term correction.
@@ -633,5 +635,7 @@ class WStackingGridder {
   std::vector<num_t> _sqrtLMLookupTable;
   size_t _nFFTThreads;
 };
+
+}  // namespace wsclean
 
 #endif

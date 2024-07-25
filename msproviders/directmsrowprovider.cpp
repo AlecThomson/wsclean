@@ -2,6 +2,8 @@
 
 #include "msprovider.h"
 
+namespace wsclean {
+
 void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                    MSRowProvider::FlagArray& flags,
                                    WeightArray& weights, double& u, double& v,
@@ -26,3 +28,5 @@ void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,
 void DirectMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
   _modelColumn->get(_currentRow, model, true);
 }
+
+}  // namespace wsclean

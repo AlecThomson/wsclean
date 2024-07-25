@@ -11,13 +11,15 @@
 
 #include "metadatacache.h"
 
-class AverageBeam;
-
 namespace schaapcommon {
 namespace facets {
 class Facet;
 }
 }  // namespace schaapcommon
+
+namespace wsclean {
+
+class AverageBeam;
 
 class GriddingTask {
  public:
@@ -83,5 +85,7 @@ class GriddingTask {
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
 };
+
+}  // namespace wsclean
 
 #endif

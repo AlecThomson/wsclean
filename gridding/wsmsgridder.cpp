@@ -22,6 +22,8 @@
 using aocommon::Image;
 using aocommon::Logger;
 
+namespace wsclean {
+
 WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources)
     : MSGridderBase(settings),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
@@ -594,3 +596,5 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
                   << "%)";
   Logger::Debug << '\n';
 }
+
+}  // namespace wsclean

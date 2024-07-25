@@ -7,6 +7,8 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+namespace wsclean {
+
 /**
         @author A.R. Offringa <offringa@astro.rug.nl>
 */
@@ -39,5 +41,7 @@ class Stopwatch {
 
 // end of Doxygen skip
 #endif
+
+}  // namespace wsclean
 
 #endif

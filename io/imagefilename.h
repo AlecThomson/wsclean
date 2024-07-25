@@ -5,6 +5,8 @@
 
 #include <aocommon/polarization.h>
 
+namespace wsclean {
+
 enum class ImageFilenameType { Normal, Imaginary, Psf, Beam };
 
 class ImageFilename {
@@ -148,5 +150,7 @@ class ImageFilename {
     return str.str();
   }
 };
+
+}  // namespace wsclean
 
 #endif

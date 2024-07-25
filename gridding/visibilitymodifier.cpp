@@ -13,6 +13,8 @@
 
 using aocommon::MC2x2F;
 
+namespace wsclean {
+
 namespace {
 void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
   for (std::complex<float>& v : values) {
@@ -246,3 +248,5 @@ template void VisibilityModifier::ApplyParmResponse<GainMode::k2VisDiagonal>(
 template void VisibilityModifier::ApplyParmResponse<GainMode::kFull>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
     size_t n_antennas, size_t antenna1, size_t antenna2);
+
+}  // namespace wsclean

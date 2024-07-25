@@ -4,6 +4,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(output_channel_info)
 
 BOOST_AUTO_TEST_CASE(smallest_theoretic_beam_size) {
@@ -31,3 +33,5 @@ BOOST_AUTO_TEST_CASE(smallest_theoretic_beam_size) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

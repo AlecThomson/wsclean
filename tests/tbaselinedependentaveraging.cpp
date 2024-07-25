@@ -7,6 +7,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
+namespace wsclean {
+
 const std::string kFilename(
     "/home/anoko/Data/3C196-TestSet/L258627_SAP000_SB120_uv.MS.1ch12s.dppp");
 
@@ -160,3 +162,5 @@ averagingRowProvider");
 }*/
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

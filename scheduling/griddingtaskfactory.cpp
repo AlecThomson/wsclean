@@ -5,6 +5,8 @@
 #include "../idg/averagebeam.h"
 #include "../io/imagefilename.h"
 
+namespace wsclean {
+
 void GriddingTaskFactory::AddFacet(
     std::vector<GriddingTask>& tasks, const ImagingTableEntry& entry,
     std::unique_ptr<AverageBeam> average_beam,
@@ -159,3 +161,5 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePredictTasks(
 
   return tasks;
 }
+
+}  // namespace wsclean

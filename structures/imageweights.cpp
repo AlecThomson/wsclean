@@ -19,6 +19,8 @@
 #include <cassert>
 #include <cstring>
 
+namespace wsclean {
+
 ImageWeights::ImageWeights()
     : _weightMode(WeightMode::UniformWeighted),
       _imageWidth(0),
@@ -384,3 +386,5 @@ double ImageWeights::windowMean(size_t x, size_t y, size_t windowSize) {
   }
   return windowSum / double(windowCount);
 }
+
+}  // namespace wsclean

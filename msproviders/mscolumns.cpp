@@ -2,6 +2,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+namespace wsclean {
+
 MsColumns::MsColumns(const casacore::MeasurementSet& ms,
                      const std::string& data_column_name)
     : antenna_1(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1)),
@@ -14,3 +16,5 @@ MsColumns::MsColumns(const casacore::MeasurementSet& ms,
       flag(ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG)),
       data_description_id(
           ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID)) {}
+
+}  // namespace wsclean

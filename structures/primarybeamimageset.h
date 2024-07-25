@@ -13,6 +13,8 @@
 
 #include <radler/component_list.h>
 
+namespace wsclean {
+
 /**
  * A set of images that describe the beam correction. The image set
  * has maximally 16 images that present the 16 elements of a Hermitian Mueller
@@ -198,5 +200,7 @@ class PrimaryBeamImageSet {
    */
   std::array<aocommon::Image, kNImages> _beamImages;
 };
+
+}  // namespace wsclean
 
 #endif

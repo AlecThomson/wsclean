@@ -8,6 +8,8 @@
 
 #include "../main/settings.h"
 
+namespace wsclean {
+
 H5SolutionData::H5SolutionData(const Settings& settings) : settings_(settings) {
   LoadSolutions();
   LoadGainTypes();
@@ -102,3 +104,5 @@ void H5SolutionData::LoadGainTypes() {
     }
   }
 }
+
+}  // namespace wsclean

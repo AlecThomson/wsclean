@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-namespace test {
+namespace wsclean::test {
 
 /**
  * Helper class for using using unique pointers in tests.
@@ -44,4 +44,4 @@ class UniquePtr {
   T* const _raw;
 };
 
-}  // namespace test
+}  // namespace wsclean::test

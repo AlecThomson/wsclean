@@ -6,6 +6,8 @@
 
 #include <aocommon/polarization.h>
 
+namespace wsclean {
+
 /**
  * This enum summarizes the number of polarizations stored in the
  * measurement set provider for gridding, together with the type
@@ -91,5 +93,7 @@ inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
       ") and n_visibility_polarizations (" +
       std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
 }
+
+}  // namespace wsclean
 
 #endif

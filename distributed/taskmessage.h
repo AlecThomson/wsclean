@@ -4,6 +4,8 @@
 #include <aocommon/io/serialistream.h>
 #include <aocommon/io/serialostream.h>
 
+namespace wsclean {
+
 struct TaskMessage {
   enum class Type {
     kInvalid,
@@ -44,5 +46,7 @@ struct TaskMessage {
     stream.UInt32(type).UInt64(body_size);
   }
 };
+
+}  // namespace wsclean
 
 #endif

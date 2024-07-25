@@ -10,6 +10,8 @@
 
 using aocommon::HMC4x4;
 
+namespace wsclean {
+
 void CheckMatrix(const HMC4x4& m, const HMC4x4& reference) {
   for (size_t i = 0; i != 16; ++i) {
     std::ostringstream a;
@@ -69,3 +71,5 @@ BOOST_AUTO_TEST_CASE(square_root_non_positive_semi_definite) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

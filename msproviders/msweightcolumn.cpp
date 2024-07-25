@@ -4,6 +4,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+namespace wsclean {
+
 MsWeightColumn::MsWeightColumn(const casacore::MeasurementSet& ms) {
   if (!MSProvider::OpenWeightSpectrumColumn(ms, weight_column_)) {
     weight_column_.reset(new casacore::ArrayColumn<float>(
@@ -27,3 +29,5 @@ void MsWeightColumn::ReadData(MsRowProviderBase::WeightArray& weights,
     } break;
   }
 }
+
+}  // namespace wsclean

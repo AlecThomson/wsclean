@@ -4,6 +4,8 @@
 #include "msreader.h"
 #include "../timestepbuffer.h"
 
+namespace wsclean {
+
 class TimestepBufferReader final : public MSReader {
  public:
   TimestepBufferReader(TimestepBuffer* timestepBuffer);
@@ -56,5 +58,7 @@ class TimestepBufferReader final : public MSReader {
   size_t _bufferPosition;
   std::vector<TimestepBuffer::RowData> _buffer;
 };
+
+}  // namespace wsclean
 
 #endif

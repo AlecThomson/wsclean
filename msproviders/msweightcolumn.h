@@ -14,6 +14,7 @@ namespace casacore {
 class MeasurementSet;
 }  // namespace casacore
 
+namespace wsclean {
 /**
  * Helper to get the Measurement set's weight.
  *
@@ -40,5 +41,7 @@ class MsWeightColumn {
   enum class Type { kSpectrum, kScalar };
   Type type_{Type::kSpectrum};
 };
+
+}  // namespace wsclean
 
 #endif  // MSPROVIDERS_MSWEIGHTCOLUMN_H

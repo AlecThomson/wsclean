@@ -11,6 +11,8 @@
 #include <schaapcommon/fft/restoreimage.h>
 #include <schaapcommon/fitters/gaussianfitter.h>
 
+namespace wsclean {
+
 namespace {
 constexpr size_t kThreadCount = 1;
 constexpr size_t kWidth = 64;
@@ -130,3 +132,5 @@ BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

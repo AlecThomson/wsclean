@@ -35,6 +35,8 @@ using aocommon::Logger;
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 
+namespace wsclean {
+
 namespace {
 
 /// Returns a fitswriter initialized for the given coordinates and entry.
@@ -437,7 +439,7 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& image_name,
     PrimaryBeamImageSet beam_images;
     for (size_t element = 0; element != beam_images.NImages(); ++element) {
       if (elements.count(element)) {
-        beam_images[element] = ::Load(settings_, image_name, element);
+        beam_images[element] = wsclean::Load(settings_, image_name, element);
       }
     }
     return beam_images;
@@ -724,3 +726,5 @@ size_t PrimaryBeam::computeUndersamplingFactor(const Settings& settings) {
                settings.trimmedImageHeight / settings.primaryBeamGridSize),
       (size_t)1);
 }
+
+}  // namespace wsclean

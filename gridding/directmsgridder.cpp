@@ -10,6 +10,8 @@
 
 #include <aocommon/threadpool.h>
 
+namespace wsclean {
+
 template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
                                         const Resources& resources)
@@ -206,3 +208,5 @@ aocommon::ImageBase<num_t> DirectMSGridder<num_t>::GetSqrtLMLookupTable()
 template class DirectMSGridder<float>;
 template class DirectMSGridder<double>;
 template class DirectMSGridder<long double>;
+
+}  // namespace wsclean

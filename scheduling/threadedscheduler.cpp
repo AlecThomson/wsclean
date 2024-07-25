@@ -7,6 +7,8 @@
 
 #include <string>
 
+namespace wsclean {
+
 ThreadedScheduler::ThreadedScheduler(const Settings& settings)
     : GriddingTaskManager{settings},
       // When using the ThreadedScheduler as the main scheduler, limit the
@@ -152,3 +154,5 @@ void ThreadedScheduler::ProcessReadyList() {
     }
   }
 }
+
+}  // namespace wsclean

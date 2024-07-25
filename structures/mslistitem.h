@@ -8,6 +8,8 @@
 
 #include "../msproviders/msdatadescription.h"
 
+namespace wsclean {
+
 /**
  * Represent an item in a list of (selected) measurement sets. It associates
  * the measurement set with its original filename index on the command line.
@@ -31,5 +33,7 @@ struct MsListItem {
     stream.UInt64(ms_index);
   }
 };
+
+}  // namespace wsclean
 
 #endif

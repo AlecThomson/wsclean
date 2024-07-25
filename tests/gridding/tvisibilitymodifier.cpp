@@ -4,6 +4,8 @@
 
 #include "../../gridding/visibilitymodifier.h"
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(visibility_modifier)
 
 namespace {
@@ -271,3 +273,5 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugated_dual_forward, ModifierFixture<2>) {
 #endif  // HAVE_EVERYBEAM
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

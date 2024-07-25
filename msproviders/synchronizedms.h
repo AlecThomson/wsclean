@@ -8,6 +8,8 @@
 #include <set>
 #include <string>
 
+namespace wsclean {
+
 class SynchronizedMS {
  public:
   SynchronizedMS() {}
@@ -90,5 +92,7 @@ class SynchronizedMS {
 
   std::shared_ptr<MSLock> _lock;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -19,6 +19,8 @@
 
 #include <radler/settings.h>
 
+namespace wsclean {
+
 enum class DirectFTPrecision { Float, Double, LongDouble };
 enum class GridderType { WStacking, WGridder, TunedWGridder, DirectFT, IDG };
 enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
@@ -268,5 +270,7 @@ class Settings {
   std::string determineDataColumn(bool verbose) const;
   void logImportantSettings() const;
 };
+
+}  // namespace wsclean
 
 #endif

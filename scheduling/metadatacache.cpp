@@ -3,6 +3,8 @@
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
+namespace wsclean {
+
 void MetaDataCache::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt64(msDataVector.size());
   for (const Entry& entry : msDataVector) {
@@ -26,3 +28,5 @@ void MetaDataCache::Unserialize(aocommon::SerialIStream& stream) {
         .Double(entry.integration_time);
   }
 }
+
+}  // namespace wsclean

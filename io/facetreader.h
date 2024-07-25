@@ -10,6 +10,8 @@
 #include "../main/settings.h"
 #include "../structures/observationinfo.h"
 
+namespace wsclean {
+
 class FacetReader {
  public:
   // Reading facets requires the scale and size so do it after those settings
@@ -22,4 +24,7 @@ class FacetReader {
 
   static std::size_t CountFacets(const std::string& facet_region_filename);
 };
+
+}  // namespace wsclean
+
 #endif

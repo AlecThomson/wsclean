@@ -6,6 +6,8 @@
 
 #include <aocommon/uvector.h>
 
+namespace wsclean {
+
 class NumberList {
  public:
   static aocommon::UVector<int> ParseIntList(const std::string& str) {
@@ -40,5 +42,7 @@ class NumberList {
     return list;
   }
 };
+
+}  // namespace wsclean
 
 #endif

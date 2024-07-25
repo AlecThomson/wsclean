@@ -9,6 +9,11 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/aterms/parsetprovider.h>
+#endif  // HAVE_EVERYBEAM
+
+namespace wsclean {
+
+#ifdef HAVE_EVERYBEAM
 /**
  * @brief Parses the parameter settings (parset) related to the
  * aterm settings in an EveryBeam-acceptable format.
@@ -83,4 +88,7 @@ class ParsetReader {
 
   std::map<std::string, ParsetEntry> _entries;
 };
+
+}  // namespace wsclean
+
 #endif

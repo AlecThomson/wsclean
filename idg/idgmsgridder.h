@@ -19,6 +19,8 @@
 
 #include "../main/stopwatch.h"
 
+namespace wsclean {
+
 struct ImagingTableEntry;
 class ImageFilename;
 class Settings;
@@ -111,6 +113,8 @@ void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize,
 void init_optimal_gridding_taper_1D(int subgridsize, int gridsize,
                                     float kernelsize, float* taper_subgrid,
                                     float* taper_grid);
+
+}  // namespace wsclean
 
 #else
 

@@ -11,6 +11,8 @@
 
 #include "../common/smartptr.h"
 
+namespace wsclean {
+
 namespace {
 
 void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount,
@@ -383,3 +385,5 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

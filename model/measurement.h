@@ -8,6 +8,8 @@
 
 #include <aocommon/polarization.h>
 
+namespace wsclean {
+
 class Measurement {
  public:
   Measurement()
@@ -105,5 +107,7 @@ class Measurement {
   std::array<long double, 4> _fluxDensities;
   std::array<long double, 4> _fluxDensityStddevs;
 };
+
+}  // namespace wsclean
 
 #endif

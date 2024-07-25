@@ -1,6 +1,8 @@
 #include "reorderedmsreader.h"
 #include "../reorderedms.h"
 
+namespace wsclean {
+
 ReorderedMsReader::ReorderedMsReader(ReorderedMs* reordered_ms)
     : MSReader(reordered_ms),
       _currentInputRow(0),
@@ -169,3 +171,5 @@ void ReorderedMsReader::WriteImagingWeights(const float* buffer) {
       reinterpret_cast<const char*>(_imagingWeightBuffer.data()),
       nVis * sizeof(float));
 }
+
+}  // namespace wsclean

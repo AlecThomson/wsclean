@@ -6,6 +6,8 @@
 
 using aocommon::Image;
 
+namespace wsclean {
+
 namespace {
 constexpr float v = 1.0f / 29.0f;
 const Image reference_7x7_radius_3(
@@ -118,3 +120,5 @@ BOOST_AUTO_TEST_CASE(convolve_multi_pixel) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

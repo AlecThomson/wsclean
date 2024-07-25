@@ -5,6 +5,8 @@
 
 #include "../idg/averagebeam.h"
 
+namespace wsclean {
+
 GriddingResult::GriddingResult(GriddingResult&& source) noexcept = default;
 GriddingResult::~GriddingResult() = default;
 GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept =
@@ -52,3 +54,5 @@ void GriddingResult::FacetData::Unserialize(aocommon::SerialIStream& stream) {
       .Ptr(cache)
       .Ptr(averageBeam);
 }
+
+}  // namespace wsclean

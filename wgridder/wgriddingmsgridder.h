@@ -8,6 +8,8 @@
 
 #include <memory>
 
+namespace wsclean {
+
 class WGriddingGridderBase;
 
 class WGriddingMSGridder final : public MSGridderBase {
@@ -47,5 +49,7 @@ class WGriddingMSGridder final : public MSGridderBase {
   bool use_tuned_wgridder_;
   std::unique_ptr<WGriddingGridderBase> gridder_;
 };
+
+}  // namespace wsclean
 
 #endif

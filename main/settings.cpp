@@ -13,6 +13,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 namespace {
 /**
  * Determines the number of images in one dimension of an image grid.
@@ -652,3 +654,5 @@ std::string Settings::determineDataColumn(bool verbose) const {
 void Settings::logImportantSettings() const {
   Logger::Debug << "Number of threads selected: " << threadCount << '\n';
 }
+
+}  // namespace wsclean

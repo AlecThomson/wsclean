@@ -11,6 +11,8 @@
 #include <fstream>
 #include <stdexcept>
 
+namespace wsclean {
+
 size_t Model::npos = std::numeric_limits<size_t>::max();
 
 void Model::read(const char* filename) {
@@ -61,3 +63,5 @@ void Model::Save(std::ostream& stream) const {
     stream << i->ToString();
   }
 }
+
+}  // namespace wsclean

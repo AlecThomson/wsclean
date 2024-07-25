@@ -14,6 +14,8 @@
 #include "../main/settings.h"
 #include "../structures/resources.h"
 
+namespace wsclean {
+
 GriddingTaskManager::GriddingTaskManager(const Settings& settings)
     : settings_(settings),
       solution_data_(settings),
@@ -78,3 +80,5 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   }
   manager.ProcessResults(result_mutex, result, store_common_info);
 }
+
+}  // namespace wsclean

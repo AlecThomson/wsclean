@@ -8,6 +8,8 @@
 
 #include <unistd.h>
 
+namespace wsclean {
+
 class Application {
  public:
   static void Run(const std::string& commandLine) {
@@ -40,5 +42,7 @@ class Application {
     }
   }
 };
+
+}  // namespace wsclean
 
 #endif

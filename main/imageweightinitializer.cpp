@@ -7,6 +7,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 std::shared_ptr<ImageWeights> ImageWeightInitializer::Initialize(
     const ImagingTableEntry& entry, const std::vector<MsListItem>& ms_list,
     ImageWeightCache& cache) const {
@@ -90,3 +92,5 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
   if (settings_.isWeightImageSaved)
     cache.GetMFWeights()->Save(settings_.prefixName + "-weights.fits");
 }
+
+}  // namespace wsclean

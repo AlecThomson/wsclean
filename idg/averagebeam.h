@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+namespace wsclean {
+
 class CachedImageSet;
 
 class AverageBeam {
@@ -79,5 +81,7 @@ class AverageBeam {
   size_t matrix_width_;
   size_t matrix_height_;
 };
+
+}  // namespace wsclean
 
 #endif

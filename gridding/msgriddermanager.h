@@ -12,6 +12,8 @@
 #include "../scheduling/griddingtask.h"
 #include "../structures/resources.h"
 
+namespace wsclean {
+
 class GriddingTaskManager;
 
 /**
@@ -75,4 +77,7 @@ class MSGridderManager {
   const Settings& settings_;
   const H5SolutionData& solution_data_;
 };
+
+}  // namespace wsclean
+
 #endif  // WSCLEAN_GRIDDING_MS_GRIDDER_MANAGER_H_

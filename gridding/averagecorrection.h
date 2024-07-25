@@ -7,6 +7,8 @@
 
 #include "gainmode.h"
 
+namespace wsclean {
+
 /**
  * Returns the principal square root of an Hermitian matrix.
  * Given matrix A, the returned matrix B is such that A = BB.
@@ -120,5 +122,7 @@ class AverageCorrection {
 };
 
 std::string ToString(const AverageCorrection& average_correction);
+
+}  // namespace wsclean
 
 #endif

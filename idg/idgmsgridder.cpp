@@ -40,6 +40,8 @@ using aocommon::CoordinateSystem;
 using aocommon::Image;
 using aocommon::Logger;
 
+namespace wsclean {
+
 namespace {
 constexpr const size_t kGridderIndex = 0;
 }
@@ -700,4 +702,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     return std::unique_ptr<ATermBase>();
   }
 }
+
 #endif  // HAVE_EVERYBEAM
+
+}  // namespace wsclean

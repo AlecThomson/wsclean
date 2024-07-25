@@ -11,6 +11,8 @@
 #include "mpibig.h"
 #include "taskmessage.h"
 
+namespace wsclean {
+
 namespace {
 constexpr int kMainNode = 0;
 constexpr int kTag = 0;
@@ -62,3 +64,5 @@ void Worker::Run() {
   aocommon::Logger::Info << "Worker node " << scheduler_.Rank()
                          << " received exit message.\n";
 }
+
+}  // namespace wsclean

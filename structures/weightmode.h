@@ -7,6 +7,8 @@
 #include <string>
 #include <sstream>
 
+namespace wsclean {
+
 class WeightMode {
  public:
   enum WeightingEnum { NaturalWeighted, UniformWeighted, BriggsWeighted };
@@ -95,5 +97,7 @@ class WeightMode {
   WeightingEnum _mode;
   double _briggsRobustness, _superWeight;
 };
+
+}  // namespace wsclean
 
 #endif

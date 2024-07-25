@@ -9,6 +9,9 @@
 
 using aocommon::Logger;
 
+using wsclean::CommandLine;
+using wsclean::WSClean;
+
 int main(int argc, char* argv[]) {
   try {
     check_openblas_multithreading();

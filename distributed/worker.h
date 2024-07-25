@@ -5,6 +5,8 @@
 
 #include "../scheduling/mpiworkerscheduler.h"
 
+namespace wsclean {
+
 class Worker {
  public:
   Worker(const Settings& settings) : scheduler_{settings} {}
@@ -14,5 +16,7 @@ class Worker {
  private:
   MpiWorkerScheduler scheduler_;
 };
+
+}  // namespace wsclean
 
 #endif

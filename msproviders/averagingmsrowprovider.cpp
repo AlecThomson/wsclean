@@ -7,6 +7,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 namespace {
 template <typename ArrayT>
 void copyAndResize(const ArrayT& source, ArrayT& destination) {
@@ -333,3 +335,5 @@ void AveragingMSRowProvider::AveragingBuffer::Reset(size_t n) {
   _averagedDataCount = 0;
   _summedWeight = 0.0;
 }
+
+}  // namespace wsclean

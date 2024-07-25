@@ -8,6 +8,8 @@
 #include "../main/settings.h"
 #include "../structures/observationinfo.h"
 
+namespace wsclean {
+
 schaapcommon::facets::Facet::InitializationData CreateFacetInitializationData(
     double width, double height, double pixelScaleX, double pixelScaleY,
     double phaseCentreRA, double phaseCentreDec, double l_shift, double m_shift,
@@ -16,5 +18,7 @@ schaapcommon::facets::Facet::InitializationData CreateFacetInitializationData(
 std::vector<std::shared_ptr<schaapcommon::facets::Facet>> CreateFacetGrid(
     const schaapcommon::facets::Facet::InitializationData& facet_data,
     size_t grid_width, size_t grid_height);
+
+}  // namespace wsclean
 
 #endif  // STRUCTURES_DDPSF_H_

@@ -5,6 +5,8 @@
 
 #include <aocommon/lane.h>
 
+namespace wsclean {
+
 template <typename Tp>
 class lane_write_buffer {
  public:
@@ -95,5 +97,7 @@ class lane_read_buffer {
   size_t _buffer_size, _buffer_pos, _buffer_fill_count;
   aocommon::Lane<Tp>* _lane;
 };
+
+}  // namespace wsclean
 
 #endif

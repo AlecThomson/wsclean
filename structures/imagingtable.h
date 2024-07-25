@@ -9,6 +9,8 @@
 
 #include <radler/work_table.h>
 
+namespace wsclean {
+
 /**
  * The ImagingTable contains ImagingTableEntry's and supports creating subtables
  * with entries that have the same attribute.
@@ -173,5 +175,7 @@ class ImagingTable {
    */
   Groups _squaredGroups;
 };
+
+}  // namespace wsclean
 
 #endif

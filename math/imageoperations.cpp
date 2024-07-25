@@ -19,6 +19,7 @@
 using aocommon::Logger;
 using aocommon::units::Angle;
 
+namespace wsclean {
 namespace math {
 
 void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
@@ -280,3 +281,5 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
   aocommon::FitsWriter imageWriter(residualReader);
   imageWriter.Write(mfs_prefix + "-image" + postfix, image.data());
 }
+
+}  // namespace wsclean

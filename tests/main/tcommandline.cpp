@@ -4,6 +4,8 @@
 #include "../../main/wsclean.h"
 #include "../../structures/primarybeam.h"
 
+namespace wsclean {
+
 namespace {
 const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
 const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
@@ -189,3 +191,5 @@ BOOST_AUTO_TEST_CASE(incomplete_commandline) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

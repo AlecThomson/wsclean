@@ -1,5 +1,7 @@
 #include "tbdamsrowproviderdata.h"
 
+namespace wsclean {
+
 namespace MwaBdaMockMs {
 // clang-format off
 // The data is generated using the following TaQL query:
@@ -18,3 +20,5 @@ const std::array<std::array<uint64_t, 3>, 21> kMs{
      {4875418092, 1, 97},    {4875418092, 2, 97},    {4875418092, 87, 126}}};
 
 }  // namespace MwaBdaMockMs
+
+}  // namespace wsclean

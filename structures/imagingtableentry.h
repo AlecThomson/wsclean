@@ -19,6 +19,8 @@ class Facet;
 }
 }  // namespace schaapcommon
 
+namespace wsclean {
+
 class CachedImageSet;
 
 struct ImagingTableEntry {
@@ -159,5 +161,7 @@ struct ImagingTableEntry {
     normalizationFactor = source.normalizationFactor;
   }
 };
+
+}  // namespace wsclean
 
 #endif

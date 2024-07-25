@@ -10,6 +10,8 @@
 #include <cassert>
 #include <memory>
 
+namespace wsclean {
+
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isReordered)
     return std::make_unique<ReorderedMs>(_partitionHandle, _partIndex,
@@ -47,3 +49,5 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
   mdd->_useMPI = true;  // Serialization only happens with MPI.
   return mdd;
 }
+
+}  // namespace wsclean

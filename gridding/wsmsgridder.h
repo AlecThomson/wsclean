@@ -17,6 +17,8 @@
 #include <memory>
 #include <thread>
 
+namespace wsclean {
+
 class WSMSGridder final : public MSGridderBase {
  public:
   typedef WStackingGridder<float> GridderType;
@@ -84,5 +86,7 @@ class WSMSGridder final : public MSGridderBase {
   aocommon::Image _realImage;
   aocommon::Image _imaginaryImage;
 };
+
+}  // namespace wsclean
 
 #endif

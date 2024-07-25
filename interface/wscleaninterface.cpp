@@ -44,9 +44,9 @@ void wsclean_main(const std::vector<std::string>& parms) {
   }
   std::cout << '\n';
 
-  WSClean wsclean;
-  if (CommandLine::Parse(wsclean, parms.size(), argv.data(), false))
-    CommandLine::Run(wsclean);
+  wsclean::WSClean wsclean;
+  if (wsclean::CommandLine::Parse(wsclean, parms.size(), argv.data(), false))
+    wsclean::CommandLine::Run(wsclean);
 }
 
 void wsclean_initialize(void** userData, const imaging_parameters* parameters,

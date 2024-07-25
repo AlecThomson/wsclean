@@ -35,14 +35,14 @@
 #include "stopwatch.h"
 #include "settings.h"
 
+namespace schaapcommon::facets {
+class FacetImage;
+}  // namespace schaapcommon::facets
+
+namespace wsclean {
+
 class ImageWeightCache;
 class PrimaryBeam;
-
-namespace schaapcommon {
-namespace facets {
-class FacetImage;
-}
-}  // namespace schaapcommon
 
 class WSClean {
  public:
@@ -296,5 +296,7 @@ class WSClean {
 
   double _lastStartTime;
 };
+
+}  // namespace wsclean
 
 #endif

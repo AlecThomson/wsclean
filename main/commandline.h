@@ -6,6 +6,8 @@
 
 #include "settings.h"
 
+namespace wsclean {
+
 class CommandLine {
  public:
   /**
@@ -36,5 +38,7 @@ class CommandLine {
 
   static void Run(class WSClean& wsclean);
 };
+
+}  // namespace wsclean
 
 #endif

@@ -19,6 +19,8 @@
 #include "../structures/resources.h"
 #include "../wgridder/wgriddingmsgridder.h"
 
+namespace wsclean {
+
 void MSGridderManager::InitializeGridders(
     GriddingTask& task, const std::vector<size_t>& facet_indices,
     const Resources& resources,
@@ -205,3 +207,5 @@ void MSGridderManager::InitializeGridderForFacet(
   if (!cache) cache = std::make_unique<MetaDataCache>();
   gridder.SetMetaDataCache(std::move(cache));
 }
+
+}  // namespace wsclean

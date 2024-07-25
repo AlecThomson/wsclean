@@ -10,6 +10,8 @@
 using aocommon::SerialIStream;
 using aocommon::SerialOStream;
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(serialization)
 
 BOOST_AUTO_TEST_CASE(empty_gridding_task) {
@@ -99,3 +101,5 @@ BOOST_AUTO_TEST_CASE(image) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

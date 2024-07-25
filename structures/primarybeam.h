@@ -25,6 +25,8 @@
 #include <EveryBeam/load.h>
 #endif
 
+namespace wsclean {
+
 class ImageWeights;
 class MSDataDescription;
 class Settings;
@@ -194,5 +196,7 @@ class PrimaryBeam {
                                       size_t& current_row, size_t end_row);
 #endif  // HAVE_EVERYBEAM
 };
+
+}  // namespace wsclean
 
 #endif  // STRUCTURES_PRIMARY_BEAM_H_

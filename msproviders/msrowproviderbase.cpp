@@ -10,6 +10,8 @@
 
 #include <memory>
 
+namespace wsclean {
+
 MsRowProviderBase::MsRowProviderBase(const casacore::MeasurementSet& ms,
                                      const MSSelection& selection,
                                      const std::string& data_column_name)
@@ -42,3 +44,5 @@ bool MsHasBdaData(const casacore::MeasurementSet& ms) {
          ms.keywordSet().asTable(BdaMsRowProvider::kBDAFactorsTable).nrow() !=
              0;
 }
+
+}  // namespace wsclean

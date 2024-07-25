@@ -8,6 +8,8 @@
 #include <schaapcommon/fitters/nlplfitter.h>
 #include <schaapcommon/fitters/polynomialfitter.h>
 
+namespace wsclean {
+
 class PowerLawSED final : public SpectralEnergyDistribution {
  public:
   PowerLawSED() : _referenceFrequency(0.0), _isLogarithmic(true) {
@@ -159,5 +161,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
   std::vector<float> _terms;
   bool _isLogarithmic;
 };
+
+}  // namespace wsclean
 
 #endif

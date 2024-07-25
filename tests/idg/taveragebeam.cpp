@@ -11,6 +11,8 @@
 using aocommon::SerialIStream;
 using aocommon::SerialOStream;
 
+namespace wsclean {
+
 namespace {
 constexpr size_t kNPol = 4;
 constexpr size_t kMatrixWidth = 3;
@@ -114,3 +116,5 @@ BOOST_AUTO_TEST_CASE(filled_store_load) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

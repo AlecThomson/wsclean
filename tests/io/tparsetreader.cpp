@@ -2,6 +2,8 @@
 
 #include "../../io/parsetreader.h"
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(parsetreader)
 
 BOOST_AUTO_TEST_CASE(normal_parset) {
@@ -86,3 +88,5 @@ BOOST_AUTO_TEST_CASE(multiple_backets) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

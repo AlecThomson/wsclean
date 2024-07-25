@@ -9,6 +9,8 @@
 
 #include <memory>
 
+namespace wsclean {
+
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
@@ -190,3 +192,5 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 void ContiguousMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
   idToMSRow = _idToMSRow;
 }
+
+}  // namespace wsclean

@@ -13,6 +13,8 @@
 
 #include "settings.h"
 
+namespace wsclean {
+
 /**
  * Class with helper routines for managing measurement sets.
  */
@@ -51,5 +53,7 @@ class MsHelper {
   const std::vector<aocommon::MultiBandData>& ms_bands_;
   std::vector<ReorderedMs::Handle> reordered_ms_handles_;
 };
+
+}  // namespace wsclean
 
 #endif

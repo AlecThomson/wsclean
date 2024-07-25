@@ -6,6 +6,8 @@
 
 #include "../io/cachedimageaccessor.h"
 
+namespace wsclean {
+
 ImagingTableEntry::ImagingTableEntry()
     : index(0),
       lowestFrequency(0.0),
@@ -66,3 +68,5 @@ ImagingTableEntry::CreateDeconvolutionEntry(
 
   return entry;
 }
+
+}  // namespace wsclean

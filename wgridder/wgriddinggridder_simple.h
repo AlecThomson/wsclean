@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstddef>
 
+namespace wsclean {
+
 class WGriddingGridderBase {
  public:
   virtual ~WGriddingGridderBase() = default;
@@ -162,3 +164,5 @@ auto res = gridder.RealImage();
 
 extern template class WGriddingGridder_Simple<float>;
 extern template class WGriddingGridder_Simple<double>;
+
+}  // namespace wsclean

@@ -9,6 +9,8 @@
 
 #include "../main/settings.h"
 
+namespace wsclean {
+
 class GriddingTaskManager;
 
 class H5SolutionData {
@@ -57,5 +59,7 @@ class H5SolutionData {
   /** For each solution, the corresponding gain type. */
   std::vector<schaapcommon::h5parm::GainType> gain_types_;
 };
+
+}  // namespace wsclean
 
 #endif  // WSCLEAN_GRIDDING_H5_SOLUTION_DATA_H_

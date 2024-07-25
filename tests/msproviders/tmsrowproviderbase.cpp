@@ -5,6 +5,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(ms_row_provider_base)
 
 BOOST_AUTO_TEST_CASE(create_ms_row_proverider_invalid_ms) {
@@ -39,3 +41,5 @@ BOOST_AUTO_TEST_CASE(ms_has_bda_data) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

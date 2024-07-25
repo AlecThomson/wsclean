@@ -4,6 +4,8 @@
 #include <fstream>
 #include <stdexcept>
 
+namespace wsclean {
+
 class Tokenizer {
  public:
   std::string getString() {
@@ -95,5 +97,7 @@ class Tokenizer {
 
   std::ifstream *_stream;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -5,6 +5,8 @@
 using schaapcommon::facets::BoundingBox;
 using schaapcommon::facets::Facet;
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(facet_util)
 
 BOOST_AUTO_TEST_CASE(create_grid_single_facet) {
@@ -60,3 +62,5 @@ BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

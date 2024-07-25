@@ -8,6 +8,8 @@
 #include <aocommon/io/serialistream.h>
 #include <schaapcommon/facets/facet.h>
 
+namespace wsclean {
+
 GriddingTask::GriddingTask() = default;
 GriddingTask::GriddingTask(GriddingTask&& source) noexcept = default;
 GriddingTask::~GriddingTask() noexcept = default;
@@ -83,3 +85,5 @@ void GriddingTask::FacetData::Unserialize(aocommon::SerialIStream& stream) {
       .Ptr(averageBeam)
       .Ptr(facet);
 }
+
+}  // namespace wsclean

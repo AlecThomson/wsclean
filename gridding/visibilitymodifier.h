@@ -19,6 +19,8 @@
 #include "averagecorrection.h"
 #include "gainmode.h"
 
+namespace wsclean {
+
 class SynchronizedMS;
 
 /**
@@ -549,4 +551,7 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
     }
   }
 }
+
+}  // namespace wsclean
+
 #endif

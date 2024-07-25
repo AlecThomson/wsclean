@@ -7,6 +7,8 @@
 
 #include "modelcomponent.h"
 
+namespace wsclean {
+
 class ModelSource {
  public:
   typedef std::vector<ModelComponent>::iterator iterator;
@@ -313,5 +315,7 @@ inline std::string ModelSource::ToString() const {
   s << "}\n";
   return s.str();
 }
+
+}  // namespace wsclean
 
 #endif

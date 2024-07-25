@@ -3,6 +3,8 @@
 
 #include <mpi.h>
 
+namespace wsclean {
+
 /**
  * Send a big message. If count does not fit in an integer, the message is split
  * into multiple messages. The first 8 bytes of the buf are changed and used to
@@ -23,5 +25,7 @@ int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
 int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag,
                  MPI_Comm comm, MPI_Status* status,
                  size_t maximum_message_size);
+
+}  // namespace wsclean
 
 #endif

@@ -4,6 +4,8 @@
 
 using schaapcommon::facets::Facet;
 
+namespace wsclean {
+
 Facet::InitializationData CreateFacetInitializationData(
     double width, double height, double pixelScaleX, double pixelScaleY,
     double phaseCentreRA, double phaseCentreDec, double l_shift, double m_shift,
@@ -48,3 +50,5 @@ std::vector<std::shared_ptr<Facet>> CreateFacetGrid(
 
   return facets;
 }
+
+}  // namespace wsclean

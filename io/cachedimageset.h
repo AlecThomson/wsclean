@@ -15,6 +15,8 @@
 #include <set>
 #include <iomanip>
 
+namespace wsclean {
+
 class CachedImageSet {
  public:
   CachedImageSet() : _polCount(0), _freqCount(0), _facetCount(0), _image() {}
@@ -235,5 +237,7 @@ class CachedImageSet {
   aocommon::Image _image;
   std::set<std::string> _storedNames;
 };
+
+}  // namespace wsclean
 
 #endif

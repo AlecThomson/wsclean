@@ -6,6 +6,8 @@
 
 #include <string>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(fits_date_obs_time)
 
 const std::pair<std::string, long double> timeValues[] = {
@@ -41,3 +43,5 @@ BOOST_DATA_TEST_CASE(functionMJDToHMS,
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

@@ -14,7 +14,7 @@
 using aocommon::ImageCoordinates;
 using boost::algorithm::clamp;
 
-namespace renderer {
+namespace wsclean::renderer {
 namespace {
 long double Gaussian(long double x, long double sigma) {
   // Evaluate unnormalized Gaussian (unit valued peak, but integral over <-inf,
@@ -183,4 +183,4 @@ void RestoreWithEllipticalBeam(aocommon::Image& image,
       beam_major_axis, beam_minor_axis, beam_position_angle,
       image_settings.pixel_scale_l, image_settings.pixel_scale_m);
 }
-}  // namespace renderer
+}  // namespace wsclean::renderer

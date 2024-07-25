@@ -10,6 +10,9 @@
 #include "../gridding/averagecorrection.h"
 
 #include "metadatacache.h"
+
+namespace wsclean {
+
 class AverageBeam;
 
 struct GriddingResult {
@@ -59,5 +62,7 @@ struct GriddingResult {
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
 };
+
+}  // namespace wsclean
 
 #endif

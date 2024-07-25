@@ -11,6 +11,8 @@
 #include <fstream>
 #include <stdexcept>
 
+namespace wsclean {
+
 class ModelParser : private Tokenizer {
  public:
   ModelParser() : _fileVersion1_0(false) {}
@@ -271,5 +273,7 @@ class ModelParser : private Tokenizer {
     sed.SetIsLogarithmic(isLogarithmic);
   }
 };
+
+}  // namespace wsclean
 
 #endif

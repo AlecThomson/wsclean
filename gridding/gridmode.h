@@ -1,6 +1,8 @@
 #ifndef GRID_MODE_ENUM_H
 #define GRID_MODE_ENUM_H
 
+namespace wsclean {
+
 /** Gridding modes that are supported for interpolating samples on the uv-grid.
  */
 enum class GriddingKernelMode {
@@ -42,5 +44,7 @@ enum class GriddingKernelMode {
    */
   BlackmanHarris
 };
+
+}  // namespace wsclean
 
 #endif

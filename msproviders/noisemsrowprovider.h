@@ -7,6 +7,8 @@
 #include <random>
 #include <string>
 
+namespace wsclean {
+
 class NoiseMSRowProvider : public DirectMSRowProvider {
  public:
   NoiseMSRowProvider(const string& msPath, const MSSelection& selection,
@@ -39,5 +41,7 @@ class NoiseMSRowProvider : public DirectMSRowProvider {
   std::normal_distribution<float> _distribution;
   NoiseMap _noiseMap;
 };
+
+}  // namespace wsclean
 
 #endif

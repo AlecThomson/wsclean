@@ -8,6 +8,8 @@
 
 #include <cassert>
 
+namespace wsclean {
+
 const char* BdaMsRowProvider::kBDAFactorsTable = "BDA_FACTORS";
 
 static std::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
@@ -105,3 +107,5 @@ bool BdaMsRowProvider::IsCurrentRowSelected() const {
   return Selection().IsSelected(data_.field_id, /*timestep=*/-1,
                                 data_.antenna_1, data_.antenna_2, data_.uvw);
 }
+
+}  // namespace wsclean

@@ -34,6 +34,7 @@
 using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
+namespace wsclean {
 namespace {
 
 /**
@@ -582,3 +583,5 @@ template void MSGridderBase::rotateVisibilities<2>(
 template void MSGridderBase::rotateVisibilities<4>(
     const aocommon::BandData& bandData, double shiftFactor,
     std::complex<float>* dataIter);
+
+}  // namespace wsclean

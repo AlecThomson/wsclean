@@ -10,6 +10,8 @@
 
 #include <fstream>
 
+namespace wsclean {
+
 class IdgConfiguration {
  public:
   static void Read(idg::api::Type& proxyType, int& bufferSize,
@@ -49,5 +51,7 @@ class IdgConfiguration {
     }
   }
 };
+
+}  // namespace wsclean
 
 #endif

@@ -7,6 +7,8 @@
 
 #include <boost/tokenizer.hpp>
 
+namespace wsclean {
+
 ParsetReader::ParsetReader(const std::string& filename) {
   std::ifstream stream(filename);
   if (!stream)
@@ -139,3 +141,5 @@ double ParsetReader::GetDoubleOr(const std::string& key, double orValue) const {
   else
     return atof(iter->second.GetStringValue().c_str());
 }
+
+}  // namespace wsclean

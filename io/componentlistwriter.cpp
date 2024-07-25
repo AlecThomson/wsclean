@@ -11,6 +11,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 void ComponentListWriter::SaveSourceList(const radler::Radler& deconvolution,
                                          long double phase_centre_ra,
                                          long double phase_centre_dec,
@@ -102,3 +104,5 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
   beam_images *= 1.0 / count;
   return beam_images;
 }
+
+}  // namespace wsclean

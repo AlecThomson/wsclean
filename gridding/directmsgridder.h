@@ -8,6 +8,8 @@
 
 #include "../structures/resources.h"
 
+namespace wsclean {
+
 class ProgressBar;
 
 template <typename num_t>
@@ -40,5 +42,7 @@ class DirectMSGridder final : public MSGridderBase {
   void gridSample(const InversionSample& sample, size_t layer);
   aocommon::ImageBase<num_t> GetSqrtLMLookupTable() const;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -11,6 +11,8 @@
 #include <cstring>
 #include <vector>
 
+namespace wsclean {
+
 class MSSelection {
  public:
   enum EvenOddSelection { AllTimesteps, EvenTimesteps, OddTimesteps };
@@ -143,5 +145,7 @@ class MSSelection {
   bool _autoCorrelations;
   enum EvenOddSelection _evenOddSelection;
 };
+
+}  // namespace wsclean
 
 #endif

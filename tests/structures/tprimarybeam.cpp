@@ -4,6 +4,8 @@
 
 #include "../../msproviders/contiguousms.h"
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(primary_beam)
 
 BOOST_AUTO_TEST_CASE(get_beam_intervals) {
@@ -19,3 +21,5 @@ BOOST_AUTO_TEST_CASE(get_beam_intervals) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

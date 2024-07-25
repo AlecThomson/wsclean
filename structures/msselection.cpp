@@ -7,6 +7,8 @@
 
 #include <limits>
 
+namespace wsclean {
+
 const size_t MSSelection::ALL_FIELDS = std::numeric_limits<size_t>::max();
 
 void MSSelection::Serialize(aocommon::SerialOStream& stream) const {
@@ -79,3 +81,5 @@ bool MSSelection::SelectMsChannels(const aocommon::MultiBandData& msBands,
     return false;
   }
 }
+
+}  // namespace wsclean

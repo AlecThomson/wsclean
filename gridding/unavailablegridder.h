@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <string>
 
+namespace wsclean {
+
 class UnavailableGridder final : public MSGridderBase {
  public:
   UnavailableGridder(const class Settings& settings, const Resources& resources)
@@ -58,5 +60,7 @@ class UnavailableGridder final : public MSGridderBase {
         "make sure the necessary prerequisites are satisfied.");
   }
 };
+
+}  // namespace wsclean
 
 #endif

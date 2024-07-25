@@ -17,6 +17,8 @@
 namespace casacore {
 class MeasurementSet;
 }  // namespace casacore
+
+namespace wsclean {
 class MSSelection;
 class MSReader;
 
@@ -234,5 +236,7 @@ class MSProvider {
     }
   }
 };
+
+}  // namespace wsclean
 
 #endif

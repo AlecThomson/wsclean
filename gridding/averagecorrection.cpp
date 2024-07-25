@@ -7,6 +7,8 @@ extern "C" void zheev_(const char* jobz, const char* uplo, const int* n,
                        std::complex<double>* work, const int* lwork,
                        double* rwork, int* info);
 
+namespace wsclean {
+
 aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
   double ev[4];
   constexpr int n = 4;
@@ -97,3 +99,5 @@ std::string ToString(const AverageCorrection& average_correction) {
   }
   return str.str();
 }
+
+}  // namespace wsclean

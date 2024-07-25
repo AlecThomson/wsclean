@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+namespace wsclean {
+
 struct MetaDataCache {
   struct Entry {
     double min_w;
@@ -19,5 +21,7 @@ struct MetaDataCache {
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
 };
+
+}  // namespace wsclean
 
 #endif

@@ -3,6 +3,8 @@
 
 #include "msreader.h"
 
+namespace wsclean {
+
 class ContiguousMS;
 
 class ContiguousMSReader final : public MSReader {
@@ -44,5 +46,7 @@ class ContiguousMSReader final : public MSReader {
 
   void readModel();
 };
+
+}  // namespace wsclean
 
 #endif

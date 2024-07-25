@@ -3,7 +3,7 @@
 
 #include <aocommon/image.h>
 
-namespace tophat_convolution {
+namespace wsclean::tophat_convolution {
 
 /**
  * Perform a convolution with a radial tophat with a given radius (in pixels).
@@ -25,6 +25,6 @@ void Convolve(aocommon::Image& input, double radius);
 aocommon::Image MakeTopHatImage(size_t width, size_t height,
                                 double tophat_radius);
 
-}  // namespace tophat_convolution
+}  // namespace wsclean::tophat_convolution
 
 #endif

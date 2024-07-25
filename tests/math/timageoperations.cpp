@@ -2,11 +2,13 @@
 
 #include "../../math/imageoperations.h"
 
-BOOST_AUTO_TEST_SUITE(image_operations)
+namespace wsclean {
 
 using aocommon::HMC4x4;
 using aocommon::Image;
 using aocommon::MC2x2;
+
+BOOST_AUTO_TEST_SUITE(image_operations)
 
 void CheckConstantImage(const Image& image, float expected,
                         const std::string& description) {
@@ -87,3 +89,5 @@ BOOST_AUTO_TEST_CASE(correct_dual_images_for_mueller_matrix) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

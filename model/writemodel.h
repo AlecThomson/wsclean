@@ -6,8 +6,8 @@
 #include <aocommon/radeccoord.h>
 #include <aocommon/uvector.h>
 
-namespace wsclean {
-namespace model {
+namespace wsclean::model {
+
 inline void WriteHeaderForSpectralTerms(std::ostream& stream,
                                         double reference_frequency) {
   stream.precision(15);
@@ -53,6 +53,7 @@ inline void WritePolynomialGaussianComponent(
          << reference_frequency_hz << "," << maj << ',' << min << ','
          << position_angle << "\n";
 }
-}  // namespace model
-}  // namespace wsclean
+
+}  // namespace wsclean::model
+
 #endif

@@ -4,7 +4,7 @@
 
 using aocommon::Image;
 
-namespace tophat_convolution {
+namespace wsclean::tophat_convolution {
 
 Image MakeTopHatImage(size_t width, size_t height, double tophat_radius) {
   const ssize_t radius_squared =
@@ -36,4 +36,4 @@ void Convolve(Image& input, double radius) {
       input.Data(), input.Width(), input.Height(), kernel.Data(), kernel_size);
 }
 
-}  // namespace tophat_convolution
+}  // namespace wsclean::tophat_convolution

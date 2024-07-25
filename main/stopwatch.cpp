@@ -5,6 +5,8 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+namespace wsclean {
+
 Stopwatch::Stopwatch() : _running(false), _sum(boost::posix_time::seconds(0)) {}
 
 Stopwatch::Stopwatch(bool start)
@@ -140,3 +142,5 @@ long double Stopwatch::Seconds() const {
     return (long double)_sum.total_microseconds() / 1000000.0;
   }
 }
+
+}  // namespace wsclean

@@ -2,6 +2,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace wsclean {
+
 namespace {
 const std::string header =
     "FORMAT = Name, Type, Patch, Ra, Dec, I, Q, U, V, MajorAxis, MinorAxis, "
@@ -47,3 +49,5 @@ BOOST_AUTO_TEST_CASE(read_gaussian_source) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

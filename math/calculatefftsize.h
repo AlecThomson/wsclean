@@ -1,6 +1,8 @@
 #ifndef CALCULATE_FFT_SIZE_H
 #define CALCULATE_FFT_SIZE_H
 
+namespace wsclean {
+
 namespace detail {
 inline bool hasLowPrimeFactors(size_t number) {
   while (number > 7) {
@@ -30,5 +32,7 @@ inline void CalculateFFTSize(size_t size, double pixelScale, double beamSize,
     optimalSize += 4;
   if (optimalSize > size) optimalSize = size;
 }
+
+}  // namespace wsclean
 
 #endif

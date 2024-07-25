@@ -14,6 +14,8 @@
 
 #include <memory>
 
+namespace wsclean {
+
 class ContiguousMSReader;
 
 class ContiguousMS final : public MSProvider {
@@ -99,5 +101,7 @@ class ContiguousMS final : public MSProvider {
 
   void prepareModelColumn();
 };
+
+}  // namespace wsclean
 
 #endif

@@ -14,6 +14,8 @@
 
 #include "../gridding/msgridderbase.h"
 
+namespace wsclean {
+
 WSCFitsWriter::WSCFitsWriter(
     const ImagingTableEntry& entry, bool isImaginary, const Settings& settings,
     const std::optional<radler::Radler>& deconvolution,
@@ -305,3 +307,5 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
   writer.Write(settings.restoreOutput, image.Data());
 }
+
+}  // namespace wsclean

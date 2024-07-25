@@ -9,6 +9,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 namespace {
 double RoundOneDecimal(double value) { return std::round(value * 10.0) / 10.0; }
 }  // namespace
@@ -61,3 +63,5 @@ int64_t GetAvailableMemory(double memory_fraction, double abs_memory_limit) {
   }
   return memory;
 }
+
+}  // namespace wsclean

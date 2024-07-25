@@ -11,6 +11,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 ImagingTable::ImagingTable(const ImagingTable::Group& entries)
     : _entries(entries), _independentGroups(), _facets(), _squaredGroups() {
   Update();
@@ -200,3 +202,5 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   }
   return table;
 }
+
+}  // namespace wsclean

@@ -10,6 +10,8 @@
 
 using aocommon::RaDecCoord;
 
+namespace wsclean {
+
 class ModelComponent {
  public:
   enum Type { PointSource, GaussianSource };
@@ -135,5 +137,7 @@ class ModelComponent {
   long double _positionAngle, _majorAxis, _minorAxis;
   void* _userdata;
 };
+
+}  // namespace wsclean
 
 #endif

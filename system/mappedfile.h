@@ -13,6 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
+namespace wsclean {
+
 /**
  * A memory-mapped buffer that is mapped to a file on disk using mmap().
  */
@@ -91,5 +93,7 @@ class MappedFile {
   char* memory_map_ = nullptr;
   int file_descriptor_ = -1;
 };
+
+}  // namespace wsclean
 
 #endif

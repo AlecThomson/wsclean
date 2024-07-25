@@ -6,6 +6,8 @@
 
 #include "modelsource.h"
 
+namespace wsclean {
+
 class Model {
  public:
   typedef std::vector<ModelSource>::iterator iterator;
@@ -185,5 +187,7 @@ class Model {
   void add(const ModelSource& source);
   void combineMeasurements(const ModelSource& source);
 };
+
+}  // namespace wsclean
 
 #endif

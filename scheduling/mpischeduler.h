@@ -12,6 +12,8 @@
 #include <thread>
 #include <condition_variable>
 
+namespace wsclean {
+
 class MPIScheduler final : public GriddingTaskManager {
  public:
   MPIScheduler(const class Settings& settings);
@@ -119,5 +121,7 @@ class MPIScheduler final : public GriddingTaskManager {
 };
 
 #endif  // HAVE_MPI
+
+}  // namespace wsclean
 
 #endif  // MPI_SCHEDULER_H

@@ -5,6 +5,8 @@
 
 #include <fstream>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(mapped_file)
 
 BOOST_AUTO_TEST_CASE(map) {
@@ -31,3 +33,5 @@ BOOST_AUTO_TEST_CASE(map) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

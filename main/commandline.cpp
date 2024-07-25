@@ -27,6 +27,8 @@ using aocommon::Logger;
 using aocommon::units::Angle;
 using aocommon::units::FluxDensity;
 
+namespace wsclean {
+
 namespace {
 void IncArgi(int& argi, int argc) {
   ++argi;
@@ -1416,3 +1418,5 @@ void CommandLine::Run(class WSClean& wsclean) {
       break;
   }
 }
+
+}  // namespace wsclean

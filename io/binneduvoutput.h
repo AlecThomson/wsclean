@@ -12,6 +12,8 @@
 
 #include <fstream>
 
+namespace wsclean {
+
 class BinnedUVOutput {
  public:
   static void Make(const std::string &uvCoveragePrefix,
@@ -117,5 +119,7 @@ class BinnedUVOutput {
                            << effVisSum << " (actual nvis=" << nVis << ").\n";
   }
 };
+
+}  // namespace wsclean
 
 #endif

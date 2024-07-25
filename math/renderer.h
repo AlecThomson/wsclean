@@ -9,7 +9,7 @@
 
 #include "../model/model.h"
 
-namespace renderer {
+namespace wsclean::renderer {
 
 /**
  * @brief Struct collecting the relevant image coordinate settings for
@@ -63,6 +63,6 @@ void RestoreWithEllipticalBeam(aocommon::Image& image,
                                long double end_frequency,
                                aocommon::PolarizationEnum polarization);
 
-}  // namespace renderer
+}  // namespace wsclean::renderer
 
 #endif

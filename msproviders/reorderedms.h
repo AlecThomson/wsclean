@@ -18,6 +18,8 @@
 #include <string>
 #include <map>
 
+namespace wsclean {
+
 class ReorderedMsReader;
 
 // We will create some efficiently packed structs to fetch data with 1 read.
@@ -293,5 +295,7 @@ class ReorderedMs final : public MSProvider {
                                      const std::string& tempDir,
                                      size_t dataDescId);
 };
+
+}  // namespace wsclean
 
 #endif

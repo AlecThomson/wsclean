@@ -7,6 +7,8 @@
 
 #include "../structures/primarybeamimageset.h"
 
+namespace wsclean {
+
 class Settings;
 
 /**
@@ -45,5 +47,7 @@ class ComponentListWriter {
   const Settings& settings_;
   std::unique_ptr<radler::WorkTable> deconvolution_table_;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -12,6 +12,8 @@ namespace casacore {
 class MeasurementSet;
 }  // namespace casacore
 
+namespace wsclean {
+
 /** Helper class to provide the columns in a measurement set. */
 struct MsColumns {
   explicit MsColumns(const casacore::MeasurementSet& ms,
@@ -27,5 +29,7 @@ struct MsColumns {
   casacore::ArrayColumn<bool> flag;
   casacore::ScalarColumn<int> data_description_id;
 };
+
+}  // namespace wsclean
 
 #endif  //  MSPROVIDERS_MSCOLUMNS_H

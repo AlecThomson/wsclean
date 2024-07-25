@@ -15,8 +15,7 @@
 #define DEFAULT_H5_FILE_PATH "mwapy/data/"
 #endif
 
-namespace wsclean {
-namespace mwa {
+namespace wsclean::mwa {
 
 /**
  * @brief Search for MWA h5 coefficient file
@@ -43,7 +42,7 @@ inline static std::string FindCoeffFile(const std::string& search_path) {
   }
   return h5_path;
 }
-}  // namespace mwa
-}  // namespace wsclean
+
+}  // namespace wsclean::mwa
 
 #endif  // WSCLEAN_MWA_FINDCOEFFFILE_H_

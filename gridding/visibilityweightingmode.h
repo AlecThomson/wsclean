@@ -1,6 +1,8 @@
 #ifndef VISIBILITY_WEIGHTING_MODE_ENUM_H
 #define VISIBILITY_WEIGHTING_MODE_ENUM_H
 
+namespace wsclean {
+
 /**
  * This specifies several modi how the visibility weights
  * (normally stored in the SPECTRUM_WEIGHT column)
@@ -11,5 +13,7 @@ enum class VisibilityWeightingMode {
   SquaredVisibilityWeighting,
   UnitVisibilityWeighting
 };
+
+}  // namespace wsclean
 
 #endif

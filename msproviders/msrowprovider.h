@@ -12,6 +12,8 @@
 #include <memory>
 #include <vector>
 
+namespace wsclean {
+
 /**
  * An MSRowProvider provides the selected rows of a data set.
  */
@@ -67,5 +69,7 @@ class MSRowProvider : public MsRowProviderBase {
 
   void Initialize();
 };
+
+}  // namespace wsclean
 
 #endif

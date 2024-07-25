@@ -55,6 +55,8 @@ using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 using aocommon::units::Angle;
 
+namespace wsclean {
+
 WSClean::WSClean()
     : _globalSelection(),
       _commandLine(),
@@ -2223,3 +2225,5 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
       _observationInfo, _l_shift, _m_shift, _majorIterationNr, _commandLine,
       _infoPerChannel[entry.outputChannelIndex], isModel, _lastStartTime);
 }
+
+}  // namespace wsclean

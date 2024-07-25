@@ -5,6 +5,8 @@
 #include <fstream>
 #include <string>
 
+namespace wsclean {
+
 NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
   size_t maxAnt = 0;
   std::string line;
@@ -88,3 +90,5 @@ void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags,
     }
   }
 }
+
+}  // namespace wsclean

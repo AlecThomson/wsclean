@@ -11,6 +11,7 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
 namespace {
 template <bool add>
 void AddOrAssign(std::complex<float>* dest, std::complex<float> source) {
@@ -935,3 +936,5 @@ bool MSProvider::OpenWeightSpectrumColumn(
   }
   return isWeightDefined;
 }
+
+}  // namespace wsclean

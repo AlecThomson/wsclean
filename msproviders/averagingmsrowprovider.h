@@ -5,6 +5,8 @@
 
 #include <aocommon/uvector.h>
 
+namespace wsclean {
+
 class AveragingMSRowProvider : public MSRowProvider {
  public:
   AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath,
@@ -104,5 +106,7 @@ class AveragingMSRowProvider : public MSRowProvider {
   size_t _rowCount;
   size_t _fieldId;
 };
+
+}  // namespace wsclean
 
 #endif

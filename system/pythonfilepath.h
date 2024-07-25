@@ -3,12 +3,10 @@
 
 #include <string>
 
-namespace wsclean {
-namespace system {
+namespace wsclean::system {
 
 std::string FindPythonFilePath(const std::string& filename);
 
-}
-}  // namespace wsclean
+}  // namespace wsclean::system
 
 #endif

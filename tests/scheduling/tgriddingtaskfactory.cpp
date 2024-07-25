@@ -8,6 +8,8 @@
 
 using schaapcommon::facets::Facet;
 
+namespace wsclean {
+
 namespace {
 constexpr double kPixelScale = 0.0042;
 constexpr size_t kImageSize = 142;
@@ -258,3 +260,5 @@ BOOST_FIXTURE_TEST_CASE(predict_combined_facets, FactoryFixture) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

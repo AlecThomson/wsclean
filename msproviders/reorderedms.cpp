@@ -33,6 +33,8 @@ using aocommon::Logger;
 #define MAP_NORESERVE 0
 #endif
 
+namespace wsclean {
+
 namespace {
 struct PartitionFiles {
   std::unique_ptr<std::ofstream> data;
@@ -739,3 +741,5 @@ void ReorderedMs::Handle::HandleData::Unserialize(
   _selection.Unserialize(stream);
   stream.UInt64(_nAntennas);
 }
+
+}  // namespace wsclean

@@ -15,6 +15,8 @@
 
 // #define EXTRA_ASSERTIONS 1
 
+namespace wsclean {
+
 class SpectralEnergyDistribution {
  public:
   virtual ~SpectralEnergyDistribution() {}
@@ -110,5 +112,7 @@ class SpectralEnergyDistribution {
     }
   }
 };
+
+}  // namespace wsclean
 
 #endif

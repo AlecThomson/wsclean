@@ -2,6 +2,8 @@
 
 #include "../../main/settings.h"
 
+namespace wsclean {
+
 namespace {
 /// @return A minimal Settings object, which passes Validate().
 Settings ValidSettings() {
@@ -98,3 +100,5 @@ BOOST_AUTO_TEST_CASE(invalid_mpi_message_size) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

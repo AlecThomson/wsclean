@@ -4,6 +4,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
@@ -110,3 +112,5 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

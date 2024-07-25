@@ -10,6 +10,8 @@
 #include <limits>
 #include <mutex>
 
+namespace wsclean {
+
 class ImageWeightCache {
  public:
   ImageWeightCache(const WeightMode& weightMode, size_t imageWidth,
@@ -141,5 +143,7 @@ class ImageWeightCache {
 
   size_t _currentWeightChannel, _currentWeightInterval;
 };
+
+}  // namespace wsclean
 
 #endif

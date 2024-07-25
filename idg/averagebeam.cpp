@@ -8,6 +8,8 @@
 
 #include <cassert>
 
+namespace wsclean {
+
 namespace {
 constexpr size_t kNPolarizations = 4;
 }  // namespace
@@ -123,3 +125,5 @@ void AverageBeam::Store(CachedImageSet& scalar_cache,
                        false);
   }
 }
+
+}  // namespace wsclean

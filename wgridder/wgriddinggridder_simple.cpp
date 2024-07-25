@@ -4,6 +4,8 @@
 
 using namespace ducc0;
 
+namespace wsclean {
+
 template <typename NumT>
 WGriddingGridder_Simple<NumT>::WGriddingGridder_Simple(
     size_t width, size_t height, size_t width_t, size_t height_t,
@@ -127,3 +129,5 @@ void WGriddingGridder_Simple<NumT>::PredictVisibilities(
 
 template class WGriddingGridder_Simple<float>;
 template class WGriddingGridder_Simple<double>;
+
+}  // namespace wsclean

@@ -16,6 +16,8 @@
 #include "griddingtask.h"
 #include "metadatacache.h"
 
+namespace wsclean {
+
 class GriddingTaskFactory {
  public:
   explicit GriddingTaskFactory(const MsHelper& ms_helper,
@@ -108,5 +110,7 @@ class GriddingTaskFactory {
   const double l_shift_, m_shift_;
   std::vector<std::unique_ptr<MetaDataCache>> meta_data_cache_;
 };
+
+}  // namespace wsclean
 
 #endif

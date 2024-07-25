@@ -12,6 +12,8 @@
 
 #include "../structures/resources.h"
 
+namespace wsclean {
+
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
   ThreadedScheduler(const class Settings& settings);
@@ -81,5 +83,7 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   const Resources resources_per_task_;
 };
+
+}  // namespace wsclean
 
 #endif

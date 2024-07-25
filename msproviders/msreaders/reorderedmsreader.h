@@ -7,6 +7,8 @@
 
 #include <fstream>
 
+namespace wsclean {
+
 class ReorderedMs;
 
 class ReorderedMsReader final : public MSReader {
@@ -45,5 +47,7 @@ class ReorderedMsReader final : public MSReader {
   aocommon::UVector<float> _imagingWeightBuffer;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
 };
+
+}  // namespace wsclean
 
 #endif

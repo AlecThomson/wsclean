@@ -9,8 +9,8 @@
 #include <sstream>
 #include <random>
 
-namespace wsclean {
-namespace system {
+namespace wsclean::system {
+
 std::string FindPythonFilePath(const std::string& filename) {
   if (boost::filesystem::exists(filename)) return filename;
   aocommon::Logger::Debug << "Searching " << filename << "... ";
@@ -81,5 +81,5 @@ std::string FindPythonFilePath(const std::string& filename) {
   boost::filesystem::remove(tempPath);
   throw std::runtime_error(err);
 }
-}  // namespace system
-}  // namespace wsclean
+
+}  // namespace wsclean::system

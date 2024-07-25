@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <fstream>
 
+namespace wsclean {
+
 class BBSModel {
  public:
   /**
@@ -288,5 +290,7 @@ class BBSModel {
         minAxisInd = -1, orientationInd = -1, logSIInd = -1;
   };
 };
+
+}  // namespace wsclean
 
 #endif

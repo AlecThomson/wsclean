@@ -11,6 +11,8 @@
 #include <vector>
 #include <string>
 
+namespace wsclean {
+
 class Settings;
 
 namespace math {
@@ -64,5 +66,7 @@ class ImageOperations {
                              aocommon::PolarizationEnum pol, bool isImaginary,
                              bool isPBCorrected);
 };
+
+}  // namespace wsclean
 
 #endif

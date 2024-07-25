@@ -15,6 +15,12 @@
 
 using aocommon::Logger;
 
+using wsclean::CommandLine;
+using wsclean::Settings;
+using wsclean::TaskMessage;
+using wsclean::Worker;
+using wsclean::WSClean;
+
 namespace {
 void SetMpiSettings(Settings& settings, size_t n_nodes) {
   settings.nMpiNodes = n_nodes;

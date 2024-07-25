@@ -21,6 +21,8 @@
 using aocommon::Image;
 using aocommon::Logger;
 
+namespace wsclean {
+
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
                                        const Resources& resources,
                                        bool use_tuned_wgridder)
@@ -306,3 +308,5 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
     predictMeasurementSet(msData);
   }
 }
+
+}  // namespace wsclean

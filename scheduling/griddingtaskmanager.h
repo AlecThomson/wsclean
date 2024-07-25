@@ -11,6 +11,8 @@
 #include "../main/settings.h"
 #include "../structures/resources.h"
 
+namespace wsclean {
+
 class GriddingTaskManager {
  public:
   class WriterLock {
@@ -106,5 +108,7 @@ class GriddingTaskManager {
    */
   GriddingTaskManager* writer_lock_manager_;
 };
+
+}  // namespace wsclean
 
 #endif

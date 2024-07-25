@@ -8,6 +8,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 const std::vector<ReorderedMs::ChannelRange> MsHelper::GenerateChannelInfo(
     const ImagingTable& imaging_table, size_t ms_index) const {
   const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
@@ -148,3 +150,5 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
 
   return ms_list;
 }
+
+}  // namespace wsclean

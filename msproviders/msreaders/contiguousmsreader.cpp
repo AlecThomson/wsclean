@@ -1,6 +1,8 @@
 #include "contiguousmsreader.h"
 #include "../contiguousms.h"
 
+namespace wsclean {
+
 ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
     : MSReader(contiguousms),
       _currentInputRow(contiguousms->_startRow - 1),
@@ -227,3 +229,5 @@ void ContiguousMSReader::readModel() {
     _isModelRead = true;
   }
 }
+
+}  // namespace wsclean

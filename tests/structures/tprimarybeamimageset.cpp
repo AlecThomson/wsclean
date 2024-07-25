@@ -7,6 +7,8 @@
 
 #include <radler/component_list.h>
 
+namespace wsclean {
+
 namespace {
 const size_t kWidth = 4;
 const size_t kHeight = 4;
@@ -107,3 +109,5 @@ BOOST_AUTO_TEST_CASE(correct_component_list) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

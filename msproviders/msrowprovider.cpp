@@ -5,6 +5,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+namespace wsclean {
+
 MSRowProvider::MSRowProvider(
     const string& msPath, const MSSelection& selection,
     const std::map<size_t, size_t>& selectedDataDescIds,
@@ -112,3 +114,5 @@ void MSRowProvider::getCurrentWeights(WeightArray& weights,
     MSProvider::ExpandScalarWeights(_scratchWeightScalarArray, weights);
   }
 }
+
+}  // namespace wsclean

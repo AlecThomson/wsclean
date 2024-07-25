@@ -1,5 +1,7 @@
 #include "timestepbufferreader.h"
 
+namespace wsclean {
+
 TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestepBuffer)
     : MSReader(timestepBuffer),
       _msReader(timestepBuffer->_msProvider->MakeReader()),
@@ -88,3 +90,5 @@ void TimestepBufferReader::readTimeblock() {
     _buffer.resize(writePos);
   }
 }
+
+}  // namespace wsclean

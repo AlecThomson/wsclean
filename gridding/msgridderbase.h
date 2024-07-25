@@ -33,6 +33,8 @@ class SolTab;
 }  // namespace h5parm
 }  // namespace schaapcommon
 
+namespace wsclean {
+
 enum class PsfMode {
   kNone,    // Not a psf, grid the visibilities in the MS
   kSingle,  // Grid generated visibilities for a point source at the centre of
@@ -984,5 +986,7 @@ inline void MSGridderBase::WriteInstrumentalVisibilities(
       break;
   }
 }
+
+}  // namespace wsclean
 
 #endif

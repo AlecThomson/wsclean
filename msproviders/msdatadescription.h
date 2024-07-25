@@ -8,6 +8,8 @@
 
 #include <memory>
 
+namespace wsclean {
+
 /**
  * This class contains all the information necessary to open
  * a dataset. In particular, it provides all the information
@@ -82,5 +84,7 @@ class MSDataDescription {
   ReorderedMs::Handle _partitionHandle;
   size_t _partIndex;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -6,6 +6,8 @@
 
 #include "interface.h"
 
+namespace wsclean {
+
 class DummyGridder : public HighLevelGridderInterface {
  public:
   virtual ~DummyGridder() {}
@@ -59,5 +61,7 @@ class DummyGridder : public HighLevelGridderInterface {
   std::vector<size_t> rowIds;
   size_t _channelCount;
 };
+
+}  // namespace wsclean
 
 #endif

@@ -7,6 +7,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
                  MPI_Comm comm, size_t maximum_message_size) {
   size_t n_packages = (count + maximum_message_size - 1) / maximum_message_size;
@@ -57,3 +59,5 @@ int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag,
   }
   return MPI_SUCCESS;
 }
+
+}  // namespace wsclean

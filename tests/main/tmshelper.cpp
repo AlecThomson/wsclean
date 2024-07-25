@@ -9,6 +9,8 @@ using aocommon::BandData;
 using aocommon::ChannelInfo;
 using aocommon::MultiBandData;
 
+namespace wsclean {
+
 BOOST_AUTO_TEST_SUITE(ms_helper)
 
 BOOST_AUTO_TEST_CASE(initialize_ms_list) {
@@ -43,3 +45,5 @@ BOOST_AUTO_TEST_CASE(initialize_ms_list) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}  // namespace wsclean

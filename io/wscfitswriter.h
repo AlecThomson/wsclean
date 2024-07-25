@@ -19,6 +19,8 @@
 #include "../structures/outputchannelinfo.h"
 #include "../structures/imagingtable.h"
 
+namespace wsclean {
+
 /**
  * @brief Class to write FITS images with the appropriate generic and WSClean
  * specific keywords
@@ -115,5 +117,7 @@ class WSCFitsWriter {
   aocommon::FitsWriter _writer;
   std::string _filenamePrefix;
 };
+
+}  // namespace wsclean
 
 #endif

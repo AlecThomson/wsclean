@@ -3,6 +3,8 @@
 
 #include "../msprovider.h"
 
+namespace wsclean {
+
 /**
  * The abstract MSReader class is the base class for classes that read
  * visibilities. Derived classes are usually instantiated via
@@ -76,5 +78,7 @@ class MSReader {
  protected:
   MSProvider* _msProvider;
 };
+
+}  // namespace wsclean
 
 #endif

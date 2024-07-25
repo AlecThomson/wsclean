@@ -3,6 +3,8 @@
 
 #include "msrowprovider.h"
 
+namespace wsclean {
+
 class DirectMSRowProvider : public MSRowProvider {
  public:
   DirectMSRowProvider(const string& msPath, const MSSelection& selection,
@@ -27,5 +29,7 @@ class DirectMSRowProvider : public MSRowProvider {
 
  private:
 };
+
+}  // namespace wsclean
 
 #endif

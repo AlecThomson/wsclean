@@ -8,6 +8,8 @@
 #include "measurement.h"
 #include "spectralenergydistribution.h"
 
+namespace wsclean {
+
 class MeasuredSED : public SpectralEnergyDistribution {
  private:
   typedef std::map<long double, Measurement> FluxMap;
@@ -526,5 +528,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
  private:
   FluxMap _measurements;
 };
+
+}  // namespace wsclean
 
 #endif

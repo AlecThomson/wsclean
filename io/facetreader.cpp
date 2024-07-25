@@ -11,6 +11,8 @@
 using schaapcommon::facets::DS9FacetFile;
 using schaapcommon::facets::Facet;
 
+namespace wsclean {
+
 std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
     std::string filename, double width, double height, double pixelScaleX,
     double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
@@ -49,3 +51,5 @@ std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
 std::size_t FacetReader::CountFacets(const std::string& filename) {
   return filename.empty() ? 0 : DS9FacetFile(filename).Count();
 }
+
+}  // namespace wsclean

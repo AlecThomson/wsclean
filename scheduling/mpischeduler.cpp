@@ -19,6 +19,8 @@
 
 using aocommon::Logger;
 
+namespace wsclean {
+
 namespace {
 constexpr int kMainNode = 0;
 constexpr int kTag = 0;
@@ -235,3 +237,5 @@ void MPIScheduler::StoreResult(GriddingResult&& result, int node) {
   _readyList.emplace_back(std::move(result));
   _notify.notify_all();
 }
+
+}  // namespace wsclean

@@ -6,6 +6,8 @@
 
 #include <optional>
 
+namespace wsclean {
+
 /** A MSRowProvider providing the selected rows in a BDA measurement set. */
 class BdaMsRowProvider final : public MsRowProviderBase {
  public:
@@ -62,5 +64,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
   bool LoadCurrentRow();
   bool IsCurrentRowSelected() const;
 };
+
+}  // namespace wsclean
 
 #endif  // MSPROVIDERS_BDAMSROWPROVIDER_H

@@ -16,6 +16,8 @@
 
 #include "settings.h"
 
+namespace wsclean {
+
 /**
  * Helper class with various initialization routines for WSClean.
  */
@@ -44,5 +46,7 @@ class ImageWeightInitializer {
   const std::vector<aocommon::MultiBandData>& ms_bands_;
   const std::vector<ReorderedMs::Handle>& reordered_ms_handles_;
 };
+
+}  // namespace wsclean
 
 #endif

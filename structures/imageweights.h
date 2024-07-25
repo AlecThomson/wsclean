@@ -11,11 +11,13 @@
 #include "msselection.h"
 #include "weightmode.h"
 
-class MSProvider;
-
 namespace aocommon {
 class BandData;
 }
+
+namespace wsclean {
+
+class MSProvider;
 
 class ImageWeights {
  public:
@@ -126,5 +128,7 @@ class ImageWeights {
   double _totalSum;
   bool _isGriddingFinished, _weightsAsTaper;
 };
+
+}  // namespace wsclean
 
 #endif

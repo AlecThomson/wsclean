@@ -5,6 +5,8 @@
 
 #include "cachedimageset.h"
 
+namespace wsclean {
+
 /**
  * @brief ImageAccessor implementation that internally uses CachedImageSet.
  */
@@ -101,5 +103,7 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
   std::size_t facet_id_;
   std::shared_ptr<const schaapcommon::facets::Facet> facet_;
 };
+
+}  // namespace wsclean
 
 #endif

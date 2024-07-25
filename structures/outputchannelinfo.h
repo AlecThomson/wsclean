@@ -7,6 +7,8 @@
 
 #include "../gridding/averagecorrection.h"
 
+namespace wsclean {
+
 struct OutputChannelInfo {
   OutputChannelInfo(size_t n_facets = 0, size_t n_dd_psfs = 0)
       : averageFacetCorrection(n_facets),
@@ -55,5 +57,7 @@ inline double SmallestTheoreticBeamSize(
              ? std::numeric_limits<double>::quiet_NaN()
              : smallest_theoretic_beam_size;
 }
+
+}  // namespace wsclean
 
 #endif
