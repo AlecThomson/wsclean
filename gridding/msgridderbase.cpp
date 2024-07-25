@@ -410,7 +410,7 @@ void MSGridderBase::ReadPredictMetaData(MSProvider::MetaData& metaData) {
 
 template <GainMode Mode>
 void MSGridderBase::WriteInstrumentalVisibilities(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
@@ -427,12 +427,12 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
   if (visibility_modifier_.HasH5Parm()) {
     assert(!settings_.facetRegionFilename.empty());
-    visibility_modifier_.CacheParmResponse(metaData.time, antenna_names,
-                                           curBand, original_ms_index_);
+    visibility_modifier_.CacheParmResponse(metaData.time, curBand,
+                                           original_ms_index_);
 
     visibility_modifier_.ApplyParmResponse<Mode>(
-        buffer, original_ms_index_, curBand.ChannelCount(),
-        antenna_names.size(), metaData.antenna1, metaData.antenna2);
+        buffer, original_ms_index_, curBand.ChannelCount(), n_antennas,
+        metaData.antenna1, metaData.antenna2);
   }
 
   {
@@ -446,28 +446,28 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 }
 
 template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kXX>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kYY>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kTrace>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void
 MSGridderBase::WriteInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 
 template void MSGridderBase::WriteInstrumentalVisibilities<GainMode::kFull>(
-    MSProvider& ms_provider, const std::vector<std::string>& antenna_names,
+    MSProvider& ms_provider, size_t n_antennas,
     const aocommon::BandData& curBand, std::complex<float>* buffer,
     MSProvider::MetaData& metaData);
 

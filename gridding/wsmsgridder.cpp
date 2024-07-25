@@ -184,8 +184,8 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
           isSelected[ch] = _gridder->IsInLayerRange(w);
         }
 
-        GetCollapsedVisibilities(*msReader, msData.antenna_names, newItem,
-                                 curBand, weightBuffer.data(),
+        GetCollapsedVisibilities(*msReader, msData.antenna_names.size(),
+                                 newItem, curBand, weightBuffer.data(),
                                  modelBuffer.data(), isSelected.data(),
                                  metaData);
 
@@ -365,8 +365,9 @@ void WSMSGridder::predictWriteThread(
     while (!queue.empty() && queue.top().rowId == nextRowId) {
       MSProvider::MetaData metaData;
       ReadPredictMetaData(metaData);
-      WriteCollapsedVisibilities(*msData->ms_provider, msData->antenna_names,
-                                 *bandData, queue.top().data.get(), metaData);
+      WriteCollapsedVisibilities(*msData->ms_provider,
+                                 msData->antenna_names.size(), *bandData,
+                                 queue.top().data.get(), metaData);
 
       queue.pop();
       ++nextRowId;

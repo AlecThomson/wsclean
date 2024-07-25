@@ -97,9 +97,8 @@ class VisibilityModifier {
    * Cache must be initialised once per msData before calling this
    * method, by calling @ref InitializeCacheParmResponse()
    */
-  void CacheParmResponse(double time,
-                         const std::vector<std::string>& antennaNames,
-                         const aocommon::BandData& band, size_t ms_index);
+  void CacheParmResponse(double time, const aocommon::BandData& band,
+                         size_t ms_index);
 
   /**
    * Applies the conjugate (is backward, or imaging direction) h5parm gain
@@ -382,14 +381,13 @@ inline void VisibilityModifier::ApplyConjugatedBeamResponse(
         internal::ApplyGain<Mode>(data, gain1, gain2);
       }
       internal::ApplyConjugatedGain<Mode>(data, gain1, gain2);
+      data += GetNVisibilities(Mode);
     }
     if constexpr (internal::ShouldSumCorrection(Behaviour)) {
       // This assumes that the weights of the polarizations are the same
       correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
+      weights += GetNVisibilities(Mode);
     }
-
-    data += GetNVisibilities(Mode);
-    weights += GetNVisibilities(Mode);
   }
 }
 
@@ -434,16 +432,15 @@ inline void VisibilityModifier::ApplyConjugatedDual(
         }
         internal::ApplyConjugatedGain<Mode>(data, gain_combined_1,
                                             gain_combined_2);
+        data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
         beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
                                        weights[0] * image_weights[ch]);
         correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
                                   weights[0] * image_weights[ch]);
+        weights += GetNVisibilities(Mode);
       }
-
-      data += GetNVisibilities(Mode);
-      weights += GetNVisibilities(Mode);
     }
   } else {
     // This branch handles full jones H5 parm files (nparms == 4)
@@ -478,15 +475,15 @@ inline void VisibilityModifier::ApplyConjugatedDual(
         if (apply_forward) {
           internal::ApplyGain<Mode>(data, gain_combined_1, gain_combined_2);
         }
+        data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
         beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
                                        weights[0] * image_weights[ch]);
         correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
                                   weights[0] * image_weights[ch]);
+        weights += GetNVisibilities(Mode);
       }
-      data += GetNVisibilities(Mode);
-      weights += GetNVisibilities(Mode);
     }
   }
 }
@@ -517,14 +514,13 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
           internal::ApplyGain<Mode>(data, gain1, gain2);
         }
         internal::ApplyConjugatedGain<Mode>(data, gain1, gain2);
+        data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
         // This multiplies a lot of zeros so could be done more efficiently
         correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
+        weights += GetNVisibilities(Mode);
       }
-
-      data += GetNVisibilities(Mode);
-      weights += GetNVisibilities(Mode);
     }
   } else {
     for (size_t ch = 0; ch < n_channels; ++ch) {
@@ -540,14 +536,13 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
           internal::ApplyGain<Mode>(data, gain1, gain2);
         }
         internal::ApplyConjugatedGain<Mode>(data, gain1, gain2);
+        data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
         // Assumes that the weights of the polarizations are the same
         correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
+        weights += GetNVisibilities(Mode);
       }
-
-      data += GetNVisibilities(Mode);
-      weights += GetNVisibilities(Mode);
     }
   }
 }

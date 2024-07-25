@@ -154,7 +154,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     newItem.uvw[1] = metaData.vInM;
     newItem.uvw[2] = metaData.wInM;
 
-    GetCollapsedVisibilities(*msReader, msData.antenna_names, newItem,
+    GetCollapsedVisibilities(*msReader, msData.antenna_names.size(), newItem,
                              selectedBand, weightBuffer.data(),
                              modelBuffer.data(), isSelected.data(), metaData);
     InversionSample sample;

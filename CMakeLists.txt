@@ -76,6 +76,9 @@ include(external/aocommon/CMake/SetTargetCPU.cmake)
 # Include aocommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
+# LRUCache11
+include_directories("${CMAKE_SOURCE_DIR}/external/lrucache11")
+
 # Schaapcommon
 set(SCHAAPCOMMON_MODULES ducc0 facets fft fitters h5parm)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")

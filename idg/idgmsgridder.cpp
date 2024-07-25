@@ -230,7 +230,7 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
 
     if (n_vis_polarizations == 1) {
       GetInstrumentalVisibilities<1>(
-          *msReader, msData.antenna_names, rowData, _selectedBand,
+          *msReader, msData.antenna_names.size(), rowData, _selectedBand,
           weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
       // The data is placed in the first quarter of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
@@ -249,7 +249,7 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
       }
     } else if (n_vis_polarizations == 2) {
       GetInstrumentalVisibilities<2>(
-          *msReader, msData.antenna_names, rowData, _selectedBand,
+          *msReader, msData.antenna_names.size(), rowData, _selectedBand,
           weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
       // The data is placed in the first half of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
@@ -269,7 +269,7 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     } else {
       assert(n_vis_polarizations == 4);
       GetInstrumentalVisibilities<4>(
-          *msReader, msData.antenna_names, rowData, _selectedBand,
+          *msReader, msData.antenna_names.size(), rowData, _selectedBand,
           weightBuffer.data(), modelBuffer.data(), isSelected.data(), metaData);
     }
 
@@ -468,7 +468,7 @@ void IdgMsGridder::computePredictionBuffer(
     } else {
       assert(n_vis_polarizations == 4);
     }
-    WriteInstrumentalVisibilities(*_outputProvider, antenna_names,
+    WriteInstrumentalVisibilities(*_outputProvider, antenna_names.size(),
                                   _selectedBand, row.second, metaData);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();

@@ -121,9 +121,9 @@ size_t VisibilityModifier::GetCacheParmResponseSize() const {
   return num_allocated * sizeof(std::complex<float>);
 }
 
-void VisibilityModifier::CacheParmResponse(
-    double time, const std::vector<std::string>& antennaNames,
-    const aocommon::BandData& band, size_t ms_index) {
+void VisibilityModifier::CacheParmResponse(double time,
+                                           const aocommon::BandData& band,
+                                           size_t ms_index) {
   const auto it =
       std::find(_cachedMSTimes[ms_index].begin() + _timeOffsets[ms_index],
                 _cachedMSTimes[ms_index].end(), time);

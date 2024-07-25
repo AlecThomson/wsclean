@@ -123,8 +123,8 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       newRowData.uvw[1] = metaData.vInM;
       newRowData.uvw[2] = metaData.wInM;
 
-      GetCollapsedVisibilities(*msReader, msData.antenna_names, newRowData,
-                               selectedBand, weightBuffer.data(),
+      GetCollapsedVisibilities(*msReader, msData.antenna_names.size(),
+                               newRowData, selectedBand, weightBuffer.data(),
                                modelBuffer.data(), isSelected.data(), metaData);
 
       std::copy_n(newRowData.data, selectedBand.ChannelCount(),
@@ -191,7 +191,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != nRows; ++row) {
       WriteCollapsedVisibilities(
-          *msData.ms_provider, msData.antenna_names, selectedBand,
+          *msData.ms_provider, msData.antenna_names.size(), selectedBand,
           &visBuffer[row * selectedBand.ChannelCount()], metaDataBuffer[row]);
     }
     totalNRows += nRows;

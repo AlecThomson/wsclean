@@ -2,23 +2,36 @@
 #define WGRIDDING_GRIDDER_SIMPLE_H
 
 #include <complex>
-#include <vector>
 #include <cstddef>
+#include <vector>
+
+#include <aocommon/banddata.h>
+#include "ducc0/wgridder/wgridder.h"
+
+#include "../gridding/gainmode.h"
 
 namespace wsclean {
+
+class MSGridderBase;
 
 class WGriddingGridderBase {
  public:
   virtual ~WGriddingGridderBase() = default;
   virtual void MemoryUsage(size_t &constant, size_t &per_vis) const = 0;
   virtual void InitializeInversion() = 0;
-  virtual void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
+  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
                                 const double *freq,
                                 const std::complex<float> *vis) = 0;
+  virtual void AddInversionDataWithCorrectionCallback(
+      GainMode mode, size_t n_rows, size_t data_size,
+      const aocommon::BandData &selected_band, MSGridderBase *gridder,
+      size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
+      const double *uvw, const double *frequencies,
+      const std::complex<float> *visibilities) = 0;
   virtual void FinalizeImage(double multiplicationFactor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
-  virtual void PredictVisibilities(size_t nrows, size_t nchan,
+  virtual void PredictVisibilities(size_t n_rows, size_t n_chan,
                                    const double *uvw, const double *freq,
                                    std::complex<float> *vis) const = 0;
 };
@@ -89,20 +102,42 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    * The visibilities will be gridded, and the dirty image
    * will be updated accordingly.
    * visibilities with value 0 will be skipped entirely.
-   * @param nrows The number of MS rows being passed
-   * @param nchan The number of frequency channels
-   * @param uvw pointer to nrows*3 doubles containing UVW in m.
+   * @param n_chan The number of frequency channels
+   * @param uvw pointer to n_rows*3 doubles containing UVW in m.
    *        U(row) := uvw[3*row  ]
    *        V(row) := uvw[3*row+1]
    *        W(row) := uvw[3*row+2]
-   * @param freq pointer to nchan doubles containing channel frequencies
-   * @param vis pointer to nrow*nchan complex<float> containing weighted
-   *        visibilities
-   *        visibility(row, chan) := vis[row*nchan + chan]
+   * @param freq pointer to n_chan doubles containing channel frequencies
+   * @param vis pointer to nrow*n_chan complex<float> containing weighted and
+   * corrected visibilities: visibility(row, chan) := vis[row*n_chan + chan]
    */
-  void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
+  void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
                         const double *freq,
                         const std::complex<float> *vis) override;
+  /** Equivalent to @ref AddInversionData() but without facet solutions
+   * pre-applied and with additional paramaters to allow the creation of a
+   * callback that can apply solutions "on the fly" as required
+   * @param data_size The size of a row of visibilities (channel count *
+   * polarisations)
+   * @param gridder Pointer to a gridder that can be called back into in order
+   * to apply solutions
+   * @param n_antennas The number of antennas
+   * @param antenna_buffer Pointer to n_row pairs of antennas
+   * @param uvw Pointer to n_rows*3 doubles containing UVW in m.
+   *        U(row) := uvw[3*row  ]
+   *        V(row) := uvw[3*row+1]
+   *        W(row) := uvw[3*row+2]
+   * @param frequencies Pointer to n_chan doubles containing channel frequencies
+   * @param visibilities Pointer to nrow*n_chan complex<float> containing
+   * weighted but uncorrected visibilities: visibility(row, chan) :=
+   * vis[row*n_chan + chan]
+   */
+  void AddInversionDataWithCorrectionCallback(
+      GainMode mode, size_t n_rows, size_t data_size,
+      const aocommon::BandData &selected_band, MSGridderBase *gridder,
+      size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
+      const double *uvw, const double *frequencies,
+      const std::complex<float> *visibilities) override;
 
   /**
    * Finalize inversion once all passes are performed.
@@ -129,20 +164,34 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   /** Predicts visibilities from the current dirty image.
    * FIXME: how do we indicate flagged visibilities that do not
    *        need to be computed? Some special value on input?
-   * @param nrows The number of MS rows being passed
-   * @param nchan The number of frequency channels
-   * @param uvw pointer to nrows*3 doubles containing UVW in m.
+   * @param n_rows The number of MS rows being passed
+   * @param n_chan The number of frequency channels
+   * @param uvw pointer to n_rows*3 doubles containing UVW in m.
    *        U(row) := uvw[3*row  ]
    *        V(row) := uvw[3*row+1]
    *        W(row) := uvw[3*row+2]
-   * @param freq pointer to nchan doubles containing channel frequencies
-   * @param vis pointer to nrow*nchan complex<float> containing weighted
+   * @param freq pointer to n_chan doubles containing channel frequencies
+   * @param vis pointer to nrow*n_chan complex<float> containing weighted
    *        visibilities
-   *        visibility(row, chan) := vis[row*nchan + chan]
+   *        visibility(row, chan) := vis[row*n_chan + chan]
    */
-  void PredictVisibilities(size_t nrows, size_t nchan, const double *uvw,
+  void PredictVisibilities(size_t n_rows, size_t n_chan, const double *uvw,
                            const double *freq,
                            std::complex<float> *vis) const override;
+
+ private:
+  /** Internal helper to handle the processing of
+   * AddInversionData/AddInversionDataWithCorrectionCallback
+   * @tparam TMs Container type for visibilities, must be derived from or
+   * compatible with cmav interface
+   * @param freq Buffer via which all frequencies for this inversion can be
+   * accessed, indexing must be in ascending order
+   * @param ms Virtual or actual buffer via which all visibilities for this
+   * inversion can be accessed, indexing must be in ascending order
+   */
+  template <typename Tms>
+  void AddInversionMs(size_t n_rows, const double *uvw,
+                      const ducc0::cmav<double, 1> &freq, Tms &ms);
 };
 
 #endif
