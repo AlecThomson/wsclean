@@ -2,7 +2,7 @@
 #define MS_DATA_DESCRIPTION_H
 
 #include "msprovider.h"
-#include "reorderedms.h"
+#include "reorderedmsprovider.h"
 
 #include <aocommon/io/serialstreamfwd.h>
 
@@ -37,7 +37,7 @@ class MSDataDescription {
   }
 
   static std::unique_ptr<MSDataDescription> ForReordered(
-      ReorderedMs::Handle partitionHandle, const MSSelection& selection,
+      ReorderedMsProvider::Handle partitionHandle, const MSSelection& selection,
       size_t partIndex, aocommon::PolarizationEnum polarization,
       size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
@@ -81,7 +81,7 @@ class MSDataDescription {
   std::string _dataColumnName;
 
   // Reordered
-  ReorderedMs::Handle _partitionHandle;
+  ReorderedMsProvider::Handle _partitionHandle;
   size_t _partIndex;
 };
 

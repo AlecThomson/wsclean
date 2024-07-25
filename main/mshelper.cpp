@@ -10,10 +10,11 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-const std::vector<ReorderedMs::ChannelRange> MsHelper::GenerateChannelInfo(
-    const ImagingTable& imaging_table, size_t ms_index) const {
+const std::vector<ReorderedMsProvider::ChannelRange>
+MsHelper::GenerateChannelInfo(const ImagingTable& imaging_table,
+                              size_t ms_index) const {
   const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
-  std::vector<ReorderedMs::ChannelRange> channels;
+  std::vector<ReorderedMsProvider::ChannelRange> channels;
   // The partIndex needs to increase per data desc ids and channel ranges
   std::map<aocommon::PolarizationEnum, size_t> next_index;
   for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
@@ -33,8 +34,8 @@ const std::vector<ReorderedMs::ChannelRange> MsHelper::GenerateChannelInfo(
         if (settings_.IsBandSelected(band_index) &&
             selection.SelectMsChannels(band_data, d, entry)) {
           if (entry.polarization == *settings_.polarizations.begin()) {
-            ReorderedMs::ChannelRange r;
-            r.dataDescId = d;
+            ReorderedMsProvider::ChannelRange r;
+            r.data_desc_id = d;
             r.start = selection.ChannelRangeStart();
             r.end = selection.ChannelRangeEnd();
             channels.push_back(r);
@@ -67,16 +68,17 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     polarization_types.insert(settings_.GetProviderPolarization(p));
 
   for (size_t ms_index = 0; ms_index < settings_.filenames.size(); ++ms_index) {
-    const std::vector<ReorderedMs::ChannelRange> channels =
+    const std::vector<ReorderedMsProvider::ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
     casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
     const size_t n_antennas = ms_data_obj.antenna().nrow();
     const aocommon::MultiBandData bands(ms_data_obj);
-    ReorderedMs::Handle part_ms = ReorderedMs::GenerateHandleFromReorderedData(
-        settings_.filenames[ms_index], settings_.dataColumnName,
-        settings_.temporaryDirectory, channels, initial_model_required,
-        settings_.modelUpdateRequired, polarization_types, global_selection_,
-        bands, n_antennas, settings_.saveReorder);
+    ReorderedMsProvider::Handle part_ms =
+        ReorderedMsProvider::GenerateHandleFromReorderedData(
+            settings_.filenames[ms_index], settings_.dataColumnName,
+            settings_.temporaryDirectory, channels, initial_model_required,
+            settings_.modelUpdateRequired, polarization_types,
+            global_selection_, bands, n_antennas, settings_.saveReorder);
 
     reordered_ms_handles_[ms_index] = std::move(part_ms);
   }
@@ -100,9 +102,9 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
-    std::vector<ReorderedMs::ChannelRange> channels =
+    std::vector<ReorderedMsProvider::ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    ReorderedMs::Handle part_ms = ReorderedMs::Partition(
+    ReorderedMsProvider::Handle part_ms = ReorderedMsProvider::Partition(
         settings_.filenames[ms_index], channels, global_selection_,
         settings_.dataColumnName, use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);

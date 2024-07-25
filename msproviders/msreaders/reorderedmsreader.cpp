@@ -1,175 +1,180 @@
 #include "reorderedmsreader.h"
-#include "../reorderedms.h"
+#include "../reorderedmsprovider.h"
 
 namespace wsclean {
 
-ReorderedMsReader::ReorderedMsReader(ReorderedMs* reordered_ms)
+ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
     : MSReader(reordered_ms),
-      _currentInputRow(0),
-      _readPtrRowOffset(0),
-      _metaPtrRowOffset(0),
-      _weightPtrRowOffset(0) {
-  _metaFile.open(ReorderedMs::getMetaFilename(
-                     reordered_ms->_handle._data->_msPath,
-                     reordered_ms->_handle._data->_temporaryDirectory,
-                     reordered_ms->_partHeader.dataDescId),
-                 std::ios::in);
-  std::vector<char> msPath(reordered_ms->_metaHeader.filenameLength + 1,
-                           char(0));
+      current_input_row_(0),
+      read_ptr_row_offset_(0),
+      meta_ptr_row_offset_(0),
+      weight_ptr_row_offset_(0) {
+  meta_file_.open(ReorderedMsProvider::GetMetaFilename(
+                      reordered_ms->handle_.data_->ms_path_,
+                      reordered_ms->handle_.data_->temporary_directory_,
+                      reordered_ms->part_header_.data_desc_id),
+                  std::ios::in);
+  std::vector<char> ms_path(reordered_ms->meta_header_.filename_length + 1,
+                            char(0));
   // meta and data header were read in ReorderedMs constructor
-  _metaFile.seekg(ReorderedMs::MetaHeader::BINARY_SIZE, std::ios::beg);
-  _metaFile.read(msPath.data(), reordered_ms->_metaHeader.filenameLength);
-  std::string partPrefix = ReorderedMs::getPartPrefix(
-      msPath.data(), reordered_ms->_partIndex, reordered_ms->_polarization,
-      reordered_ms->_partHeader.dataDescId,
-      reordered_ms->_handle._data->_temporaryDirectory);
-  _dataFile.open(partPrefix + ".tmp", std::ios::in);
-  if (!_dataFile.good())
+  meta_file_.seekg(ReorderedMsProvider::MetaHeader::BINARY_SIZE, std::ios::beg);
+  meta_file_.read(ms_path.data(), reordered_ms->meta_header_.filename_length);
+  std::string part_prefix = ReorderedMsProvider::GetPartPrefix(
+      ms_path.data(), reordered_ms->part_index_, reordered_ms->polarization_,
+      reordered_ms->part_header_.data_desc_id,
+      reordered_ms->handle_.data_->temporary_directory_);
+  data_file_.open(part_prefix + ".tmp", std::ios::in);
+  if (!data_file_.good())
     throw std::runtime_error("Error opening temporary data file in '" +
-                             partPrefix + ".tmp'");
-  _dataFile.seekg(ReorderedMs::PartHeader::BINARY_SIZE, std::ios::beg);
+                             part_prefix + ".tmp'");
+  data_file_.seekg(ReorderedMsProvider::PartHeader::BINARY_SIZE, std::ios::beg);
 
-  _weightFile.open(partPrefix + "-w.tmp", std::ios::in);
-  if (!_weightFile.good())
+  weight_file_.open(part_prefix + "-w.tmp", std::ios::in);
+  if (!weight_file_.good())
     throw std::runtime_error("Error opening temporary data weight file '" +
-                             partPrefix + "-w.tmp'");
+                             part_prefix + "-w.tmp'");
 }
 
 bool ReorderedMsReader::CurrentRowAvailable() {
-  const ReorderedMs& reordered_ms =
-      static_cast<const ReorderedMs&>(*_msProvider);
-  return _currentInputRow < reordered_ms._metaHeader.selectedRowCount;
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*_msProvider);
+  return current_input_row_ < reordered_ms.meta_header_.selected_row_count;
 }
 
 void ReorderedMsReader::NextInputRow() {
-  const ReorderedMs& reordered_ms =
-      static_cast<const ReorderedMs&>(*_msProvider);
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*_msProvider);
 
-  ++_currentInputRow;
-  if (_currentInputRow < reordered_ms._metaHeader.selectedRowCount) {
-    _readPtrRowOffset += 1;
-    _metaPtrRowOffset += 1;
-    _weightPtrRowOffset += 1;
+  ++current_input_row_;
+  if (current_input_row_ < reordered_ms.meta_header_.selected_row_count) {
+    read_ptr_row_offset_ += 1;
+    meta_ptr_row_offset_ += 1;
+    weight_ptr_row_offset_ += 1;
   }
 }
 
 void ReorderedMsReader::ReadMeta(double& u, double& v, double& w) {
-  if (_metaPtrRowOffset != 0)
-    _metaFile.seekg(_metaPtrRowOffset * (ReorderedMs::MetaRecord::BINARY_SIZE),
-                    std::ios::cur);
-  _metaPtrRowOffset = -1;
+  if (meta_ptr_row_offset_ != 0)
+    meta_file_.seekg(
+        meta_ptr_row_offset_ * (ReorderedMsProvider::MetaRecord::BINARY_SIZE),
+        std::ios::cur);
+  meta_ptr_row_offset_ = -1;
 
-  ReorderedMs::MetaRecord record;
-  record.Read(_metaFile);
+  ReorderedMsProvider::MetaRecord record;
+  record.Read(meta_file_);
   u = record.u;
   v = record.v;
   w = record.w;
 }
 
-void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metaData) {
-  if (_metaPtrRowOffset != 0)
-    _metaFile.seekg(_metaPtrRowOffset * (ReorderedMs::MetaRecord::BINARY_SIZE),
-                    std::ios::cur);
-  _metaPtrRowOffset = -1;
+void ReorderedMsReader::ReadMeta(MSProvider::MetaData& meta_data) {
+  if (meta_ptr_row_offset_ != 0)
+    meta_file_.seekg(
+        meta_ptr_row_offset_ * (ReorderedMsProvider::MetaRecord::BINARY_SIZE),
+        std::ios::cur);
+  meta_ptr_row_offset_ = -1;
 
-  ReorderedMs::MetaRecord record;
-  record.Read(_metaFile);
-  metaData.uInM = record.u;
-  metaData.vInM = record.v;
-  metaData.wInM = record.w;
-  metaData.fieldId = record.fieldId;
-  metaData.antenna1 = record.antenna1;
-  metaData.antenna2 = record.antenna2;
-  metaData.time = record.time;
+  ReorderedMsProvider::MetaRecord record;
+  record.Read(meta_file_);
+  meta_data.uInM = record.u;
+  meta_data.vInM = record.v;
+  meta_data.wInM = record.w;
+  meta_data.fieldId = record.field_id;
+  meta_data.antenna1 = record.antenna1;
+  meta_data.antenna2 = record.antenna2;
+  meta_data.time = record.time;
 }
 
 void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
-  const ReorderedMs& reordered_ms =
-      static_cast<const ReorderedMs&>(*_msProvider);
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*_msProvider);
 
-  const int64_t n_visibilities = reordered_ms._partHeader.channelCount *
-                                 reordered_ms._polarizationCountInFile;
-  if (_readPtrRowOffset != 0) {
+  const int64_t n_visibilities = reordered_ms.part_header_.channel_count *
+                                 reordered_ms.polarization_count_in_file_;
+  if (read_ptr_row_offset_ != 0) {
     // Data file position was moved forward already, so seek back by one block
-    _dataFile.seekg(
-        _readPtrRowOffset * (n_visibilities * sizeof(std::complex<float>)),
+    data_file_.seekg(
+        read_ptr_row_offset_ * (n_visibilities * sizeof(std::complex<float>)),
         std::ios::cur);
   }
-  _readPtrRowOffset = -1;
+  read_ptr_row_offset_ = -1;
 #ifndef NDEBUG
   const size_t pos =
-      size_t(_dataFile.tellg()) - ReorderedMs::PartHeader::BINARY_SIZE;
-  if (pos != _currentInputRow * n_visibilities * sizeof(std::complex<float>)) {
+      size_t(data_file_.tellg()) - ReorderedMsProvider::PartHeader::BINARY_SIZE;
+  if (pos !=
+      current_input_row_ * n_visibilities * sizeof(std::complex<float>)) {
     std::ostringstream s;
     s << "Not on right pos: " << pos << " instead of "
-      << _currentInputRow * n_visibilities * sizeof(std::complex<float>)
+      << current_input_row_ * n_visibilities * sizeof(std::complex<float>)
       << " (row " << (pos / (n_visibilities * sizeof(std::complex<float>)))
-      << " instead of " << _currentInputRow << ")";
+      << " instead of " << current_input_row_ << ")";
     throw std::runtime_error(s.str());
   }
 #endif
-  _dataFile.read(reinterpret_cast<char*>(buffer),
-                 n_visibilities * sizeof(std::complex<float>));
+  data_file_.read(reinterpret_cast<char*>(buffer),
+                  n_visibilities * sizeof(std::complex<float>));
 }
 
 void ReorderedMsReader::ReadModel(std::complex<float>* buffer) {
-  const ReorderedMs& reordered_ms = static_cast<ReorderedMs&>(*_msProvider);
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<ReorderedMsProvider&>(*_msProvider);
 
 #ifndef NDEBUG
-  if (!reordered_ms._partHeader.hasModel)
+  if (!reordered_ms.part_header_.has_model)
     throw std::runtime_error("Reordered MS initialized without model");
 #endif
-  const size_t rowLength = reordered_ms._partHeader.channelCount *
-                           reordered_ms._polarizationCountInFile *
-                           sizeof(std::complex<float>);
-  std::copy_n(reordered_ms._modelFile.Data() + rowLength * _currentInputRow,
-              rowLength, reinterpret_cast<char*>(buffer));
+  const size_t row_length = reordered_ms.part_header_.channel_count *
+                            reordered_ms.polarization_count_in_file_ *
+                            sizeof(std::complex<float>);
+  std::copy_n(reordered_ms.model_file_.Data() + row_length * current_input_row_,
+              row_length, reinterpret_cast<char*>(buffer));
 }
 
 void ReorderedMsReader::ReadWeights(float* buffer) {
-  const ReorderedMs& reordered_ms =
-      static_cast<const ReorderedMs&>(*_msProvider);
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*_msProvider);
 
-  const int64_t n_visibilities = reordered_ms._partHeader.channelCount *
-                                 reordered_ms._polarizationCountInFile;
-  if (_weightPtrRowOffset != 0) {
+  const int64_t n_visibilities = reordered_ms.part_header_.channel_count *
+                                 reordered_ms.polarization_count_in_file_;
+  if (weight_ptr_row_offset_ != 0) {
     // jump to the previous block of weights
-    _weightFile.seekg(_weightPtrRowOffset * (n_visibilities * sizeof(float)),
-                      std::ios::cur);
+    weight_file_.seekg(
+        weight_ptr_row_offset_ * (n_visibilities * sizeof(float)),
+        std::ios::cur);
   }
-  _weightFile.read(reinterpret_cast<char*>(buffer),
-                   n_visibilities * sizeof(float));
-  _weightPtrRowOffset = -1;
+  weight_file_.read(reinterpret_cast<char*>(buffer),
+                    n_visibilities * sizeof(float));
+  weight_ptr_row_offset_ = -1;
 }
 
 void ReorderedMsReader::WriteImagingWeights(const float* buffer) {
-  const ReorderedMs& reordered_ms =
-      static_cast<const ReorderedMs&>(*_msProvider);
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*_msProvider);
 
-  if (_imagingWeightsFile == nullptr) {
-    std::string partPrefix = ReorderedMs::getPartPrefix(
-        reordered_ms._handle._data->_msPath, reordered_ms._partIndex,
-        reordered_ms._polarization, reordered_ms._partHeader.dataDescId,
-        reordered_ms._handle._data->_temporaryDirectory);
-    _imagingWeightsFile.reset(
-        new std::fstream(partPrefix + "-imgw.tmp",
+  if (imaging_weights_file_ == nullptr) {
+    std::string part_prefix = ReorderedMsProvider::GetPartPrefix(
+        reordered_ms.handle_.data_->ms_path_, reordered_ms.part_index_,
+        reordered_ms.polarization_, reordered_ms.part_header_.data_desc_id,
+        reordered_ms.handle_.data_->temporary_directory_);
+    imaging_weights_file_.reset(
+        new std::fstream(part_prefix + "-imgw.tmp",
                          std::ios::in | std::ios::out | std::ios::binary));
   }
-  const size_t nVis = reordered_ms._partHeader.channelCount *
-                      reordered_ms._polarizationCountInFile;
-  _imagingWeightBuffer.resize(nVis);
-  const size_t chunkSize = nVis * sizeof(float);
-  _imagingWeightsFile->seekg(chunkSize * _currentInputRow, std::ios::beg);
-  _imagingWeightsFile->read(
-      reinterpret_cast<char*>(_imagingWeightBuffer.data()),
-      nVis * sizeof(float));
-  for (size_t i = 0; i != nVis; ++i) {
-    if (std::isfinite(buffer[i])) _imagingWeightBuffer[i] = buffer[i];
+  const size_t n_vis = reordered_ms.part_header_.channel_count *
+                       reordered_ms.polarization_count_in_file_;
+  imaging_weight_buffer_.resize(n_vis);
+  const size_t chunkSize = n_vis * sizeof(float);
+  imaging_weights_file_->seekg(chunkSize * current_input_row_, std::ios::beg);
+  imaging_weights_file_->read(
+      reinterpret_cast<char*>(imaging_weight_buffer_.data()),
+      n_vis * sizeof(float));
+  for (size_t i = 0; i != n_vis; ++i) {
+    if (std::isfinite(buffer[i])) imaging_weight_buffer_[i] = buffer[i];
   }
-  _imagingWeightsFile->seekp(chunkSize * _currentInputRow, std::ios::beg);
-  _imagingWeightsFile->write(
-      reinterpret_cast<const char*>(_imagingWeightBuffer.data()),
-      nVis * sizeof(float));
+  imaging_weights_file_->seekp(chunkSize * current_input_row_, std::ios::beg);
+  imaging_weights_file_->write(
+      reinterpret_cast<const char*>(imaging_weight_buffer_.data()),
+      n_vis * sizeof(float));
 }
 
 }  // namespace wsclean

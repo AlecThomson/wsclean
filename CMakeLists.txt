@@ -331,7 +331,7 @@ add_library(
   msproviders/msrowprovider.cpp
   msproviders/msrowproviderbase.cpp
   msproviders/noisemsrowprovider.cpp
-  msproviders/reorderedms.cpp
+  msproviders/reorderedmsprovider.cpp
   msproviders/synchronizedms.cpp
   msproviders/timestepbuffer.cpp
   msproviders/msreaders/contiguousmsreader.cpp

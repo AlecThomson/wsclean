@@ -8,7 +8,7 @@
 #include <aocommon/polarization.h>
 
 #include "../io/imageweightcache.h"
-#include "../msproviders/reorderedms.h"
+#include "../msproviders/reorderedmsprovider.h"
 #include "../structures/imageweights.h"
 #include "../structures/imagingtable.h"
 #include "../structures/mslistitem.h"
@@ -26,7 +26,7 @@ class ImageWeightInitializer {
   explicit ImageWeightInitializer(
       const Settings& settings, const MSSelection& global_selection,
       const std::vector<aocommon::MultiBandData>& ms_bands,
-      const std::vector<ReorderedMs::Handle>& reordered_ms_handles)
+      const std::vector<ReorderedMsProvider::Handle>& reordered_ms_handles)
       : settings_(settings),
         global_selection_(global_selection),
         ms_bands_(ms_bands),
@@ -44,7 +44,7 @@ class ImageWeightInitializer {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  const std::vector<ReorderedMs::Handle>& reordered_ms_handles_;
+  const std::vector<ReorderedMsProvider::Handle>& reordered_ms_handles_;
 };
 
 }  // namespace wsclean

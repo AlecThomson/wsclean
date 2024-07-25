@@ -6,7 +6,7 @@
 
 #include <aocommon/multibanddata.h>
 
-#include "../msproviders/reorderedms.h"
+#include "../msproviders/reorderedmsprovider.h"
 #include "../structures/imagingtable.h"
 #include "../structures/mslistitem.h"
 #include "../structures/msselection.h"
@@ -32,11 +32,12 @@ class MsHelper {
         ms_bands_{ms_bands},
         reordered_ms_handles_{} {}
 
-  const std::vector<ReorderedMs::Handle>& GetReorderedMsHandles() const {
+  const std::vector<ReorderedMsProvider::Handle>& GetReorderedMsHandles()
+      const {
     return reordered_ms_handles_;
   }
 
-  const std::vector<ReorderedMs::ChannelRange> GenerateChannelInfo(
+  const std::vector<ReorderedMsProvider::ChannelRange> GenerateChannelInfo(
       const ImagingTable& imaging_table, size_t ms_index) const;
 
   void ReuseReorderedFiles(const ImagingTable& imaging_table);
@@ -51,7 +52,7 @@ class MsHelper {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  std::vector<ReorderedMs::Handle> reordered_ms_handles_;
+  std::vector<ReorderedMsProvider::Handle> reordered_ms_handles_;
 };
 
 }  // namespace wsclean

@@ -9,14 +9,14 @@
 
 namespace wsclean {
 
-class ReorderedMs;
+class ReorderedMsProvider;
 
 class ReorderedMsReader final : public MSReader {
  public:
-  ReorderedMsReader(ReorderedMs* reordered_ms);
+  ReorderedMsReader(ReorderedMsProvider* reordered_ms);
   virtual ~ReorderedMsReader(){};
 
-  size_t RowId() const override { return _currentInputRow; }
+  size_t RowId() const override { return current_input_row_; }
 
   bool CurrentRowAvailable() override;
 
@@ -35,17 +35,17 @@ class ReorderedMsReader final : public MSReader {
   void WriteImagingWeights(const float* buffer) override;
 
  private:
-  size_t _currentInputRow;
+  size_t current_input_row_;
 
   // Chunkoffset counts the amount of data rows we are ahead or behind.
   // Positive values mean we are lagging, whereas negative values mean we are
   //  ahead of the current time step.
-  long _readPtrRowOffset, _metaPtrRowOffset, _weightPtrRowOffset;
+  long read_ptr_row_offset_, meta_ptr_row_offset_, weight_ptr_row_offset_;
 
-  std::ifstream _metaFile, _weightFile, _dataFile;
+  std::ifstream meta_file_, weight_file_, data_file_;
 
-  aocommon::UVector<float> _imagingWeightBuffer;
-  std::unique_ptr<std::fstream> _imagingWeightsFile;
+  aocommon::UVector<float> imaging_weight_buffer_;
+  std::unique_ptr<std::fstream> imaging_weights_file_;
 };
 
 }  // namespace wsclean

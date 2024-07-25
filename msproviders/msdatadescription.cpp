@@ -3,6 +3,7 @@
 #include "contiguousms.h"
 
 #include "../main/settings.h"
+#include "reorderedmsprovider.h"
 
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
@@ -14,8 +15,8 @@ namespace wsclean {
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isReordered)
-    return std::make_unique<ReorderedMs>(_partitionHandle, _partIndex,
-                                         _polarization, _dataDescId);
+    return std::make_unique<ReorderedMsProvider>(_partitionHandle, _partIndex,
+                                                 _polarization, _dataDescId);
   else
     return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
                                           _selection, _polarization,
