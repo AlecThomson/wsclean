@@ -120,8 +120,8 @@ class MPIScheduler final : public GriddingTaskManager {
   ThreadedScheduler _localScheduler;
 };
 
-#endif  // HAVE_MPI
-
 }  // namespace wsclean
+
+#endif  // HAVE_MPI
 
 #endif  // MPI_SCHEDULER_H
