@@ -6,6 +6,7 @@
 
 #include "h5solutiondata.h"
 #include "msgridderbase.h"
+#include "msprovidercollection.h"
 
 #include "../main/settings.h"
 #include "../scheduling/griddingresult.h"
@@ -45,6 +46,8 @@ class MSGridderManager {
   MSGridderManager(const MSGridderManager&) = delete;
   MSGridderManager& operator=(const MSGridderManager&) = delete;
 
+  void InitializeMS(GriddingTask& task, size_t num_facets);
+
   void InitializeGridders(GriddingTask& task,
                           const std::vector<size_t>& facet_indices,
                           const Resources& resources,
@@ -56,14 +59,23 @@ class MSGridderManager {
                       bool store_common_info);
 
  private:
-  std::unique_ptr<MSGridderBase> ConstructGridder(
-      const Resources& resources) const;
+  std::unique_ptr<MSGridderBase> ConstructGridder(const Resources& resources,
+                                                  size_t gridder_index);
   struct GriddingFacetTask {
     std::unique_ptr<MSGridderBase> facet_gridder;
     GriddingTask::FacetData& facet_task;
     GriddingResult::FacetData& facet_result;
   };
   std::vector<GriddingFacetTask> facet_tasks_;
+
+  inline void InitializeMSDataVectors() {
+    std::vector<MSGridderBase*> gridders;
+    gridders.reserve(facet_tasks_.size());
+    for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
+      gridders.push_back(gridder.get());
+    }
+    ms_provider_collection_.InitializeMSDataVector(gridders);
+  }
 
   /** Initializes 'gridder' with values that are equal for all facets. */
   void InitializeGridderForTask(MSGridderBase& gridder,
@@ -76,6 +88,7 @@ class MSGridderManager {
 
   const Settings& settings_;
   const H5SolutionData& solution_data_;
+  MsProviderCollection ms_provider_collection_;
 };
 
 }  // namespace wsclean

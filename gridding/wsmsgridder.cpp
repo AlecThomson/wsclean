@@ -1,5 +1,7 @@
 #include "wsmsgridder.h"
 
+#include "msgriddermanager.h"
+
 #include "../structures/imageweights.h"
 
 #include "../system/buffered_lane.h"
@@ -24,8 +26,10 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources)
-    : MSGridderBase(settings),
+WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources,
+                         MsProviderCollection& ms_provider_collection,
+                         size_t gridder_index)
+    : MSGridderBase(settings, ms_provider_collection, gridder_index),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
       _resources(resources),
@@ -45,7 +49,7 @@ WSMSGridder::~WSMSGridder() noexcept {
   for (std::thread& t : _threadGroup) t.join();
 }
 
-void WSMSGridder::countSamplesPerLayer(MSData& msData) {
+void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
   msData.matchingRows = 0;
@@ -127,7 +131,8 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   return suggestedGridSize;
 }
 
-void WSMSGridder::gridMeasurementSet(MSData& msData) {
+void WSMSGridder::gridMeasurementSet(
+    const MsProviderCollection::MsData& msData) {
   const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
   const aocommon::BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
@@ -261,7 +266,8 @@ void WSMSGridder::workThreadPerSample(
   }
 }
 
-void WSMSGridder::predictMeasurementSet(MSData& msData, GainMode gain_mode) {
+void WSMSGridder::predictMeasurementSet(
+    const MsProviderCollection::MsData& msData, GainMode gain_mode) {
   msData.ms_provider->ReopenRW();
   msData.ms_provider->ResetWritePosition();
   const aocommon::BandData selectedBandData(msData.SelectedBand());
@@ -346,8 +352,8 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const aocommon::BandData* bandData,
-    GainMode gain_mode) {
+    const MsProviderCollection::MsData* msData,
+    const aocommon::BandData* bandData, GainMode gain_mode) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -377,9 +383,6 @@ void WSMSGridder::predictWriteThread(
 }
 
 void WSMSGridder::Invert() {
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
       ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
@@ -400,8 +403,8 @@ void WSMSGridder::Invert() {
   }
 
   if (IsFirstTask() && Logger::IsVerbose()) {
-    for (size_t i = 0; i != MeasurementSetCount(); ++i)
-      countSamplesPerLayer(msDataVector[i]);
+    for (size_t i = 0; i != GetMsCount(); ++i)
+      countSamplesPerLayer(GetMsData(i));
   }
 
   resetVisibilityCounters();
@@ -414,8 +417,8 @@ void WSMSGridder::Invert() {
 
     _gridder->StartInversionPass(pass);
 
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-      MSData& msData = msDataVector[i];
+    for (size_t i = 0; i != GetMsCount(); ++i) {
+      const MsProviderCollection::MsData& msData = GetMsData(i);
 
       const aocommon::BandData selectedBand(msData.SelectedBand());
 
@@ -430,9 +433,10 @@ void WSMSGridder::Invert() {
 
   if (IsFirstTask()) {
     size_t totalRowsRead = 0, totalMatchingRows = 0;
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-      totalRowsRead += msDataVector[i].totalRowsProcessed;
-      totalMatchingRows += msDataVector[i].matchingRows;
+    for (size_t i = 0; i != GetMsCount(); ++i) {
+      const MsProviderCollection::MsData& msData = GetMsData(i);
+      totalRowsRead += msData.totalRowsProcessed;
+      totalMatchingRows += msData.matchingRows;
     }
 
     Logger::Debug << "Total rows read: " << totalRowsRead;
@@ -504,9 +508,6 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   if (images.size() != 1 && !IsComplex())
     throw std::runtime_error("Imaginary specified in non-complex prediction");
 
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
-
   _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
       ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
@@ -522,8 +523,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
                            MinimumW(), MaximumW());
 
   if (IsFirstTask()) {
-    for (size_t i = 0; i != MeasurementSetCount(); ++i)
-      countSamplesPerLayer(msDataVector[i]);
+    for (size_t i = 0; i != GetMsCount(); ++i)
+      countSamplesPerLayer(GetMsData(i));
   }
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
@@ -577,15 +578,16 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->StartPredictionPass(pass);
 
     Logger::Info << "Predicting...\n";
-    for (MSData& msData : msDataVector) {
-      predictMeasurementSet(msData, GetGainMode(Polarization(), 1));
+    for (size_t i = 0; i != GetMsCount(); ++i) {
+      predictMeasurementSet(GetMsData(i), GetGainMode(Polarization(), 1));
     }
   }
 
   size_t totalRowsWritten = 0, totalMatchingRows = 0;
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    totalRowsWritten += msDataVector[i].totalRowsProcessed;
-    totalMatchingRows += msDataVector[i].matchingRows;
+  for (size_t i = 0; i != GetMsCount(); ++i) {
+    const MsProviderCollection::MsData& msData = GetMsData(i);
+    totalRowsWritten += msData.totalRowsProcessed;
+    totalMatchingRows += msData.matchingRows;
   }
 
   Logger::Debug << "Total rows written: " << totalRowsWritten;

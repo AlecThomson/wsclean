@@ -1,7 +1,8 @@
 #include "directmsgridder.h"
 
-#include "../main/progressbar.h"
+#include "msgriddermanager.h"
 
+#include "../main/progressbar.h"
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
@@ -13,17 +14,17 @@
 namespace wsclean {
 
 template <typename num_t>
-DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
-                                        const Resources& resources)
-    : MSGridderBase(settings), _resources(resources) {}
+DirectMSGridder<num_t>::DirectMSGridder(
+    const Settings& settings, const Resources& resources,
+    MsProviderCollection& ms_provider_collection, size_t gridder_index)
+    : MSGridderBase(settings, ms_provider_collection, gridder_index),
+      _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
   _sqrtLMTable = GetSqrtLMLookupTable();
   const size_t width = TrimWidth(), height = TrimHeight();
 
-  std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
   resetVisibilityCounters();
 
   ProgressBar progress("Performing direct Fourier transform");
@@ -45,9 +46,8 @@ void DirectMSGridder<num_t>::Invert() {
     }
   });
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-    MSData& msData = msDataVector[i];
-    invertMeasurementSet(msData, progress, i);
+  for (size_t i = 0; i != GetMsCount(); ++i) {
+    invertMeasurementSet(GetMsData(i), progress, i);
   }
 
   _inversionLane.write_end();
@@ -124,7 +124,7 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
 
 template <typename num_t>
 void DirectMSGridder<num_t>::invertMeasurementSet(
-    const MSGridderBase::MSData& msData, ProgressBar& progress,
+    const MsProviderCollection::MsData& msData, ProgressBar& progress,
     size_t msIndex) {
   StartMeasurementSet(msData, false);
   const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
@@ -146,7 +146,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
-                         MeasurementSetCount() * idToMSRow.size());
+                         GetMsCount() * idToMSRow.size());
 
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);

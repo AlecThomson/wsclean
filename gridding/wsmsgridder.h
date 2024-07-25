@@ -23,7 +23,9 @@ class WSMSGridder final : public MSGridderBase {
  public:
   typedef WStackingGridder<float> GridderType;
 
-  WSMSGridder(const Settings& settings, const Resources& resources);
+  WSMSGridder(const Settings& settings, const Resources& resources,
+              MsProviderCollection& ms_provider_collection,
+              size_t gridder_index);
   ~WSMSGridder() noexcept;
 
   virtual void Invert() override;
@@ -57,12 +59,13 @@ class WSMSGridder final : public MSGridderBase {
     size_t rowId;
   };
 
-  void gridMeasurementSet(MSData& msData);
+  void gridMeasurementSet(const MsProviderCollection::MsData& msData);
 
-  void countSamplesPerLayer(MSData& msData);
+  void countSamplesPerLayer(MsProviderCollection::MsData& msData);
   virtual size_t getSuggestedWGridSize() const override;
 
-  void predictMeasurementSet(MSData& msData, GainMode gain_mode);
+  void predictMeasurementSet(const MsProviderCollection::MsData& msData,
+                             GainMode gain_mode);
 
   void startInversionWorkThreads(size_t maxChannelCount);
   void finishInversionWorkThreads();
@@ -73,7 +76,7 @@ class WSMSGridder final : public MSGridderBase {
                          const aocommon::BandData* bandData);
 
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
-                          const MSData* msData,
+                          const MsProviderCollection::MsData* msData,
                           const aocommon::BandData* bandData,
                           GainMode gain_mode);
 

@@ -14,8 +14,10 @@ namespace wsclean {
 
 class UnavailableGridder final : public MSGridderBase {
  public:
-  UnavailableGridder(const class Settings& settings, const Resources& resources)
-      : MSGridderBase(settings) {
+  UnavailableGridder(const class Settings& settings, const Resources& resources,
+                     MsProviderCollection& ms_provider_collection,
+                     size_t gridder_index)
+      : MSGridderBase(settings, ms_provider_collection, gridder_index) {
     doThrow();
   }
 

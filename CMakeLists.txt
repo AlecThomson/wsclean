@@ -311,6 +311,7 @@ add_library(
   gridding/h5solutiondata.cpp
   gridding/msgridderbase.cpp
   gridding/msgriddermanager.cpp
+  gridding/msprovidercollection.cpp
   gridding/visibilitymodifier.cpp
   gridding/wsmsgridder.cpp
   gridding/wstackinggridder.cpp

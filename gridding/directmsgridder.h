@@ -15,7 +15,9 @@ class ProgressBar;
 template <typename num_t>
 class DirectMSGridder final : public MSGridderBase {
  public:
-  DirectMSGridder(const Settings& settings, const Resources& resources);
+  DirectMSGridder(const Settings& settings, const Resources& resources,
+                  MsProviderCollection& ms_provider_collection,
+                  size_t gridder_index);
 
   virtual void Invert() override;
 
@@ -37,8 +39,8 @@ class DirectMSGridder final : public MSGridderBase {
   std::vector<aocommon::ImageBase<num_t>> _layers;
   aocommon::Lane<InversionSample> _inversionLane;
 
-  void invertMeasurementSet(const MSData& msData, ProgressBar& progress,
-                            size_t msIndex);
+  void invertMeasurementSet(const MsProviderCollection::MsData& msData,
+                            ProgressBar& progress, size_t msIndex);
   void gridSample(const InversionSample& sample, size_t layer);
   aocommon::ImageBase<num_t> GetSqrtLMLookupTable() const;
 };
