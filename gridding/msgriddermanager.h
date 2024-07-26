@@ -40,13 +40,15 @@ class MSGridderManager {
  public:
   MSGridderManager(const Settings& settings,
                    const H5SolutionData& solution_data)
-      : settings_(settings), solution_data_(solution_data) {}
+      : settings_(settings),
+        solution_data_(solution_data),
+        w_limit_(settings.wLimit / 100.0) {}
   ~MSGridderManager() {}
 
   MSGridderManager(const MSGridderManager&) = delete;
   MSGridderManager& operator=(const MSGridderManager&) = delete;
 
-  void InitializeMS(GriddingTask& task, size_t num_facets);
+  void InitializeMS(GriddingTask& task);
 
   void InitializeGridders(GriddingTask& task,
                           const std::vector<size_t>& facet_indices,
@@ -59,8 +61,7 @@ class MSGridderManager {
                       bool store_common_info);
 
  private:
-  std::unique_ptr<MSGridderBase> ConstructGridder(const Resources& resources,
-                                                  size_t gridder_index);
+  std::unique_ptr<MSGridderBase> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
     std::unique_ptr<MSGridderBase> facet_gridder;
     GriddingTask::FacetData& facet_task;
@@ -74,7 +75,7 @@ class MSGridderManager {
     for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
       gridders.push_back(gridder.get());
     }
-    ms_provider_collection_.InitializeMSDataVector(gridders);
+    ms_provider_collection_.InitializeMSDataVector(gridders, w_limit_);
   }
 
   /** Initializes 'gridder' with values that are equal for all facets. */
@@ -89,6 +90,9 @@ class MSGridderManager {
   const Settings& settings_;
   const H5SolutionData& solution_data_;
   MsProviderCollection ms_provider_collection_;
+  /// A fractional value that, when non-zero, places a limit on the w-value of
+  /// gridded visibilities. Visibilities outside the limit are skipped.
+  double w_limit_ = 0.0;
 };
 
 }  // namespace wsclean

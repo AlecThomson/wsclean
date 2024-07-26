@@ -11,30 +11,78 @@ using aocommon::Logger;
 
 namespace wsclean {
 
+namespace {
+template <size_t NPolInMSProvider>
+inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
+                              double v, double w, double baseline_in_meters,
+                              double wavelength, double pixel_size_x,
+                              double pixel_size_y, size_t image_width,
+                              size_t image_height,
+                              const ImageWeights* image_weights) {
+  const double half_width = 0.5 * image_width;
+  const double half_height = 0.5 * image_height;
+  const double x = u * pixel_size_x * image_width;
+  const double y = u * pixel_size_y * image_height;
+  const double imaging_weight = image_weights->GetWeight(u, v);
+  if (imaging_weight != 0.0) {
+    if (std::floor(x) > -half_width && std::ceil(x) < half_width &&
+        std::floor(y) > -half_height && std::ceil(y) < half_height) {
+      ms_data.maxW = std::max(ms_data.maxW, std::fabs(w));
+      ms_data.minW = std::min(ms_data.minW, std::fabs(w));
+      ms_data.maxBaselineUVW =
+          std::max(ms_data.maxBaselineUVW, baseline_in_meters / wavelength);
+      ms_data.maxBaselineInM =
+          std::max(ms_data.maxBaselineInM, baseline_in_meters);
+    }
+  }
+}
+}  // namespace
+
 void MsProviderCollection::InitializeMSDataVector(
-    const std::vector<MSGridderBase*>& gridders) {
+    const std::vector<MSGridderBase*>& gridders, double w_limit) {
   assert(Count() != 0);
 
   bool hasCache = false;
-  for (auto& gridder : gridders) {
-    hasCache = gridder->HasMetaDataCache();
-    if (!hasCache) gridder->AllocateMetaDataCache(Count());
+  for (MSGridderBase* facet_gridder : gridders) {
+    hasCache = facet_gridder->HasMetaDataCache();
+    if (!hasCache) facet_gridder->AllocateMetaDataCache(Count());
 
-    gridder->ResetVisibilityModifierCache();
+    facet_gridder->ResetVisibilityModifierCache();
   }
 
+  ms_limits_.maxBaseline_ = 0.0;
+  ms_limits_.max_w_ = 0.0;
+  ms_limits_.min_w_ = std::numeric_limits<double>::max();
   for (size_t i = 0; i != Count(); ++i) {
-    ms_data_vector_[i].internal_ms_index = i;
-    ms_data_vector_[i].original_ms_index = Index(i);
-    InitializeMeasurementSet(ms_data_vector_[i], ms_facet_data_vector_,
-                             gridders, hasCache);
+    MsData& ms_data = ms_data_vector_[i];
+    ms_data.internal_ms_index = i;
+    ms_data.original_ms_index = Index(i);
+    InitializeMeasurementSet(ms_data, gridders, hasCache);
+
+    ms_limits_.Calculate(ms_data.SelectedBand(),
+                         ms_data.ms_provider->StartTime());
+    ms_limits_.maxBaseline_ =
+        std::max(ms_limits_.maxBaseline_, ms_data.maxBaselineUVW);
+    ms_limits_.max_w_ = std::max(ms_limits_.max_w_, ms_data.maxW);
+    ms_limits_.min_w_ = std::min(ms_limits_.min_w_, ms_data.minW);
+  }
+
+  ms_limits_.Validate();
+
+  if (w_limit != 0.0) {
+    ms_limits_.max_w_ *= (1.0 - w_limit);
+    if (ms_limits_.max_w_ < ms_limits_.min_w_)
+      ms_limits_.max_w_ = ms_limits_.min_w_;
+  }
+
+  for (MSGridderBase* facet_gridder : gridders) {
+    facet_gridder->SetMaxW(ms_limits_.max_w_);
+    facet_gridder->SetMinW(ms_limits_.min_w_);
+    facet_gridder->SetMaxBaseline(ms_limits_.maxBaseline_);
   }
 }
 
-void MsProviderCollection::InitializeMS(size_t num_facets) {
-  ms_data_vector_.resize(Count());
-  ms_facet_data_vector_.resize(num_facets, std::vector<FacetData>(Count()));
-}
+void MsProviderCollection::InitializeMS() { ms_data_vector_.resize(Count()); }
 
 std::vector<std::string> MsProviderCollection::GetAntennaNames(
     const casacore::MSAntenna& antenna) {
@@ -72,8 +120,8 @@ void MsProviderCollection::MsData::InitializeBandData(
 }
 
 void MsProviderCollection::InitializeMeasurementSet(
-    MsData& ms_data, std::vector<std::vector<FacetData>>& ms_facet_data_vector,
-    const std::vector<MSGridderBase*>& gridders, bool is_cached) {
+    MsData& ms_data, const std::vector<MSGridderBase*>& gridders,
+    bool is_cached) {
   MSProvider& ms_provider = MeasurementSet(ms_data.internal_ms_index);
   ms_data.ms_provider = &ms_provider;
 
@@ -88,52 +136,68 @@ void MsProviderCollection::InitializeMeasurementSet(
     ms_data.InitializeBandData(*ms, Selection(ms_data.internal_ms_index));
   }
 
-  ms_limits_.Calculate(ms_data.SelectedBand(), ms_provider.StartTime());
+  // wlimits will vary across facets in a facet group, however these limits are
+  // "estimates".
+  // They should not be too small but can be too large (though this can have
+  // performance implications.
+  // As a code simplification and performance improvement we select the smallest
+  // width and height out of all facets in a facet group to calculate the
+  // wlimits rather than doing it individually for each one.
+  size_t min_image_width = gridders[0]->ImageWidth();
+  size_t min_image_height = gridders[0]->ImageHeight();
+  for (const MSGridderBase* gridder : gridders) {
+    min_image_width = std::min(min_image_width, gridder->ImageWidth());
+    min_image_height = std::min(min_image_height, gridder->ImageHeight());
+  }
 
-  size_t gridder_index = 0;
+  MetaDataCache::Entry& cache_entry =
+      gridders[0]->GetMetaDataCacheItem(ms_data.internal_ms_index);
+
+  if (is_cached) {
+    ms_data.maxW = cache_entry.max_w;
+    ms_data.maxWWithFlags = cache_entry.max_w_with_flags;
+    ms_data.minW = cache_entry.min_w;
+    ms_data.maxBaselineUVW = cache_entry.max_baseline_uvw;
+    ms_data.maxBaselineInM = cache_entry.max_baseline_in_m;
+    ms_data.integrationTime = cache_entry.integration_time;
+  } else {
+    if (ms_provider.NPolarizations() == 4)
+      CalculateMsLimits<4>(ms_data, gridders[0]->PixelSizeX(),
+                           gridders[0]->PixelSizeY(), min_image_width,
+                           min_image_height, gridders[0]->GetImageWeights());
+    else if (ms_provider.NPolarizations() == 2)
+      CalculateMsLimits<2>(ms_data, gridders[0]->PixelSizeX(),
+                           gridders[0]->PixelSizeY(), min_image_width,
+                           min_image_height, gridders[0]->GetImageWeights());
+    else
+      CalculateMsLimits<1>(ms_data, gridders[0]->PixelSizeX(),
+                           gridders[0]->PixelSizeY(), min_image_width,
+                           min_image_height, gridders[0]->GetImageWeights());
+    cache_entry.max_w = ms_data.maxW;
+    cache_entry.max_w_with_flags = ms_data.maxWWithFlags;
+    cache_entry.min_w = ms_data.minW;
+    cache_entry.max_baseline_uvw = ms_data.maxBaselineUVW;
+    cache_entry.max_baseline_in_m = ms_data.maxBaselineInM;
+    cache_entry.integration_time = ms_data.integrationTime;
+  }
+
   for (MSGridderBase* gridder : gridders) {
-    MetaDataCache::Entry& cache_entry =
-        gridder->GetMetaDataCacheItem(ms_data.internal_ms_index);
-    FacetData& facet_data =
-        ms_facet_data_vector[gridder_index][ms_data.internal_ms_index];
-    ++gridder_index;
-
-    if (is_cached) {
-      facet_data.maxW = cache_entry.max_w;
-      facet_data.maxWWithFlags = cache_entry.max_w_with_flags;
-      facet_data.minW = cache_entry.min_w;
-      facet_data.maxBaselineUVW = cache_entry.max_baseline_uvw;
-      facet_data.maxBaselineInM = cache_entry.max_baseline_in_m;
-      facet_data.integrationTime = cache_entry.integration_time;
-    } else {
-      if (ms_provider.NPolarizations() == 4)
-        CalculateWLimits<4>(facet_data, ms_data, gridder);
-      else if (ms_provider.NPolarizations() == 2)
-        CalculateWLimits<2>(facet_data, ms_data, gridder);
-      else
-        CalculateWLimits<1>(facet_data, ms_data, gridder);
-      cache_entry.max_w = facet_data.maxW;
-      cache_entry.max_w_with_flags = facet_data.maxWWithFlags;
-      cache_entry.min_w = facet_data.minW;
-      cache_entry.max_baseline_uvw = facet_data.maxBaselineUVW;
-      cache_entry.max_baseline_in_m = facet_data.maxBaselineInM;
-      cache_entry.integration_time = facet_data.integrationTime;
-    }
     gridder->initializeVisibilityModifierTimes(ms_data);
   }
 }
 
 template <size_t NPolInMSProvider>
-void MsProviderCollection::CalculateWLimits(FacetData& ms_facet_data,
-                                            MsData& ms_data,
-                                            MSGridderBase* gridder) {
+void MsProviderCollection::CalculateMsLimits(
+    MsData& ms_data, double pixel_size_x, double pixel_size_y,
+    size_t image_width, size_t image_height,
+    const ImageWeights* image_weights) {
   Logger::Info << "Determining min and max w & theoretical beam size... ";
   Logger::Info.Flush();
-  ms_facet_data.maxW = 0.0;
-  ms_facet_data.maxWWithFlags = 0.0;
-  ms_facet_data.minW = 1e100;
-  ms_facet_data.maxBaselineUVW = 0.0;
-  ms_facet_data.maxBaselineInM = 0.0;
+  ms_data.maxW = 0.0;
+  ms_data.maxWWithFlags = 0.0;
+  ms_data.minW = 1e100;
+  ms_data.maxBaselineUVW = 0.0;
+  ms_data.maxBaselineInM = 0.0;
   const aocommon::BandData selectedBand = ms_data.SelectedBand();
   std::vector<float> weightArray(selectedBand.ChannelCount() *
                                  NPolInMSProvider);
@@ -158,71 +222,57 @@ void MsProviderCollection::CalculateWLimits(FacetData& ms_facet_data,
     const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
                                          metaData.vInM * metaData.vInM +
                                          metaData.wInM * metaData.wInM);
-    const double halfWidth = 0.5 * gridder->ImageWidth();
-    const double halfHeight = 0.5 * gridder->ImageHeight();
-    if (wHi > ms_facet_data.maxW || wLo < ms_facet_data.minW ||
+    if (wHi > ms_data.maxW || wLo < ms_data.minW ||
         baselineInM / selectedBand.SmallestWavelength() >
-            ms_facet_data.maxBaselineUVW) {
+            ms_data.maxBaselineUVW) {
       msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
+
       for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
         const double wavelength = selectedBand.ChannelWavelength(ch);
         double wInL = metaData.wInM / wavelength;
-        ms_facet_data.maxWWithFlags =
-            std::max(ms_facet_data.maxWWithFlags, fabs(wInL));
+        ms_data.maxWWithFlags = std::max(ms_data.maxWWithFlags, fabs(wInL));
         if (*weightPtr != 0.0) {
-          double uInL = metaData.uInM / wavelength,
-                 vInL = metaData.vInM / wavelength,
-                 x = uInL * gridder->PixelSizeX() * gridder->ImageWidth(),
-                 y = vInL * gridder->PixelSizeY() * gridder->ImageHeight(),
-                 imagingWeight =
-                     gridder->GetImageWeights()->GetWeight(uInL, vInL);
-          if (imagingWeight != 0.0) {
-            if (std::floor(x) > -halfWidth && std::ceil(x) < halfWidth &&
-                std::floor(y) > -halfHeight && std::ceil(y) < halfHeight) {
-              ms_facet_data.maxW =
-                  std::max(ms_facet_data.maxW, std::fabs(wInL));
-              ms_facet_data.minW =
-                  std::min(ms_facet_data.minW, std::fabs(wInL));
-              ms_facet_data.maxBaselineUVW = std::max(
-                  ms_facet_data.maxBaselineUVW, baselineInM / wavelength);
-              ms_facet_data.maxBaselineInM =
-                  std::max(ms_facet_data.maxBaselineInM, baselineInM);
-            }
-          }
+          double uInL = metaData.uInM / wavelength;
+          double vInL = metaData.vInM / wavelength;
+          wsclean::CalculateMsLimits<NPolInMSProvider>(
+              ms_data, uInL, vInL, wInL, baselineInM, wavelength, pixel_size_x,
+              pixel_size_y, image_width, image_height, image_weights);
         }
         weightPtr += NPolInMSProvider;
       }
     }
-
     msReader->NextInputRow();
   }
 
-  if (ms_facet_data.minW == 1e100) {
-    ms_facet_data.minW = 0.0;
-    ms_facet_data.maxWWithFlags = 0.0;
-    ms_facet_data.maxW = 0.0;
+  if (ms_data.minW == 1e100) {
+    ms_data.minW = 0.0;
+    ms_data.maxWWithFlags = 0.0;
+    ms_data.maxW = 0.0;
   }
 
-  Logger::Info << "DONE (w=[" << ms_facet_data.minW << ":" << ms_facet_data.maxW
-               << "] lambdas, maxuvw=" << ms_facet_data.maxBaselineUVW
+  Logger::Info << "DONE (w=[" << ms_data.minW << ":" << ms_data.maxW
+               << "] lambdas, maxuvw=" << ms_data.maxBaselineUVW
                << " lambda)\n";
-  if (ms_facet_data.maxWWithFlags != ms_facet_data.maxW) {
+  if (ms_data.maxWWithFlags != ms_data.maxW) {
     Logger::Debug << "Discarded data has higher w value of "
-                  << ms_facet_data.maxWWithFlags << " lambda.\n";
+                  << ms_data.maxWWithFlags << " lambda.\n";
   }
 
   if (lastTime == firstTime || nTimesteps < 2)
-    ms_facet_data.integrationTime = 1;
+    ms_data.integrationTime = 1;
   else
-    ms_facet_data.integrationTime = (lastTime - firstTime) / (nTimesteps - 1);
+    ms_data.integrationTime = (lastTime - firstTime) / (nTimesteps - 1);
 }
 
-template void MsProviderCollection::CalculateWLimits<1>(
-    FacetData& ms_facet_data, MsData& ms_data, MSGridderBase* gridder);
-template void MsProviderCollection::CalculateWLimits<2>(
-    FacetData& ms_facet_data, MsData& ms_data, MSGridderBase* gridder);
-template void MsProviderCollection::CalculateWLimits<4>(
-    FacetData& ms_facet_data, MsData& ms_data, MSGridderBase* gridder);
+template void MsProviderCollection::CalculateMsLimits<1>(
+    MsData& ms_data, double pixel_size_x, double pixel_size_y,
+    size_t image_width, size_t image_height, const ImageWeights* image_weights);
+template void MsProviderCollection::CalculateMsLimits<2>(
+    MsData& ms_data, double pixel_size_x, double pixel_size_y,
+    size_t image_width, size_t image_height, const ImageWeights* image_weights);
+template void MsProviderCollection::CalculateMsLimits<4>(
+    MsData& ms_data, double pixel_size_x, double pixel_size_y,
+    size_t image_width, size_t image_height, const ImageWeights* image_weights);
 
 }  // namespace wsclean

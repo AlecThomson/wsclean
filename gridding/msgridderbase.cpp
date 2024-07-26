@@ -65,17 +65,12 @@ std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
 MSGridderBase::~MSGridderBase() = default;
 
 MSGridderBase::MSGridderBase(const Settings& settings,
-                             MsProviderCollection& ms_provider_collection,
-                             size_t gridder_index)
-    : ms_count_(ms_provider_collection.Count()),
-      ms_data_vector_(ms_provider_collection.ms_data_vector_),
-      ms_facet_data_vector_(
-          ms_provider_collection.ms_facet_data_vector_[gridder_index]),
+                             MsProviderCollection& ms_provider_collection)
+    : ms_data_vector_(ms_provider_collection.ms_data_vector_),
       settings_(settings),
       w_grid_size_(settings.nWLayers),
       data_column_name_(settings.dataColumnName),
       small_inversion_(settings.minGridResolution),
-      w_limit_(settings.wLimit / 100.0),
       weighting_(settings.weightMode),
       visibility_weighting_mode_(settings.visibilityWeightingMode) {
 #ifdef HAVE_EVERYBEAM
@@ -142,37 +137,13 @@ void MSGridderBase::ResetVisibilityModifierCache() {
   visibility_modifier_.ResetSums();
 }
 
-void MSGridderBase::calculateOverallMetaData(
-    const std::vector<MsProviderCollection::FacetData>& ms_facet_data_vector) {
-  max_w_ = 0.0;
-  min_w_ = std::numeric_limits<double>::max();
-  double maxBaseline = 0.0;
-
-  for (const MsProviderCollection::FacetData& ms_facet_data :
-       ms_facet_data_vector) {
-    maxBaseline = std::max(maxBaseline, ms_facet_data.maxBaselineUVW);
-    max_w_ = std::max(max_w_, ms_facet_data.maxW);
-    min_w_ = std::min(min_w_, ms_facet_data.minW);
-  }
-  if (min_w_ > max_w_) {
-    min_w_ = max_w_;
-    Logger::Error
-        << "*** Error! ***\n"
-           "*** Calculating maximum and minimum w values failed! Make sure the "
-           "data selection and scale settings are correct!\n"
-           "***\n";
-  }
-
-  theoretical_beam_size_ = 1.0 / maxBaseline;
+void MSGridderBase::calculateOverallMetaData() {
+  theoretical_beam_size_ = 1.0 / MaxBaseline();
   if (IsFirstTask()) {
     Logger::Info << "Theoretic beam = " +
                         aocommon::units::Angle::ToNiceString(
                             theoretical_beam_size_) +
                         "\n";
-  }
-  if (w_limit_ != 0.0) {
-    max_w_ *= (1.0 - w_limit_);
-    if (max_w_ < min_w_) max_w_ = min_w_;
   }
 
   if (!HasTrimSize()) SetTrimSize(ImageWidth(), ImageHeight());

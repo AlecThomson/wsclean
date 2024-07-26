@@ -28,8 +28,7 @@ class Settings;
 class IdgMsGridder final : public MSGridderBase {
  public:
   IdgMsGridder(const Settings& settings, const Resources& resources,
-               MsProviderCollection& ms_provider_collection,
-               size_t gridder_index);
+               MsProviderCollection& measurement_sets);
 
   virtual ~IdgMsGridder() final override;
 
@@ -60,13 +59,10 @@ class IdgMsGridder final : public MSGridderBase {
     return 1;  // TODO
   }
 
-  void gridMeasurementSet(const MsProviderCollection::MsData& msData,
-                          const MsProviderCollection::FacetData& ms_facet_data);
+  void gridMeasurementSet(const MsProviderCollection::MsData& msData);
   void gridThreadFunction();
 
-  void predictMeasurementSet(
-      const MsProviderCollection::MsData& msData,
-      const MsProviderCollection::FacetData& ms_facet_data);
+  void predictMeasurementSet(const MsProviderCollection::MsData& msData);
   void readConfiguration();
 
   void setIdgType();
@@ -76,14 +72,12 @@ class IdgMsGridder final : public MSGridderBase {
       const MsProviderCollection::MsData& msData);
   bool prepareForMeasurementSet(
       const MsProviderCollection::MsData& ms_data,
-      const MsProviderCollection::FacetData& ms_facet_data,
       std::unique_ptr<everybeam::aterms::ATermBase>& aTermMaker,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
 #else
   bool prepareForMeasurementSet(
       const MsProviderCollection::MsData& ms_data,
-      const MsProviderCollection::FacetData& ms_facet_data,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
 #endif  // HAVE_EVERYBEAM

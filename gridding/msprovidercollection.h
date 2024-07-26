@@ -3,6 +3,9 @@
 
 #include <vector>
 
+#include <aocommon/logger.h>
+
+#include "../structures/imageweights.h"
 #include "../msproviders/msprovider.h"
 #include "../structures/msselection.h"
 
@@ -15,14 +18,11 @@ class MSGridderBase;
  * on which one or multiple gridders will operate, as well as computing and
  * storing metadata about the MS that will be used by the gridders
  *
- * Metadata is split and stored in three different structs:
- *  1. `MsData` contains shared data for a MS that is the same across all facets
- *     in a facet group (One instance per MS)
- *  2. `FacetData` contains facet specific data for a MS that is unique to each
- *     facet and can't be shared across other facets in the facet group (Instace
- *     per facet per MS)
- *  3. `Limits` contains data that is calculated across all MS and is (One
- *     instance for multiple MS)
+ * Metadata is split and stored in two different structs:
+ *  1. `MsData` contains per MS data that is shared across all facets in a
+ *     facet group. One instance per MS
+ *  2. `Limits` contains data that is calculated across all MSW. One instance
+ *     for multiple MS
  */
 class MsProviderCollection {
  public:
@@ -41,21 +41,20 @@ class MsProviderCollection {
     mutable size_t totalRowsProcessed = 0;
     size_t rowStart = 0;
     size_t rowEnd = 0;
-    std::vector<std::string> antenna_names;
-    aocommon::BandData SelectedBand() const {
-      return aocommon::BandData(bandData, startChannel, endChannel);
-    }
-    void InitializeBandData(const casacore::MeasurementSet& ms,
-                            const MSSelection& selection);
-  };
-  struct FacetData {
-   public:
+
     double minW = 0.0;
     double maxW = 0.0;
     double maxWWithFlags = 0.0;
     double maxBaselineUVW = 0.0;
     double maxBaselineInM = 0.0;
     double integrationTime = 0.0;
+
+    std::vector<std::string> antenna_names;
+    aocommon::BandData SelectedBand() const {
+      return aocommon::BandData(bandData, startChannel, endChannel);
+    }
+    void InitializeBandData(const casacore::MeasurementSet& ms,
+                            const MSSelection& selection);
   };
 
   MSProvider& MeasurementSet(size_t internal_ms_index) const {
@@ -84,34 +83,29 @@ class MsProviderCollection {
 
   double StartTime() const { return ms_limits_.start_time_; }
 
-  void InitializeMS(size_t num_facets);
-  void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders);
+  void InitializeMS();
+  void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders,
+                              double w_limit);
 
   /** Computes/stores per MS metadata that is shared for all facets/gridders in
    * a facet group */
   std::vector<MsData> ms_data_vector_;
 
-  /** Computes and stores per MS metadata that is unique to each individual
-   * facet/gridder in a facet group.
-   * Outer index is facet/gridder.
-   * Inner index is MS.
-   */
-  std::vector<std::vector<FacetData>> ms_facet_data_vector_;
-
  private:
   template <size_t NPolInMSProvider>
-  void CalculateWLimits(FacetData& ms_facet_data, MsData& ms_data,
-                        MSGridderBase* gridder);
+  void CalculateMsLimits(MsData& ms_data, double pixel_size_x,
+                         double pixel_size_y, size_t image_width,
+                         size_t image_height,
+                         const ImageWeights* image_weights);
 
   static std::vector<std::string> GetAntennaNames(
       const casacore::MSAntenna& antenna);
 
-  void InitializeMeasurementSet(
-      MsData& ms_data,
-      std::vector<std::vector<FacetData>>& ms_facet_data_vector,
-      const std::vector<MSGridderBase*>& gridders, bool is_cached);
+  void InitializeMeasurementSet(MsData& ms_data,
+                                const std::vector<MSGridderBase*>& gridders,
+                                bool is_cached);
 
-  /** Computes/stores frequency limits across all measurement sets */
+  /** Computes/stores limits across all measurement sets */
   struct {
    public:
     bool has_frequencies_ = false;
@@ -120,6 +114,10 @@ class MsProviderCollection {
     double band_start_ = 0.0;
     double band_end_ = 0.0;
     double start_time_ = 0.0;
+
+    double max_w_ = 0.0;
+    double min_w_ = 0.0;
+    double maxBaseline_ = 0.0;
 
     void Calculate(const aocommon::BandData& selectedBand, double startTime) {
       if (has_frequencies_) {
@@ -135,6 +133,17 @@ class MsProviderCollection {
         band_end_ = selectedBand.BandEnd();
         start_time_ = startTime;
         has_frequencies_ = true;
+      }
+    }
+    void Validate() {
+      if (min_w_ > max_w_) {
+        min_w_ = max_w_;
+        aocommon::Logger::Error
+            << "*** Error! ***\n"
+               "*** Calculating maximum and minimum w values failed! Make sure "
+               "the "
+               "data selection and scale settings are correct!\n"
+               "***\n";
       }
     }
   } ms_limits_;

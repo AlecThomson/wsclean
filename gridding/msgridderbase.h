@@ -88,8 +88,7 @@ inline void ExpandData(
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings,
-                MsProviderCollection& ms_provider_collection,
-                size_t gridder_index);
+                MsProviderCollection& ms_provider_collection);
   virtual ~MSGridderBase();
 
   void SetH5Parm(
@@ -327,10 +326,13 @@ class MSGridderBase {
                         float* weight_buffer, double time, size_t field_id,
                         size_t antenna1, size_t antenna2);
 
-  void calculateOverallMetaData(
-      const std::vector<MsProviderCollection::FacetData>& ms_facet_data_vector);
+  void calculateOverallMetaData();
 
   void initializeVisibilityModifierTimes(MsProviderCollection::MsData& msData);
+
+  void SetMaxW(double max_w) { max_w_ = max_w; }
+  void SetMaxBaseline(double max_baseline) { max_baseline_ = max_baseline; }
+  void SetMinW(double min_w) { min_w_ = min_w; }
 
  protected:
   size_t ActualInversionWidth() const { return actual_inversion_width_; }
@@ -338,12 +340,9 @@ class MSGridderBase {
   double ActualPixelSizeX() const { return actual_pixel_size_x_; }
   double ActualPixelSizeY() const { return actual_pixel_size_y_; }
 
-  size_t GetMsCount() const { return ms_count_; }
+  size_t GetMsCount() const { return ms_data_vector_.size(); }
   MsProviderCollection::MsData& GetMsData(size_t ms_index) {
     return ms_data_vector_[ms_index];
-  }
-  MsProviderCollection::FacetData& GetMsFacetData(size_t ms_index) {
-    return ms_facet_data_vector_[ms_index];
   }
 
   struct InversionRow {
@@ -608,10 +607,11 @@ class MSGridderBase {
   /**
    * The largest w value present in the data (after applying any selections),
    * in units of number of wavelengths. It is initialized by
-   * initializeMSDataVector() and is undefined beforehand.
+   * InitializeMSDataVector() and is undefined beforehand.
    */
-  double MaximumW() const { return max_w_; }
-  double MinimumW() const { return min_w_; }
+  double MaxW() const { return max_w_; }
+  double MaxBaseline() const { return max_baseline_; }
+  double MinW() const { return min_w_; }
 
  private:
   bool hasWGridSize() const { return w_grid_size_ != 0; }
@@ -718,9 +718,7 @@ class MSGridderBase {
 #endif  // HAVE_EVERYBEAM
 
   // Contains all MS metadata as well as MS specific gridding data
-  size_t ms_count_;
   std::vector<MsProviderCollection::MsData>& ms_data_vector_;
-  std::vector<MsProviderCollection::FacetData>& ms_facet_data_vector_;
 
   const Settings& settings_;
   std::unique_ptr<MetaDataCache> meta_data_cache_;
@@ -756,6 +754,7 @@ class MSGridderBase {
   bool small_inversion_ = true;
   double max_w_ = 0.0;
   double min_w_ = 0.0;
+  double max_baseline_ = 0.0;
   /// A fractional value that, when non-zero, places a limit on the w-value of
   /// gridded visibilities. Visibilities outside the limit are skipped.
   double w_limit_ = 0.0;

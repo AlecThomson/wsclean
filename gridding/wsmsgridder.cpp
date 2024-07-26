@@ -27,9 +27,8 @@ using aocommon::Logger;
 namespace wsclean {
 
 WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources,
-                         MsProviderCollection& ms_provider_collection,
-                         size_t gridder_index)
-    : MSGridderBase(settings, ms_provider_collection, gridder_index),
+                         MsProviderCollection& ms_provider_collection)
+    : MSGridderBase(settings, ms_provider_collection),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
       _resources(resources),
@@ -89,13 +88,13 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   double maxL = wWidth * PixelSizeX() * 0.5 + fabs(LShift()),
          maxM = wHeight * PixelSizeY() * 0.5 + fabs(MShift()),
          lmSq = maxL * maxL + maxM * maxM;
-  double cMinW = IsComplex() ? -MaximumW() : MinimumW();
+  double cMinW = IsComplex() ? -MaxW() : MinW();
   double radiansForAllLayers;
   if (lmSq < 1.0)
     radiansForAllLayers =
-        2 * M_PI * (MaximumW() - cMinW) * (1.0 - sqrt(1.0 - lmSq));
+        2 * M_PI * (MaxW() - cMinW) * (1.0 - sqrt(1.0 - lmSq));
   else
-    radiansForAllLayers = 2 * M_PI * (MaximumW() - cMinW);
+    radiansForAllLayers = 2 * M_PI * (MaxW() - cMinW);
   size_t suggestedGridSize = size_t(ceil(radiansForAllLayers * NWFactor()));
   if (suggestedGridSize == 0) suggestedGridSize = 1;
   if (suggestedGridSize < _resources.NCpus()) {
@@ -394,8 +393,8 @@ void WSMSGridder::Invert() {
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
   _gridder->PrepareWLayers(ActualWGridSize(),
-                           double(_resources.Memory()) * (6.0 / 10.0),
-                           MinimumW(), MaximumW());
+                           double(_resources.Memory()) * (6.0 / 10.0), MinW(),
+                           MaxW());
   if (IsFirstTask()) {
     Logger::Info << "Will process "
                  << (_gridder->NWLayers() / _gridder->NPasses()) << "/"
@@ -519,8 +518,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
   _gridder->PrepareWLayers(ActualWGridSize(),
-                           double(_resources.Memory()) * (6.0 / 10.0),
-                           MinimumW(), MaximumW());
+                           double(_resources.Memory()) * (6.0 / 10.0), MinW(),
+                           MaxW());
 
   if (IsFirstTask()) {
     for (size_t i = 0; i != GetMsCount(); ++i)

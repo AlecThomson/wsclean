@@ -16,8 +16,7 @@ template <typename num_t>
 class DirectMSGridder final : public MSGridderBase {
  public:
   DirectMSGridder(const Settings& settings, const Resources& resources,
-                  MsProviderCollection& ms_provider_collection,
-                  size_t gridder_index);
+                  MsProviderCollection& ms_provider_collection);
 
   virtual void Invert() override;
 

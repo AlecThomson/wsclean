@@ -67,7 +67,7 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(result.facets.size() == task.facets.size());
 
   MSGridderManager manager(settings_, solution_data_);
-  manager.InitializeMS(task, facet_indices.size());
+  manager.InitializeMS(task);
   manager.InitializeGridders(task, facet_indices, resources, result.facets,
                              writer_lock_manager_);
   if (task.operation == GriddingTask::Invert) {

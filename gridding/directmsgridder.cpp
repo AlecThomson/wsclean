@@ -16,9 +16,8 @@ namespace wsclean {
 template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(
     const Settings& settings, const Resources& resources,
-    MsProviderCollection& ms_provider_collection, size_t gridder_index)
-    : MSGridderBase(settings, ms_provider_collection, gridder_index),
-      _resources(resources) {}
+    MsProviderCollection& ms_provider_collection)
+    : MSGridderBase(settings, ms_provider_collection), _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {

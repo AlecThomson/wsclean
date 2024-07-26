@@ -47,9 +47,8 @@ constexpr const size_t kGridderIndex = 0;
 }
 
 IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources,
-                           MsProviderCollection& ms_provider_collection,
-                           size_t gridder_index)
-    : MSGridderBase(settings, ms_provider_collection, gridder_index),
+                           MsProviderCollection& ms_provider_collection)
+    : MSGridderBase(settings, ms_provider_collection),
       _averageBeam(nullptr),
       _outputProvider(nullptr),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
@@ -89,7 +88,7 @@ void IdgMsGridder::Invert() {
 
   double max_w = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    max_w = std::max(max_w, GetMsFacetData(i).maxWWithFlags);
+    max_w = std::max(max_w, GetMsData(i).maxWWithFlags);
   }
 
   const double shiftl = LShift();
@@ -109,7 +108,7 @@ void IdgMsGridder::Invert() {
     resetVisibilityCounters();
     for (size_t i = 0; i != GetMsCount(); ++i) {
       // Adds the gridding result to _image member
-      gridMeasurementSet(GetMsData(i), GetMsFacetData(i));
+      gridMeasurementSet(GetMsData(i));
     }
     _image.assign(n_image_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
@@ -133,7 +132,7 @@ void IdgMsGridder::Invert() {
       Logger::Debug << "Computing average beam.\n";
       _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
       for (size_t i = 0; i != GetMsCount(); ++i) {
-        gridMeasurementSet(GetMsData(i), GetMsFacetData(i));
+        gridMeasurementSet(GetMsData(i));
       }
       _bufferset->finalize_compute_avg_beam();
       Logger::Debug << "Finished computing average beam.\n";
@@ -146,7 +145,7 @@ void IdgMsGridder::Invert() {
     resetVisibilityCounters();
     for (size_t i = 0; i != GetMsCount(); ++i) {
       // Adds the gridding result to _image member
-      gridMeasurementSet(GetMsData(i), GetMsFacetData(i));
+      gridMeasurementSet(GetMsData(i));
     }
     _image.assign(n_image_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
@@ -157,17 +156,16 @@ void IdgMsGridder::Invert() {
 }
 
 void IdgMsGridder::gridMeasurementSet(
-    const MsProviderCollection::MsData& ms_data,
-    const MsProviderCollection::FacetData& ms_facet_data) {
+    const MsProviderCollection::MsData& ms_data) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
-  if (!prepareForMeasurementSet(ms_data, ms_facet_data, aTermMaker, aTermBuffer,
+  if (!prepareForMeasurementSet(ms_data, aTermMaker, aTermBuffer,
                                 idg::api::BufferSetType::gridding))
     return;
 #else
-  if (!prepareForMeasurementSet(ms_data, ms_facet_data, aTermBuffer,
+  if (!prepareForMeasurementSet(ms_data, aTermBuffer,
                                 idg::api::BufferSetType::gridding))
     return;
 #endif
@@ -331,7 +329,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   double max_w = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    max_w = std::max(max_w, GetMsFacetData(i).maxWWithFlags);
+    max_w = std::max(max_w, GetMsData(i).maxWWithFlags);
   }
 
   const double shiftl = LShift();
@@ -343,7 +341,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
   _bufferset->set_image(_image.data(), do_scale);
 
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    predictMeasurementSet(GetMsData(i), GetMsFacetData(i));
+    predictMeasurementSet(GetMsData(i));
   }
 }
 
@@ -364,16 +362,15 @@ void IdgMsGridder::setIdgType() {
 }
 
 void IdgMsGridder::predictMeasurementSet(
-    const MsProviderCollection::MsData& ms_data,
-    const MsProviderCollection::FacetData& ms_facet_data) {
+    const MsProviderCollection::MsData& ms_data) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
-  if (!prepareForMeasurementSet(ms_data, ms_facet_data, aTermMaker, aTermBuffer,
+  if (!prepareForMeasurementSet(ms_data, aTermMaker, aTermBuffer,
                                 idg::api::BufferSetType::degridding))
     return;
 #else
-  if (!prepareForMeasurementSet(ms_data, ms_facet_data, aTermBuffer,
+  if (!prepareForMeasurementSet(ms_data, aTermBuffer,
                                 idg::api::BufferSetType::degridding))
     return;
 #endif
@@ -562,18 +559,16 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
 #ifdef HAVE_EVERYBEAM
 bool IdgMsGridder::prepareForMeasurementSet(
     const MsProviderCollection::MsData& ms_data,
-    const MsProviderCollection::FacetData& ms_facet_data,
     std::unique_ptr<ATermBase>& aTermMaker,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #else
 bool IdgMsGridder::prepareForMeasurementSet(
     const MsProviderCollection::MsData& ms_data,
-    const MsProviderCollection::FacetData& ms_facet_data,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #endif  // HAVE_EVERYBEAM
-  const float max_baseline = ms_facet_data.maxBaselineInM;
+  const float max_baseline = ms_data.maxBaselineInM;
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
 
@@ -603,13 +598,12 @@ bool IdgMsGridder::prepareForMeasurementSet(
     // their approx contribution.
     double avgUpdate = aTermMaker->AverageUpdateTime();
     Logger::Debug << "A-terms change on average every " << avgUpdate
-                  << " s, once every "
-                  << (avgUpdate / ms_facet_data.integrationTime)
+                  << " s, once every " << (avgUpdate / ms_data.integrationTime)
                   << " timesteps.\n";
     const uint64_t atermMemPerTimestep =
         subgridsize * subgridsize * nStations *  // size of grid x nr of grids
         (4 * 8) *  // 4 pol, 8 bytes per complex value
-        (ms_facet_data.integrationTime /
+        (ms_data.integrationTime /
          avgUpdate);  // Average number of aterms per timestep
     Logger::Debug << "A-terms increase mem per timestep from " << memPerTimestep
                   << " bytes to " << (memPerTimestep + atermMemPerTimestep)

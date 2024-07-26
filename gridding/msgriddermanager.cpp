@@ -25,13 +25,13 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-void MSGridderManager::InitializeMS(GriddingTask& task, size_t num_facets) {
+void MSGridderManager::InitializeMS(GriddingTask& task) {
   for (const MsListItem& item : task.msList) {
     ms_provider_collection_.Add(item.ms_description->GetProvider(),
                                 item.ms_description->Selection(),
                                 item.ms_index);
   }
-  ms_provider_collection_.InitializeMS(num_facets);
+  ms_provider_collection_.InitializeMS();
 }
 
 void MSGridderManager::InitializeGridders(
@@ -39,14 +39,12 @@ void MSGridderManager::InitializeGridders(
     const Resources& resources,
     std::vector<GriddingResult::FacetData>& facet_results,
     GriddingTaskManager* writer_lock_manager) {
-  size_t gridder_index = 0;
   for (size_t facet_index : facet_indices) {
     assert(facet_index < task.facets.size());
 
     // Create a new gridder for each facet / sub-task, since gridders do not
     // support reusing them for multiple tasks.
-    std::unique_ptr<MSGridderBase> gridder =
-        ConstructGridder(resources, gridder_index++);
+    std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
     GriddingTask::FacetData& facet_task = task.facets[facet_index];
     GriddingResult::FacetData& facet_result = facet_results[facet_index];
 
@@ -74,10 +72,8 @@ void MSGridderManager::InitializeGridders(
 void MSGridderManager::Invert() {
   InitializeMSDataVectors();
 
-  size_t gridder_index = 0;
   for (const GriddingFacetTask& task : facet_tasks_) {
-    task.facet_gridder->calculateOverallMetaData(
-        ms_provider_collection_.ms_facet_data_vector_[gridder_index++]);
+    task.facet_gridder->calculateOverallMetaData();
     task.facet_gridder->Invert();
   }
 }
@@ -85,10 +81,8 @@ void MSGridderManager::Invert() {
 void MSGridderManager::Predict() {
   InitializeMSDataVectors();
 
-  size_t gridder_index = 0;
   for (const GriddingFacetTask& task : facet_tasks_) {
-    task.facet_gridder->calculateOverallMetaData(
-        ms_provider_collection_.ms_facet_data_vector_[gridder_index++]);
+    task.facet_gridder->calculateOverallMetaData();
     task.facet_gridder->Predict(std::move(task.facet_task.modelImages));
   }
 }
@@ -133,33 +127,33 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
 }
 
 std::unique_ptr<MSGridderBase> MSGridderManager::ConstructGridder(
-    const Resources& resources, size_t gridder_index) {
+    const Resources& resources) {
   switch (settings_.gridderType) {
     case GridderType::IDG:
-      return std::make_unique<IdgMsGridder>(
-          settings_, resources, ms_provider_collection_, gridder_index);
+      return std::make_unique<IdgMsGridder>(settings_, resources,
+                                            ms_provider_collection_);
     case GridderType::WGridder:
       return std::make_unique<WGriddingMSGridder>(
-          settings_, resources, ms_provider_collection_, gridder_index, false);
+          settings_, resources, ms_provider_collection_, false);
     case GridderType::TunedWGridder:
       return std::make_unique<WGriddingMSGridder>(
-          settings_, resources, ms_provider_collection_, gridder_index, true);
+          settings_, resources, ms_provider_collection_, true);
     case GridderType::DirectFT:
       switch (settings_.directFTPrecision) {
         case DirectFTPrecision::Float:
           return std::make_unique<DirectMSGridder<float>>(
-              settings_, resources, ms_provider_collection_, gridder_index);
+              settings_, resources, ms_provider_collection_);
         case DirectFTPrecision::Double:
           return std::make_unique<DirectMSGridder<double>>(
-              settings_, resources, ms_provider_collection_, gridder_index);
+              settings_, resources, ms_provider_collection_);
         case DirectFTPrecision::LongDouble:
           return std::make_unique<DirectMSGridder<long double>>(
-              settings_, resources, ms_provider_collection_, gridder_index);
+              settings_, resources, ms_provider_collection_);
       }
       break;
     case GridderType::WStacking:
-      return std::make_unique<WSMSGridder>(
-          settings_, resources, ms_provider_collection_, gridder_index);
+      return std::make_unique<WSMSGridder>(settings_, resources,
+                                           ms_provider_collection_);
   }
   return {};
 }

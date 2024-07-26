@@ -25,9 +25,8 @@ namespace wsclean {
 
 WGriddingMSGridder::WGriddingMSGridder(
     const Settings& settings, const Resources& resources,
-    MsProviderCollection& ms_provider_collection, size_t gridder_index,
-    bool use_tuned_wgridder)
-    : MSGridderBase(settings, ms_provider_collection, gridder_index),
+    MsProviderCollection& ms_provider_collection, bool use_tuned_wgridder)
+    : MSGridderBase(settings, ms_provider_collection),
       resources_(resources),
       accuracy_(GetSettings().wgridderAccuracy),
       use_tuned_wgridder_(use_tuned_wgridder) {

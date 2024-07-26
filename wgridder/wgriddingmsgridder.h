@@ -16,7 +16,7 @@ class WGriddingMSGridder final : public MSGridderBase {
  public:
   WGriddingMSGridder(const Settings& settings, const Resources& resources,
                      MsProviderCollection& ms_provider_collection,
-                     size_t gridder_index, bool use_tuned_wgridder);
+                     bool use_tuned_wgridder);
   ~WGriddingMSGridder();
 
   virtual void Invert() override;
