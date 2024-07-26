@@ -31,27 +31,27 @@ class MsProviderCollection {
     MSProvider* ms_provider = nullptr;
     size_t internal_ms_index = 0;
     size_t original_ms_index = 0;
-    size_t dataDescId = 0;
-    aocommon::BandData bandData;
-    size_t startChannel = 0;
-    size_t endChannel = 0;
-    size_t matchingRows = 0;
+    size_t data_desc_id = 0;
+    aocommon::BandData band_data;
+    size_t start_channel = 0;
+    size_t end_channel = 0;
+    size_t matching_rows = 0;
     // TODO: remove mutable once we have restructured data reading out of the
     // gridders and into the gridder manager
-    mutable size_t totalRowsProcessed = 0;
-    size_t rowStart = 0;
-    size_t rowEnd = 0;
+    mutable size_t total_rows_processed = 0;
+    size_t row_start = 0;
+    size_t row_end = 0;
 
-    double minW = 0.0;
-    double maxW = 0.0;
-    double maxWWithFlags = 0.0;
-    double maxBaselineUVW = 0.0;
-    double maxBaselineInM = 0.0;
-    double integrationTime = 0.0;
+    double min_w = 0.0;
+    double max_w = 0.0;
+    double max_w_with_flags = 0.0;
+    double max_baseline_uvw = 0.0;
+    double max_baseline_meters = 0.0;
+    double integration_time = 0.0;
 
     std::vector<std::string> antenna_names;
     aocommon::BandData SelectedBand() const {
-      return aocommon::BandData(bandData, startChannel, endChannel);
+      return aocommon::BandData(band_data, start_channel, end_channel);
     }
     void InitializeBandData(const casacore::MeasurementSet& ms,
                             const MSSelection& selection);
@@ -81,7 +81,7 @@ class MsProviderCollection {
                                          index);
   }
 
-  double StartTime() const { return ms_limits_.start_time_; }
+  double StartTime() const { return ms_limits_.start_time; }
 
   void InitializeMS();
   void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders,
@@ -108,36 +108,39 @@ class MsProviderCollection {
   /** Computes/stores limits across all measurement sets */
   struct {
    public:
-    bool has_frequencies_ = false;
-    double freq_high_ = 0.0;
-    double freq_low_ = 0.0;
-    double band_start_ = 0.0;
-    double band_end_ = 0.0;
-    double start_time_ = 0.0;
+    bool has_frequencies = false;
+    double highest_frequency = 0.0;
+    double lowest_frequency = 0.0;
+    double band_start = 0.0;
+    double band_end = 0.0;
+    double start_time = 0.0;
 
-    double max_w_ = 0.0;
-    double min_w_ = 0.0;
-    double maxBaseline_ = 0.0;
+    double max_w = 0.0;
+    double min_w = 0.0;
+    double max_baseline = 0.0;
 
-    void Calculate(const aocommon::BandData& selectedBand, double startTime) {
-      if (has_frequencies_) {
-        freq_low_ = std::min(freq_low_, selectedBand.LowestFrequency());
-        freq_high_ = std::max(freq_high_, selectedBand.HighestFrequency());
-        band_start_ = std::min(band_start_, selectedBand.BandStart());
-        band_end_ = std::max(band_end_, selectedBand.BandEnd());
-        start_time_ = std::min(start_time_, startTime);
+    void Calculate(const aocommon::BandData& selected_band,
+                   double _start_time) {
+      if (has_frequencies) {
+        lowest_frequency =
+            std::min(lowest_frequency, selected_band.LowestFrequency());
+        highest_frequency =
+            std::max(highest_frequency, selected_band.HighestFrequency());
+        band_start = std::min(band_start, selected_band.BandStart());
+        band_end = std::max(band_end, selected_band.BandEnd());
+        start_time = std::min(start_time, _start_time);
       } else {
-        freq_low_ = selectedBand.LowestFrequency();
-        freq_high_ = selectedBand.HighestFrequency();
-        band_start_ = selectedBand.BandStart();
-        band_end_ = selectedBand.BandEnd();
-        start_time_ = startTime;
-        has_frequencies_ = true;
+        lowest_frequency = selected_band.LowestFrequency();
+        highest_frequency = selected_band.HighestFrequency();
+        band_start = selected_band.BandStart();
+        band_end = selected_band.BandEnd();
+        start_time = _start_time;
+        has_frequencies = true;
       }
     }
     void Validate() {
-      if (min_w_ > max_w_) {
-        min_w_ = max_w_;
+      if (min_w > max_w) {
+        min_w = max_w;
         aocommon::Logger::Error
             << "*** Error! ***\n"
                "*** Calculating maximum and minimum w values failed! Make sure "

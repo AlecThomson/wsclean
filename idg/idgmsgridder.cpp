@@ -88,7 +88,7 @@ void IdgMsGridder::Invert() {
 
   double max_w = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    max_w = std::max(max_w, GetMsData(i).maxWWithFlags);
+    max_w = std::max(max_w, GetMsData(i).max_w_with_flags);
   }
 
   const double shiftl = LShift();
@@ -329,7 +329,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   double max_w = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    max_w = std::max(max_w, GetMsData(i).maxWWithFlags);
+    max_w = std::max(max_w, GetMsData(i).max_w_with_flags);
   }
 
   const double shiftl = LShift();
@@ -568,7 +568,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #endif  // HAVE_EVERYBEAM
-  const float max_baseline = ms_data.maxBaselineInM;
+  const float max_baseline = ms_data.max_baseline_meters;
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
 
@@ -598,12 +598,12 @@ bool IdgMsGridder::prepareForMeasurementSet(
     // their approx contribution.
     double avgUpdate = aTermMaker->AverageUpdateTime();
     Logger::Debug << "A-terms change on average every " << avgUpdate
-                  << " s, once every " << (avgUpdate / ms_data.integrationTime)
+                  << " s, once every " << (avgUpdate / ms_data.integration_time)
                   << " timesteps.\n";
     const uint64_t atermMemPerTimestep =
         subgridsize * subgridsize * nStations *  // size of grid x nr of grids
         (4 * 8) *  // 4 pol, 8 bytes per complex value
-        (ms_data.integrationTime /
+        (ms_data.integration_time /
          avgUpdate);  // Average number of aterms per timestep
     Logger::Debug << "A-terms increase mem per timestep from " << memPerTimestep
                   << " bytes to " << (memPerTimestep + atermMemPerTimestep)

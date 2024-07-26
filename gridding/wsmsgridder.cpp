@@ -51,13 +51,13 @@ WSMSGridder::~WSMSGridder() noexcept {
 void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
-  msData.matchingRows = 0;
+  msData.matching_rows = 0;
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-  const aocommon::BandData& bandData = msData.bandData;
+  const aocommon::BandData& bandData = msData.band_data;
   while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
     msReader->ReadMeta(uInM, vInM, wInM);
-    for (size_t ch = msData.startChannel; ch != msData.endChannel; ++ch) {
+    for (size_t ch = msData.start_channel; ch != msData.end_channel; ++ch) {
       double w = wInM / bandData.ChannelWavelength(ch);
       size_t wLayerIndex = _gridder->WToLayer(w);
       if (wLayerIndex < ActualWGridSize()) {
@@ -65,7 +65,7 @@ void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
         ++total;
       }
     }
-    ++msData.matchingRows;
+    ++msData.matching_rows;
     msReader->NextInputRow();
   }
   Logger::Debug << "Visibility count per layer: ";
@@ -225,8 +225,8 @@ void WSMSGridder::gridMeasurementSet(
 
     if (IsFirstTask())
       Logger::Info << "Rows that were required: " << rowsRead << '/'
-                   << msData.matchingRows << '\n';
-    msData.totalRowsProcessed += rowsRead;
+                   << msData.matching_rows << '\n';
+    msData.total_rows_processed += rowsRead;
   } catch (...) {
     for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
       buflane.write_end();
@@ -319,8 +319,8 @@ void WSMSGridder::predictMeasurementSet(
   }
   if (IsFirstTask())
     Logger::Info << "Rows that were required: " << rowsProcessed << '/'
-                 << msData.matchingRows << '\n';
-  msData.totalRowsProcessed += rowsProcessed;
+                 << msData.matching_rows << '\n';
+  msData.total_rows_processed += rowsProcessed;
 
   bufferedCalcLane.write_end();
   for (std::thread& thr : calcThreads) thr.join();
@@ -434,8 +434,8 @@ void WSMSGridder::Invert() {
     size_t totalRowsRead = 0, totalMatchingRows = 0;
     for (size_t i = 0; i != GetMsCount(); ++i) {
       const MsProviderCollection::MsData& msData = GetMsData(i);
-      totalRowsRead += msData.totalRowsProcessed;
-      totalMatchingRows += msData.matchingRows;
+      totalRowsRead += msData.total_rows_processed;
+      totalMatchingRows += msData.matching_rows;
     }
 
     Logger::Debug << "Total rows read: " << totalRowsRead;
@@ -585,8 +585,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   size_t totalRowsWritten = 0, totalMatchingRows = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
     const MsProviderCollection::MsData& msData = GetMsData(i);
-    totalRowsWritten += msData.totalRowsProcessed;
-    totalMatchingRows += msData.matchingRows;
+    totalRowsWritten += msData.total_rows_processed;
+    totalMatchingRows += msData.matching_rows;
   }
 
   Logger::Debug << "Total rows written: " << totalRowsWritten;

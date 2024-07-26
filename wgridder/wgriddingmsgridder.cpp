@@ -144,7 +144,7 @@ void WGriddingMSGridder::gridMeasurementSet(
     totalNRows += nRows;
   }  // end of chunk
 
-  msData.totalRowsProcessed += totalNRows;
+  msData.total_rows_processed += totalNRows;
 }
 
 void WGriddingMSGridder::predictMeasurementSet(
@@ -199,7 +199,7 @@ void WGriddingMSGridder::predictMeasurementSet(
     totalNRows += nRows;
   }  // end of chunk
 
-  msData.totalRowsProcessed += totalNRows;
+  msData.total_rows_processed += totalNRows;
 }
 
 void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,

@@ -27,12 +27,12 @@ inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
   if (imaging_weight != 0.0) {
     if (std::floor(x) > -half_width && std::ceil(x) < half_width &&
         std::floor(y) > -half_height && std::ceil(y) < half_height) {
-      ms_data.maxW = std::max(ms_data.maxW, std::fabs(w));
-      ms_data.minW = std::min(ms_data.minW, std::fabs(w));
-      ms_data.maxBaselineUVW =
-          std::max(ms_data.maxBaselineUVW, baseline_in_meters / wavelength);
-      ms_data.maxBaselineInM =
-          std::max(ms_data.maxBaselineInM, baseline_in_meters);
+      ms_data.max_w = std::max(ms_data.max_w, std::fabs(w));
+      ms_data.min_w = std::min(ms_data.min_w, std::fabs(w));
+      ms_data.max_baseline_uvw =
+          std::max(ms_data.max_baseline_uvw, baseline_in_meters / wavelength);
+      ms_data.max_baseline_meters =
+          std::max(ms_data.max_baseline_meters, baseline_in_meters);
     }
   }
 }
@@ -50,9 +50,9 @@ void MsProviderCollection::InitializeMSDataVector(
     facet_gridder->ResetVisibilityModifierCache();
   }
 
-  ms_limits_.maxBaseline_ = 0.0;
-  ms_limits_.max_w_ = 0.0;
-  ms_limits_.min_w_ = std::numeric_limits<double>::max();
+  ms_limits_.max_baseline = 0.0;
+  ms_limits_.max_w = 0.0;
+  ms_limits_.min_w = std::numeric_limits<double>::max();
   for (size_t i = 0; i != Count(); ++i) {
     MsData& ms_data = ms_data_vector_[i];
     ms_data.internal_ms_index = i;
@@ -61,24 +61,24 @@ void MsProviderCollection::InitializeMSDataVector(
 
     ms_limits_.Calculate(ms_data.SelectedBand(),
                          ms_data.ms_provider->StartTime());
-    ms_limits_.maxBaseline_ =
-        std::max(ms_limits_.maxBaseline_, ms_data.maxBaselineUVW);
-    ms_limits_.max_w_ = std::max(ms_limits_.max_w_, ms_data.maxW);
-    ms_limits_.min_w_ = std::min(ms_limits_.min_w_, ms_data.minW);
+    ms_limits_.max_baseline =
+        std::max(ms_limits_.max_baseline, ms_data.max_baseline_uvw);
+    ms_limits_.max_w = std::max(ms_limits_.max_w, ms_data.max_w);
+    ms_limits_.min_w = std::min(ms_limits_.min_w, ms_data.min_w);
   }
 
   ms_limits_.Validate();
 
   if (w_limit != 0.0) {
-    ms_limits_.max_w_ *= (1.0 - w_limit);
-    if (ms_limits_.max_w_ < ms_limits_.min_w_)
-      ms_limits_.max_w_ = ms_limits_.min_w_;
+    ms_limits_.max_w *= (1.0 - w_limit);
+    if (ms_limits_.max_w < ms_limits_.min_w)
+      ms_limits_.max_w = ms_limits_.min_w;
   }
 
   for (MSGridderBase* facet_gridder : gridders) {
-    facet_gridder->SetMaxW(ms_limits_.max_w_);
-    facet_gridder->SetMinW(ms_limits_.min_w_);
-    facet_gridder->SetMaxBaseline(ms_limits_.maxBaseline_);
+    facet_gridder->SetMaxW(ms_limits_.max_w);
+    facet_gridder->SetMinW(ms_limits_.min_w);
+    facet_gridder->SetMaxBaseline(ms_limits_.max_baseline);
   }
 }
 
@@ -99,23 +99,25 @@ std::vector<std::string> MsProviderCollection::GetAntennaNames(
 
 void MsProviderCollection::MsData::InitializeBandData(
     const casacore::MeasurementSet& ms, const MSSelection& selection) {
-  bandData = aocommon::MultiBandData(ms)[dataDescId];
+  band_data = aocommon::MultiBandData(ms)[data_desc_id];
   if (selection.HasChannelRange()) {
-    startChannel = selection.ChannelRangeStart();
-    endChannel = selection.ChannelRangeEnd();
-    Logger::Debug << "Selected channels: " << startChannel << '-' << endChannel
-                  << '\n';
-    if (startChannel >= bandData.ChannelCount() ||
-        endChannel > bandData.ChannelCount() || startChannel == endChannel) {
+    start_channel = selection.ChannelRangeStart();
+    end_channel = selection.ChannelRangeEnd();
+    Logger::Debug << "Selected channels: " << start_channel << '-'
+                  << end_channel << '\n';
+    if (start_channel >= band_data.ChannelCount() ||
+        end_channel > band_data.ChannelCount() ||
+        start_channel == end_channel) {
       std::ostringstream str;
       str << "An invalid channel range was specified! Measurement set only has "
-          << bandData.ChannelCount() << " channels, requested imaging range is "
-          << startChannel << " -- " << endChannel << '.';
+          << band_data.ChannelCount()
+          << " channels, requested imaging range is " << start_channel << " -- "
+          << end_channel << '.';
       throw std::runtime_error(str.str());
     }
   } else {
-    startChannel = 0;
-    endChannel = bandData.ChannelCount();
+    start_channel = 0;
+    end_channel = band_data.ChannelCount();
   }
 }
 
@@ -131,7 +133,7 @@ void MsProviderCollection::InitializeMeasurementSet(
       throw std::runtime_error("Table has no rows (no data)");
 
     ms_data.antenna_names = GetAntennaNames(ms->antenna());
-    ms_data.dataDescId = ms_provider.DataDescId();
+    ms_data.data_desc_id = ms_provider.DataDescId();
 
     ms_data.InitializeBandData(*ms, Selection(ms_data.internal_ms_index));
   }
@@ -154,12 +156,12 @@ void MsProviderCollection::InitializeMeasurementSet(
       gridders[0]->GetMetaDataCacheItem(ms_data.internal_ms_index);
 
   if (is_cached) {
-    ms_data.maxW = cache_entry.max_w;
-    ms_data.maxWWithFlags = cache_entry.max_w_with_flags;
-    ms_data.minW = cache_entry.min_w;
-    ms_data.maxBaselineUVW = cache_entry.max_baseline_uvw;
-    ms_data.maxBaselineInM = cache_entry.max_baseline_in_m;
-    ms_data.integrationTime = cache_entry.integration_time;
+    ms_data.max_w = cache_entry.max_w;
+    ms_data.max_w_with_flags = cache_entry.max_w_with_flags;
+    ms_data.min_w = cache_entry.min_w;
+    ms_data.max_baseline_uvw = cache_entry.max_baseline_uvw;
+    ms_data.max_baseline_meters = cache_entry.max_baseline_in_m;
+    ms_data.integration_time = cache_entry.integration_time;
   } else {
     if (ms_provider.NPolarizations() == 4)
       CalculateMsLimits<4>(ms_data, gridders[0]->PixelSizeX(),
@@ -173,12 +175,12 @@ void MsProviderCollection::InitializeMeasurementSet(
       CalculateMsLimits<1>(ms_data, gridders[0]->PixelSizeX(),
                            gridders[0]->PixelSizeY(), min_image_width,
                            min_image_height, gridders[0]->GetImageWeights());
-    cache_entry.max_w = ms_data.maxW;
-    cache_entry.max_w_with_flags = ms_data.maxWWithFlags;
-    cache_entry.min_w = ms_data.minW;
-    cache_entry.max_baseline_uvw = ms_data.maxBaselineUVW;
-    cache_entry.max_baseline_in_m = ms_data.maxBaselineInM;
-    cache_entry.integration_time = ms_data.integrationTime;
+    cache_entry.max_w = ms_data.max_w;
+    cache_entry.max_w_with_flags = ms_data.max_w_with_flags;
+    cache_entry.min_w = ms_data.min_w;
+    cache_entry.max_baseline_uvw = ms_data.max_baseline_uvw;
+    cache_entry.max_baseline_in_m = ms_data.max_baseline_meters;
+    cache_entry.integration_time = ms_data.integration_time;
   }
 
   for (MSGridderBase* gridder : gridders) {
@@ -193,11 +195,11 @@ void MsProviderCollection::CalculateMsLimits(
     const ImageWeights* image_weights) {
   Logger::Info << "Determining min and max w & theoretical beam size... ";
   Logger::Info.Flush();
-  ms_data.maxW = 0.0;
-  ms_data.maxWWithFlags = 0.0;
-  ms_data.minW = 1e100;
-  ms_data.maxBaselineUVW = 0.0;
-  ms_data.maxBaselineInM = 0.0;
+  ms_data.max_w = 0.0;
+  ms_data.max_w_with_flags = 0.0;
+  ms_data.min_w = 1e100;
+  ms_data.max_baseline_uvw = 0.0;
+  ms_data.max_baseline_meters = 0.0;
   const aocommon::BandData selectedBand = ms_data.SelectedBand();
   std::vector<float> weightArray(selectedBand.ChannelCount() *
                                  NPolInMSProvider);
@@ -222,16 +224,17 @@ void MsProviderCollection::CalculateMsLimits(
     const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
                                          metaData.vInM * metaData.vInM +
                                          metaData.wInM * metaData.wInM);
-    if (wHi > ms_data.maxW || wLo < ms_data.minW ||
+    if (wHi > ms_data.max_w || wLo < ms_data.min_w ||
         baselineInM / selectedBand.SmallestWavelength() >
-            ms_data.maxBaselineUVW) {
+            ms_data.max_baseline_uvw) {
       msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
 
       for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
         const double wavelength = selectedBand.ChannelWavelength(ch);
         double wInL = metaData.wInM / wavelength;
-        ms_data.maxWWithFlags = std::max(ms_data.maxWWithFlags, fabs(wInL));
+        ms_data.max_w_with_flags =
+            std::max(ms_data.max_w_with_flags, fabs(wInL));
         if (*weightPtr != 0.0) {
           double uInL = metaData.uInM / wavelength;
           double vInL = metaData.vInM / wavelength;
@@ -245,24 +248,24 @@ void MsProviderCollection::CalculateMsLimits(
     msReader->NextInputRow();
   }
 
-  if (ms_data.minW == 1e100) {
-    ms_data.minW = 0.0;
-    ms_data.maxWWithFlags = 0.0;
-    ms_data.maxW = 0.0;
+  if (ms_data.min_w == 1e100) {
+    ms_data.min_w = 0.0;
+    ms_data.max_w_with_flags = 0.0;
+    ms_data.max_w = 0.0;
   }
 
-  Logger::Info << "DONE (w=[" << ms_data.minW << ":" << ms_data.maxW
-               << "] lambdas, maxuvw=" << ms_data.maxBaselineUVW
+  Logger::Info << "DONE (w=[" << ms_data.min_w << ":" << ms_data.max_w
+               << "] lambdas, maxuvw=" << ms_data.max_baseline_uvw
                << " lambda)\n";
-  if (ms_data.maxWWithFlags != ms_data.maxW) {
+  if (ms_data.max_w_with_flags != ms_data.max_w) {
     Logger::Debug << "Discarded data has higher w value of "
-                  << ms_data.maxWWithFlags << " lambda.\n";
+                  << ms_data.max_w_with_flags << " lambda.\n";
   }
 
   if (lastTime == firstTime || nTimesteps < 2)
-    ms_data.integrationTime = 1;
+    ms_data.integration_time = 1;
   else
-    ms_data.integrationTime = (lastTime - firstTime) / (nTimesteps - 1);
+    ms_data.integration_time = (lastTime - firstTime) / (nTimesteps - 1);
 }
 
 template void MsProviderCollection::CalculateMsLimits<1>(

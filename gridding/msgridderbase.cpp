@@ -87,7 +87,7 @@ void MSGridderBase::initializePointResponse(
         !settings_.beamModel.empty() ? settings_.beamModel : "DEFAULT";
     visibility_modifier_.InitializePointResponse(
         msData.ms_provider->MS(), settings_.facetBeamUpdateTime,
-        element_response_string, msData.bandData.ChannelCount(),
+        element_response_string, msData.band_data.ChannelCount(),
         settings_.dataColumnName, settings_.mwaPath);
   } else {
     visibility_modifier_.SetNoPointResponse();
