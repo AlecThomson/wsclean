@@ -17,8 +17,6 @@
 
 #include <aocommon/logger.h>
 
-#include <boost/filesystem/path.hpp>
-
 #include <casacore/measures/Measures/MEpoch.h>
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
@@ -36,33 +34,19 @@ using aocommon::Logger;
 namespace wsclean {
 
 namespace {
-struct PartitionFiles {
-  std::unique_ptr<std::ofstream> data;
-  std::unique_ptr<std::ofstream> weight;
-  std::unique_ptr<std::ofstream> model;
-};
 
 std::map<size_t, std::vector<aocommon::PolarizationEnum>>
 GetMSPolarizationsPerDataDescId(
-    const std::vector<ReorderedMsProvider::ChannelRange>& ranges,
+    const std::vector<reorder::ChannelRange>& ranges,
     casacore::MeasurementSet& ms) {
   std::map<size_t, std::vector<aocommon::PolarizationEnum>>
       ms_polarizations_per_data_desc_id;
-  for (const ReorderedMsProvider::ChannelRange& range : ranges) {
+  for (const reorder::ChannelRange& range : ranges) {
     ms_polarizations_per_data_desc_id.emplace(
         range.data_desc_id,
         ReorderedMsProvider::GetMSPolarizations(range.data_desc_id, ms));
   }
   return ms_polarizations_per_data_desc_id;
-}
-
-size_t GetMaxChannels(
-    const std::vector<ReorderedMsProvider::ChannelRange>& channel_ranges) {
-  size_t maxchannels_ = 0;
-  for (const ReorderedMsProvider::ChannelRange& range : channel_ranges) {
-    maxchannels_ = std::max(maxchannels_, range.end - range.start);
-  }
-  return maxchannels_;
 }
 
 }  // namespace
@@ -77,9 +61,9 @@ ReorderedMsProvider::ReorderedMsProvider(
       polarization_(polarization),
       polarization_count_in_file_(
           aocommon::Polarization::GetVisibilityCount(polarization_)) {
-  std::ifstream meta_file(GetMetaFilename(handle.data_->ms_path_,
-                                          handle.data_->temporary_directory_,
-                                          data_desc_id));
+  std::ifstream meta_file(reorder::GetMetaFilename(
+      handle.data_->ms_path_, handle.data_->temporary_directory_,
+      data_desc_id));
   if (!meta_file) {
     throw std::runtime_error("Error opening meta file for ms " +
                              handle.data_->ms_path_ + ", data_desc_id " +
@@ -92,8 +76,8 @@ ReorderedMsProvider::ReorderedMsProvider(
   Logger::Info << "Opening reordered part " << part_index << " spw "
                << data_desc_id << " for " << ms_path.data() << '\n';
   std::string part_prefix =
-      GetPartPrefix(ms_path.data(), part_index, polarization, data_desc_id,
-                    handle.data_->temporary_directory_);
+      reorder::GetPartPrefix(ms_path.data(), part_index, polarization,
+                             data_desc_id, handle.data_->temporary_directory_);
 
   std::ifstream data_file(part_prefix + ".tmp", std::ios::in);
   if (!data_file.good())
@@ -149,53 +133,6 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
   }
 }
 
-std::string ReorderedMsProvider::GetFilenamePrefix(
-    const std::string& ms_path_str, const std::string& temp_dir) {
-  boost::filesystem::path prefix_path;
-  if (temp_dir.empty())
-    prefix_path = ms_path_str;
-  else {
-    std::string ms_path_copy(ms_path_str);
-    while (!ms_path_copy.empty() && *ms_path_copy.rbegin() == '/')
-      ms_path_copy.resize(ms_path_copy.size() - 1);
-    boost::filesystem::path ms_path(ms_path_copy);
-    prefix_path = boost::filesystem::path(temp_dir) / ms_path.filename();
-  }
-  std::string prefix(prefix_path.string());
-  while (!prefix.empty() && *prefix.rbegin() == '/')
-    prefix.resize(prefix.size() - 1);
-  return prefix;
-}
-
-std::string ReorderedMsProvider::GetPartPrefix(const std::string& ms_path_str,
-                                               size_t part_index,
-                                               aocommon::PolarizationEnum pol,
-                                               size_t data_desc_id,
-                                               const std::string& temp_dir) {
-  std::string prefix = GetFilenamePrefix(ms_path_str, temp_dir);
-
-  std::ostringstream part_prefix;
-  part_prefix << prefix << "-part";
-  if (part_index < 1000) part_prefix << '0';
-  if (part_index < 100) part_prefix << '0';
-  if (part_index < 10) part_prefix << '0';
-  part_prefix << part_index;
-  part_prefix << "-";
-  part_prefix << aocommon::Polarization::TypeToShortString(pol);
-  part_prefix << "-b" << data_desc_id;
-  return part_prefix.str();
-}
-
-std::string ReorderedMsProvider::GetMetaFilename(const std::string& ms_path_str,
-                                                 const std::string& temp_dir,
-                                                 size_t data_desc_id) {
-  std::string prefix = GetFilenamePrefix(ms_path_str, temp_dir);
-
-  std::ostringstream s;
-  s << prefix << "-spw" << data_desc_id << "-parted-meta.tmp";
-  return s.str();
-}
-
 /*
  * When reordered:
  * One global file stores:
@@ -212,7 +149,7 @@ std::string ReorderedMsProvider::GetMetaFilename(const std::string& ms_path_str,
  * - Model, optionally
  */
 ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
-    const string& ms_path, const std::vector<ChannelRange>& channels,
+    const string& ms_path, const std::vector<reorder::ChannelRange>& channels,
     const MSSelection& selection, const string& data_column_name,
     bool include_model, bool initial_model_required, const Settings& settings) {
   const bool model_update_required = settings.modelUpdateRequired;
@@ -234,23 +171,23 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
   Logger::Debug << '\n';
 
   // Ordered as files[pol x channelpart]
-  std::vector<PartitionFiles> files(channel_parts * pols_out.size());
+  std::vector<reorder::ReorderDataFile> files(channel_parts * pols_out.size());
 
-  const size_t maxchannels_ = GetMaxChannels(channels);
+  const size_t maxchannels_ = reorder::GetMaxChannels(channels);
 
   // Each data desc id needs a separate meta file because they can have
   // different uvws and other info.
   size_t file_index = 0;
   for (size_t part = 0; part != channel_parts; ++part) {
     for (aocommon::PolarizationEnum p : pols_out) {
-      PartitionFiles& f = files[file_index];
-      std::string part_prefix = GetPartPrefix(
+      reorder::ReorderDataFile& f = files[file_index];
+      std::string part_prefix = reorder::GetPartPrefix(
           ms_path, part, p, channels[part].data_desc_id, temporary_directory);
       f.data = std::make_unique<std::ofstream>(part_prefix + ".tmp");
       f.weight = std::make_unique<std::ofstream>(part_prefix + "-w.tmp");
       if (initial_model_required)
         f.model = std::make_unique<std::ofstream>(part_prefix + "-m.tmp");
-      f.data->seekp(PartHeader::BINARY_SIZE, std::ios::beg);
+      f.data->seekp(reorder::PartHeader::BINARY_SIZE, std::ios::beg);
 
       ++file_index;
     }
@@ -258,7 +195,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
 
   // This maps data_desc_id to spw index.
   const std::map<size_t, size_t> selected_data_desc_ids =
-      GetDataDescIdMap(channels);
+      reorder::GetDataDescIdMap(channels);
 
   std::unique_ptr<MsRowProviderBase> row_provider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
@@ -306,9 +243,9 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
     const size_t data_desc_id = p.first;
     const size_t spw_index = p.second;
     std::string meta_filename =
-        GetMetaFilename(ms_path, temporary_directory, data_desc_id);
+        reorder::GetMetaFilename(ms_path, temporary_directory, data_desc_id);
     meta_files[spw_index] = std::make_unique<std::ofstream>(meta_filename);
-    MetaHeader meta_header;
+    reorder::MetaHeader meta_header;
     meta_header.selected_row_count = 0;  // not yet known
     meta_header.filename_length = ms_path.size();
     meta_header.start_time = row_provider->StartTime();
@@ -341,7 +278,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
       progress1->SetProgress(row_provider->CurrentProgress(),
                              row_provider->TotalProgress());
 
-    MetaRecord meta;
+    reorder::MetaRecord meta;
 
     double time;
     uint32_t data_desc_id, antenna1, antenna2, field_id;
@@ -371,7 +308,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
             ms_polarizations_per_data_desc_id.find(data_desc_id)->second;
 
         for (aocommon::PolarizationEnum p : pols_out) {
-          PartitionFiles& f = files[file_index];
+          reorder::ReorderDataFile& f = files[file_index];
           CopyData(data_buffer.data(), part_start_ch, part_end_ch,
                    ms_polarizations, data_array, p);
           f.data->write(reinterpret_cast<char*>(data_buffer.data()),
@@ -417,7 +354,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
   // Rewrite meta headers to include selected row count
   for (const std::pair<const size_t, size_t>& p : selected_data_desc_ids) {
     const size_t spw_index = p.second;
-    MetaHeader meta_header;
+    reorder::MetaHeader meta_header;
     meta_header.selected_row_count =
         selected_row_count_per_spw_index[spw_index];
     meta_header.filename_length = ms_path.size();
@@ -428,7 +365,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
   }
 
   // Write header to parts and write empty model files (if requested)
-  PartHeader header;
+  reorder::PartHeader header;
   header.has_model = include_model;
   file_index = 0;
   data_buffer.assign(maxchannels_ * polarizations_per_file, 0.0);
@@ -444,7 +381,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
     for (std::set<aocommon::PolarizationEnum>::const_iterator p =
              pols_out.begin();
          p != pols_out.end(); ++p) {
-      PartitionFiles& f = files[file_index];
+      reorder::ReorderDataFile& f = files[file_index];
       f.data->seekp(0, std::ios::beg);
       header.Write(*f.data);
       if (!f.data->good())
@@ -457,7 +394,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
 
       // If model is requested, fill model file with zeros
       if (include_model && !initial_model_required) {
-        std::string part_prefix = GetPartPrefix(
+        std::string part_prefix = reorder::GetPartPrefix(
             ms_path, part, *p, header.data_desc_id, temporary_directory);
         std::ofstream modelFile(part_prefix + "-m.tmp");
         const size_t selected_row_count = selected_row_count_per_spw_index
@@ -485,8 +422,8 @@ ReorderedMsProvider::Handle
 ReorderedMsProvider::GenerateHandleFromReorderedData(
     const std::string& ms_path, const string& data_column_name,
     const std::string& temporary_directory,
-    const std::vector<ChannelRange>& channels, bool initial_model_required,
-    bool model_update_required,
+    const std::vector<reorder::ChannelRange>& channels,
+    bool initial_model_required, bool model_update_required,
     const std::set<aocommon::PolarizationEnum>& polarizations,
     const MSSelection& selection, const aocommon::MultiBandData& bands,
     size_t num_antennas, bool keep_temporary_files) {
@@ -500,27 +437,28 @@ void ReorderedMsProvider::unpartition(
   const std::set<aocommon::PolarizationEnum> pols = handle.polarizations_;
 
   const std::map<size_t, size_t> data_desc_ids =
-      GetDataDescIdMap(handle.channels_);
+      reorder::GetDataDescIdMap(handle.channels_);
 
-  std::vector<MetaHeader> meta_headers(data_desc_ids.size());
+  std::vector<reorder::MetaHeader> meta_headers(data_desc_ids.size());
   for (const std::pair<const size_t, size_t>& data_desc_id : data_desc_ids) {
-    std::ifstream meta_file(GetMetaFilename(
+    std::ifstream meta_file(reorder::GetMetaFilename(
         handle.ms_path_, handle.temporary_directory_, data_desc_id.first));
-    MetaHeader& meta_header = meta_headers[data_desc_id.second];
+    reorder::MetaHeader& meta_header = meta_headers[data_desc_id.second];
     meta_header.Read(meta_file);
     std::vector<char> ms_path(meta_header.filename_length + 1, char(0));
     meta_file.read(ms_path.data(), meta_header.filename_length);
   }
 
-  ChannelRange firstRange = handle.channels_[0];
+  reorder::ChannelRange firstRange = handle.channels_[0];
   std::ifstream first_data_file(
-      GetPartPrefix(handle.ms_path_, 0, *pols.begin(), firstRange.data_desc_id,
-                    handle.temporary_directory_) +
+      reorder::GetPartPrefix(handle.ms_path_, 0, *pols.begin(),
+                             firstRange.data_desc_id,
+                             handle.temporary_directory_) +
           ".tmp",
       std::ios::in);
   if (!first_data_file.good())
     throw std::runtime_error("Error opening temporary data file");
-  PartHeader firstpart_header_;
+  reorder::PartHeader firstpart_header_;
   firstpart_header_.Read(first_data_file);
   if (!first_data_file.good())
     throw std::runtime_error("Error reading from temporary data file");
@@ -536,8 +474,8 @@ void ReorderedMsProvider::unpartition(
       size_t data_desc_id = handle.channels_[part].data_desc_id;
       for (aocommon::PolarizationEnum p : pols) {
         std::string part_prefix =
-            GetPartPrefix(handle.ms_path_, part, p, data_desc_id,
-                          handle.temporary_directory_);
+            reorder::GetPartPrefix(handle.ms_path_, part, p, data_desc_id,
+                                   handle.temporary_directory_);
         model_files[file_index] =
             std::make_unique<std::ifstream>(part_prefix + "-m.tmp");
         if (!*model_files[file_index])
@@ -570,7 +508,7 @@ void ReorderedMsProvider::unpartition(
         ms, ms.columnName(casacore::MSMainEnums::UVW));
 
     const casacore::IPosition shape(data_column.shape(0));
-    const size_t maxchannels_ = GetMaxChannels(handle.channels_);
+    const size_t maxchannels_ = reorder::GetMaxChannels(handle.channels_);
 
     const size_t polarizations_per_file =
         aocommon::Polarization::GetVisibilityCount(*pols.begin());
@@ -660,9 +598,9 @@ ReorderedMsProvider::Handle::HandleData::~HandleData() {
       std::set<size_t> removed_meta_files;
       for (size_t part = 0; part != channels_.size(); ++part) {
         for (aocommon::PolarizationEnum p : polarizations_) {
-          std::string prefix =
-              GetPartPrefix(ms_path_, part, p, channels_[part].data_desc_id,
-                            temporary_directory_);
+          std::string prefix = reorder::GetPartPrefix(
+              ms_path_, part, p, channels_[part].data_desc_id,
+              temporary_directory_);
           std::remove((prefix + ".tmp").c_str());
           std::remove((prefix + "-w.tmp").c_str());
           std::remove((prefix + "-m.tmp").c_str());
@@ -670,8 +608,8 @@ ReorderedMsProvider::Handle::HandleData::~HandleData() {
         const size_t data_desc_id = channels_[part].data_desc_id;
         if (removed_meta_files.count(data_desc_id) == 0) {
           removed_meta_files.insert(data_desc_id);
-          std::string meta_file =
-              GetMetaFilename(ms_path_, temporary_directory_, data_desc_id);
+          std::string meta_file = reorder::GetMetaFilename(
+              ms_path_, temporary_directory_, data_desc_id);
           std::remove(meta_file.c_str());
         }
       }
@@ -687,7 +625,7 @@ void ReorderedMsProvider::MakeIdToMSRowMapping(
     std::vector<size_t>& id_to_ms_row) {
   const MSSelection& selection = handle_.data_->selection_;
   const std::map<size_t, size_t> data_desc_ids =
-      GetDataDescIdMap(handle_.data_->channels_);
+      reorder::GetDataDescIdMap(handle_.data_->channels_);
   std::set<size_t> data_desc_idSet;
   for (std::map<size_t, size_t>::const_iterator i = data_desc_ids.begin();
        i != data_desc_ids.end(); ++i)
@@ -696,19 +634,6 @@ void ReorderedMsProvider::MakeIdToMSRowMapping(
   SynchronizedMS ms = MS();
   GetRowRangeAndIDMap(*ms, selection, start_row, end_row, data_desc_idSet,
                       id_to_ms_row);
-}
-
-std::map<size_t, size_t> ReorderedMsProvider::GetDataDescIdMap(
-    const std::vector<ReorderedMsProvider::ChannelRange>& channels) {
-  std::map<size_t, size_t> data_desc_ids;
-  size_t spw_index = 0;
-  for (const ReorderedMsProvider::ChannelRange& range : channels) {
-    if (data_desc_ids.count(range.data_desc_id) == 0) {
-      data_desc_ids.emplace(range.data_desc_id, spw_index);
-      ++spw_index;
-    }
-  }
-  return data_desc_ids;
 }
 
 void ReorderedMsProvider::Handle::Serialize(
@@ -726,7 +651,7 @@ void ReorderedMsProvider::Handle::HandleData::Serialize(
       .String(data_column_name_)
       .String(temporary_directory_)
       .UInt64(channels_.size());
-  for (const ChannelRange& range : channels_) {
+  for (const reorder::ChannelRange& range : channels_) {
     stream.UInt64(range.data_desc_id).UInt64(range.start).UInt64(range.end);
   }
   stream.Bool(initial_model_required_)
@@ -744,13 +669,13 @@ void ReorderedMsProvider::Handle::HandleData::Unserialize(
       .String(data_column_name_)
       .String(temporary_directory_);
   channels_.resize(stream.UInt64());
-  for (ChannelRange& range : channels_) {
+  for (reorder::ChannelRange& range : channels_) {
     stream.UInt64(range.data_desc_id).UInt64(range.start).UInt64(range.end);
   }
   stream.Bool(initial_model_required_).Bool(model_update_required_);
-  size_t nPol = stream.UInt64();
+  size_t n_pol = stream.UInt64();
   polarizations_.clear();
-  for (size_t i = 0; i != nPol; ++i)
+  for (size_t i = 0; i != n_pol; ++i)
     polarizations_.emplace((aocommon::PolarizationEnum)stream.UInt32());
   selection_.Unserialize(stream);
   stream.UInt64(n_antennas_);

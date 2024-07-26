@@ -342,6 +342,7 @@ add_library(
   msproviders/msreaders/reorderedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
   msproviders/msweightcolumn.cpp
+  msproviders/reorder.cpp
   scheduling/griddingtask.cpp
   scheduling/griddingtaskfactory.cpp
   scheduling/griddingtaskmanager.cpp

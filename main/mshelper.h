@@ -7,6 +7,7 @@
 #include <aocommon/multibanddata.h>
 
 #include "../msproviders/reorderedmsprovider.h"
+#include "../msproviders/reorder.h"
 #include "../structures/imagingtable.h"
 #include "../structures/mslistitem.h"
 #include "../structures/msselection.h"
@@ -37,7 +38,7 @@ class MsHelper {
     return reordered_ms_handles_;
   }
 
-  const std::vector<ReorderedMsProvider::ChannelRange> GenerateChannelInfo(
+  const std::vector<reorder::ChannelRange> GenerateChannelInfo(
       const ImagingTable& imaging_table, size_t ms_index) const;
 
   void ReuseReorderedFiles(const ImagingTable& imaging_table);
