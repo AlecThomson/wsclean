@@ -20,7 +20,6 @@ Full change list
 * Improve efficiency of data & meta-data reading.
 * Allow output of a psuedo-Stokes-I source list.
 * Support applying independent xx/yy solutions when imaging Stokes I.
-* Support for diagonal and full Stokes solution correction and IQUV imaging with beam.
 
 Bug fixes
 ---------

@@ -1,10 +1,11 @@
-set(WSCLEAN_VERSION_STR   3.4)
+set(WSCLEAN_VERSION_STR   3.5)
 set(WSCLEAN_VERSION_MAJOR 3)
 set(WSCLEAN_VERSION_MINOR 4)
-set(WSCLEAN_VERSION_DATE  2023-10-11)
+set(WSCLEAN_VERSION_DATE  2024-07-30)
 
-# SOVERSION stored in the library -- increase
-# when making ABI changes
+# SOVERSION stored in the library, was added for Debian
+# packaging, but seems unnecessary after all -- hence
+# keep constant.
 set(WSCLEAN_VERSION_SO    2)
 
 # Get the latest abbreviated commit hash of the working branch

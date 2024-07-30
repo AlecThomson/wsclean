@@ -1,0 +1,45 @@
+WSClean version 3.5
+===================
+
+Released 2024-07-30
+
+Summary:
+
+Version 3.5 contains a few major new features, speed improvements and important bugfixes: the result of 9 months of development. Memory & computational efficiency was further improved, particularly when using large h5parm solution files, and many bugs have been solved.
+
+For imaging with beam models, WSClean 3.5 requires EveryBeam `version 0.6.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.6.0>`_ or newer.
+
+Full change list
+----------------
+
+* Support for full Jones h5parm solution correction and IQUV imaging with beam. This required a major rewrite of how WSClean applies solutions, and has improved the accuracy of various use-cases -- particularly for facet-based IQUV imaging. As a consequence, WSClean now only stores a single beam image in :doc:`faceting mode <../facet_based_imaging>`.
+* Replacement of option ``-diagonal-solutions`` with ``-diagonal-visibilities`` that reads only two of four correlations from the data when applying solutions in faceting mode.
+* New option ``-scalar-visibilities`` that reads only one of four correlations from the data when applying solutions in faceting mode.
+* Support joined polarizations with deconvolution channels (`#180 <https://gitlab.com/aroffringa/wsclean/-/issues/180>`_).
+* CMake option to set ``TARGET_CPU`` (see :doc:`the installation instructions <../installation>`).
+* Reduce IO and locking in faceted mode with MPI.
+* Speed up h5parm reading in faceting mode.
+* Change name of the small inversion option to ``-min-grid-resolution``.
+* Support for primary beam correction with the OVRO-LWA and Alma telescopes.
+* Allow overriding maximum MPI message size using ``-max-mpi-message-size``.
+
+Bug fixes and refactoring
+-------------------------
+
+* Preparation for supporting multiple faceting runs with single reads to speed up IO performance (not yet finished).
+* Preparation for reordering in Dp3 and reading by WSClean to avoid one write-read, which includes support for using reorder files.
+* Better use of vectorization / AVX.
+* Fix reported WSClean version hash info.
+* Fix h5parm solution selection when ms bands are not the same (reported by B. Adebahr for Apertif imaging).
+* Fix beam time gridding issue reported by H. Edler.
+* Fixed a bug in forced spectrum fitting which caused the images to have incorrect spectral info, even though the source text file output was correct. The feature worked fine in the initial implementation in :doc:`WSClean 3.0 <v3.0>` but was broken sometime after.
+* Fix a factor four scaling issue in IDG imaging (which was unnoticable because it got absorbed in the PSF scaling).
+* Updated version of the DUCC0 / wgridder code, with better support for horizon-to-horizon imaging/prediction.
+* Allow reverse ordered frequencies in wgridder.
+* When restoring, use the command line supplied beam settings for the restoring beam if the provided image has no beam info.
+* Fix incorrect Stokes I image-based (i.e., using ``-apply-primary-beam``) beam correction.
+* Fix reusing dirty/psf images when using faceting.
+* Fix a crash when a zero weight beam occurs.
+* Fix DD PSF restoring beam fitting for MF image.
+* Produce immediate error when a source list is requested and the provided fitting settings are incorrect.
+* Support compilation with gcc-14.

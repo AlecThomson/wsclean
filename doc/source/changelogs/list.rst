@@ -9,12 +9,14 @@ WSClean version 3 is the current major release number. It is in development sinc
 .. toctree::
    :hidden:
  
+   v3.5
    v3.4
    v3.3
    v3.2
    v3.1
    v3.0
 
+* :doc:`Changelog for WSClean 3.5 <v3.5>` (2024-07-30)
 * :doc:`Changelog for WSClean 3.4 <v3.4>` (2023-10-11)
 * :doc:`Changelog for WSClean 3.3 <v3.3>` (2023-03-31)
 * :doc:`Changelog for WSClean 3.2 <v3.2>` (2022-10-21)
