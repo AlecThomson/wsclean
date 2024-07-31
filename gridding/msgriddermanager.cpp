@@ -49,7 +49,7 @@ void MSGridderManager::InitializeGridders(
     GriddingResult::FacetData& facet_result = facet_results[facet_index];
 
     if (solution_data_.HasData()) {
-      gridder->SetH5Parm(
+      gridder->GetVisibilityModifier().SetH5Parm(
           solution_data_.GetH5Parms(), solution_data_.GetFirstSolutions(),
           solution_data_.GetSecondSolutions(), solution_data_.GetGainTypes());
     }
@@ -211,7 +211,8 @@ void MSGridderManager::InitializeGridderForFacet(
     gridder.SetImageHeight(facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(facet->GetTrimmedBoundingBox().Width(),
                         facet->GetTrimmedBoundingBox().Height());
-    gridder.SetFacetDirection(facet->RA(), facet->Dec());
+    gridder.GetVisibilityModifier().SetFacetDirection(facet->RA(),
+                                                      facet->Dec());
   } else {
     gridder.SetImageWidth(settings_.paddedImageWidth);
     gridder.SetImageHeight(settings_.paddedImageHeight);

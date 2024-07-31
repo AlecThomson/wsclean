@@ -36,16 +36,34 @@ inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
     }
   }
 }
+
+std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
+  std::unique_ptr<MSReader> ms_reader = ms_provider.MakeReader();
+  std::vector<double> unique_times;
+  while (ms_reader->CurrentRowAvailable()) {
+    MSProvider::MetaData meta_data;
+    ms_reader->ReadMeta(meta_data);
+    // Assumes that the time instants in the MS are in ascending order.
+    // In case this is violated, the returned vector will contain redundant
+    // entries.
+    if (unique_times.empty() || meta_data.time != unique_times.back()) {
+      unique_times.emplace_back(meta_data.time);
+    }
+    ms_reader->NextInputRow();
+  }
+  return unique_times;
+}
 }  // namespace
 
 void MsProviderCollection::InitializeMSDataVector(
-    const std::vector<MSGridderBase*>& gridders, double w_limit) {
+    const std::vector<MSGridderBase*>& gridders, double w_limit,
+    bool has_solution_data) {
   assert(Count() != 0);
 
-  bool hasCache = false;
+  bool has_cache = false;
   for (MSGridderBase* facet_gridder : gridders) {
-    hasCache = facet_gridder->HasMetaDataCache();
-    if (!hasCache) facet_gridder->AllocateMetaDataCache(Count());
+    has_cache = facet_gridder->HasMetaDataCache();
+    if (!has_cache) facet_gridder->AllocateMetaDataCache(Count());
 
     facet_gridder->ResetVisibilityModifierCache();
   }
@@ -57,7 +75,7 @@ void MsProviderCollection::InitializeMSDataVector(
     MsData& ms_data = ms_data_vector_[i];
     ms_data.internal_ms_index = i;
     ms_data.original_ms_index = Index(i);
-    InitializeMeasurementSet(ms_data, gridders, hasCache);
+    InitializeMeasurementSet(ms_data, gridders, has_cache, has_solution_data);
 
     ms_limits_.Calculate(ms_data.SelectedBand(),
                          ms_data.ms_provider->StartTime());
@@ -123,7 +141,7 @@ void MsProviderCollection::MsData::InitializeBandData(
 
 void MsProviderCollection::InitializeMeasurementSet(
     MsData& ms_data, const std::vector<MSGridderBase*>& gridders,
-    bool is_cached) {
+    bool is_cached, bool has_solution_data) {
   MSProvider& ms_provider = MeasurementSet(ms_data.internal_ms_index);
   ms_data.ms_provider = &ms_provider;
 
@@ -183,8 +201,13 @@ void MsProviderCollection::InitializeMeasurementSet(
     cache_entry.integration_time = ms_data.integration_time;
   }
 
-  for (MSGridderBase* gridder : gridders) {
-    gridder->initializeVisibilityModifierTimes(ms_data);
+  if (has_solution_data) {
+    ms_data.unique_times =
+        std::make_shared<std::vector<double>>(SelectUniqueTimes(ms_provider));
+    for (MSGridderBase* gridder : gridders) {
+      gridder->GetVisibilityModifier().SetMSTimes(ms_data.original_ms_index,
+                                                  ms_data.unique_times);
+    }
   }
 }
 

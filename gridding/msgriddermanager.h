@@ -75,7 +75,8 @@ class MSGridderManager {
     for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
       gridders.push_back(gridder.get());
     }
-    ms_provider_collection_.InitializeMSDataVector(gridders, w_limit_);
+    ms_provider_collection_.InitializeMSDataVector(gridders, w_limit_,
+                                                   solution_data_.HasData());
   }
 
   /** Initializes 'gridder' with values that are equal for all facets. */

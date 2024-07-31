@@ -38,28 +38,6 @@ using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
 namespace wsclean {
-namespace {
-
-/**
- * @brief Select unique times from a given MSProvider
- */
-std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
-  std::unique_ptr<MSReader> msReader = ms_provider.MakeReader();
-  std::vector<double> msTimes;
-  while (msReader->CurrentRowAvailable()) {
-    MSProvider::MetaData metaData;
-    msReader->ReadMeta(metaData);
-    // Assumes that the time instants in the MS are in ascending order.
-    // In case this is violated, the returned vector will contain redundant
-    // entries.
-    if (msTimes.empty() || metaData.time != msTimes.back()) {
-      msTimes.push_back(metaData.time);
-    }
-    msReader->NextInputRow();
-  }
-  return msTimes;
-}
-}  // namespace
 
 // Defined out of class to allow the class the be used in a std::unique_ptr.
 MSGridderBase::~MSGridderBase() = default;
@@ -119,14 +97,6 @@ void MSGridderBase::StartMeasurementSet(
     scratch_model_data_.resize(n_channels *
                                msData.ms_provider->NPolarizations());
     predict_reader_ = msData.ms_provider->MakeReader();
-  }
-}
-
-void MSGridderBase::initializeVisibilityModifierTimes(
-    MsProviderCollection::MsData& msData) {
-  if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.SetMSTimes(msData.original_ms_index,
-                                    SelectUniqueTimes(*msData.ms_provider));
   }
 }
 
@@ -280,7 +250,8 @@ void MSGridderBase::CalculateWeights(InversionRow& rowData,
       dl = MainImageDL();
       dm = MainImageDM();
     } else {  // GetPsfMode() == PsfMode::kDirectionDependent
-      // The point source is shifted to the centre of the current DdPsf position
+      // The point source is shifted to the centre of the current DdPsf
+      // position
       dl = LShift();
       dm = MShift();
     }

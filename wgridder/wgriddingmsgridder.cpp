@@ -59,7 +59,7 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   size_t perVisMem;
   gridder_->MemoryUsage(constantMem, perVisMem);
 
-  constantMem += GetCachedH5ParmSize();
+  constantMem += GetVisibilityModifier().GetCacheParmResponseSize();
 
   if (int64_t(constantMem) >= resources_.Memory()) {
     // Assume that half the memory is necessary for the constant parts (like

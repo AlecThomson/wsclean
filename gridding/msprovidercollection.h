@@ -50,6 +50,8 @@ class MsProviderCollection {
     double integration_time = 0.0;
 
     std::vector<std::string> antenna_names;
+    std::shared_ptr<std::vector<double>> unique_times;
+
     aocommon::BandData SelectedBand() const {
       return aocommon::BandData(band_data, start_channel, end_channel);
     }
@@ -85,7 +87,7 @@ class MsProviderCollection {
 
   void InitializeMS();
   void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders,
-                              double w_limit);
+                              double w_limit, bool has_solution_data);
 
   /** Computes/stores per MS metadata that is shared for all facets/gridders in
    * a facet group */
@@ -103,7 +105,7 @@ class MsProviderCollection {
 
   void InitializeMeasurementSet(MsData& ms_data,
                                 const std::vector<MSGridderBase*>& gridders,
-                                bool is_cached);
+                                bool is_cached, bool has_solution_data);
 
   /** Computes/stores limits across all measurement sets */
   struct {

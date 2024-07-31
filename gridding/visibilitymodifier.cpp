@@ -87,8 +87,8 @@ void VisibilityModifier::InitializeCacheParmResponse(
   if (_cachedParmResponse[ms_index].empty()) {
     const size_t nparms = NValuesPerSolution(ms_index);
     const std::vector<double> freqs(band.begin(), band.end());
-    const size_t responseSize = _cachedMSTimes[ms_index].size() * freqs.size() *
-                                antennaNames.size() * nparms;
+    const size_t responseSize = _cachedMSTimes[ms_index]->size() *
+                                freqs.size() * antennaNames.size() * nparms;
     const std::string dirName = (*_h5parms)[solution_index].GetNearestSource(
         _facetDirectionRA, _facetDirectionDec);
     schaapcommon::h5parm::SolTab* const first_solution =
@@ -98,7 +98,7 @@ void VisibilityModifier::InitializeCacheParmResponse(
                                   : (*_secondSolutions)[solution_index];
     const size_t dirIndex = first_solution->GetDirIndex(dirName);
     JonesParameters jonesParameters(
-        freqs, _cachedMSTimes[ms_index], antennaNames,
+        freqs, *_cachedMSTimes[ms_index], antennaNames,
         (*_gainTypes)[solution_index],
         JonesParameters::InterpolationType::NEAREST, dirIndex, first_solution,
         second_solution, false, 0.0f, 0u,
@@ -125,12 +125,12 @@ void VisibilityModifier::CacheParmResponse(double time,
                                            const aocommon::BandData& band,
                                            size_t ms_index) {
   const auto it =
-      std::find(_cachedMSTimes[ms_index].begin() + _timeOffsets[ms_index],
-                _cachedMSTimes[ms_index].end(), time);
-  if (it != _cachedMSTimes[ms_index].end()) {
+      std::find(_cachedMSTimes[ms_index]->begin() + _timeOffsets[ms_index],
+                _cachedMSTimes[ms_index]->end(), time);
+  if (it != _cachedMSTimes[ms_index]->end()) {
     // Update _timeOffset value with index
     _timeOffsets[ms_index] =
-        std::distance(_cachedMSTimes[ms_index].begin(), it);
+        std::distance(_cachedMSTimes[ms_index]->begin(), it);
   } else {
     throw std::runtime_error(
         "Time not found in cached times. A potential reason could be that the "
@@ -139,7 +139,7 @@ void VisibilityModifier::CacheParmResponse(double time,
         std::to_string(ms_index) +
         ", cache "
         "contained " +
-        std::to_string(_cachedMSTimes[ms_index].size()) + " elements.\n");
+        std::to_string(_cachedMSTimes[ms_index]->size()) + " elements.\n");
   }
 }
 

@@ -130,7 +130,7 @@ class VisibilityModifier {
                          size_t n_channels, size_t n_antennas, size_t antenna1,
                          size_t antenna2);
 
-  void SetMSTimes(size_t ms_index, std::vector<double>&& times) {
+  void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
     _cachedMSTimes[ms_index] = std::move(times);
   }
 
@@ -257,7 +257,7 @@ class VisibilityModifier {
    * Each element holds a vector with the measurement set times. The map
    * is indexed by a (non-consecutive) ms_index.
    */
-  std::map<size_t, std::vector<double>> _cachedMSTimes;
+  std::map<size_t, std::shared_ptr<std::vector<double>>> _cachedMSTimes;
   /**
    * Each element holds the current offset position into the _cachedParmResponse
    * and _cachedMSTimes elements of the same ms_index. The map is indexed by a
