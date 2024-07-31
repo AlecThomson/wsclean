@@ -73,8 +73,20 @@ void MSGridderManager::Invert() {
   InitializeMSDataVectors();
 
   for (const GriddingFacetTask& task : facet_tasks_) {
-    task.facet_gridder->calculateOverallMetaData();
-    task.facet_gridder->Invert();
+    const std::unique_ptr<MSGridderBase>& gridder = task.facet_gridder;
+    gridder->calculateOverallMetaData();
+    gridder->StartInversion();
+    const size_t n_inversion_passes = gridder->GetNInversionPasses();
+    for (size_t pass_index = 0; pass_index < n_inversion_passes; ++pass_index) {
+      gridder->StartInversionPass(pass_index);
+      for (MsProviderCollection::MsData& ms_data :
+           ms_provider_collection_.ms_data_vector_) {
+        gridder->StartMeasurementSet(ms_data, false);
+        ms_data.total_rows_processed += gridder->GridMeasurementSet(ms_data);
+      }
+      gridder->FinishInversionPass();
+    }
+    gridder->FinishInversion();
   }
 }
 
@@ -82,8 +94,20 @@ void MSGridderManager::Predict() {
   InitializeMSDataVectors();
 
   for (const GriddingFacetTask& task : facet_tasks_) {
-    task.facet_gridder->calculateOverallMetaData();
-    task.facet_gridder->Predict(std::move(task.facet_task.modelImages));
+    const std::unique_ptr<MSGridderBase>& gridder = task.facet_gridder;
+    gridder->calculateOverallMetaData();
+    gridder->StartPredict(std::move(task.facet_task.modelImages));
+    const size_t n_predict_passes = gridder->GetNPredictPasses();
+    for (size_t pass_index = 0; pass_index < n_predict_passes; ++pass_index) {
+      gridder->StartPredictPass(pass_index);
+      for (MsProviderCollection::MsData& ms_data :
+           ms_provider_collection_.ms_data_vector_) {
+        gridder->StartMeasurementSet(ms_data, true);
+        ms_data.total_rows_processed += gridder->PredictMeasurementSet(ms_data);
+      }
+      gridder->FinishPredictPass();
+    }
+    gridder->FinishPredict();
   }
 }
 

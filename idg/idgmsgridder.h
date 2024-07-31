@@ -30,13 +30,18 @@ class IdgMsGridder final : public MSGridderBase {
   IdgMsGridder(const Settings& settings, const Resources& resources,
                MsProviderCollection& measurement_sets);
 
-  virtual ~IdgMsGridder() final override;
+  ~IdgMsGridder() final;
 
-  virtual void Invert() final override;
+  void StartInversion() final;
+  size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void FinishInversion() final;
 
-  virtual void Predict(std::vector<aocommon::Image>&& images) final override;
+  void StartPredict(std::vector<aocommon::Image>&& images) final;
+  size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) final;
+  void FinishPredict() final;
 
-  virtual std::vector<aocommon::Image> ResultImages() final override;
+  std::vector<aocommon::Image> ResultImages() final;
 
   static void SavePBCorrectedImages(aocommon::FitsWriter& writer,
                                     const ImageFilename& filename,
@@ -55,14 +60,10 @@ class IdgMsGridder final : public MSGridderBase {
  private:
   std::unique_ptr<AverageBeam> _averageBeam;
 
-  virtual size_t getSuggestedWGridSize() const override final {
+  size_t getSuggestedWGridSize() const final {
     return 1;  // TODO
   }
 
-  void gridMeasurementSet(const MsProviderCollection::MsData& msData);
-  void gridThreadFunction();
-
-  void predictMeasurementSet(const MsProviderCollection::MsData& msData);
   void readConfiguration();
 
   void setIdgType();

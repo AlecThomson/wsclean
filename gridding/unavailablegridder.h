@@ -20,15 +20,26 @@ class UnavailableGridder final : public MSGridderBase {
     doThrow();
   }
 
-  virtual ~UnavailableGridder() override { doThrow(); }
+  ~UnavailableGridder() final { doThrow(); }
 
-  virtual void Invert() override { doThrow(); }
-
-  virtual void Predict(std::vector<aocommon::Image>&&) override { doThrow(); }
-
-  virtual std::vector<aocommon::Image> ResultImages() override {
+  void StartInversion() final { doThrow(); }
+  size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final {
     doThrow();
-    return {aocommon::Image()};
+    return 0;
+  }
+  void FinishInversion() final { doThrow(); }
+
+  void StartPredict(std::vector<aocommon::Image>&& images) final { doThrow(); }
+  size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& /*ms_data*/) final {
+    doThrow();
+    return 0;
+  }
+  void FinishPredict() final { doThrow(); }
+
+  std::vector<aocommon::Image> ResultImages() final {
+    doThrow();
+    return {};
   }
 
   static void SavePBCorrectedImages(aocommon::FitsWriter& /*writer*/,
@@ -49,7 +60,7 @@ class UnavailableGridder final : public MSGridderBase {
   }
 
  private:
-  virtual size_t getSuggestedWGridSize() const override {
+  size_t getSuggestedWGridSize() const final {
     doThrow();
     return 0;
   }

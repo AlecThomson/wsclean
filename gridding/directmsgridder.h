@@ -6,6 +6,7 @@
 
 #include "msgridderbase.h"
 
+#include "../main/progressbar.h"
 #include "../structures/resources.h"
 
 namespace wsclean {
@@ -18,14 +19,19 @@ class DirectMSGridder final : public MSGridderBase {
   DirectMSGridder(const Settings& settings, const Resources& resources,
                   MsProviderCollection& ms_provider_collection);
 
-  virtual void Invert() override;
+  void StartInversion() final;
+  size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void FinishInversion() final;
 
-  virtual void Predict(std::vector<aocommon::Image>&& images) override;
+  void StartPredict(std::vector<aocommon::Image>&& images) final;
+  size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) final;
+  void FinishPredict() final;
 
-  virtual std::vector<aocommon::Image> ResultImages() override {
+  std::vector<aocommon::Image> ResultImages() final {
     return {std::move(_image)};
   }
-  virtual size_t getSuggestedWGridSize() const override { return 1; }
+  size_t getSuggestedWGridSize() const final { return 1; }
 
  private:
   struct InversionSample {
@@ -38,10 +44,11 @@ class DirectMSGridder final : public MSGridderBase {
   std::vector<aocommon::ImageBase<num_t>> _layers;
   aocommon::Lane<InversionSample> _inversionLane;
 
-  void invertMeasurementSet(const MsProviderCollection::MsData& msData,
-                            ProgressBar& progress, size_t msIndex);
+  void InvertMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                            size_t ms_index);
   void gridSample(const InversionSample& sample, size_t layer);
   aocommon::ImageBase<num_t> GetSqrtLMLookupTable() const;
+  std::unique_ptr<ProgressBar> progress_bar_;
 };
 
 }  // namespace wsclean

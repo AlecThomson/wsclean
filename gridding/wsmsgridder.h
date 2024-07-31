@@ -25,19 +25,30 @@ class WSMSGridder final : public MSGridderBase {
 
   WSMSGridder(const Settings& settings, const Resources& resources,
               MsProviderCollection& ms_provider_collection);
-  ~WSMSGridder() noexcept;
+  ~WSMSGridder() noexcept final;
 
-  virtual void Invert() override;
+  size_t GetNInversionPasses() const final { return _gridder->NPasses(); }
+  void StartInversion() final;
+  void StartInversionPass(size_t pass_index) final;
+  size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void FinishInversionPass() final;
+  void FinishInversion() final;
 
-  virtual void Predict(std::vector<aocommon::Image>&& images) override;
+  size_t GetNPredictPasses() const final { return _gridder->NPasses(); }
+  void StartPredict(std::vector<aocommon::Image>&& images) final;
+  void StartPredictPass(size_t pass_index) final;
+  size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) final;
+  void FinishPredictPass() final;
+  void FinishPredict() final;
 
-  virtual std::vector<aocommon::Image> ResultImages() override {
+  std::vector<aocommon::Image> ResultImages() final {
     if (IsComplex())
       return {std::move(_realImage), std::move(_imaginaryImage)};
     else
       return {std::move(_realImage)};
   }
-  virtual void FreeImagingData() override { _gridder.reset(); }
+  void FreeImagingData() final { _gridder.reset(); }
 
   size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
   size_t OverSamplingFactor() const { return _overSamplingFactor; }
@@ -58,13 +69,8 @@ class WSMSGridder final : public MSGridderBase {
     size_t rowId;
   };
 
-  void gridMeasurementSet(const MsProviderCollection::MsData& msData);
-
   void countSamplesPerLayer(MsProviderCollection::MsData& msData);
-  virtual size_t getSuggestedWGridSize() const override;
-
-  void predictMeasurementSet(const MsProviderCollection::MsData& msData,
-                             GainMode gain_mode);
+  size_t getSuggestedWGridSize() const final;
 
   void startInversionWorkThreads(size_t maxChannelCount);
   void finishInversionWorkThreads();

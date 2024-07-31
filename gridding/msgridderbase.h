@@ -154,9 +154,48 @@ class MSGridderBase {
     store_imaging_weights_ = store_imaging_weights;
   }
 
-  virtual void Invert() = 0;
+  /**
+   * Initializes MS related data members, i.e. the @c _telescope and the
+   * @c _pointResponse data in case a beam is applied on the facets and
+   * EveryBeam is available and the @c _predictReader data member in case
+   * @c isPredict is true.
+   */
+  void StartMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                           bool is_predict);
 
-  virtual void Predict(std::vector<aocommon::Image>&& images) = 0;
+  /**
+   * To handle inversion a gridder must implement either 3 or 6 of the following
+   * functions.
+   * If a gridder only makes one pass per MS:
+   *     StartInversion(), GridMeasurementSet(), FinishInversion()
+   * If multiple passes then additionally:
+   *     GetNInversionPasses(), StartInversionPass(), FinishInversionPass()
+   */
+  virtual void StartInversion() = 0;
+  virtual size_t GetNInversionPasses() const { return 1; }
+  virtual void StartInversionPass(size_t pass_index){};
+  /** @return The number of visibility rows processed */
+  virtual size_t GridMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) = 0;
+  virtual void FinishInversionPass(){};
+  virtual void FinishInversion() = 0;
+
+  /**
+   * To handle prediction a gridder must implement either 3 or 6 of the
+   * following functions.
+   * If a gridder only makes one pass per MS:
+   *     StartPredict(), PredictMeasurementSet(), FinishPredict()
+   * If multiple passes then additionally:
+   *     GetNPredictPasses(), StartPredictPass(), FinishPredictPass()
+   */
+  virtual void StartPredict(std::vector<aocommon::Image>&& images) = 0;
+  virtual size_t GetNPredictPasses() const { return 1; }
+  virtual void StartPredictPass(size_t pass_index){};
+  /** @return The number of visibility rows processed */
+  virtual size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) = 0;
+  virtual void FinishPredictPass(){};
+  virtual void FinishPredict() = 0;
 
   virtual std::vector<aocommon::Image> ResultImages() = 0;
 
@@ -321,15 +360,6 @@ class MSGridderBase {
     double uvw[3];
     std::complex<float>* data;
   };
-
-  /**
-   * Initializes MS related data members, i.e. the @c _telescope and the
-   * @c _pointResponse data in case a beam is applied on the facets and
-   * EveryBeam is available and the @c _predictReader data member in case
-   * @c isPredict is true.
-   */
-  void StartMeasurementSet(const MsProviderCollection::MsData& ms_data,
-                           bool is_predict);
 
   /**
    * Read a row of visibilities from the msprovider, and apply weights, flags

@@ -130,109 +130,111 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   return suggestedGridSize;
 }
 
-void WSMSGridder::gridMeasurementSet(
-    const MsProviderCollection::MsData& msData) {
-  const size_t n_vis_polarizations = msData.ms_provider->NPolarizations();
-  const aocommon::BandData selectedBand = msData.SelectedBand();
-  StartMeasurementSet(msData, false);
-  _gridder->PrepareBand(selectedBand);
-  aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.ChannelCount() * n_vis_polarizations);
-  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
-                                        n_vis_polarizations);
-  aocommon::UVector<bool> isSelected(selectedBand.ChannelCount());
+size_t WSMSGridder::GridMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
+  const aocommon::BandData selected_band = ms_data.SelectedBand();
+
+  const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
+  aocommon::UVector<std::complex<float>> model_buffer(data_size);
+  aocommon::UVector<float> weight_buffer(data_size);
+  aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount());
+
+  startInversionWorkThreads(selected_band.ChannelCount());
+  _gridder->PrepareBand(selected_band);
 
   // Samples of the same w-layer are collected in a buffer
   // before they are written into the lane. This is done because writing
   // to a lane is reasonably slow; it requires holding a mutex. Without
   // these buffers, writing the lane was a bottleneck and multithreading
   // did not help. I think.
-  std::vector<lane_write_buffer<InversionWorkSample>> bufferedLanes(
+  std::vector<lane_write_buffer<InversionWorkSample>> buffered_lanes(
       _resources.NCpus());
-  size_t bufferSize =
+  size_t lane_buffer_size =
       std::max<size_t>(8u, _inversionCPULanes[0].capacity() / 8);
-  bufferSize = std::min<size_t>(
-      128, std::min(bufferSize, _inversionCPULanes[0].capacity()));
+  lane_buffer_size = std::min<size_t>(
+      128, std::min(lane_buffer_size, _inversionCPULanes[0].capacity()));
   for (size_t i = 0; i != _resources.NCpus(); ++i) {
-    bufferedLanes[i].reset(&_inversionCPULanes[i], bufferSize);
+    buffered_lanes[i].reset(&_inversionCPULanes[i], lane_buffer_size);
   }
 
-  InversionRow newItem;
-  aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.ChannelCount() * n_vis_polarizations);
-  newItem.data = newItemData.data();
+  InversionRow row_data;
+  aocommon::UVector<std::complex<float>> row_visibilities(data_size);
+  row_data.data = row_visibilities.data();
 
+  size_t n_total_rows_read = 0;
   try {
-    size_t rowsRead = 0;
-    std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-    while (msReader->CurrentRowAvailable()) {
-      double uInMeters, vInMeters, wInMeters;
-      MSProvider::MetaData metaData;
-      msReader->ReadMeta(metaData);
-      uInMeters = metaData.uInM;
-      vInMeters = metaData.vInM;
-      wInMeters = metaData.wInM;
+    std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+    while (ms_reader->CurrentRowAvailable()) {
+      MSProvider::MetaData metadata;
+      ms_reader->ReadMeta(metadata);
+      const double u_in_meters = metadata.uInM;
+      const double v_in_meters = metadata.vInM;
+      const double w_in_meters = metadata.wInM;
 
-      const aocommon::BandData& curBand(selectedBand);
-      const double w1 = wInMeters / curBand.LongestWavelength(),
-                   w2 = wInMeters / curBand.SmallestWavelength();
+      const aocommon::BandData& band(selected_band);
+      const double w1 = w_in_meters / band.LongestWavelength();
+      const double w2 = w_in_meters / band.SmallestWavelength();
       if (_gridder->IsInLayerRange(w1, w2)) {
-        newItem.uvw[0] = uInMeters;
-        newItem.uvw[1] = vInMeters;
-        newItem.uvw[2] = wInMeters;
+        row_data.uvw[0] = u_in_meters;
+        row_data.uvw[1] = v_in_meters;
+        row_data.uvw[2] = w_in_meters;
 
         // Any visibilities that are not gridded in this pass
         // should not contribute to the weight sum
-        for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-          const double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
-          isSelected[ch] = _gridder->IsInLayerRange(w);
+        for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+          const double w = row_data.uvw[2] / band.ChannelWavelength(ch);
+          selection_buffer[ch] = _gridder->IsInLayerRange(w);
         }
 
-        GetCollapsedVisibilities(*msReader, msData.antenna_names.size(),
-                                 newItem, curBand, weightBuffer.data(),
-                                 modelBuffer.data(), isSelected.data(),
-                                 metaData);
+        GetCollapsedVisibilities(*ms_reader, ms_data.antenna_names.size(),
+                                 row_data, band, weight_buffer.data(),
+                                 model_buffer.data(), selection_buffer.data(),
+                                 metadata);
 
         if (HasDenormalPhaseCentre()) {
           const double shiftFactor =
               -2.0 * M_PI *
-              (newItem.uvw[0] * LShift() + newItem.uvw[1] * MShift());
+              (row_data.uvw[0] * LShift() + row_data.uvw[1] * MShift());
           // Because the visibilities have been collapsed, there's only one
           // polarization left:
-          rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
+          rotateVisibilities<1>(band, shiftFactor, row_data.data);
         }
 
-        InversionWorkSample sampleData;
-        for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-          double wavelength = curBand.ChannelWavelength(ch);
-          sampleData.sample = newItem.data[ch];
-          sampleData.uInLambda = newItem.uvw[0] / wavelength;
-          sampleData.vInLambda = newItem.uvw[1] / wavelength;
-          sampleData.wInLambda = newItem.uvw[2] / wavelength;
+        InversionWorkSample sample_data;
+        for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
+          double wavelength = band.ChannelWavelength(channel);
+          sample_data.sample = row_data.data[channel];
+          sample_data.uInLambda = row_data.uvw[0] / wavelength;
+          sample_data.vInLambda = row_data.uvw[1] / wavelength;
+          sample_data.wInLambda = row_data.uvw[2] / wavelength;
           size_t cpu =
-              _gridder->WToLayer(sampleData.wInLambda) % _resources.NCpus();
-          bufferedLanes[cpu].write(sampleData);
+              _gridder->WToLayer(sample_data.wInLambda) % _resources.NCpus();
+          buffered_lanes[cpu].write(sample_data);
         }
 
-        ++rowsRead;
+        ++n_total_rows_read;
       }
 
-      msReader->NextInputRow();
+      ms_reader->NextInputRow();
     }
 
-    for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
-      buflane.write_end();
+    for (lane_write_buffer<InversionWorkSample>& lane : buffered_lanes)
+      lane.write_end();
 
     if (IsFirstTask())
-      Logger::Info << "Rows that were required: " << rowsRead << '/'
-                   << msData.matching_rows << '\n';
-    msData.total_rows_processed += rowsRead;
+      Logger::Info << "Rows that were required: " << n_total_rows_read << '/'
+                   << ms_data.matching_rows << '\n';
   } catch (...) {
-    for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
-      buflane.write_end();
+    for (lane_write_buffer<InversionWorkSample>& lane : buffered_lanes)
+      lane.write_end();
     throw;
   }
+
+  finishInversionWorkThreads();
+  return n_total_rows_read;
 }
+
 void WSMSGridder::startInversionWorkThreads(size_t maxChannelCount) {
   _inversionCPULanes.resize(_resources.NCpus());
   _threadGroup.clear();
@@ -265,67 +267,64 @@ void WSMSGridder::workThreadPerSample(
   }
 }
 
-void WSMSGridder::predictMeasurementSet(
-    const MsProviderCollection::MsData& msData, GainMode gain_mode) {
-  msData.ms_provider->ReopenRW();
-  msData.ms_provider->ResetWritePosition();
-  const aocommon::BandData selectedBandData(msData.SelectedBand());
-  _gridder->PrepareBand(selectedBandData);
+size_t WSMSGridder::PredictMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  ms_data.ms_provider->ReopenRW();
+  ms_data.ms_provider->ResetWritePosition();
+  const aocommon::BandData selected_band(ms_data.SelectedBand());
+  _gridder->PrepareBand(selected_band);
 
-  StartMeasurementSet(msData, true);
+  size_t n_total_rows_processed = 0;
 
-  size_t rowsProcessed = 0;
-
-  aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize +
-                                              _resources.NCpus()),
-      writeLane(_laneBufferSize);
+  aocommon::Lane<PredictionWorkItem> lane(_laneBufferSize + _resources.NCpus());
+  aocommon::Lane<PredictionWorkItem> write_lane(_laneBufferSize);
   set_lane_debug_name(
-      calcLane,
-      "Prediction calculation lane (buffered) containing full row data");
-  set_lane_debug_name(writeLane,
+      lane, "Prediction calculation lane (buffered) containing full row data");
+  set_lane_debug_name(write_lane,
                       "Prediction write lane containing full row data");
-  lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
-                                                         _laneBufferSize);
-  std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
-                          &msData, &selectedBandData, gain_mode);
+  lane_write_buffer<PredictionWorkItem> buffered_lane(&lane, _laneBufferSize);
+  std::thread writeThread(&WSMSGridder::predictWriteThread, this, &write_lane,
+                          &ms_data, &selected_band,
+                          GetGainMode(Polarization(), 1));
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _resources.NCpus(); ++i)
-    calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
-                             &writeLane, &selectedBandData);
+    calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &lane,
+                             &write_lane, &selected_band);
 
   /* Start by reading the u,v,ws in, so we don't need IO access
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
-  std::vector<size_t> rowIds;
-  std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-  while (msReader->CurrentRowAvailable()) {
-    double uInMeters, vInMeters, wInMeters;
-    msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
-    uvws.push_back({uInMeters, vInMeters, wInMeters});
-    rowIds.push_back(msReader->RowId());
-    ++rowsProcessed;
+  std::vector<size_t> row_ids;
+  std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+  while (ms_reader->CurrentRowAvailable()) {
+    double u_in_meters;
+    double v_in_meters;
+    double w_in_meters;
+    ms_reader->ReadMeta(u_in_meters, v_in_meters, w_in_meters);
+    uvws.push_back({u_in_meters, v_in_meters, w_in_meters});
+    row_ids.push_back(ms_reader->RowId());
+    ++n_total_rows_processed;
 
-    msReader->NextInputRow();
+    ms_reader->NextInputRow();
   }
 
   for (size_t i = 0; i != uvws.size(); ++i) {
-    PredictionWorkItem newItem;
-    newItem.uvw = uvws[i];
-    newItem.data.reset(
-        new std::complex<float>[selectedBandData.ChannelCount()]);
-    newItem.rowId = rowIds[i];
-
-    bufferedCalcLane.write(std::move(newItem));
+    PredictionWorkItem new_item;
+    new_item.uvw = uvws[i];
+    new_item.data.reset(new std::complex<float>[selected_band.ChannelCount()]);
+    new_item.rowId = row_ids[i];
+    buffered_lane.write(std::move(new_item));
   }
   if (IsFirstTask())
-    Logger::Info << "Rows that were required: " << rowsProcessed << '/'
-                 << msData.matching_rows << '\n';
-  msData.total_rows_processed += rowsProcessed;
+    Logger::Info << "Rows that were required: " << n_total_rows_processed << '/'
+                 << ms_data.matching_rows << '\n';
 
-  bufferedCalcLane.write_end();
+  buffered_lane.write_end();
   for (std::thread& thr : calcThreads) thr.join();
-  writeLane.write_end();
+  write_lane.write_end();
   writeThread.join();
+
+  return n_total_rows_processed;
 }
 
 void WSMSGridder::predictCalcThread(
@@ -381,7 +380,7 @@ void WSMSGridder::predictWriteThread(
   assert(queue.empty());
 }
 
-void WSMSGridder::Invert() {
+void WSMSGridder::StartInversion() {
   _gridder = std::make_unique<GridderType>(
       ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
       ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
@@ -407,42 +406,37 @@ void WSMSGridder::Invert() {
   }
 
   resetVisibilityCounters();
-  for (size_t pass = 0; pass != _gridder->NPasses(); ++pass) {
-    Logger::Info << "Gridding pass " << pass << "... ";
-    if (IsFirstTask())
-      Logger::Info << '\n';
-    else
-      Logger::Info.Flush();
+}
 
-    _gridder->StartInversionPass(pass);
+void WSMSGridder::StartInversionPass(size_t pass_index) {
+  Logger::Info << "Gridding pass " << pass_index << "... ";
+  if (IsFirstTask())
+    Logger::Info << '\n';
+  else
+    Logger::Info.Flush();
+  _gridder->StartInversionPass(pass_index);
+}
 
-    for (size_t i = 0; i != GetMsCount(); ++i) {
-      const MsProviderCollection::MsData& msData = GetMsData(i);
+void WSMSGridder::FinishInversionPass() {
+  Logger::Info << "Fourier transforms...\n";
+  _gridder->FinishInversionPass();
+}
 
-      const aocommon::BandData selectedBand(msData.SelectedBand());
-
-      startInversionWorkThreads(selectedBand.ChannelCount());
-      gridMeasurementSet(msData);
-      finishInversionWorkThreads();
-    }
-
-    Logger::Info << "Fourier transforms...\n";
-    _gridder->FinishInversionPass();
-  }
-
+void WSMSGridder::FinishInversion() {
   if (IsFirstTask()) {
-    size_t totalRowsRead = 0, totalMatchingRows = 0;
+    size_t total_rows_processed = 0;
+    size_t total_rows_matching = 0;
     for (size_t i = 0; i != GetMsCount(); ++i) {
-      const MsProviderCollection::MsData& msData = GetMsData(i);
-      totalRowsRead += msData.total_rows_processed;
-      totalMatchingRows += msData.matching_rows;
+      const MsProviderCollection::MsData& ms_data = GetMsData(i);
+      total_rows_processed += ms_data.total_rows_processed;
+      total_rows_matching += ms_data.matching_rows;
     }
 
-    Logger::Debug << "Total rows read: " << totalRowsRead;
-    if (totalMatchingRows != 0)
+    Logger::Debug << "Total rows read: " << total_rows_processed;
+    if (total_rows_matching != 0)
       Logger::Debug << " (overhead: "
-                    << std::max(0.0, round(totalRowsRead * 100.0 /
-                                               totalMatchingRows -
+                    << std::max(0.0, round(total_rows_processed * 100.0 /
+                                               total_rows_matching -
                                            100.0))
                     << "%)";
     Logger::Debug << '\n';
@@ -474,14 +468,14 @@ void WSMSGridder::Invert() {
         ImageHeight(), _resources.NCpus());
 
     if (IsComplex()) {
-      Image resizedReal(ImageWidth(), ImageHeight());
-      Image resizedImag(ImageWidth(), ImageHeight());
+      Image resized_real(ImageWidth(), ImageHeight());
+      Image resized_imaginary(ImageWidth(), ImageHeight());
       resampler.Start();
-      resampler.AddTask(_realImage.Data(), resizedReal.Data());
-      resampler.AddTask(_imaginaryImage.Data(), resizedImag.Data());
+      resampler.AddTask(_realImage.Data(), resized_real.Data());
+      resampler.AddTask(_imaginaryImage.Data(), resized_imaginary.Data());
       resampler.Finish();
-      _realImage = std::move(resizedReal);
-      _imaginaryImage = std::move(resizedImag);
+      _realImage = std::move(resized_real);
+      _imaginaryImage = std::move(resized_imaginary);
     } else {
       Image resized(ImageWidth(), ImageHeight());
       resampler.Resample(_realImage.Data(), resized.Data());
@@ -501,7 +495,7 @@ void WSMSGridder::Invert() {
   Logger::Debug << "Inversion finished.\n";
 }
 
-void WSMSGridder::Predict(std::vector<Image>&& images) {
+void WSMSGridder::StartPredict(std::vector<Image>&& images) {
   if (images.size() != 2 && IsComplex())
     throw std::runtime_error("Missing imaginary in complex prediction");
   if (images.size() != 1 && !IsComplex())
@@ -567,33 +561,36 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->InitializePrediction(images[0]);
   else
     _gridder->InitializePrediction(images[0], images[1]);
-  for (size_t pass = 0; pass != _gridder->NPasses(); ++pass) {
-    Logger::Info << "Fourier transforms for pass " << pass << "... ";
-    if (IsFirstTask())
-      Logger::Info << '\n';
-    else
-      Logger::Info.Flush();
+}
 
-    _gridder->StartPredictionPass(pass);
+void WSMSGridder::StartPredictPass(size_t pass_index) {
+  Logger::Info << "Fourier transforms for pass " << pass_index << "... ";
+  if (IsFirstTask())
+    Logger::Info << '\n';
+  else
+    Logger::Info.Flush();
 
-    Logger::Info << "Predicting...\n";
-    for (size_t i = 0; i != GetMsCount(); ++i) {
-      predictMeasurementSet(GetMsData(i), GetGainMode(Polarization(), 1));
-    }
-  }
+  _gridder->StartPredictionPass(pass_index);
 
-  size_t totalRowsWritten = 0, totalMatchingRows = 0;
+  Logger::Info << "Predicting...\n";
+}
+
+void WSMSGridder::FinishPredictPass() {}
+
+void WSMSGridder::FinishPredict() {
+  size_t total_rows_processed = 0;
+  size_t total_rows_matching = 0;
   for (size_t i = 0; i != GetMsCount(); ++i) {
-    const MsProviderCollection::MsData& msData = GetMsData(i);
-    totalRowsWritten += msData.total_rows_processed;
-    totalMatchingRows += msData.matching_rows;
+    const MsProviderCollection::MsData& ms_data = GetMsData(i);
+    total_rows_processed += ms_data.total_rows_processed;
+    total_rows_matching += ms_data.matching_rows;
   }
 
-  Logger::Debug << "Total rows written: " << totalRowsWritten;
-  if (totalMatchingRows != 0)
+  Logger::Debug << "Total rows written: " << total_rows_processed;
+  if (total_rows_matching != 0)
     Logger::Debug << " (overhead: "
-                  << std::max(0.0, round(totalRowsWritten * 100.0 /
-                                             totalMatchingRows -
+                  << std::max(0.0, round(total_rows_processed * 100.0 /
+                                             total_rows_matching -
                                          100.0))
                   << "%)";
   Logger::Debug << '\n';

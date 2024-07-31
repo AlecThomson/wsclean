@@ -17,29 +17,30 @@ class WGriddingMSGridder final : public MSGridderBase {
   WGriddingMSGridder(const Settings& settings, const Resources& resources,
                      MsProviderCollection& ms_provider_collection,
                      bool use_tuned_wgridder);
-  ~WGriddingMSGridder();
+  ~WGriddingMSGridder() final;
 
-  virtual void Invert() override;
+  void StartInversion() final;
+  size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void FinishInversion() final;
 
-  virtual void Predict(std::vector<aocommon::Image>&& images) override;
+  void StartPredict(std::vector<aocommon::Image>&& images) final;
+  size_t PredictMeasurementSet(
+      const MsProviderCollection::MsData& ms_data) final;
+  void FinishPredict() final;
 
-  virtual std::vector<aocommon::Image> ResultImages() override {
+  std::vector<aocommon::Image> ResultImages() final {
     return {std::move(_image)};
   }
 
-  virtual void FreeImagingData() override {}
+  void FreeImagingData() final {}
 
-  virtual size_t getSuggestedWGridSize() const override { return 1; }
+  size_t getSuggestedWGridSize() const final { return 1; }
 
  private:
   aocommon::Image _image;
 
   std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
                                                     size_t height) const;
-
-  void gridMeasurementSet(const MsProviderCollection::MsData& msData);
-
-  void predictMeasurementSet(const MsProviderCollection::MsData& msData);
 
   size_t calculateMaxNRowsInMemory(size_t channelCount) const;
 

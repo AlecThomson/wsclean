@@ -36,9 +36,7 @@ class MsProviderCollection {
     size_t start_channel = 0;
     size_t end_channel = 0;
     size_t matching_rows = 0;
-    // TODO: remove mutable once we have restructured data reading out of the
-    // gridders and into the gridder manager
-    mutable size_t total_rows_processed = 0;
+    size_t total_rows_processed = 0;
     size_t row_start = 0;
     size_t row_end = 0;
 
