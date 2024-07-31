@@ -22,7 +22,6 @@ DirectMSGridder<num_t>::DirectMSGridder(
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
   _sqrtLMTable = GetSqrtLMLookupTable();
-  const size_t width = TrimWidth(), height = TrimHeight();
 
   resetVisibilityCounters();
 
@@ -30,9 +29,11 @@ void DirectMSGridder<num_t>::Invert() {
 
   _inversionLane.resize(_resources.NCpus() * 1024);
 
+  const size_t width = TrimWidth();
+  const size_t height = TrimHeight();
   for (size_t t = 0; t != _resources.NCpus(); ++t) {
-    _layers.emplace_back(aocommon::ImageBase<num_t>(ImageWidth(), ImageHeight(),
-                                                    static_cast<num_t>(0.0)));
+    _layers.emplace_back(
+        aocommon::ImageBase<num_t>(width, height, static_cast<num_t>(0.0)));
   }
 
   aocommon::ThreadPool& thread_pool = aocommon::ThreadPool::GetInstance();
@@ -63,7 +64,7 @@ void DirectMSGridder<num_t>::Invert() {
   _sqrtLMTable.Reset();
 
   // Wrap the image correctly and normalize it
-  _image = aocommon::Image(TrimWidth(), TrimHeight());
+  _image = aocommon::Image(width, height);
   const double weight_factor = 1.0 / ImageWeight();
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
@@ -100,7 +101,7 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
   const num_t w = sample.wInLambda;
 
   for (size_t y = 0; y != height; ++y) {
-    const size_t yIndex = y * height;
+    const size_t yIndex = y * width;
 
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
