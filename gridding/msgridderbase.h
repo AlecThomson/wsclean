@@ -177,7 +177,7 @@ class MSGridderBase {
   /** @return The number of visibility rows processed */
   virtual size_t GridMeasurementSet(
       const MsProviderCollection::MsData& ms_data) = 0;
-  virtual void FinishInversionPass(){};
+  virtual void FinishInversionPass(size_t pass_index){};
   virtual void FinishInversion() = 0;
 
   /**

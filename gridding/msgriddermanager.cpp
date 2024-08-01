@@ -84,7 +84,7 @@ void MSGridderManager::Invert() {
         gridder->StartMeasurementSet(ms_data, false);
         ms_data.total_rows_processed += gridder->GridMeasurementSet(ms_data);
       }
-      gridder->FinishInversionPass();
+      gridder->FinishInversionPass(pass_index);
     }
     gridder->FinishInversion();
   }

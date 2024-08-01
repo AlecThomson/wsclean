@@ -31,7 +31,7 @@ class WSMSGridder final : public MSGridderBase {
   void StartInversion() final;
   void StartInversionPass(size_t pass_index) final;
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
-  void FinishInversionPass() final;
+  void FinishInversionPass(size_t pass_index) final;
   void FinishInversion() final;
 
   size_t GetNPredictPasses() const final { return _gridder->NPasses(); }

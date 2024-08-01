@@ -32,8 +32,13 @@ class IdgMsGridder final : public MSGridderBase {
 
   ~IdgMsGridder() final;
 
+  // If we are computing a PSF or have a cached average beam then we only do one
+  // pass. Otherwise we do an additional first pass to compute the average beam.
+  size_t GetNInversionPasses() const final;
   void StartInversion() final;
+  void StartInversionPass(size_t pass_index) final;
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void FinishInversionPass(size_t pass_index) final;
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;

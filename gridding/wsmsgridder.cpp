@@ -417,7 +417,7 @@ void WSMSGridder::StartInversionPass(size_t pass_index) {
   _gridder->StartInversionPass(pass_index);
 }
 
-void WSMSGridder::FinishInversionPass() {
+void WSMSGridder::FinishInversionPass(size_t pass_index) {
   Logger::Info << "Fourier transforms...\n";
   _gridder->FinishInversionPass();
 }

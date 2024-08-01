@@ -70,12 +70,19 @@ IdgMsGridder::~IdgMsGridder() {
                << ", degridding: " << _degriddingWatch.ToString() << '\n';
 }
 
+size_t IdgMsGridder::GetNInversionPasses() const {
+  if (GetPsfMode() == PsfMode::kNone && _averageBeam->Empty()) {
+    // Two passes are used for this case: i) average beam creation; ii)
+    // gridding.
+    return 2;
+  }
+  return 1;
+}
+
 void IdgMsGridder::StartInversion() {
   const size_t untrimmed_width = ImageWidth();
-  const size_t width = TrimWidth();
-  const size_t height = TrimHeight();
 
-  assert(width == height);
+  assert(TrimWidth() == TrimHeight());
   assert(untrimmed_width == ImageHeight());
 
   _options["padded_size"] = untrimmed_width;
@@ -94,8 +101,8 @@ void IdgMsGridder::StartInversion() {
   const double shift_m = MShift();
   const double shift_p =
       std::sqrt(1.0 - shift_l * shift_l - shift_m * shift_m) - 1.0;
-  _bufferset->init(width, ActualPixelSizeX(), max_w + 1.0, shift_l, shift_m,
-                   shift_p, _options);
+  _bufferset->init(TrimWidth(), ActualPixelSizeX(), max_w + 1.0, shift_l,
+                   shift_m, shift_p, _options);
   Logger::Debug << "IDG subgrid size: " << _bufferset->get_subgridsize()
                 << '\n';
 
@@ -111,29 +118,37 @@ void IdgMsGridder::StartInversion() {
 
     // Because compensation for the average beam happens at subgrid level
     // it needs to be known in advance.
-    // If it is not in the cache it needs to be computed first
+    // If it is not in the cache it needs to be computed first, which will occur
+    // inside StartInversionPass().
     if (!_averageBeam->Empty()) {
       // Set avg beam from cache
       Logger::Debug << "Using average beam from cache.\n";
       _bufferset->set_scalar_beam(_averageBeam->ScalarBeam());
       _bufferset->set_matrix_inverse_beam(_averageBeam->MatrixInverseBeam());
-    } else {
-      // Compute avg beam
-      Logger::Debug << "Computing average beam.\n";
-      _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
-      for (size_t i = 0; i != GetMsCount(); ++i) {
-        StartMeasurementSet(GetMsData(i), false);
-        GridMeasurementSet(GetMsData(i));
-      }
-      _bufferset->finalize_compute_avg_beam();
-      Logger::Debug << "Finished computing average beam.\n";
-      _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
-      _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
-                                         _bufferset->get_subgridsize(),
-                                         _bufferset->get_subgridsize());
     }
   }
-  resetVisibilityCounters();
+}
+
+void IdgMsGridder::StartInversionPass(size_t pass_index) {
+  if (pass_index == 0 && GetNInversionPasses() == 2) {
+    // Compute avg beam
+    Logger::Debug << "Computing average beam.\n";
+    _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
+  } else {
+    resetVisibilityCounters();
+  }
+}
+
+void IdgMsGridder::FinishInversionPass(size_t pass_index) {
+  if (pass_index == 0 && GetNInversionPasses() == 2) {
+    _bufferset->finalize_compute_avg_beam();
+    Logger::Debug << "Finished computing average beam.\n";
+    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), TrimWidth(),
+                                TrimHeight());
+    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
+                                       _bufferset->get_subgridsize(),
+                                       _bufferset->get_subgridsize());
+  }
 }
 
 void IdgMsGridder::FinishInversion() {
