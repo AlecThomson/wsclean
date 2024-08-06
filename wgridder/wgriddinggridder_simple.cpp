@@ -131,17 +131,21 @@ WGriddingGridder_Simple<NumT>::WGriddingGridder_Simple(
 }
 
 template <typename NumT>
-void WGriddingGridder_Simple<NumT>::MemoryUsage(size_t &constant,
-                                                size_t &per_vis) const {
-  // storage for "grid": pessimistically assume an oversampling factor of 2
-  constant = sigma_max * sigma_max * width_t_ * height_t_ *
-             sizeof(std::complex<float>);
-  // for prediction, we also need a copy of the dirty image
+size_t WGriddingGridder_Simple<NumT>::ConstantMemoryUsage() const {
+  // Storage for "grid": pessimistically assume an oversampling factor of 2
+  size_t constant = sigma_max * sigma_max * width_t_ * height_t_ *
+                    sizeof(std::complex<float>);
+  // For prediction, we also need a copy of the dirty image
   constant += width_t_ * height_t_ * sizeof(NumT);  // trimmed dirty image
+  return constant;
+}
+
+template <typename NumT>
+size_t WGriddingGridder_Simple<NumT>::PerVisibilityMemoryUsage() const {
   // Storage for the indexing information is really hard to estimate ...
   // it can go up to 8 bytes per visibility, but this is a really pathological
   // scenario; should typically be below 1 byte/visibility
-  per_vis = 8;  // overestimation, but the best we can do here
+  return 8;  // Overestimation, but the best we can do here
 }
 
 template <typename NumT>

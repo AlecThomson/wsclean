@@ -42,7 +42,11 @@ class WGriddingMSGridder final : public MSGridderBase {
   std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
                                                     size_t height) const;
 
-  size_t calculateMaxNRowsInMemory(size_t channelCount) const;
+  size_t CalculateConstantMemory() const final;
+  size_t CalculateMaxRowsInMemory(int64_t available_memory,
+                                  size_t constant_memory,
+                                  size_t additional_per_row_consumption,
+                                  size_t data_size) const final;
 
   void getActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 

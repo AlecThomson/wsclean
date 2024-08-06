@@ -17,7 +17,8 @@ class MSGridderBase;
 class WGriddingGridderBase {
  public:
   virtual ~WGriddingGridderBase() = default;
-  virtual void MemoryUsage(size_t &constant, size_t &per_vis) const = 0;
+  virtual size_t ConstantMemoryUsage() const = 0;
+  virtual size_t PerVisibilityMemoryUsage() const = 0;
   virtual void InitializeInversion() = 0;
   virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
                                 const double *freq,
@@ -85,12 +86,14 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   WGriddingGridder_Simple(const WGriddingGridder_Simple &) = delete;
   WGriddingGridder_Simple &operator=(const WGriddingGridder_Simple &) = delete;
 
-  /** Returns the base memory requirement of the object, and
-   *  the additional overhead per gridded/degridded viibility
-   * @param constant The constant base memory usage in bytes
-   * @param per_vis additional memory required per gridded visibility in bytes.
+  /**
+   * @return The constant base memory usage of the object in bytes
    */
-  void MemoryUsage(size_t &constant, size_t &per_vis) const override;
+  size_t ConstantMemoryUsage() const override;
+  /**
+   * @return Additional memory required per gridded visibility in bytes.
+   */
+  size_t PerVisibilityMemoryUsage() const override;
 
   /**
    * Initialize a new inversion gridding pass. This just

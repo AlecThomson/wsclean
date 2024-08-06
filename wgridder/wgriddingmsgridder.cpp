@@ -53,33 +53,41 @@ std::unique_ptr<WGriddingGridderBase> WGriddingMSGridder::MakeGridder(
   }
 }
 
-size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
-    size_t channelCount) const {
-  size_t constantMem;
-  size_t perVisMem;
-  gridder_->MemoryUsage(constantMem, perVisMem);
+size_t WGriddingMSGridder::CalculateConstantMemory() const {
+  size_t constant_mem = gridder_->ConstantMemoryUsage();
+  constant_mem += GetVisibilityModifier().GetCacheParmResponseSize();
+  return constant_mem;
+}
 
-  constantMem += GetVisibilityModifier().GetCacheParmResponseSize();
-
-  if (int64_t(constantMem) >= resources_.Memory()) {
+size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
+    int64_t available_memory, size_t constant_memory,
+    size_t additional_per_row_consumption, size_t data_size) const {
+  if (static_cast<int64_t>(constant_memory) >= available_memory) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers
-    constantMem = resources_.Memory() / 2;
+    constant_memory = available_memory / 2;
     Logger::Warn << "Not enough memory available for doing the gridding:\n"
                     "swapping might occur!\n";
   }
-  const uint64_t memForBuffers = resources_.Memory() - constantMem;
 
-  const uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
-                                 channelCount       // vis themselves
-                             + sizeof(double) * 3;  // uvw
-  const size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
-  if (maxNRows < 1000) {
+  const size_t per_visibility_ducc_overhead =
+      gridder_->PerVisibilityMemoryUsage();
+  const size_t per_row_visibility_memory =
+      (per_visibility_ducc_overhead + sizeof(std::complex<float>)) * data_size;
+  const size_t per_row_uvw_memory = sizeof(double) * 3;
+  const uint64_t memory_per_row =
+      additional_per_row_consumption  // external overheads
+      + per_row_visibility_memory     // visibilities
+      + per_row_uvw_memory;           // uvw
+  const uint64_t memory_for_buffers = available_memory - constant_memory;
+  const size_t max_n_rows =
+      std::max(memory_for_buffers / memory_per_row, uint64_t(100));
+  if (max_n_rows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
                     "means performance is going to be very poor!\n";
   }
 
-  return maxNRows;
+  return max_n_rows;
 }
 
 size_t WGriddingMSGridder::GridMeasurementSet(
@@ -96,8 +104,8 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  size_t max_rows_per_chunk =
-      calculateMaxNRowsInMemory(selected_band.ChannelCount());
+  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
+      resources_.Memory(), CalculateConstantMemory(), 0, data_size);
 
   aocommon::UVector<std::complex<float>> visibility_buffer(
       max_rows_per_chunk * selected_band.ChannelCount());
@@ -161,7 +169,8 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
     frequencies[i] = selected_band.ChannelFrequency(i);
 
   size_t max_rows_per_chunk =
-      calculateMaxNRowsInMemory(selected_band.ChannelCount());
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
+                               0, selected_band.ChannelCount());
 
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
   // Iterate over chunks until all data has been gridded

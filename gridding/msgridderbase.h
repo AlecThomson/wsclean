@@ -180,6 +180,25 @@ class MSGridderBase {
   virtual void FinishInversionPass(size_t pass_index){};
   virtual void FinishInversion() = 0;
 
+  /** @return Constant memory overhead for the gridder in bytes. i.e. Not
+   * including per row memory usage. */
+  virtual size_t CalculateConstantMemory() const { return 0; }
+  /** Calculate the maximum amount of rows the gridder expects to be able to fit
+   * in memory given a specific available memory size and constant memory
+   * overhead.
+   * @param additional_per_row_consumption External consumption per row that
+   * also needs to be taken into account; e.g. for shared reads the gridder
+   * manager may need to cache antenna pairs and correction time offsets.
+   * @param data_size The number of visibilities in a row.
+   * @return The number of rows that will fit in memory.
+   */
+  virtual size_t CalculateMaxRowsInMemory(int64_t available_memory,
+                                          size_t constant_memory,
+                                          size_t additional_per_row_consumption,
+                                          size_t data_size) const {
+    return 0;
+  }
+
   /**
    * To handle prediction a gridder must implement either 3 or 6 of the
    * following functions.
