@@ -10,7 +10,7 @@
 #include <aocommon/polarization.h>
 
 namespace wsclean {
-namespace reorder {
+namespace reordering {
 
 // We will create some efficiently packed structs to fetch data with 1 read.
 // This will reduce the count of file-reads that are made.
@@ -144,9 +144,37 @@ std::string GetMetaFilename(const std::string& ms_path,
 size_t GetMaxChannels(const std::vector<ChannelRange>& channel_ranges);
 
 std::map<size_t, size_t> GetDataDescIdMap(
-    const std::vector<reorder::ChannelRange>& channels);
+    const std::vector<reordering::ChannelRange>& channels);
 
-}  // namespace reorder
+template <typename NumType>
+bool IsCFinite(const std::complex<NumType>& c) {
+  return std::isfinite(c.real()) && std::isfinite(c.imag());
+}
+
+void ExtractData(std::complex<float>* dest, size_t start_channel,
+                 size_t end_channel,
+                 const std::set<aocommon::PolarizationEnum>& pols_in,
+                 const std::complex<float>* data,
+                 aocommon::PolarizationEnum pol_out);
+
+template <typename NumType>
+void ExtractWeights(NumType* dest, size_t start_channel, size_t end_channel,
+                    const std::set<aocommon::PolarizationEnum>& pols_in,
+                    const std::complex<float>* data, const float* weights,
+                    const bool* flags, aocommon::PolarizationEnum pol_out);
+
+template <bool add>
+void StoreData(std::complex<float>* dest, size_t start_channel,
+               size_t end_channel,
+               const std::set<aocommon::PolarizationEnum>& pols_dest,
+               const std::complex<float>* source,
+               aocommon::PolarizationEnum pol_source);
+
+void StoreWeights(float* dest, size_t start_channel, size_t end_channel,
+                  const std::set<aocommon::PolarizationEnum>& pols_dest,
+                  const float* source, aocommon::PolarizationEnum pol_source);
+
+}  // namespace reordering
 }  // namespace wsclean
 
 #endif

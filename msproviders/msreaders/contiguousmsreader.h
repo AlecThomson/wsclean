@@ -2,6 +2,7 @@
 #define MSPROVIDERS_MSREADERS_CONTIGUOUSMSREADER_H
 
 #include "msreader.h"
+#include "../reordering.h"
 
 namespace wsclean {
 

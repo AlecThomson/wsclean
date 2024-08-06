@@ -2,7 +2,7 @@
 #define MSPROVIDERS_REORDERED_MS_PROVIDER_
 
 #include "msprovider.h"
-#include "reorder.h"
+#include "reordering.h"
 
 #include "../structures/msselection.h"
 #include "../system/mappedfile.h"
@@ -68,7 +68,7 @@ class ReorderedMsProvider final : public MSProvider {
   size_t DataDescId() override { return part_header_.data_desc_id; }
 
   static Handle Partition(const string& ms_path,
-                          const std::vector<reorder::ChannelRange>& channels,
+                          const std::vector<reordering::ChannelRange>& channels,
                           const class MSSelection& selection,
                           const string& data_column_name, bool include_model,
                           bool initial_model_required,
@@ -77,7 +77,7 @@ class ReorderedMsProvider final : public MSProvider {
   static Handle GenerateHandleFromReorderedData(
       const std::string& ms_path, const string& data_column_name,
       const std::string& temporary_directory,
-      const std::vector<reorder::ChannelRange>& channels,
+      const std::vector<reordering::ChannelRange>& channels,
       bool initial_model_required, bool model_update_required,
       const std::set<aocommon::PolarizationEnum>& polarizations,
       const MSSelection& selection, const aocommon::MultiBandData& bands,
@@ -106,7 +106,7 @@ class ReorderedMsProvider final : public MSProvider {
 
       HandleData(const std::string& ms_path, const string& data_column_name,
                  const std::string& temporary_directory,
-                 const std::vector<reorder::ChannelRange>& channels,
+                 const std::vector<reordering::ChannelRange>& channels,
                  bool initial_model_required, bool model_update_required,
                  const std::set<aocommon::PolarizationEnum>& polarizations,
                  const MSSelection& selection,
@@ -128,7 +128,7 @@ class ReorderedMsProvider final : public MSProvider {
       ~HandleData();
 
       std::string ms_path_, data_column_name_, temporary_directory_;
-      std::vector<reorder::ChannelRange> channels_;
+      std::vector<reordering::ChannelRange> channels_;
       bool initial_model_required_, model_update_required_;
       std::set<aocommon::PolarizationEnum> polarizations_;
       MSSelection selection_;
@@ -144,7 +144,7 @@ class ReorderedMsProvider final : public MSProvider {
 
     Handle(const std::string& ms_path, const string& data_column_name,
            const std::string& temporary_directory,
-           const std::vector<reorder::ChannelRange>& channels,
+           const std::vector<reordering::ChannelRange>& channels,
            bool initial_model_required, bool model_update_required,
            const std::set<aocommon::PolarizationEnum>& polarizations,
            const MSSelection& selection, const aocommon::MultiBandData& bands,
@@ -167,8 +167,8 @@ class ReorderedMsProvider final : public MSProvider {
   const aocommon::PolarizationEnum polarization_;
   size_t polarization_count_in_file_;
 
-  reorder::MetaHeader meta_header_;
-  reorder::PartHeader part_header_;
+  reordering::MetaHeader meta_header_;
+  reordering::PartHeader part_header_;
 };
 
 }  // namespace wsclean

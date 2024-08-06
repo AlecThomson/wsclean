@@ -143,12 +143,12 @@ class MSProvider {
   virtual const aocommon::BandData& Band() = 0;
 
   /**
-   * Get a list of polarizations in the measurement set for a given data desc
+   * Get a set of polarizations in the measurement set for a given data desc
    * id. This will always list the individual polarizations, and not return one
    * of the special polarization values (like FullJones or Instrumental).
    */
-  static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
-      size_t dataDescId, const casacore::MeasurementSet& ms);
+  static std::set<aocommon::PolarizationEnum> GetMSPolarizations(
+      size_t data_desc_id, const casacore::MeasurementSet& ms);
 
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
@@ -156,37 +156,6 @@ class MSProvider {
    * Reset model data in the MSProvider to zeros.
    */
   void ResetModelColumn();
-
-  static void CopyData(std::complex<float>* dest, size_t startChannel,
-                       size_t endChannel,
-                       const std::vector<aocommon::PolarizationEnum>& polsIn,
-                       const casacore::Array<std::complex<float>>& data,
-                       aocommon::PolarizationEnum polOut);
-
-  template <typename NumType>
-  static void CopyWeights(NumType* dest, size_t startChannel, size_t endChannel,
-                          const std::vector<aocommon::PolarizationEnum>& polsIn,
-                          const casacore::Array<std::complex<float>>& data,
-                          const casacore::Array<float>& weights,
-                          const casacore::Array<bool>& flags,
-                          aocommon::PolarizationEnum polOut);
-
-  template <typename NumType>
-  static bool IsCFinite(const std::complex<NumType>& c) {
-    return std::isfinite(c.real()) && std::isfinite(c.imag());
-  }
-
-  template <bool add>
-  static void ReverseCopyData(
-      casacore::Array<std::complex<float>>& dest, size_t startChannel,
-      size_t endChannel,
-      const std::vector<aocommon::PolarizationEnum>& polsDest,
-      const std::complex<float>* source, aocommon::PolarizationEnum polSource);
-
-  static void ReverseCopyWeights(
-      casacore::Array<float>& dest, size_t startChannel, size_t endChannel,
-      const std::vector<aocommon::PolarizationEnum>& polsDest,
-      const float* source, aocommon::PolarizationEnum polSource);
 
   static void GetRowRange(casacore::MeasurementSet& ms,
                           const MSSelection& selection, size_t& startRow,

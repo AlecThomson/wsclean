@@ -1,4 +1,4 @@
-#include "../../msproviders/reorder.h"
+#include "../../msproviders/reordering.h"
 
 #include <boost/test/tools/old/interface.hpp>
 #include <boost/test/unit_test.hpp>
@@ -8,8 +8,13 @@
 #include <vector>
 #include <cstddef>
 
-using namespace aocommon;
-using namespace wsclean::reorder;
+using aocommon::Polarization;
+using wsclean::reordering::ChannelRange;
+using wsclean::reordering::GetDataDescIdMap;
+using wsclean::reordering::GetFilenamePrefix;
+using wsclean::reordering::GetMaxChannels;
+using wsclean::reordering::GetMetaFilename;
+using wsclean::reordering::GetPartPrefix;
 
 BOOST_AUTO_TEST_SUITE(reorder_utils)
 
@@ -50,7 +55,7 @@ BOOST_AUTO_TEST_CASE(partprefix) {
 }
 
 BOOST_AUTO_TEST_CASE(max_channel_range) {
-  std::vector<ChannelRange> channel_ranges{
+  const std::vector<ChannelRange> channel_ranges{
       {0, 0, 100},
       {0, 0, 50},
       {0, 100, 200},
@@ -61,13 +66,13 @@ BOOST_AUTO_TEST_CASE(max_channel_range) {
 }
 
 BOOST_AUTO_TEST_CASE(max_channel_range_empty_range) {
-  std::vector<ChannelRange> channel_ranges;
+  const std::vector<ChannelRange> channel_ranges;
   const size_t actual = GetMaxChannels(channel_ranges);
   BOOST_CHECK_EQUAL(actual, 0);
 }
 
 BOOST_AUTO_TEST_CASE(data_desc_id_map) {
-  std::vector<ChannelRange> channel_ranges{
+  const std::vector<ChannelRange> channel_ranges{
       {2, 50, 500},
       {0, 0, 100},
       {1, 0, 50},

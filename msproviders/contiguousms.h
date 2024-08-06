@@ -75,7 +75,7 @@ class ContiguousMS final : public MSProvider {
   bool _isModelColumnPrepared;
   size_t _startRow, _endRow;
   std::vector<size_t> _idToMSRow;
-  std::vector<aocommon::PolarizationEnum> _inputPolarizations;
+  std::set<aocommon::PolarizationEnum> _inputPolarizations;
   MSSelection _selection;
   aocommon::PolarizationEnum _outputPolarization;
   std::string _msPath;

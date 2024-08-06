@@ -180,11 +180,13 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
-    ReverseCopyData<true>(_modelArray, startChannel, endChannel,
-                          _inputPolarizations, buffer, _outputPolarization);
+    reordering::StoreData<true>(_modelArray.data(), startChannel, endChannel,
+                                _inputPolarizations, buffer,
+                                _outputPolarization);
   } else {
-    ReverseCopyData<false>(_modelArray, startChannel, endChannel,
-                           _inputPolarizations, buffer, _outputPolarization);
+    reordering::StoreData<false>(_modelArray.data(), startChannel, endChannel,
+                                 _inputPolarizations, buffer,
+                                 _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
 }
