@@ -15,7 +15,7 @@ namespace wsclean {
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isReordered)
-    return std::make_unique<ReorderedMsProvider>(_partitionHandle, _partIndex,
+    return std::make_unique<ReorderedMsProvider>(_reorderedHandle, _partIndex,
                                                  _polarization, _dataDescId);
   else
     return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
@@ -32,7 +32,7 @@ void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
       .Object(_selection)
       .String(_filename)
       .String(_dataColumnName)
-      .Object(_partitionHandle)
+      .Object(_reorderedHandle)
       .UInt64(_partIndex);
 }
 
@@ -45,7 +45,7 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
       .Object(mdd->_selection)
       .String(mdd->_filename)
       .String(mdd->_dataColumnName)
-      .Object(mdd->_partitionHandle)
+      .Object(mdd->_reorderedHandle)
       .UInt64(mdd->_partIndex);
   mdd->_useMPI = true;  // Serialization only happens with MPI.
   return mdd;

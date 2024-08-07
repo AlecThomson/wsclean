@@ -148,7 +148,7 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Weights (single)
  * - Model, optionally
  */
-ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
+ReorderedMsProvider::Handle ReorderedMsProvider::ReorderMS(
     const string& ms_path,
     const std::vector<reordering::ChannelRange>& channels,
     const MSSelection& selection, const string& data_column_name,
@@ -164,7 +164,7 @@ ReorderedMsProvider::Handle ReorderedMsProvider::Partition(
   const size_t channel_parts = channels.size();
 
   if (channel_parts != 1) {
-    Logger::Debug << "Partitioning in " << channels.size() << " channels:";
+    Logger::Debug << "Reordering in " << channels.size() << " channels:";
     for (size_t i = 0; i != channels.size(); ++i)
       Logger::Debug << ' ' << channels[i].data_desc_id << ':'
                     << channels[i].start << '-' << channels[i].end;
@@ -434,10 +434,11 @@ ReorderedMsProvider::GenerateHandleFromReorderedData(
     size_t num_antennas, bool keep_temporary_files) {
   return Handle(ms_path, data_column_name, temporary_directory, channels,
                 initial_model_required, model_update_required, polarizations,
-                selection, bands, num_antennas, keep_temporary_files);
+                selection, bands, num_antennas, keep_temporary_files,
+                StoreReorderedInMS);
 }
 
-void ReorderedMsProvider::unpartition(
+void ReorderedMsProvider::StoreReorderedInMS(
     const ReorderedMsProvider::Handle::HandleData& handle) {
   const std::set<aocommon::PolarizationEnum> pols = handle.polarizations_;
 
@@ -580,8 +581,9 @@ void ReorderedMsProvider::unpartition(
     }
     progress.SetProgress(end_row - start_row, end_row - start_row);
 
-    Logger::Debug << "Row count during unpartitioning: "
-                  << selected_row_count_for_debug << '\n';
+    Logger::Debug
+        << "Row count for writing reordered data back to the measurement set: "
+        << selected_row_count_for_debug << '\n';
   }
 }
 
@@ -596,7 +598,7 @@ ReorderedMsProvider::Handle::HandleData::~HandleData() {
         Logger::Info << "An exception occurred, writing back will be skipped. "
                         "Cleaning up...\n";
       } else {
-        if (model_update_required_) ReorderedMsProvider::unpartition(*this);
+        if (model_update_required_) cleanup_callback_(*this);
         Logger::Info << "Cleaning up temporary files...\n";
       }
 

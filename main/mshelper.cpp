@@ -103,7 +103,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<reordering::ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    ReorderedMsProvider::Handle part_ms = ReorderedMsProvider::Partition(
+    ReorderedMsProvider::Handle part_ms = ReorderedMsProvider::ReorderMS(
         settings_.filenames[ms_index], channels, global_selection_,
         settings_.dataColumnName, use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);

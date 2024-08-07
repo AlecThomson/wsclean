@@ -15,6 +15,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 
+#include <functional>
 #include <fstream>
 #include <string>
 
@@ -67,7 +68,7 @@ class ReorderedMsProvider final : public MSProvider {
 
   size_t DataDescId() override { return part_header_.data_desc_id; }
 
-  static Handle Partition(const string& ms_path,
+  static Handle ReorderMS(const string& ms_path,
                           const std::vector<reordering::ChannelRange>& channels,
                           const class MSSelection& selection,
                           const string& data_column_name, bool include_model,
@@ -111,7 +112,8 @@ class ReorderedMsProvider final : public MSProvider {
                  const std::set<aocommon::PolarizationEnum>& polarizations,
                  const MSSelection& selection,
                  const aocommon::MultiBandData& bands, size_t n_antennas,
-                 bool keep_temporary_files)
+                 bool keep_temporary_files,
+                 std::function<void(HandleData& handle)> cleanup_callback)
           : ms_path_(ms_path),
             data_column_name_(data_column_name),
             temporary_directory_(temporary_directory),
@@ -123,7 +125,8 @@ class ReorderedMsProvider final : public MSProvider {
             bands_(bands),
             n_antennas_(n_antennas),
             is_copy_(false),
-            keep_temporary_files_(keep_temporary_files) {}
+            keep_temporary_files_(keep_temporary_files),
+            cleanup_callback_(std::move(cleanup_callback)) {}
 
       ~HandleData();
 
@@ -136,6 +139,7 @@ class ReorderedMsProvider final : public MSProvider {
       size_t n_antennas_;
       bool is_copy_;
       bool keep_temporary_files_;
+      std::function<void(HandleData& handle)> cleanup_callback_;
 
       void Serialize(aocommon::SerialOStream& stream) const;
       void Unserialize(aocommon::SerialIStream& stream);
@@ -148,15 +152,17 @@ class ReorderedMsProvider final : public MSProvider {
            bool initial_model_required, bool model_update_required,
            const std::set<aocommon::PolarizationEnum>& polarizations,
            const MSSelection& selection, const aocommon::MultiBandData& bands,
-           size_t n_antennas, bool keep_temporary_files)
+           size_t n_antennas, bool keep_temporary_files,
+           std::function<void(HandleData& handle)> cleanup_callback)
         : data_(std::make_shared<HandleData>(
               ms_path, data_column_name, temporary_directory, channels,
               initial_model_required, model_update_required, polarizations,
-              selection, bands, n_antennas, keep_temporary_files)) {}
+              selection, bands, n_antennas, keep_temporary_files,
+              std::move(cleanup_callback))) {}
   };
 
  private:
-  static void unpartition(const Handle::HandleData& handle);
+  static void StoreReorderedInMS(const Handle::HandleData& handle);
 
   const Handle handle_;
   const size_t part_index_;
