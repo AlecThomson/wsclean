@@ -299,6 +299,10 @@ endif()
 
 add_library(
   wsclean-object OBJECT
+  # These wgridder files are given first because they take a long time to compile. In multi-threaded compilation,
+  # this has the advantage that it allows better parallelization.
+  wgridder/wgriddingmsgridder.cpp
+  wgridder/wgriddinggridder_simple.cpp
   main/commandline.cpp
   main/imageweightinitializer.cpp
   main/mshelper.cpp
@@ -358,8 +362,6 @@ add_library(
   structures/primarybeam.cpp
   structures/resources.cpp
   system/pythonfilepath.cpp
-  wgridder/wgriddingmsgridder.cpp
-  wgridder/wgriddinggridder_simple.cpp
   ${IDG_FILES}
   ${MPI_CPP_FILES})
 
