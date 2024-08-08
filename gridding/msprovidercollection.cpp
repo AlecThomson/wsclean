@@ -37,15 +37,17 @@ inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
   }
 }
 
-std::vector<double> SelectUniqueTimes(MSProvider& ms_provider) {
+std::vector<double> SelectH5parmTimes(MSProvider& ms_provider) {
   std::unique_ptr<MSReader> ms_reader = ms_provider.MakeReader();
   std::vector<double> unique_times;
   while (ms_reader->CurrentRowAvailable()) {
     MSProvider::MetaData meta_data;
     ms_reader->ReadMeta(meta_data);
-    // Assumes that the time instants in the MS are in ascending order.
-    // In case this is violated, the returned vector will contain redundant
-    // entries.
+    if (!unique_times.empty() && meta_data.time < unique_times.back()) {
+      throw std::runtime_error(
+          "The measurement set is not sorted in time. To apply h5parm "
+          "solutions, this is currently required.");
+    }
     if (unique_times.empty() || meta_data.time != unique_times.back()) {
       unique_times.emplace_back(meta_data.time);
     }
@@ -203,7 +205,7 @@ void MsProviderCollection::InitializeMeasurementSet(
 
   if (has_solution_data) {
     ms_data.unique_times =
-        std::make_shared<std::vector<double>>(SelectUniqueTimes(ms_provider));
+        std::make_shared<std::vector<double>>(SelectH5parmTimes(ms_provider));
     for (MSGridderBase* gridder : gridders) {
       gridder->GetVisibilityModifier().SetMSTimes(ms_data.original_ms_index,
                                                   ms_data.unique_times);
