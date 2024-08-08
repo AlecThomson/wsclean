@@ -72,7 +72,7 @@ void MPIScheduler::Finish() {
     // As long as receive tasks are running, wait and keep processing
     // the ready list
     processReadyList_UNSYNCHRONIZED();
-    while (receiveTasksAreRunning_UNSYNCHRONIZED()) {
+    while (AWorkerIsRunning_UNSYNCHRONIZED()) {
       _notify.wait(lock);
       processReadyList_UNSYNCHRONIZED();
     }
@@ -158,6 +158,7 @@ int MPIScheduler::getNode(const GriddingTask& task,
     _notify.wait(lock);
   }
   _availableRoom[node] -= task.facets.size();
+  _notify.notify_all();  // Notify receiveLoop(). It should stop waiting.
 
   // Store the callback function.
   assert(_callbacks.count(task.unique_id) == 0);
@@ -168,8 +169,8 @@ int MPIScheduler::getNode(const GriddingTask& task,
 
 void MPIScheduler::receiveLoop() {
   std::unique_lock<std::mutex> lock(_mutex);
-  while (!_isFinishing || receiveTasksAreRunning_UNSYNCHRONIZED()) {
-    if (!receiveTasksAreRunning_UNSYNCHRONIZED()) {
+  while (!_isFinishing || AWorkerIsRunning_UNSYNCHRONIZED()) {
+    if (!AWorkerIsRunning_UNSYNCHRONIZED()) {
       _notify.wait(lock);
     } else {
       lock.unlock();
@@ -210,7 +211,7 @@ void MPIScheduler::processReadyList_UNSYNCHRONIZED() {
   }
 }
 
-bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
+bool MPIScheduler::AWorkerIsRunning_UNSYNCHRONIZED() {
   for (size_t i = 1; i != _availableRoom.size(); ++i) {
     if (_availableRoom[i] < static_cast<int>(GetSettings().parallelGridding)) {
       return true;

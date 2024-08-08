@@ -72,15 +72,15 @@ class MPIScheduler final : public GriddingTaskManager {
   void processReadyList_UNSYNCHRONIZED();
 
   /**
-   * Return true if any tasks are still running.
+   * Return true if any tasks are still running on worker nodes.
    * Remember that the return value is independent of the state of the
-   * master node: when the master node is gridding, it will nevertheless
+   * main node: when the main node is gridding, it will nevertheless
    * return false if the other nodes are not running tasks.
    *
    * This function is UNSYNCHRONIZED: the caller should
    * hold the mutex locked while calling it.
    */
-  bool receiveTasksAreRunning_UNSYNCHRONIZED();
+  bool AWorkerIsRunning_UNSYNCHRONIZED();
 
   void processGriddingResult(int node, size_t bodySize);
   /**
