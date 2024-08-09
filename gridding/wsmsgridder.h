@@ -1,7 +1,7 @@
 #ifndef WS_MS_GRIDDER_H
 #define WS_MS_GRIDDER_H
 
-#include "msgridderbase.h"
+#include "msgridder.h"
 #include "wstackinggridder.h"
 
 #include "../structures/resources.h"
@@ -19,7 +19,7 @@
 
 namespace wsclean {
 
-class WSMSGridder final : public MSGridderBase {
+class WSMSGridder final : public MsGridder {
  public:
   typedef WStackingGridder<float> GridderType;
 
@@ -70,7 +70,7 @@ class WSMSGridder final : public MSGridderBase {
   };
 
   void countSamplesPerLayer(MsProviderCollection::MsData& msData);
-  size_t getSuggestedWGridSize() const final;
+  size_t GetSuggestedWGridSize() const final;
 
   void startInversionWorkThreads(size_t maxChannelCount);
   void finishInversionWorkThreads();

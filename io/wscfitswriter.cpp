@@ -12,7 +12,7 @@
 
 #include "../model/bbsmodel.h"
 
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 
 namespace wsclean {
 

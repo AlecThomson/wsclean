@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "h5solutiondata.h"
-#include "msgridderbase.h"
+#include "msgridder.h"
 #include "msprovidercollection.h"
 
 #include "../main/settings.h"
@@ -19,9 +19,9 @@ class GriddingTaskManager;
 
 /**
  * The MSGridderManager is a middle layer between GriddingTaskManager and
- * MSGridderBase derived classes.
+ * MsGridder derived classes.
  *
- * GriddingTaskManager is solely responsible for scheduling MSGridderBase
+ * GriddingTaskManager is solely responsible for scheduling MsGridder
  * derived classes are responsible for gridding (inversion/predict)
  *
  * MSGridderManager is responsible for:
@@ -61,16 +61,16 @@ class MSGridderManager {
                       bool store_common_info);
 
  private:
-  std::unique_ptr<MSGridderBase> ConstructGridder(const Resources& resources);
+  std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
-    std::unique_ptr<MSGridderBase> facet_gridder;
+    std::unique_ptr<MsGridder> facet_gridder;
     GriddingTask::FacetData& facet_task;
     GriddingResult::FacetData& facet_result;
   };
   std::vector<GriddingFacetTask> facet_tasks_;
 
   inline void InitializeMSDataVectors() {
-    std::vector<MSGridderBase*> gridders;
+    std::vector<MsGridder*> gridders;
     gridders.reserve(facet_tasks_.size());
     for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
       gridders.push_back(gridder.get());
@@ -80,12 +80,11 @@ class MSGridderManager {
   }
 
   /** Initializes 'gridder' with values that are equal for all facets. */
-  void InitializeGridderForTask(MSGridderBase& gridder,
-                                const GriddingTask& task,
+  void InitializeGridderForTask(MsGridder& gridder, const GriddingTask& task,
                                 GriddingTaskManager* writer_lock_manager);
 
   /** Initializes 'gridder' with facet-specific values. */
-  void InitializeGridderForFacet(MSGridderBase& gridder,
+  void InitializeGridderForFacet(MsGridder& gridder,
                                  GriddingTask::FacetData& facet_task);
 
   const Settings& settings_;

@@ -313,7 +313,8 @@ add_library(
   gridding/averagecorrection.cpp
   gridding/directmsgridder.cpp
   gridding/h5solutiondata.cpp
-  gridding/msgridderbase.cpp
+  gridding/msgridder.cpp
+  gridding/msgridderdata.cpp
   gridding/msgriddermanager.cpp
   gridding/msprovidercollection.cpp
   gridding/visibilitymodifier.cpp

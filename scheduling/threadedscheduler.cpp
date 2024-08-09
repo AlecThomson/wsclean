@@ -1,5 +1,5 @@
 #include "threadedscheduler.h"
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 
 #include "../main/settings.h"
 

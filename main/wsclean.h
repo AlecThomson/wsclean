@@ -26,7 +26,7 @@
 #include "../structures/outputchannelinfo.h"
 #include "../structures/weightmode.h"
 
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 
 #include "../msproviders/reorderedmsprovider.h"
 

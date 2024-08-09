@@ -30,7 +30,7 @@ class GriddingTaskFactory {
         observation_info_{observation_info},
         l_shift_{l_shift},
         m_shift_{m_shift},
-        meta_data_cache_{imaging_table_size} {}
+        metadata_cache_{imaging_table_size} {}
 
   /**
    * Creates gridding / inversion tasks for PSF images.
@@ -73,13 +73,13 @@ class GriddingTaskFactory {
       std::vector<std::unique_ptr<AverageBeam>>&& average_beams);
 
   const std::vector<std::unique_ptr<MetaDataCache>>& GetMetaDataCache() const {
-    return meta_data_cache_;
+    return metadata_cache_;
   }
 
   void SetMetaDataCacheEntry(const ImagingTableEntry& entry,
                              std::unique_ptr<MetaDataCache> cache) {
-    assert(entry.index < meta_data_cache_.size());
-    meta_data_cache_[entry.index] = std::move(cache);
+    assert(entry.index < metadata_cache_.size());
+    metadata_cache_[entry.index] = std::move(cache);
   }
 
  private:
@@ -108,7 +108,7 @@ class GriddingTaskFactory {
   const ImageWeightInitializer& image_weight_initializer_;
   const ObservationInfo& observation_info_;
   const double l_shift_, m_shift_;
-  std::vector<std::unique_ptr<MetaDataCache>> meta_data_cache_;
+  std::vector<std::unique_ptr<MetaDataCache>> metadata_cache_;
 };
 
 }  // namespace wsclean

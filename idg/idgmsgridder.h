@@ -3,7 +3,7 @@
 
 #ifdef HAVE_IDG
 
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 #include "../structures/resources.h"
 
 #include <idg-api.h>
@@ -25,7 +25,7 @@ struct ImagingTableEntry;
 class ImageFilename;
 class Settings;
 
-class IdgMsGridder final : public MSGridderBase {
+class IdgMsGridder final : public MsGridder {
  public:
   IdgMsGridder(const Settings& settings, const Resources& resources,
                MsProviderCollection& measurement_sets);
@@ -65,7 +65,7 @@ class IdgMsGridder final : public MSGridderBase {
  private:
   std::unique_ptr<AverageBeam> _averageBeam;
 
-  size_t getSuggestedWGridSize() const final {
+  size_t GetSuggestedWGridSize() const final {
     return 1;  // TODO
   }
 
@@ -88,7 +88,7 @@ class IdgMsGridder final : public MSGridderBase {
       idg::api::BufferSetType);
 #endif  // HAVE_EVERYBEAM
 
-  struct IDGInversionRow : public MSGridderBase::InversionRow {
+  struct IDGInversionRow : public MsGridderData::InversionRow {
     size_t antenna1, antenna2, timeIndex;
   };
   struct IDGPredictionRow {

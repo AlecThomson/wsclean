@@ -17,12 +17,12 @@ template <typename num_t>
 DirectMSGridder<num_t>::DirectMSGridder(
     const Settings& settings, const Resources& resources,
     MsProviderCollection& ms_provider_collection)
-    : MSGridderBase(settings, ms_provider_collection), _resources(resources) {}
+    : MsGridder(settings, ms_provider_collection), _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::StartInversion() {
   _sqrtLMTable = GetSqrtLMLookupTable();
-  resetVisibilityCounters();
+  ResetVisibilityCounters();
 
   progress_bar_ =
       std::make_unique<ProgressBar>("Performing direct Fourier transform");

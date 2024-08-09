@@ -4,7 +4,7 @@
 #include <aocommon/image.h>
 #include <aocommon/lane.h>
 
-#include "msgridderbase.h"
+#include "msgridder.h"
 
 #include "../main/progressbar.h"
 #include "../structures/resources.h"
@@ -14,7 +14,7 @@ namespace wsclean {
 class ProgressBar;
 
 template <typename num_t>
-class DirectMSGridder final : public MSGridderBase {
+class DirectMSGridder final : public MsGridder {
  public:
   DirectMSGridder(const Settings& settings, const Resources& resources,
                   MsProviderCollection& ms_provider_collection);
@@ -31,7 +31,7 @@ class DirectMSGridder final : public MSGridderBase {
   std::vector<aocommon::Image> ResultImages() final {
     return {std::move(_image)};
   }
-  size_t getSuggestedWGridSize() const final { return 1; }
+  size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
   struct InversionSample {

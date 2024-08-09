@@ -9,7 +9,7 @@
 
 #include <LRUCache11.hpp>
 
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 
 using namespace ducc0;
 
@@ -36,7 +36,7 @@ class VisibilityCallbackBuffer : public TInfo {
                            const aocommon::BandData &selected_band,
                            const std::pair<size_t, size_t> *antenna_buffer,
                            const std::complex<float> *visibility_buffer,
-                           const size_t *time_offsets, MSGridderBase *gridder,
+                           const size_t *time_offsets, MsGridder *gridder,
                            size_t n_antennas)
       : TInfo({n_rows, n_channels}),
         n_antennas_(n_antennas),
@@ -130,7 +130,7 @@ class VisibilityCallbackBuffer : public TInfo {
    * corrections.
    */
   const size_t *time_offsets_;
-  MSGridderBase *gridder_;
+  MsGridder *gridder_;
 };
 
 template <typename NumT>
@@ -219,7 +219,7 @@ void WGriddingGridder_Simple<NumT>::AddInversionDataWithCorrectionCallback(
     const aocommon::BandData &selected_band,
     const std::pair<size_t, size_t> *antennas,
     const std::complex<float> *visibilities, const size_t *time_offsets,
-    MSGridderBase *gridder, size_t n_antenna) {
+    MsGridder *gridder, size_t n_antenna) {
   assert((selected_band.ChannelCount() <= 1) ||
          (frequencies[1] >= frequencies[0]));
 

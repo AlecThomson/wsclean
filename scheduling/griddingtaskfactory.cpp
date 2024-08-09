@@ -32,7 +32,7 @@ void GriddingTaskFactory::AddFacet(
     assert(entry.facetIndex == 0);
   }
   tasks.back().facets.emplace_back(entry.facetIndex, l_shift, m_shift,
-                                   std::move(meta_data_cache_[entry.index]),
+                                   std::move(metadata_cache_[entry.index]),
                                    std::move(average_beam), entry.facet,
                                    std::move(model_images));
 }

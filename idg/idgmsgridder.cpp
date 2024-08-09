@@ -48,7 +48,7 @@ constexpr const size_t kGridderIndex = 0;
 
 IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources,
                            MsProviderCollection& ms_provider_collection)
-    : MSGridderBase(settings, ms_provider_collection),
+    : MsGridder(settings, ms_provider_collection),
       _averageBeam(nullptr),
       _outputProvider(nullptr),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
@@ -135,7 +135,7 @@ void IdgMsGridder::StartInversionPass(size_t pass_index) {
     Logger::Debug << "Computing average beam.\n";
     _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
   } else {
-    resetVisibilityCounters();
+    ResetVisibilityCounters();
   }
 }
 

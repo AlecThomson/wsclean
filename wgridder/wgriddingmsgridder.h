@@ -1,7 +1,7 @@
 #ifndef WGRIDDING_MS_GRIDDER_H
 #define WGRIDDING_MS_GRIDDER_H
 
-#include "../gridding/msgridderbase.h"
+#include "../gridding/msgridder.h"
 #include "../structures/resources.h"
 
 #include <aocommon/image.h>
@@ -12,7 +12,7 @@ namespace wsclean {
 
 class WGriddingGridderBase;
 
-class WGriddingMSGridder final : public MSGridderBase {
+class WGriddingMSGridder final : public MsGridder {
  public:
   WGriddingMSGridder(const Settings& settings, const Resources& resources,
                      MsProviderCollection& ms_provider_collection,
@@ -34,7 +34,7 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   void FreeImagingData() final {}
 
-  size_t getSuggestedWGridSize() const final { return 1; }
+  size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
   aocommon::Image _image;

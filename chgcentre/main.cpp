@@ -103,7 +103,7 @@ Muvw calculateUVW(const MPosition& antennaPos, const MPosition& refPos,
   return Muvw(uvw, Muvw::J2000);
 }
 
-void rotateVisibilities(const aocommon::BandData& bandData, double shiftFactor,
+void RotateVisibilities(const aocommon::BandData& bandData, double shiftFactor,
                         unsigned polarizationCount,
                         casacore::Array<casacore::Complex>::contiter dataIter) {
   for (unsigned ch = 0; ch != bandData.ChannelCount(); ++ch) {
@@ -351,20 +351,20 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
 
           const aocommon::BandData& thisBand = bandData[dataDescId];
           dataCol->get(row, *dataArray);
-          rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+          RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                              dataArray->cbegin());
           dataCol->put(row, *dataArray);
 
           if (hasCorrData) {
             correctedDataCol->get(row, *dataArray);
-            rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+            RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                                dataArray->cbegin());
             correctedDataCol->put(row, *dataArray);
           }
 
           if (hasModelData) {
             modelDataCol->get(row, *dataArray);
-            rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+            RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                                dataArray->cbegin());
             modelDataCol->put(row, *dataArray);
           }
@@ -560,20 +560,20 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
       if (!onlyUVW) {
         const aocommon::BandData& thisBand = bandData[dataDescId];
         dataCol->get(row, *dataArray);
-        rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+        RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                            dataArray->cbegin());
         dataCol->put(row, *dataArray);
 
         if (hasCorrData) {
           correctedDataCol->get(row, *dataArray);
-          rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+          RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                              dataArray->cbegin());
           correctedDataCol->put(row, *dataArray);
         }
 
         if (hasModelData) {
           modelDataCol->get(row, *dataArray);
-          rotateVisibilities(thisBand, shiftFactor, polarizationCount,
+          RotateVisibilities(thisBand, shiftFactor, polarizationCount,
                              dataArray->cbegin());
           modelDataCol->put(row, *dataArray);
         }

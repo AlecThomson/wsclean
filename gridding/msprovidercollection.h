@@ -11,7 +11,7 @@
 
 namespace wsclean {
 
-class MSGridderBase;
+class MsGridder;
 
 /**
  * MsProviderCollection is responsible for managing the set of measurement sets
@@ -84,7 +84,7 @@ class MsProviderCollection {
   double StartTime() const { return ms_limits_.start_time; }
 
   void InitializeMS();
-  void InitializeMSDataVector(const std::vector<MSGridderBase*>& gridders,
+  void InitializeMSDataVector(const std::vector<MsGridder*>& gridders,
                               double w_limit, bool has_solution_data);
 
   /** Computes/stores per MS metadata that is shared for all facets/gridders in
@@ -102,7 +102,7 @@ class MsProviderCollection {
       const casacore::MSAntenna& antenna);
 
   void InitializeMeasurementSet(MsData& ms_data,
-                                const std::vector<MSGridderBase*>& gridders,
+                                const std::vector<MsGridder*>& gridders,
                                 bool is_cached, bool has_solution_data);
 
   /** Computes/stores limits across all measurement sets */

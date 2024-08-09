@@ -11,7 +11,7 @@
 
 #include "directmsgridder.h"
 #include "h5solutiondata.h"
-#include "msgridderbase.h"
+#include "msgridder.h"
 #include "msprovidercollection.h"
 #include "wsmsgridder.h"
 
@@ -44,7 +44,7 @@ void MSGridderManager::InitializeGridders(
 
     // Create a new gridder for each facet / sub-task, since gridders do not
     // support reusing them for multiple tasks.
-    std::unique_ptr<MSGridderBase> gridder = ConstructGridder(resources);
+    std::unique_ptr<MsGridder> gridder = ConstructGridder(resources);
     GriddingTask::FacetData& facet_task = task.facets[facet_index];
     GriddingResult::FacetData& facet_result = facet_results[facet_index];
 
@@ -73,15 +73,16 @@ void MSGridderManager::Invert() {
   InitializeMSDataVectors();
 
   for (const GriddingFacetTask& task : facet_tasks_) {
-    const std::unique_ptr<MSGridderBase>& gridder = task.facet_gridder;
-    gridder->calculateOverallMetaData();
+    const std::unique_ptr<MsGridder>& gridder = task.facet_gridder;
+    gridder->CalculateOverallMetaData();
     gridder->StartInversion();
     const size_t n_inversion_passes = gridder->GetNInversionPasses();
     for (size_t pass_index = 0; pass_index < n_inversion_passes; ++pass_index) {
       gridder->StartInversionPass(pass_index);
       for (MsProviderCollection::MsData& ms_data :
            ms_provider_collection_.ms_data_vector_) {
-        gridder->StartMeasurementSet(ms_data, false);
+        gridder->StartMeasurementSet(ms_provider_collection_.Count(), ms_data,
+                                     false);
         ms_data.total_rows_processed += gridder->GridMeasurementSet(ms_data);
       }
       gridder->FinishInversionPass(pass_index);
@@ -94,15 +95,16 @@ void MSGridderManager::Predict() {
   InitializeMSDataVectors();
 
   for (const GriddingFacetTask& task : facet_tasks_) {
-    const std::unique_ptr<MSGridderBase>& gridder = task.facet_gridder;
-    gridder->calculateOverallMetaData();
+    const std::unique_ptr<MsGridder>& gridder = task.facet_gridder;
+    gridder->CalculateOverallMetaData();
     gridder->StartPredict(std::move(task.facet_task.modelImages));
     const size_t n_predict_passes = gridder->GetNPredictPasses();
     for (size_t pass_index = 0; pass_index < n_predict_passes; ++pass_index) {
       gridder->StartPredictPass(pass_index);
       for (MsProviderCollection::MsData& ms_data :
            ms_provider_collection_.ms_data_vector_) {
-        gridder->StartMeasurementSet(ms_data, true);
+        gridder->StartMeasurementSet(ms_provider_collection_.Count(), ms_data,
+                                     true);
         ms_data.total_rows_processed += gridder->PredictMeasurementSet(ms_data);
       }
       gridder->FinishPredictPass();
@@ -150,7 +152,7 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
   }
 }
 
-std::unique_ptr<MSGridderBase> MSGridderManager::ConstructGridder(
+std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(
     const Resources& resources) {
   switch (settings_.gridderType) {
     case GridderType::IDG:
@@ -183,7 +185,7 @@ std::unique_ptr<MSGridderBase> MSGridderManager::ConstructGridder(
 }
 
 void MSGridderManager::InitializeGridderForTask(
-    MSGridderBase& gridder, const GriddingTask& task,
+    MsGridder& gridder, const GriddingTask& task,
     GriddingTaskManager* writer_lock_manager) {
   gridder.SetGridMode(settings_.gridMode);
 
@@ -226,7 +228,7 @@ void MSGridderManager::InitializeGridderForTask(
 }
 
 void MSGridderManager::InitializeGridderForFacet(
-    MSGridderBase& gridder, GriddingTask::FacetData& facet_task) {
+    MsGridder& gridder, GriddingTask::FacetData& facet_task) {
   const schaapcommon::facets::Facet* facet = facet_task.facet.get();
   gridder.SetIsFacet(facet != nullptr);
   if (facet) {

@@ -28,7 +28,7 @@ namespace wsclean {
 
 WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources,
                          MsProviderCollection& ms_provider_collection)
-    : MSGridderBase(settings, ms_provider_collection),
+    : MsGridder(settings, ms_provider_collection),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
       _resources(resources),
@@ -76,7 +76,7 @@ void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
                 << '\n';
 }
 
-size_t WSMSGridder::getSuggestedWGridSize() const {
+size_t WSMSGridder::GetSuggestedWGridSize() const {
   size_t wWidth, wHeight;
   if (HasNWSize()) {
     wWidth = NWWidth();
@@ -198,7 +198,7 @@ size_t WSMSGridder::GridMeasurementSet(
               (row_data.uvw[0] * LShift() + row_data.uvw[1] * MShift());
           // Because the visibilities have been collapsed, there's only one
           // polarization left:
-          rotateVisibilities<1>(band, shiftFactor, row_data.data);
+          RotateVisibilities<1>(band, shiftFactor, row_data.data);
         }
 
         InversionWorkSample sample_data;
@@ -341,7 +341,7 @@ void WSMSGridder::predictCalcThread(
     if (HasDenormalPhaseCentre()) {
       const double shiftFactor =
           2.0 * M_PI * (item.uvw[0] * LShift() + item.uvw[1] * MShift());
-      rotateVisibilities<1>(*bandData, shiftFactor, item.data.get());
+      RotateVisibilities<1>(*bandData, shiftFactor, item.data.get());
     }
 
     writeBuffer.write(std::move(item));
@@ -405,7 +405,7 @@ void WSMSGridder::StartInversion() {
       countSamplesPerLayer(GetMsData(i));
   }
 
-  resetVisibilityCounters();
+  ResetVisibilityCounters();
 }
 
 void WSMSGridder::StartInversionPass(size_t pass_index) {

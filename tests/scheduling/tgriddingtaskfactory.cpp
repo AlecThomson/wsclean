@@ -43,7 +43,7 @@ struct FactoryFixture {
         average_beams(group.size()),
         average_beam_pointers(group.size()),
         model_images(group.size()),
-        meta_data_cache_pointers(group.size()),
+        metadata_cache_pointers(group.size()),
         factory(ms_helper, image_weight_initializer, observation_info, kLShift,
                 kMShift, group.size()) {
     settings.pixelScaleX = kPixelScale;
@@ -74,7 +74,7 @@ struct FactoryFixture {
       ImagingTableEntry entry;
       entry.index = index;
       auto cache = std::make_unique<MetaDataCache>();
-      meta_data_cache_pointers[index] = cache.get();
+      metadata_cache_pointers[index] = cache.get();
       factory.SetMetaDataCacheEntry(*group[index], std::move(cache));
 
       // Create an AverageBeam object for each entry.
@@ -104,7 +104,7 @@ struct FactoryFixture {
                       kLShift - entry.centreShiftX * kPixelScale, 1.0e-7);
     BOOST_CHECK_CLOSE(facet_data.m_shift,
                       kMShift + entry.centreShiftY * kPixelScale, 1.0e-7);
-    BOOST_TEST(facet_data.cache.get() == meta_data_cache_pointers[entry.index]);
+    BOOST_TEST(facet_data.cache.get() == metadata_cache_pointers[entry.index]);
     BOOST_TEST(facet_data.facet == entry.facet);
   }
 
@@ -185,7 +185,7 @@ struct FactoryFixture {
   std::vector<std::vector<aocommon::Image>> model_images;
 
   // Gets pointers to the cache items in the factory.
-  std::vector<MetaDataCache*> meta_data_cache_pointers;
+  std::vector<MetaDataCache*> metadata_cache_pointers;
 
   // The factory object, which is the object under test.
   GriddingTaskFactory factory;
@@ -198,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE(get_meta_data_cache, FactoryFixture) {
   BOOST_REQUIRE(factory.GetMetaDataCache().size() == group.size());
   for (size_t i = 0; i < group.size(); ++i) {
     BOOST_TEST(factory.GetMetaDataCache()[i].get() ==
-               meta_data_cache_pointers[i]);
+               metadata_cache_pointers[i]);
   }
 }
 

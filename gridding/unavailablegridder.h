@@ -1,7 +1,7 @@
 #ifndef NOT_IMPLEMENTED_GRIDDER_H
 #define NOT_IMPLEMENTED_GRIDDER_H
 
-#include "msgridderbase.h"
+#include "msgridder.h"
 #include "../structures/resources.h"
 
 #include <aocommon/image.h>
@@ -12,11 +12,11 @@
 
 namespace wsclean {
 
-class UnavailableGridder final : public MSGridderBase {
+class UnavailableGridder final : public MsGridder {
  public:
   UnavailableGridder(const class Settings& settings, const Resources& resources,
                      MsProviderCollection& ms_provider_collection)
-      : MSGridderBase(settings, ms_provider_collection) {
+      : MsGridder(settings, ms_provider_collection) {
     doThrow();
   }
 
@@ -60,7 +60,7 @@ class UnavailableGridder final : public MSGridderBase {
   }
 
  private:
-  size_t getSuggestedWGridSize() const final {
+  size_t GetSuggestedWGridSize() const final {
     doThrow();
     return 0;
   }

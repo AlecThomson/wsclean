@@ -4,7 +4,7 @@
 
 #include <aocommon/logger.h>
 
-#include "msgridderbase.h"
+#include "msgridder.h"
 #include "msgriddermanager.h"
 
 using aocommon::Logger;
@@ -58,16 +58,16 @@ std::vector<double> SelectH5parmTimes(MSProvider& ms_provider) {
 }  // namespace
 
 void MsProviderCollection::InitializeMSDataVector(
-    const std::vector<MSGridderBase*>& gridders, double w_limit,
+    const std::vector<MsGridder*>& gridders, double w_limit,
     bool has_solution_data) {
   assert(Count() != 0);
 
   bool has_cache = false;
-  for (MSGridderBase* facet_gridder : gridders) {
+  for (MsGridder* facet_gridder : gridders) {
     has_cache = facet_gridder->HasMetaDataCache();
     if (!has_cache) facet_gridder->AllocateMetaDataCache(Count());
 
-    facet_gridder->ResetVisibilityModifierCache();
+    facet_gridder->ResetVisibilityModifierCache(Count());
   }
 
   ms_limits_.max_baseline = 0.0;
@@ -95,7 +95,7 @@ void MsProviderCollection::InitializeMSDataVector(
       ms_limits_.max_w = ms_limits_.min_w;
   }
 
-  for (MSGridderBase* facet_gridder : gridders) {
+  for (MsGridder* facet_gridder : gridders) {
     facet_gridder->SetMaxW(ms_limits_.max_w);
     facet_gridder->SetMinW(ms_limits_.min_w);
     facet_gridder->SetMaxBaseline(ms_limits_.max_baseline);
@@ -142,8 +142,8 @@ void MsProviderCollection::MsData::InitializeBandData(
 }
 
 void MsProviderCollection::InitializeMeasurementSet(
-    MsData& ms_data, const std::vector<MSGridderBase*>& gridders,
-    bool is_cached, bool has_solution_data) {
+    MsData& ms_data, const std::vector<MsGridder*>& gridders, bool is_cached,
+    bool has_solution_data) {
   MSProvider& ms_provider = MeasurementSet(ms_data.internal_ms_index);
   ms_data.ms_provider = &ms_provider;
 
@@ -167,7 +167,7 @@ void MsProviderCollection::InitializeMeasurementSet(
   // wlimits rather than doing it individually for each one.
   size_t min_image_width = gridders[0]->ImageWidth();
   size_t min_image_height = gridders[0]->ImageHeight();
-  for (const MSGridderBase* gridder : gridders) {
+  for (const MsGridder* gridder : gridders) {
     min_image_width = std::min(min_image_width, gridder->ImageWidth());
     min_image_height = std::min(min_image_height, gridder->ImageHeight());
   }
@@ -206,7 +206,7 @@ void MsProviderCollection::InitializeMeasurementSet(
   if (has_solution_data) {
     ms_data.unique_times =
         std::make_shared<std::vector<double>>(SelectH5parmTimes(ms_provider));
-    for (MSGridderBase* gridder : gridders) {
+    for (MsGridder* gridder : gridders) {
       gridder->GetVisibilityModifier().SetMSTimes(ms_data.original_ms_index,
                                                   ms_data.unique_times);
     }

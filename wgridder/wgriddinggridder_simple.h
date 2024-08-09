@@ -12,7 +12,7 @@
 
 namespace wsclean {
 
-class MSGridderBase;
+class MsGridder;
 
 class WGriddingGridderBase {
  public:
@@ -29,7 +29,7 @@ class WGriddingGridderBase {
       const aocommon::BandData &selected_band,
       const std::pair<size_t, size_t> *antennas,
       const std::complex<float> *visibilities, const size_t *time_offsets,
-      MSGridderBase *gridder, size_t n_antenna) = 0;
+      MsGridder *gridder, size_t n_antenna) = 0;
   virtual void FinalizeImage(double multiplicationFactor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
@@ -151,7 +151,7 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
       const aocommon::BandData &selected_band,
       const std::pair<size_t, size_t> *antennas,
       const std::complex<float> *visibilities, const size_t *time_offsets,
-      MSGridderBase *gridder, size_t n_antenna) override;
+      MsGridder *gridder, size_t n_antenna) override;
 
   /**
    * Finalize inversion once all passes are performed.
