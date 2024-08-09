@@ -24,11 +24,12 @@ class WGriddingGridderBase {
                                 const double *freq,
                                 const std::complex<float> *vis) = 0;
   virtual void AddInversionDataWithCorrectionCallback(
-      GainMode mode, size_t n_rows, size_t data_size,
-      const aocommon::BandData &selected_band, MSGridderBase *gridder,
-      size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
-      const double *uvw, const double *frequencies,
-      const std::complex<float> *visibilities, const size_t *time_offsets) = 0;
+      GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
+      const double *frequencies, size_t n_channels,
+      const aocommon::BandData &selected_band,
+      const std::pair<size_t, size_t> *antennas,
+      const std::complex<float> *visibilities, const size_t *time_offsets,
+      MSGridderBase *gridder, size_t n_antenna) = 0;
   virtual void FinalizeImage(double multiplicationFactor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
@@ -120,28 +121,37 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   /** Equivalent to @ref AddInversionData() but without facet solutions
    * pre-applied and with additional paramaters to allow the creation of a
    * callback that can apply solutions "on the fly" as required
-   * @param data_size The size of a row of visibilities (channel count *
-   * polarisations)
+   *
+   * It is expected that corrections have already been summed via @ref
+   * ApplyCorrections<ModifierBehaviour::kSum>()
+   *
+   * @param n_polarizations The number of polarizations per visibility in @ref
+   * visibilities
+   * @param antennas Pointer to n_rows `std::pair<size_t, size_t>` containing
+   * the antenna pair for each row of visibilities.
+   * @param uvws Pointer to n_rows*3 doubles containing UVW in meters.
+   *        U(row) := uvws[3*row  ]
+   *        V(row) := uvws[3*row+1]
+   *        W(row) := uvws[3*row+2]
+   * @param frequencies Pointer to n_channels doubles containing channel
+   * frequencies
+   * @param visibilities Pointer to n_rows*n_channels*n_polarizations
+   * `complex<float>` containing weighted but uncorrected and not yet collapsed
+   * visibilities: visibility(row, chan) := vis[row*n_chan + chan]
+   * @param time_offsets Pointer to n_rows `size_t` containing the time offset
+   * as calculated by @ref CacheParmResponse() for the corresponding visibility
+   * row when applying @ref ApplyCorrections<ModifierBehaviour::kSum>() on it
+   * For further explanation see @ref VisibilityCallbackBuffer::time_offsets_
    * @param gridder Pointer to a gridder that can be called back into in order
    * to apply solutions
-   * @param n_antennas The number of antennas
-   * @param antenna_buffer Pointer to n_row pairs of antennas
-   * @param uvw Pointer to n_rows*3 doubles containing UVW in m.
-   *        U(row) := uvw[3*row  ]
-   *        V(row) := uvw[3*row+1]
-   *        W(row) := uvw[3*row+2]
-   * @param frequencies Pointer to n_chan doubles containing channel frequencies
-   * @param visibilities Pointer to nrow*n_chan complex<float> containing
-   * weighted but uncorrected visibilities: visibility(row, chan) :=
-   * vis[row*n_chan + chan]
    */
   void AddInversionDataWithCorrectionCallback(
-      GainMode mode, size_t n_rows, size_t data_size,
-      const aocommon::BandData &selected_band, MSGridderBase *gridder,
-      size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
-      const double *uvw, const double *frequencies,
-      const std::complex<float> *visibilities,
-      const size_t *time_offsets) override;
+      GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
+      const double *frequencies, size_t n_channels,
+      const aocommon::BandData &selected_band,
+      const std::pair<size_t, size_t> *antennas,
+      const std::complex<float> *visibilities, const size_t *time_offsets,
+      MSGridderBase *gridder, size_t n_antenna) override;
 
   /**
    * Finalize inversion once all passes are performed.
@@ -196,6 +206,18 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   template <typename Tms>
   void AddInversionMs(size_t n_rows, const double *uvw,
                       const ducc0::cmav<double, 1> &freq, Tms &ms);
+
+  // Helper function to convert mode to a template paramater
+  template <typename... Params>
+  void AddInversionMs(GainMode mode, Params... params);
+  // Helper function to convert polarisations to a template paramater
+  template <GainMode Mode, typename... Params>
+  void AddInversionMs(size_t n_polarizations, Params... params);
+  // Helper function to finally construct the templated object now that we have
+  // mode and polarisations as template paramaters
+  template <GainMode Mode, size_t NPolarizations, typename... Params>
+  void AddInversionMs(size_t n_rows, const double *uvw,
+                      const ducc0::cmav<double, 1> &freq, Params... params);
 };
 
 #endif

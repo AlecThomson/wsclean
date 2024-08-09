@@ -346,7 +346,7 @@ class MSGridderBase {
   }
 
   /**
-   * @brief Applies the selected visibility modifier (selected by Mode)
+   * Applies the selected visibility modifier (selected by Mode)
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
    *

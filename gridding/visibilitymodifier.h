@@ -71,9 +71,6 @@ class VisibilityModifier {
   }
 
   void ResetCache(size_t n_measurement_sets) {
-    // Assign, rather than a resize here to make sure that
-    // caches are re-initialized - even in the case an MSGridderBase
-    // object would be re-used for multiple gridding tasks.
     _cachedParmResponse.clear();
     _cachedMSTimes.clear();
     time_offsets_.clear();
@@ -93,9 +90,16 @@ class VisibilityModifier {
   size_t GetCacheParmResponseSize() const;
 
   /**
-   * @brief Update the time associated with a cached h5 solution file.
-   * Cache must be initialised once per msData before calling this
+   * Update the time associated with a cached h5 solution file.
+   * Cache must be initialised once per MsData before calling this
    * method, by calling @ref InitializeCacheParmResponse()
+   *
+   * @param time_offset This value is incrementally updated by each call into
+   * cacheParmResponse and epresents an offset into @ref _cachedParmResponse
+   * that is needed by functions that will apply the parm response e.g. @ref
+   * ApplyParmResponse(). Also used internally as an offset into @ref
+   * _cachedMSTimes to avoid searching data already covered by previous calls.
+   * See @ref GetTimeOffset() for more information.
    */
   void CacheParmResponse(double time, const aocommon::BandData& band,
                          size_t ms_index, size_t& time_offset);
@@ -165,6 +169,15 @@ class VisibilityModifier {
 
   bool HasH5Parm() const { return _h5parms && !_h5parms->empty(); }
 
+  /*
+   * Return the current time offset for the MS corresponding to `ms_index`
+   * The time offset is a value that is incrementally updated inside @ref
+   * CacheParmResponse() for every @ref ApplyCorrection() call and represents an
+   * offset from the start of @ref _cachedMSTimes that can be used to speed up
+   * subsequent searches in subsequent calls to @ref CacheParmResponse() as well
+   * as an index into @ref _cachedParmResponse that is needed by functions that
+   * apply the parm response e.g. @ref ApplyParmResponse()
+   */
   size_t GetTimeOffset(size_t ms_index) { return time_offsets_[ms_index]; }
   void SetTimeOffset(size_t ms_index, size_t time_offset) {
     time_offsets_[ms_index] = time_offset;
