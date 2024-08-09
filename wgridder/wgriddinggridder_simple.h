@@ -28,7 +28,7 @@ class WGriddingGridderBase {
       const aocommon::BandData &selected_band, MSGridderBase *gridder,
       size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
       const double *uvw, const double *frequencies,
-      const std::complex<float> *visibilities) = 0;
+      const std::complex<float> *visibilities, const size_t *time_offsets) = 0;
   virtual void FinalizeImage(double multiplicationFactor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
@@ -140,7 +140,8 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
       const aocommon::BandData &selected_band, MSGridderBase *gridder,
       size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
       const double *uvw, const double *frequencies,
-      const std::complex<float> *visibilities) override;
+      const std::complex<float> *visibilities,
+      const size_t *time_offsets) override;
 
   /**
    * Finalize inversion once all passes are performed.

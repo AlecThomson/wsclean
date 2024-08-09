@@ -76,7 +76,7 @@ class VisibilityModifier {
     // object would be re-used for multiple gridding tasks.
     _cachedParmResponse.clear();
     _cachedMSTimes.clear();
-    _timeOffsets.clear();
+    time_offsets_.clear();
   }
 
   /**
@@ -98,7 +98,7 @@ class VisibilityModifier {
    * method, by calling @ref InitializeCacheParmResponse()
    */
   void CacheParmResponse(double time, const aocommon::BandData& band,
-                         size_t ms_index);
+                         size_t ms_index, size_t& time_offset);
 
   /**
    * Applies the conjugate (is backward, or imaging direction) h5parm gain
@@ -123,12 +123,30 @@ class VisibilityModifier {
                                    const float* image_weights, size_t ms_index,
                                    size_t n_channels, size_t n_antennas,
                                    size_t antenna1, size_t antenna2,
-                                   bool apply_forward);
+                                   bool apply_forward) {
+    ApplyConjugatedParmResponse<Behaviour, Mode>(
+        data, weights, image_weights, ms_index, n_channels, n_antennas,
+        antenna1, antenna2, apply_forward, GetTimeOffset(ms_index));
+  }
+  template <ModifierBehaviour Behaviour, GainMode Mode>
+  void ApplyConjugatedParmResponse(std::complex<float>* data,
+                                   const float* weights,
+                                   const float* image_weights, size_t ms_index,
+                                   size_t n_channels, size_t n_antennas,
+                                   size_t antenna1, size_t antenna2,
+                                   bool apply_forward, size_t time_offset);
 
   template <GainMode GainEntry>
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
                          size_t n_channels, size_t n_antennas, size_t antenna1,
-                         size_t antenna2);
+                         size_t antenna2) {
+    ApplyParmResponse<GainEntry>(data, ms_index, n_channels, n_antennas,
+                                 antenna1, antenna2, GetTimeOffset(ms_index));
+  }
+  template <GainMode GainEntry>
+  void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
+                         size_t n_channels, size_t n_antennas, size_t antenna1,
+                         size_t antenna2, size_t time_offset);
 
   void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
     _cachedMSTimes[ms_index] = std::move(times);
@@ -146,6 +164,11 @@ class VisibilityModifier {
   }
 
   bool HasH5Parm() const { return _h5parms && !_h5parms->empty(); }
+
+  size_t GetTimeOffset(size_t ms_index) { return time_offsets_[ms_index]; }
+  void SetTimeOffset(size_t ms_index, size_t time_offset) {
+    time_offsets_[ms_index] = time_offset;
+  }
 
 #ifdef HAVE_EVERYBEAM
   /**
@@ -174,7 +197,17 @@ class VisibilityModifier {
   void ApplyConjugatedDual(std::complex<float>* data, const float* weights,
                            const float* image_weights, size_t n_channels,
                            size_t n_stations, size_t antenna1, size_t antenna2,
-                           size_t ms_index, bool apply_forward);
+                           size_t ms_index, bool apply_forward) {
+    ApplyConjugatedDual<Behaviour, Mode>(
+        data, weights, image_weights, n_channels, n_stations, antenna1,
+        antenna2, ms_index, apply_forward, GetTimeOffset(ms_index));
+  }
+  template <ModifierBehaviour Behaviour, GainMode Mode>
+  void ApplyConjugatedDual(std::complex<float>* data, const float* weights,
+                           const float* image_weights, size_t n_channels,
+                           size_t n_stations, size_t antenna1, size_t antenna2,
+                           size_t ms_index, bool apply_forward,
+                           size_t time_offset);
 #endif
 
   void SetFacetDirection(double ra, double dec) {
@@ -263,7 +296,7 @@ class VisibilityModifier {
    * and _cachedMSTimes elements of the same ms_index. The map is indexed by a
    * (non-consecutive) ms_index.
    */
-  std::map<size_t, size_t> _timeOffsets;
+  std::map<size_t, size_t> time_offsets_;
   /**
    * Optional pointers to vectors with h5parm solution objects.
    * The GriddingTaskManager, which always outlives GriddingTasks and their
@@ -395,7 +428,7 @@ template <ModifierBehaviour Behaviour, GainMode Mode>
 inline void VisibilityModifier::ApplyConjugatedDual(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
-    size_t ms_index, bool apply_forward) {
+    size_t ms_index, bool apply_forward, size_t time_offset) {
   const size_t nparms = NValuesPerSolution(ms_index);
 
   if (nparms == 2) {
@@ -411,7 +444,7 @@ inline void VisibilityModifier::ApplyConjugatedDual(
       // Get H5 solutions
       // Column major indexing
       const size_t h5_offset =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_stations * nparms;
+          (time_offset * n_channels + ch) * n_stations * nparms;
       const size_t h5_offset1 = h5_offset + antenna1 * nparms;
       const size_t h5_offset2 = h5_offset + antenna2 * nparms;
       const aocommon::MC2x2F gain_h5_1(
@@ -456,7 +489,7 @@ inline void VisibilityModifier::ApplyConjugatedDual(
       // Get h5 solution
       // Column major indexing
       const size_t offset_h5 =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_stations * nparms;
+          (time_offset * n_channels + ch) * n_stations * nparms;
       const size_t offset_h5_1 = offset_h5 + antenna1 * nparms;
       const size_t offset_h5_2 = offset_h5 + antenna2 * nparms;
       const aocommon::MC2x2F gain_h5_1(
@@ -493,7 +526,7 @@ template <ModifierBehaviour Behaviour, GainMode Mode>
 inline void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
-    size_t antenna2, bool apply_forward) {
+    size_t antenna2, bool apply_forward, size_t time_offset) {
   const size_t nparms = NValuesPerSolution(ms_index);
 
   // Conditional could be templated once C++ supports partial function
@@ -502,7 +535,7 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const aocommon::MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
@@ -526,7 +559,7 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const aocommon::MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);

@@ -36,13 +36,15 @@ class VisibilityCallbackBuffer : public Tinfo {
                            const aocommon::BandData &selected_band,
                            const std::pair<size_t, size_t> *antenna_buffer,
                            const std::complex<float> *visibility_buffer,
-                           MSGridderBase *gridder, size_t n_antennas)
+                           const size_t *time_offsets, MSGridderBase *gridder,
+                           size_t n_antennas)
       : Tinfo({n_rows, n_channels}),
         n_antennas_(n_antennas),
         n_channels_(n_channels),
         selected_band_(selected_band),
         antenna_buffer_(antenna_buffer),
         visibility_buffer_(visibility_buffer),
+        time_offsets_(time_offsets),
         gridder_(gridder){};
 
   template <typename I>
@@ -74,11 +76,15 @@ class VisibilityCallbackBuffer : public Tinfo {
       std::copy_n(&visibility_buffer_[row * n_channels_], n_channels_,
                   visibility_row.get());
 
+      // We need to pass a cached time_offset into `ApplyCorrections` because
+      // it's not capable of calculating  this itself when not called
+      // sequentially
+      size_t time_offset = time_offsets_[row];
       // We can safely pass null for weight buffer and 0 for time and field_id
       // because these are unused in ModifierBehaviour::kApply mode
       gridder_->ApplyCorrections<Mode, ModifierBehaviour::kApply, false>(
           n_antennas_, visibility_row.get(), selected_band_, nullptr, 0, 0,
-          antenna_pair.first, antenna_pair.second);
+          antenna_pair.first, antenna_pair.second, time_offset);
 
       visibility_row_cache.emplace(row, std::move(visibility_row));
     }
@@ -107,6 +113,16 @@ class VisibilityCallbackBuffer : public Tinfo {
   const aocommon::BandData &selected_band_;
   const std::pair<size_t, size_t> *antenna_buffer_;
   const std::complex<float> *visibility_buffer_;
+  /** Matches the number of rows in length.
+   * When applying corrections sequentially a time_offset is calculated by @ref
+   * CacheParmResponse() for each row, used for applying the corrections, and
+   * then the time_offset for the next row calculated on top of it.
+   * As the time_offset is needed when we apply the corrections, and we can't
+   * compute it again here without sequentially going through every single row,
+   * we have to store all of them in a buffer to be used when we apply the
+   * corrections.
+   */
+  const size_t *time_offsets_;
   MSGridderBase *gridder_;
 };
 
@@ -195,7 +211,7 @@ void WGriddingGridder_Simple<NumT>::AddInversionDataWithCorrectionCallback(
     const aocommon::BandData &selected_band, MSGridderBase *gridder,
     size_t n_antennas, const std::pair<size_t, size_t> *antenna_buffer,
     const double *uvw, const double *frequencies,
-    const std::complex<float> *visibilities) {
+    const std::complex<float> *visibilities, const size_t *time_offsets) {
   assert((selected_band.ChannelCount() <= 1) ||
          (frequencies[1] >= frequencies[0]));
 
@@ -205,14 +221,14 @@ void WGriddingGridder_Simple<NumT>::AddInversionDataWithCorrectionCallback(
     case GainMode::kXX: {
       const VisibilityCallbackBuffer<std::complex<float>, GainMode::kXX> ms(
           n_rows, data_size, selected_band, antenna_buffer, visibilities,
-          gridder, n_antennas);
+          time_offsets, gridder, n_antennas);
       AddInversionMs(n_rows, uvw, freq2, ms);
       break;
     }
     case GainMode::kYY: {
       const VisibilityCallbackBuffer<std::complex<float>, GainMode::kYY> ms(
           n_rows, data_size, selected_band, antenna_buffer, visibilities,
-          gridder, n_antennas);
+          time_offsets, gridder, n_antennas);
       AddInversionMs(n_rows, uvw, freq2, ms);
       break;
     }
@@ -220,21 +236,21 @@ void WGriddingGridder_Simple<NumT>::AddInversionDataWithCorrectionCallback(
       const VisibilityCallbackBuffer<std::complex<float>,
                                      GainMode::k2VisDiagonal>
           ms(n_rows, data_size, selected_band, antenna_buffer, visibilities,
-             gridder, n_antennas);
+             time_offsets, gridder, n_antennas);
       AddInversionMs(n_rows, uvw, freq2, ms);
       break;
     }
     case GainMode::kTrace: {
       const VisibilityCallbackBuffer<std::complex<float>, GainMode::kTrace> ms(
           n_rows, data_size, selected_band, antenna_buffer, visibilities,
-          gridder, n_antennas);
+          time_offsets, gridder, n_antennas);
       AddInversionMs(n_rows, uvw, freq2, ms);
       break;
     }
     case GainMode::kFull: {
       const VisibilityCallbackBuffer<std::complex<float>, GainMode::kFull> ms(
           n_rows, data_size, selected_band, antenna_buffer, visibilities,
-          gridder, n_antennas);
+          time_offsets, gridder, n_antennas);
       AddInversionMs(n_rows, uvw, freq2, ms);
       break;
     }

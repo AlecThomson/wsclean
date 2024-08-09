@@ -73,7 +73,7 @@ void VisibilityModifier::InitializeMockResponse(
   _cachedBeamResponse.assign(beam_response.begin(), beam_response.end());
 #endif
   _cachedParmResponse.emplace(0, parm_response);
-  _timeOffsets = {std::pair(0, 0)};
+  time_offsets_ = {std::pair(0, 0)};
 }
 
 void VisibilityModifier::InitializeCacheParmResponse(
@@ -123,14 +123,13 @@ size_t VisibilityModifier::GetCacheParmResponseSize() const {
 
 void VisibilityModifier::CacheParmResponse(double time,
                                            const aocommon::BandData& band,
-                                           size_t ms_index) {
-  const auto it =
-      std::find(_cachedMSTimes[ms_index]->begin() + _timeOffsets[ms_index],
-                _cachedMSTimes[ms_index]->end(), time);
+                                           size_t ms_index,
+                                           size_t& time_offset) {
+  const auto it = std::find(_cachedMSTimes[ms_index]->begin() + time_offset,
+                            _cachedMSTimes[ms_index]->end(), time);
   if (it != _cachedMSTimes[ms_index]->end()) {
-    // Update _timeOffset value with index
-    _timeOffsets[ms_index] =
-        std::distance(_cachedMSTimes[ms_index]->begin(), it);
+    // Update time_offsets_ value with index
+    time_offset = std::distance(_cachedMSTimes[ms_index]->begin(), it);
   } else {
     throw std::runtime_error(
         "Time not found in cached times. A potential reason could be that the "
@@ -198,13 +197,14 @@ template <GainMode Mode>
 void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
                                            size_t ms_index, size_t n_channels,
                                            size_t n_antennas, size_t antenna1,
-                                           size_t antenna2) {
+                                           size_t antenna2,
+                                           size_t time_offset) {
   const size_t nparms = NValuesPerSolution(ms_index);
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
@@ -218,7 +218,7 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
       const size_t offset =
-          (_timeOffsets[ms_index] * n_channels + ch) * n_antennas * nparms;
+          (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
       const MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
@@ -231,22 +231,22 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
 
 template void VisibilityModifier::ApplyParmResponse<GainMode::kXX>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
-    size_t n_antennas, size_t antenna1, size_t antenna2);
+    size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
 template void VisibilityModifier::ApplyParmResponse<GainMode::kYY>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
-    size_t n_antennas, size_t antenna1, size_t antenna2);
+    size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
 template void VisibilityModifier::ApplyParmResponse<GainMode::kTrace>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
-    size_t n_antennas, size_t antenna1, size_t antenna2);
+    size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
 template void VisibilityModifier::ApplyParmResponse<GainMode::k2VisDiagonal>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
-    size_t n_antennas, size_t antenna1, size_t antenna2);
+    size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
 template void VisibilityModifier::ApplyParmResponse<GainMode::kFull>(
     std::complex<float>* data, size_t ms_index, size_t n_channels,
-    size_t n_antennas, size_t antenna1, size_t antenna2);
+    size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
 }  // namespace wsclean

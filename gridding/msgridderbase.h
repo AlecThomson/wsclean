@@ -345,13 +345,33 @@ class MSGridderBase {
     }
   }
 
+  /**
+   * @brief Applies the selected visibility modifier (selected by Mode)
+   * solutions to the visibilities and computes the weight corresponding to the
+   * combined effect.
+   *
+   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
+   * ApplyConjugatedParmResponse for more information
+   * @tparam LoadResponse This should always be true unless the calling code
+   * knows the response has already been loaded previously, e.g. if we first
+   * call `ApplyCorrections<Mode, kSum, true>(...)` we can then afterwards call
+   * `ApplyCorrection<Mode, kApply, false>(...)` for the same values
+   */
+  template <GainMode Mode,
+            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
+            bool LoadResponse = true, bool UseBufferedOffsets = false>
+  void ApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
+                        const aocommon::BandData& cur_band,
+                        float* weight_buffer,
+                        const MSProvider::MetaData& meta_data);
+
   template <GainMode Mode,
             ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
             bool LoadResponse = true>
   void ApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
                         const aocommon::BandData& cur_band,
                         float* weight_buffer, double time, size_t field_id,
-                        size_t antenna1, size_t antenna2);
+                        size_t antenna1, size_t antenna2, size_t& time_offset);
 
   void calculateOverallMetaData();
 
@@ -645,30 +665,6 @@ class MSGridderBase {
                         const bool* is_selected);
 
   /**
-   * @brief Applies the selected visibility modifier (selected by Mode)
-   * solutions to the visibilities and computes the weight corresponding to the
-   * combined effect.
-   *
-   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
-   * ApplyConjugatedParmResponse for more information
-   * @tparam LoadResponse This should always be true unless the calling code
-   * knows the response has already been loaded previously, e.g. if we first
-   * call `ApplyCorrections<Mode, kSum, true>(...)` we can then afterwards call
-   * `ApplyCorrection<Mode, kApply, false>(...)` for the same values
-   */
-  template <GainMode Mode,
-            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
-            bool LoadResponse = true>
-  void ApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
-                        const aocommon::BandData& cur_band,
-                        float* weight_buffer,
-                        const MSProvider::MetaData& meta_data) {
-    ApplyCorrections<Mode, Behaviour, LoadResponse>(
-        n_antennas, visibility_row, cur_band, weight_buffer, meta_data.time,
-        meta_data.fieldId, meta_data.antenna1, meta_data.antenna2);
-  }
-
-  /**
    * @brief Apply visibility and imaging weights
    * Requires `scratch_image_weights_` to be populated which is usually done by
    * calling @ref CalculateWeights()
@@ -808,13 +804,25 @@ class MSGridderBase {
   VisibilityModifier visibility_modifier_;
 };
 
+template <GainMode Mode, ModifierBehaviour Behaviour, bool LoadResponse,
+          bool UseBufferedOffsets>
+void MSGridderBase::ApplyCorrections(size_t n_antennas,
+                                     std::complex<float>* visibility_row,
+                                     const aocommon::BandData& cur_band,
+                                     float* weight_buffer,
+                                     const MSProvider::MetaData& metadata) {
+  size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
+  ApplyCorrections<Mode, Behaviour, LoadResponse>(
+      n_antennas, visibility_row, cur_band, weight_buffer, metadata.time,
+      metadata.fieldId, metadata.antenna1, metadata.antenna2, time_offset);
+  visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
+}
+
 template <GainMode Mode, ModifierBehaviour Behaviour, bool LoadResponse>
-inline void MSGridderBase::ApplyCorrections(size_t n_antennas,
-                                            std::complex<float>* visibility_row,
-                                            const aocommon::BandData& cur_band,
-                                            float* weight_buffer, double time,
-                                            size_t field_id, size_t antenna1,
-                                            size_t antenna2) {
+inline void MSGridderBase::ApplyCorrections(
+    size_t n_antennas, std::complex<float>* visibility_row,
+    const aocommon::BandData& cur_band, float* weight_buffer, double time,
+    size_t field_id, size_t antenna1, size_t antenna2, size_t& time_offset) {
   if (IsFacet() && (GetPsfMode() != PsfMode::kSingle)) {
     const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
@@ -824,12 +832,12 @@ inline void MSGridderBase::ApplyCorrections(size_t n_antennas,
       if constexpr (LoadResponse) {
         visibility_modifier_.CacheBeamResponse(time, field_id, cur_band);
         visibility_modifier_.CacheParmResponse(time, cur_band,
-                                               original_ms_index_);
+                                               original_ms_index_, time_offset);
       }
       visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode>(
           visibility_row, weight_buffer, scratch_image_weights_.data(),
           cur_band.ChannelCount(), n_antennas, antenna1, antenna2,
-          original_ms_index_, apply_forward);
+          original_ms_index_, apply_forward, time_offset);
     } else if (apply_beam) {
       // Load and apply only the conjugate beam
       if constexpr (LoadResponse) {
@@ -844,12 +852,12 @@ inline void MSGridderBase::ApplyCorrections(size_t n_antennas,
       // Load and apply the h5parm solutions
       if constexpr (LoadResponse) {
         visibility_modifier_.CacheParmResponse(time, cur_band,
-                                               original_ms_index_);
+                                               original_ms_index_, time_offset);
       }
       visibility_modifier_.ApplyConjugatedParmResponse<Behaviour, Mode>(
           visibility_row, weight_buffer, scratch_image_weights_.data(),
           original_ms_index_, cur_band.ChannelCount(), n_antennas, antenna1,
-          antenna2, apply_forward);
+          antenna2, apply_forward, time_offset);
     }
   }
 }

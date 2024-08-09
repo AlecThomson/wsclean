@@ -189,12 +189,13 @@ void MSGridderBase::WriteInstrumentalVisibilities(
 
   if (visibility_modifier_.HasH5Parm()) {
     assert(!settings_.facetRegionFilename.empty());
+    size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
     visibility_modifier_.CacheParmResponse(metaData.time, curBand,
-                                           original_ms_index_);
-
+                                           original_ms_index_, time_offset);
     visibility_modifier_.ApplyParmResponse<Mode>(
         buffer, original_ms_index_, curBand.ChannelCount(), n_antennas,
-        metaData.antenna1, metaData.antenna2);
+        metaData.antenna1, metaData.antenna2, time_offset);
+    visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
 
   {
