@@ -1,12 +1,15 @@
 #ifndef MSPROVIDERS_REORDER_
 #define MSPROVIDERS_REORDER_
 
+#include "reorderedhandle.h"
+
 #include <string>
 #include <map>
 #include <cstddef>
 #include <vector>
 #include <memory>
 
+#include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 
 namespace wsclean {
@@ -38,18 +41,6 @@ struct MetaHeaderBuffer {
   uint32_t filename_length;
 };
 #pragma pack(pop)
-
-struct ChannelRange {
-  int data_desc_id;
-  size_t start, end;
-  bool operator<(const ChannelRange& rhs) const {
-    if (data_desc_id < rhs.data_desc_id) return true;
-    if (data_desc_id > rhs.data_desc_id) return false;
-    if (start < rhs.start) return true;
-    if (start > rhs.start) return false;
-    return end < rhs.end;
-  }
-};
 
 struct MetaHeader {
   double start_time = 0.0;

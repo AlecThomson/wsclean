@@ -52,7 +52,7 @@ GetMSPolarizationsPerDataDescId(
 }  // namespace
 
 ReorderedMsProvider::ReorderedMsProvider(
-    const Handle& handle, size_t part_index,
+    const ReorderedHandle& handle, size_t part_index,
     aocommon::PolarizationEnum polarization, size_t data_desc_id)
     : handle_(handle),
       part_index_(part_index),
@@ -148,7 +148,7 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Weights (single)
  * - Model, optionally
  */
-ReorderedMsProvider::Handle ReorderedMsProvider::ReorderMS(
+ReorderedMsProvider::ReorderedHandle ReorderMS(
     const string& ms_path,
     const std::vector<reordering::ChannelRange>& channels,
     const MSSelection& selection, const string& data_column_name,
@@ -417,29 +417,14 @@ ReorderedMsProvider::Handle ReorderedMsProvider::ReorderMS(
   }
   progress2.reset();
 
-  return ReorderedMsProvider::GenerateHandleFromReorderedData(
+  return ReorderedMsProvider::ReorderedHandle(
       ms_path, data_column_name, temporary_directory, channels,
       initial_model_required, model_update_required, pols_out, selection, bands,
-      nAntennas, settings.saveReorder);
-}
-
-ReorderedMsProvider::Handle
-ReorderedMsProvider::GenerateHandleFromReorderedData(
-    const std::string& ms_path, const string& data_column_name,
-    const std::string& temporary_directory,
-    const std::vector<reordering::ChannelRange>& channels,
-    bool initial_model_required, bool model_update_required,
-    const std::set<aocommon::PolarizationEnum>& polarizations,
-    const MSSelection& selection, const aocommon::MultiBandData& bands,
-    size_t num_antennas, bool keep_temporary_files) {
-  return Handle(ms_path, data_column_name, temporary_directory, channels,
-                initial_model_required, model_update_required, polarizations,
-                selection, bands, num_antennas, keep_temporary_files,
-                StoreReorderedInMS);
+      nAntennas, settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 }
 
 void ReorderedMsProvider::StoreReorderedInMS(
-    const ReorderedMsProvider::Handle::HandleData& handle) {
+    const reordering::ReorderedHandleData& handle) {
   const std::set<aocommon::PolarizationEnum> pols = handle.polarizations_;
 
   const std::map<size_t, size_t> data_desc_ids =
@@ -587,47 +572,6 @@ void ReorderedMsProvider::StoreReorderedInMS(
   }
 }
 
-ReorderedMsProvider::Handle::HandleData::~HandleData() {
-  if (!(is_copy_ || keep_temporary_files_)) {
-    // We can't throw inside destructor, so catch potential exceptions that
-    // occur during writing the measurement sets.
-    try {
-      // Skip writing back data if we are in the middle of handling an exception
-      // (stack unwinding)
-      if (std::uncaught_exceptions()) {
-        Logger::Info << "An exception occurred, writing back will be skipped. "
-                        "Cleaning up...\n";
-      } else {
-        if (model_update_required_) cleanup_callback_(*this);
-        Logger::Info << "Cleaning up temporary files...\n";
-      }
-
-      std::set<size_t> removed_meta_files;
-      for (size_t part = 0; part != channels_.size(); ++part) {
-        for (aocommon::PolarizationEnum p : polarizations_) {
-          std::string prefix = reordering::GetPartPrefix(
-              ms_path_, part, p, channels_[part].data_desc_id,
-              temporary_directory_);
-          std::remove((prefix + ".tmp").c_str());
-          std::remove((prefix + "-w.tmp").c_str());
-          std::remove((prefix + "-m.tmp").c_str());
-        }
-        const size_t data_desc_id = channels_[part].data_desc_id;
-        if (removed_meta_files.count(data_desc_id) == 0) {
-          removed_meta_files.insert(data_desc_id);
-          std::string meta_file = reordering::GetMetaFilename(
-              ms_path_, temporary_directory_, data_desc_id);
-          std::remove(meta_file.c_str());
-        }
-      }
-    } catch (std::exception& exception) {
-      Logger::Error << "Error occurred while finishing IO task: "
-                    << exception.what()
-                    << "\nMeasurement set might not have been updated.\n";
-    }
-  }
-}
-
 void ReorderedMsProvider::MakeIdToMSRowMapping(
     std::vector<size_t>& id_to_ms_row) {
   const MSSelection& selection = handle_.data_->selection_;
@@ -643,49 +587,14 @@ void ReorderedMsProvider::MakeIdToMSRowMapping(
                       id_to_ms_row);
 }
 
-void ReorderedMsProvider::Handle::Serialize(
+void ReorderedMsProvider::ReorderedHandle::Serialize(
     aocommon::SerialOStream& stream) const {
   stream.Ptr(data_);
 }
 
-void ReorderedMsProvider::Handle::Unserialize(aocommon::SerialIStream& stream) {
-  stream.Ptr(data_);
-}
-
-void ReorderedMsProvider::Handle::HandleData::Serialize(
-    aocommon::SerialOStream& stream) const {
-  stream.String(ms_path_)
-      .String(data_column_name_)
-      .String(temporary_directory_)
-      .UInt64(channels_.size());
-  for (const reordering::ChannelRange& range : channels_) {
-    stream.UInt64(range.data_desc_id).UInt64(range.start).UInt64(range.end);
-  }
-  stream.Bool(initial_model_required_)
-      .Bool(model_update_required_)
-      .UInt64(polarizations_.size());
-  for (aocommon::PolarizationEnum p : polarizations_) stream.UInt32(p);
-  selection_.Serialize(stream);
-  stream.UInt64(n_antennas_);
-}
-
-void ReorderedMsProvider::Handle::HandleData::Unserialize(
+void ReorderedMsProvider::ReorderedHandle::Unserialize(
     aocommon::SerialIStream& stream) {
-  is_copy_ = true;
-  stream.String(ms_path_)
-      .String(data_column_name_)
-      .String(temporary_directory_);
-  channels_.resize(stream.UInt64());
-  for (reordering::ChannelRange& range : channels_) {
-    stream.UInt64(range.data_desc_id).UInt64(range.start).UInt64(range.end);
-  }
-  stream.Bool(initial_model_required_).Bool(model_update_required_);
-  size_t n_pol = stream.UInt64();
-  polarizations_.clear();
-  for (size_t i = 0; i != n_pol; ++i)
-    polarizations_.emplace((aocommon::PolarizationEnum)stream.UInt32());
-  selection_.Unserialize(stream);
-  stream.UInt64(n_antennas_);
+  stream.Ptr(data_);
 }
 
 }  // namespace wsclean

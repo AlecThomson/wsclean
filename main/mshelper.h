@@ -33,8 +33,8 @@ class MsHelper {
         ms_bands_{ms_bands},
         reordered_ms_handles_{} {}
 
-  const std::vector<ReorderedMsProvider::Handle>& GetReorderedMsHandles()
-      const {
+  const std::vector<ReorderedMsProvider::ReorderedHandle>&
+  GetReorderedMsHandles() const {
     return reordered_ms_handles_;
   }
 
@@ -53,7 +53,7 @@ class MsHelper {
   const Settings& settings_;
   const MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  std::vector<ReorderedMsProvider::Handle> reordered_ms_handles_;
+  std::vector<ReorderedMsProvider::ReorderedHandle> reordered_ms_handles_;
 };
 
 }  // namespace wsclean

@@ -72,12 +72,13 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
     const size_t n_antennas = ms_data_obj.antenna().nrow();
     const aocommon::MultiBandData bands(ms_data_obj);
-    ReorderedMsProvider::Handle part_ms =
-        ReorderedMsProvider::GenerateHandleFromReorderedData(
+    ReorderedMsProvider::ReorderedHandle part_ms =
+        ReorderedMsProvider::ReorderedHandle(
             settings_.filenames[ms_index], settings_.dataColumnName,
             settings_.temporaryDirectory, channels, initial_model_required,
             settings_.modelUpdateRequired, polarization_types,
-            global_selection_, bands, n_antennas, settings_.saveReorder);
+            global_selection_, bands, n_antennas, settings_.saveReorder,
+            ReorderedMsProvider::StoreReorderedInMS);
 
     reordered_ms_handles_[ms_index] = std::move(part_ms);
   }
@@ -103,7 +104,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<reordering::ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    ReorderedMsProvider::Handle part_ms = ReorderedMsProvider::ReorderMS(
+    ReorderedMsProvider::ReorderedHandle part_ms = ReorderMS(
         settings_.filenames[ms_index], channels, global_selection_,
         settings_.dataColumnName, use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);

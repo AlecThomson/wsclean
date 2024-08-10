@@ -37,9 +37,9 @@ class MSDataDescription {
   }
 
   static std::unique_ptr<MSDataDescription> ForReordered(
-      ReorderedMsProvider::Handle reorderedHandle, const MSSelection& selection,
-      size_t partIndex, aocommon::PolarizationEnum polarization,
-      size_t dataDescId, bool useMPI) {
+      ReorderedMsProvider::ReorderedHandle reorderedHandle,
+      const MSSelection& selection, size_t partIndex,
+      aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = true;
     mdd->_useMPI = useMPI;
@@ -81,7 +81,7 @@ class MSDataDescription {
   std::string _dataColumnName;
 
   // Reordered
-  ReorderedMsProvider::Handle _reorderedHandle;
+  ReorderedMsProvider::ReorderedHandle _reorderedHandle;
   size_t _partIndex;
 };
 

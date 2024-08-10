@@ -27,9 +27,9 @@ class ReorderedMsProvider final : public MSProvider {
   friend class ReorderedMsReader;
 
  public:
-  class Handle;
+  class ReorderedHandle;
 
-  ReorderedMsProvider(const Handle& handle, size_t part_index,
+  ReorderedMsProvider(const ReorderedHandle& handle, size_t part_index,
                       aocommon::PolarizationEnum polarization,
                       size_t data_desc_id);
 
@@ -68,103 +68,46 @@ class ReorderedMsProvider final : public MSProvider {
 
   size_t DataDescId() override { return part_header_.data_desc_id; }
 
-  static Handle ReorderMS(const string& ms_path,
-                          const std::vector<reordering::ChannelRange>& channels,
-                          const class MSSelection& selection,
-                          const string& data_column_name, bool include_model,
-                          bool initial_model_required,
-                          const class Settings& settings);
-
-  static Handle GenerateHandleFromReorderedData(
-      const std::string& ms_path, const string& data_column_name,
-      const std::string& temporary_directory,
-      const std::vector<reordering::ChannelRange>& channels,
-      bool initial_model_required, bool model_update_required,
-      const std::set<aocommon::PolarizationEnum>& polarizations,
-      const MSSelection& selection, const aocommon::MultiBandData& bands,
-      size_t n_antennas, bool keep_temporary_files);
-
   const aocommon::BandData& Band() override {
     return handle_.data_->bands_[data_desc_id_];
   }
 
-  class Handle {
-    // ReorderedMsReader is a friend of Handle
+  class ReorderedHandle {
+    // ReorderedMsReader is a friend of ReorderedHandle
     // in order to access the data_ member.
     friend class ReorderedMsReader;
-
-   public:
-    Handle() = default;
-
-    void Serialize(aocommon::SerialOStream& stream) const;
-    void Unserialize(aocommon::SerialIStream& stream);
-
     friend class ReorderedMsProvider;
 
-   private:
-    struct HandleData {
-      HandleData() : is_copy_(false) {}
+   public:
+    ReorderedHandle() = default;
 
-      HandleData(const std::string& ms_path, const string& data_column_name,
-                 const std::string& temporary_directory,
-                 const std::vector<reordering::ChannelRange>& channels,
-                 bool initial_model_required, bool model_update_required,
-                 const std::set<aocommon::PolarizationEnum>& polarizations,
-                 const MSSelection& selection,
-                 const aocommon::MultiBandData& bands, size_t n_antennas,
-                 bool keep_temporary_files,
-                 std::function<void(HandleData& handle)> cleanup_callback)
-          : ms_path_(ms_path),
-            data_column_name_(data_column_name),
-            temporary_directory_(temporary_directory),
-            channels_(channels),
-            initial_model_required_(initial_model_required),
-            model_update_required_(model_update_required),
-            polarizations_(polarizations),
-            selection_(selection),
-            bands_(bands),
-            n_antennas_(n_antennas),
-            is_copy_(false),
-            keep_temporary_files_(keep_temporary_files),
-            cleanup_callback_(std::move(cleanup_callback)) {}
-
-      ~HandleData();
-
-      std::string ms_path_, data_column_name_, temporary_directory_;
-      std::vector<reordering::ChannelRange> channels_;
-      bool initial_model_required_, model_update_required_;
-      std::set<aocommon::PolarizationEnum> polarizations_;
-      MSSelection selection_;
-      aocommon::MultiBandData bands_;
-      size_t n_antennas_;
-      bool is_copy_;
-      bool keep_temporary_files_;
-      std::function<void(HandleData& handle)> cleanup_callback_;
-
-      void Serialize(aocommon::SerialOStream& stream) const;
-      void Unserialize(aocommon::SerialIStream& stream);
-    };
-    std::shared_ptr<HandleData> data_;
-
-    Handle(const std::string& ms_path, const string& data_column_name,
-           const std::string& temporary_directory,
-           const std::vector<reordering::ChannelRange>& channels,
-           bool initial_model_required, bool model_update_required,
-           const std::set<aocommon::PolarizationEnum>& polarizations,
-           const MSSelection& selection, const aocommon::MultiBandData& bands,
-           size_t n_antennas, bool keep_temporary_files,
-           std::function<void(HandleData& handle)> cleanup_callback)
-        : data_(std::make_shared<HandleData>(
+    ReorderedHandle(const std::string& ms_path, const string& data_column_name,
+                    const std::string& temporary_directory,
+                    const std::vector<reordering::ChannelRange>& channels,
+                    bool initial_model_required, bool model_update_required,
+                    const std::set<aocommon::PolarizationEnum>& polarizations,
+                    const MSSelection& selection,
+                    const aocommon::MultiBandData& bands, size_t n_antennas,
+                    bool keep_temporary_files,
+                    std::function<void(reordering::ReorderedHandleData& handle)>
+                        cleanup_callback)
+        : data_(std::make_shared<reordering::ReorderedHandleData>(
               ms_path, data_column_name, temporary_directory, channels,
               initial_model_required, model_update_required, polarizations,
               selection, bands, n_antennas, keep_temporary_files,
               std::move(cleanup_callback))) {}
+
+    void Serialize(aocommon::SerialOStream& stream) const;
+    void Unserialize(aocommon::SerialIStream& stream);
+
+   private:
+    std::shared_ptr<reordering::ReorderedHandleData> data_;
   };
 
- private:
-  static void StoreReorderedInMS(const Handle::HandleData& handle);
+  static void StoreReorderedInMS(const reordering::ReorderedHandleData& handle);
 
-  const Handle handle_;
+ private:
+  const ReorderedHandle handle_;
   const size_t part_index_;
   const size_t data_desc_id_;
   MappedFile model_file_;
@@ -176,6 +119,13 @@ class ReorderedMsProvider final : public MSProvider {
   reordering::MetaHeader meta_header_;
   reordering::PartHeader part_header_;
 };
+
+ReorderedMsProvider::ReorderedHandle ReorderMS(
+    const string& ms_path,
+    const std::vector<reordering::ChannelRange>& channels,
+    const class MSSelection& selection, const string& data_column_name,
+    bool include_model, bool initial_model_required,
+    const class Settings& settings);
 
 }  // namespace wsclean
 
