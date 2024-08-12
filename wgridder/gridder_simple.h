@@ -1,5 +1,5 @@
-#ifndef WGRIDDING_GRIDDER_SIMPLE_H
-#define WGRIDDING_GRIDDER_SIMPLE_H
+#ifndef WSCLEAN_WGRIDDER_SIMPLE_H_
+#define WSCLEAN_WGRIDDER_SIMPLE_H_
 
 #include <complex>
 #include <cstddef>
@@ -9,6 +9,9 @@
 #include "ducc0/wgridder/wgridder.h"
 
 #include "../gridding/gainmode.h"
+
+#include <LRUCache11.hpp>
+#include "../gridding/msgridder.h"
 
 namespace wsclean {
 
@@ -205,7 +208,23 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    */
   template <typename Tms>
   void AddInversionMs(size_t n_rows, const double *uvw,
-                      const ducc0::cmav<double, 1> &freq, Tms &ms);
+                      const ducc0::cmav<double, 1> &freq, Tms &ms) {
+    ducc0::cmav<double, 2> uvw2(uvw, {n_rows, 3});
+    ducc0::vmav<NumT, 2> tdirty({width_t_, height_t_});
+    ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
+    ducc0::cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
+    if (!tuning_)
+      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixelSizeX_,
+                                  pixelSizeY_, epsilon_, true, nthreads_,
+                                  tdirty, verbosity_, true, false, sigma_min,
+                                  sigma_max, -l_shift_, -m_shift_);
+    else
+      ducc0::ms2dirty_tuning<NumT, NumT>(
+          uvw2, freq, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_, true,
+          nthreads_, tdirty, verbosity_, true, false, sigma_min, sigma_max,
+          -l_shift_, -m_shift_);
+    for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
+  }
 
   // Helper function to convert mode to a template paramater
   template <typename... Params>
@@ -220,7 +239,9 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
                       const ducc0::cmav<double, 1> &freq, Params... params);
 };
 
-#endif
+}  // namespace wsclean
+
+#endif  // WSCLEAN_WGRIDDER_SIMPLE_H_
 
 /*
 Usage scenario:
@@ -236,8 +257,3 @@ for (auto &chunk: chunks)
   gridder.AddInversionData(...)
 auto res = gridder.RealImage();
 */
-
-extern template class WGriddingGridder_Simple<float>;
-extern template class WGriddingGridder_Simple<double>;
-
-}  // namespace wsclean

@@ -301,8 +301,20 @@ add_library(
   wsclean-object OBJECT
   # These wgridder files are given first because they take a long time to compile. In multi-threaded compilation,
   # this has the advantage that it allows better parallelization.
+  # Instantiation is split over multiple files to help make it more parallel and reduce memory requirements
   wgridder/wgriddingmsgridder.cpp
-  wgridder/wgriddinggridder_simple.cpp
+  wgridder/gridder_simple_float.cpp
+  wgridder/gridder_simple_double.cpp
+  wgridder/callback_float_xx.cpp
+  wgridder/callback_double_xx.cpp
+  wgridder/callback_float_yy.cpp
+  wgridder/callback_double_yy.cpp
+  wgridder/callback_float_diagonal.cpp
+  wgridder/callback_double_diagonal.cpp
+  wgridder/callback_float_trace.cpp
+  wgridder/callback_double_trace.cpp
+  wgridder/callback_float_full.cpp
+  wgridder/callback_double_full.cpp
   main/commandline.cpp
   main/imageweightinitializer.cpp
   main/mshelper.cpp

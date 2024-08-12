@@ -1,6 +1,6 @@
 #include "wgriddingmsgridder.h"
 
-#include "wgriddinggridder_simple.h"
+#include "gridder_simple.h"
 
 #include "../gridding/msgriddermanager.h"
 #include "../msproviders/msreaders/msreader.h"
