@@ -1402,6 +1402,9 @@ void CommandLine::Validate(WSClean& wsclean) {
 
 void CommandLine::Run(class WSClean& wsclean) {
   const Settings& settings = wsclean.GetSettings();
+  // Implicitly initialise cfitsio to prevent a race condition that can
+  // otherwise occur inside `fits_open_file` and other functions.
+  fits_init_cfitsio();
   aocommon::ThreadPool::GetInstance().SetNThreads(settings.threadCount);
   switch (settings.mode) {
     case Settings::RestoreMode:
