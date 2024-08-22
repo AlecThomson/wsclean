@@ -73,36 +73,37 @@ void ThreadedScheduler::Run(
     // then we end up here for each individual facet and thereby create one task
     // per facet
     if (facet_count > 1) {
-      // The shared mutex for the task is locked until the task completes
-      // executing. Wait tasks wait for the shared mutex, thereby blocking a
-      // thread from this scheduler, until the task completes executing.
-      task_data->task.batch_task_mutex = std::make_shared<std::mutex>();
-      task_data->task.batch_task_mutex->lock();
+      // Wait tasks call WaitForCompletion() on
+      // lock_excess_scheduler_tasks_ which will pause/freeze/block them until
+      // SignalCompletion() is called
+      task_data->task.lock_excess_scheduler_tasks_ =
+          std::make_shared<CompletionSignal>();
 
       // There must be N-1 blocker tasks before we can run, giving us N threads
       // in total as requested Set up locks so that we only start operating once
       // we have the resources The scheduler will allocate us resources when the
       // dummy tasks are placed in the queue
-      for (size_t block_task_index = 0;
-           block_task_index < task_data->task.num_parallel_gridders_ - 1;
-           ++block_task_index) {
+      for (size_t wait_task_index = 0;
+           wait_task_index < task_data->task.num_parallel_gridders_ - 1;
+           ++wait_task_index) {
         // Exact id doesn't really matter we just need to ensure that id is
         // unique
-        const size_t block_task_id = std::numeric_limits<size_t>::max() -
-                                     (task_data->task.unique_id * 1000) -
-                                     block_task_index;
-        TaskData* block_task_data;
+        const size_t wait_task_id = std::numeric_limits<size_t>::max() -
+                                    (task_data->task.unique_id * 1000) -
+                                    wait_task_index;
+        TaskData* wait_task_data;
         {
           std::lock_guard<std::mutex> lock(mutex_);
-          assert(task_data_map_.count(block_task_id) == 0);
-          block_task_data = &task_data_map_[block_task_id];
+          assert(task_data_map_.count(wait_task_id) == 0);
+          wait_task_data = &task_data_map_[wait_task_id];
         }
 
-        GriddingTask block_task;
-        block_task.operation = GriddingTask::Wait;
-        block_task.batch_task_mutex = task_data->task.batch_task_mutex;
-        block_task_data->task = std::move(block_task);
-        task_queue_.Emplace(block_task_id, std::vector<size_t>{0});
+        GriddingTask wait_task;
+        wait_task.operation = GriddingTask::Wait;
+        wait_task.lock_excess_scheduler_tasks_ =
+            task_data->task.lock_excess_scheduler_tasks_;
+        wait_task_data->task = std::move(wait_task);
+        task_queue_.Emplace(wait_task_id, std::vector<size_t>{0});
       }
 
       std::vector<size_t> facet_indexes(facet_count);

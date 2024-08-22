@@ -8,6 +8,7 @@
 #include "../structures/imageweights.h"
 #include "../structures/mslistitem.h"
 #include "../structures/observationinfo.h"
+#include "../system/completionsignal.h"
 
 #include "metadatacache.h"
 
@@ -92,7 +93,7 @@ class GriddingTask {
 
   // Below members are used only when doing shared reads
   // Stop scheduler resource blockers from closing until task is complete
-  std::shared_ptr<std::mutex> batch_task_mutex;
+  std::shared_ptr<CompletionSignal> lock_excess_scheduler_tasks_;
   // Number of parallel gridders that we are allowed to launch. NB! This is not
   // necessarilly the same as the global number.
   size_t num_parallel_gridders_ = 1;

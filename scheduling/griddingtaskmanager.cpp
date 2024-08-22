@@ -66,10 +66,11 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
 
-  // Wait tasks occupy a thread from the pool by waiting on batch_task_mutex
-  // which will only be unlocked when the associated task is complete
+  // Wait tasks occupy a thread from the pool by waiting on
+  // lock_excess_scheduler_tasks_ which will freeze the tasks thread until
+  // lock_excess_scheduler_tasks_.SignalCompletion() is called.
   if (task.operation == GriddingTask::Wait) {
-    std::lock_guard<std::mutex> lk(*task.batch_task_mutex);
+    task.lock_excess_scheduler_tasks_->WaitForCompletion();
     return;
   }
 
@@ -93,9 +94,10 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   manager.ProcessResults(result_mutex, result, store_common_info);
 
   if (GetSettings().shared_facet_reads) {
-    // Release the lock on batch_task_mutex so that blocking tasks can unblock
-    if (task.batch_task_mutex) {
-      task.batch_task_mutex->unlock();
+    // Allow wait tasks to resume
+    if (task.lock_excess_scheduler_tasks_) {
+      task.lock_excess_scheduler_tasks_->SignalCompletion();
+      task.lock_excess_scheduler_tasks_.reset();
     }
   }
 }

@@ -14,6 +14,7 @@
 #include "../scheduling/griddingresult.h"
 #include "../scheduling/griddingtask.h"
 #include "../structures/resources.h"
+#include "../system/completionsignal.h"
 
 namespace wsclean {
 
@@ -209,25 +210,24 @@ template <typename T>
 void MSGridderManager::ExecuteForAllGriddersWithNCores(
     aocommon::TaskQueue<std::function<void()>>& task_queue, size_t n_cores,
     T&& operation) {
+  // Pause the excess threads in the pool that we don't want to use for this
+  // operation.
   const size_t excess_cores = available_cores_ - n_cores;
-  {
-    // Block the excess threads in the pool that we don't want to use
-    std::mutex block_excess_tasks;
-    std::lock_guard<std::mutex> lock(block_excess_tasks);
-    for (size_t i = 0; i < excess_cores; ++i) {
-      task_queue.Emplace([&]() {
-        std::lock_guard<std::mutex> lock_guard(block_excess_tasks);
-      });
-    }
-    for (size_t i = 0; i < facet_tasks_.size(); ++i) {
-      MsGridder* gridder = facet_tasks_[i].facet_gridder.get();
-      task_queue.Emplace([=]() { operation(gridder, i); });
-    }
-    task_queue.WaitForIdle(n_cores);
+  CompletionSignal signal;
+  for (size_t i = 0; i < excess_cores; ++i) {
+    task_queue.Emplace([&]() { signal.WaitForCompletion(); });
   }
-  // Lock is released so excess threads become available again, make sure we
-  // wait until this happens
-  task_queue.WaitForIdle(available_cores_);
+
+  // Run the operation with the reduced quantity of available threads.
+  for (size_t i = 0; i < facet_tasks_.size(); ++i) {
+    MsGridder* gridder = facet_tasks_[i].facet_gridder.get();
+    task_queue.Emplace([=]() { operation(gridder, i); });
+  }
+  task_queue.WaitForIdle(n_cores);
+
+  // Restore the quantity of available threads to as it was before entering this
+  // method.
+  signal.SignalCompletion();
 }
 
 }  // namespace wsclean
