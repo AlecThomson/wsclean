@@ -65,12 +65,20 @@ class MsGridder : public MsGridderData {
   void SetIsFirstTask(bool is_first_task) { is_first_task_ = is_first_task; }
 
   /**
-   * To handle inversion a gridder must implement either 3 or 6 of the following
+   * To handle inversion a gridder must implement the following
    * functions.
    * If a gridder only makes one pass per MS:
-   *     StartInversion(), GridMeasurementSet(), FinishInversion()
+   *   @ref StartInversion()
+   *   @ref GridMeasurementSet()
+   *   @ref  FinishInversion()
    * If multiple passes then additionally:
-   *     GetNInversionPasses(), StartInversionPass(), FinishInversionPass()
+   *   @ref GetNInversionPasses()
+   *   @ref StartInversionPass()
+   *   @ref FinishInversionPass()
+   * For inversion with shared reads:
+   *   @ref CalculateConstantMemory()
+   *   @ref CalculateMaxRowsInMemory()
+   *   @ref GridSharedMeasurementSetChunk()
    */
   virtual void StartInversion() = 0;
   virtual size_t GetNInversionPasses() const { return 1; }
@@ -80,7 +88,6 @@ class MsGridder : public MsGridderData {
       const MsProviderCollection::MsData& ms_data) = 0;
   virtual void FinishInversionPass(size_t pass_index){};
   virtual void FinishInversion() = 0;
-
   /** @return Constant memory overhead for the gridder in bytes. i.e. Not
    * including per row memory usage. */
   virtual size_t CalculateConstantMemory() const { return 0; }
@@ -90,14 +97,55 @@ class MsGridder : public MsGridderData {
    * @param additional_per_row_consumption External consumption per row that
    * also needs to be taken into account; e.g. for shared reads the gridder
    * manager may need to cache antenna pairs and correction time offsets.
-   * @param data_size The number of visibilities in a row.
+   * @param num_polarizations_stored The number of visibility polarizations per
+   * channel that will be kept in memory. Often this will be 1 as we collapse
+   * the visibilities before gridding, but in some cases; e.g. shared reads we
+   * need to keep all the polatizations in memory
    * @return The number of rows that will fit in memory.
    */
-  virtual size_t CalculateMaxRowsInMemory(int64_t available_memory,
-                                          size_t constant_memory,
-                                          size_t additional_per_row_consumption,
-                                          size_t data_size) const {
+  virtual size_t CalculateMaxRowsInMemory(
+      int64_t available_memory, size_t constant_memory,
+      size_t additional_per_row_consumption, size_t channel_count,
+      size_t num_polarizations_stored) const {
     return 0;
+  }
+  /** Takes a chunk of visibilities pre-populated by the caller, that does
+   * not have facet solution pre-applied but for which the correction sums
+   * have already been computed, and performs gridding on the chunk.
+   * Corrections will be applied "on the fly" during the gridding.
+   * In addition to the visibilities, various additional data is required in
+   * order to compute the corrections as needed.
+   *
+   * It is expected that the average correction has already been calculated by
+   * summing the corrections via @ref ApplyCorrections<kSum>() and that this
+   * gridder is already populated with the resulting sums.
+   *
+   * @param n_polarizations The number of polarizations per visibility in @ref
+   * visibilities
+   * @param antennas Pointer to n_rows `std::pair<size_t, size_t>` containing
+   * the antenna pair for each row of visibilities.
+   * @param uvws Pointer to n_rows*3 doubles containing UVW in meters.
+   *        U(row) := uvws[3*row  ]
+   *        V(row) := uvws[3*row+1]
+   *        W(row) := uvws[3*row+2]
+   * @param frequencies Pointer to n_channels doubles containing channel
+   * frequencies
+   * @param visibilities Pointer to n_rows*n_channels*n_polarizations
+   * `complex<float>` containing weighted but uncorrected and not yet collapsed
+   * visibilities: visibility(row, chan) := vis[row*n_chan + chan]
+   * @param time_offsets Pointer to n_rows `size_t` containing the time offset
+   * as calculated by @ref CacheParmResponse() for the corresponding visibility
+   * row when applying @ref ApplyCorrections<ModifierBehaviour::kSum>() on it
+   * For further explanation see @ref VisibilityCallbackBuffer::time_offsets_
+   */
+  virtual void GridSharedMeasurementSetChunk(
+      bool apply_corrections, size_t n_polarizations, size_t n_rows,
+      const double* uvws, const double* frequencies,
+      const aocommon::BandData& selected_band,
+      const std::pair<size_t, size_t>* antennas,
+      const std::complex<float>* visibilities, const size_t* time_offsets,
+      size_t n_antennas) {
+    throw std::runtime_error("Gridder does not yet support shared reading");
   }
 
   /**

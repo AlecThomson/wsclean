@@ -66,12 +66,23 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
 
+  // Wait tasks occupy a thread from the pool by waiting on batch_task_mutex
+  // which will only be unlocked when the associated task is complete
+  if (task.operation == GriddingTask::Wait) {
+    std::lock_guard<std::mutex> lk(*task.batch_task_mutex);
+    return;
+  }
+
   MSGridderManager manager(settings_, solution_data_);
   manager.InitializeMS(task);
   manager.InitializeGridders(task, facet_indices, resources, result.facets,
                              writer_lock_manager_);
   if (task.operation == GriddingTask::Invert) {
-    manager.Invert();
+    if (settings_.shared_facet_reads) {
+      manager.BatchInvert(task.num_parallel_gridders_);
+    } else {
+      manager.Invert();
+    }
   } else {
     manager.Predict();
   }
@@ -80,6 +91,13 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
     result.unique_id = task.unique_id;
   }
   manager.ProcessResults(result_mutex, result, store_common_info);
+
+  if (GetSettings().shared_facet_reads) {
+    // Release the lock on batch_task_mutex so that blocking tasks can unblock
+    if (task.batch_task_mutex) {
+      task.batch_task_mutex->unlock();
+    }
+  }
 }
 
 }  // namespace wsclean

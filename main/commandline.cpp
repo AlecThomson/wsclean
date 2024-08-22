@@ -310,6 +310,8 @@ Options can be:
    Useful range: 1e-2 to 1e-6
 -compound-tasks
    Schedule compound gridding tasks which contain all facets for a single image.
+-shared-facet-reads
+   When parallel gridding with multiple facets read data only once per compound gridding task into a shared data buffer and share this buffer for the gridders of all facets within the task. Implicitly sets -compound-tasks.
 
   ** A-TERM GRIDDING **
 -aterm-config <filename>
@@ -1227,7 +1229,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.simulateNoise = true;
       settings.simulatedBaselineNoiseFilename = argv[argi];
     } else if (param == "compound-tasks") {
-      settings.compoundTasks = true;
+      settings.compound_tasks = true;
+    } else if (param == "shared-facet-reads") {
+      settings.compound_tasks = true;
+      settings.shared_facet_reads = true;
     } else if (param == "aterm-config") {
       IncArgi(argi, argc);
       settings.atermConfigFilename = argv[argi];
@@ -1369,6 +1374,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   // We print the header only now, because the logger has now been set up
   // and possibly set to quiet.
   if (!isSlave) PrintHeader();
+
+  if (settings.shared_facet_reads &&
+      settings.gridderType != GridderType::WGridder) {
+    throw std::runtime_error(
+        "-shared-facet-reads are currently only compatible with -gridder "
+        "wgridder");
+  }
 
   const size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
   settings.atermKernelSize = atermKernelSize.value_or(defaultAtermSize);

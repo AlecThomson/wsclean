@@ -21,6 +21,15 @@ class WGriddingMSGridder final : public MsGridder {
 
   void StartInversion() final;
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
+  void GridSharedMeasurementSetChunk(bool apply_corrections,
+                                     size_t n_polarizations, size_t n_rows,
+                                     const double* uvws,
+                                     const double* frequencies,
+                                     const aocommon::BandData& selected_band,
+                                     const std::pair<size_t, size_t>* antennas,
+                                     const std::complex<float>* visibilities,
+                                     const size_t* time_offsets,
+                                     size_t n_antennas) final;
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
@@ -46,7 +55,8 @@ class WGriddingMSGridder final : public MsGridder {
   size_t CalculateMaxRowsInMemory(int64_t available_memory,
                                   size_t constant_memory,
                                   size_t additional_per_row_consumption,
-                                  size_t data_size) const final;
+                                  size_t channel_count,
+                                  size_t num_polarizations_stored) const final;
 
   void getActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 

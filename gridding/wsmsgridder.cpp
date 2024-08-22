@@ -285,7 +285,7 @@ size_t WSMSGridder::PredictMeasurementSet(
   lane_write_buffer<PredictionWorkItem> buffered_lane(&lane, _laneBufferSize);
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &write_lane,
                           &ms_data, &selected_band,
-                          GetGainMode(Polarization(), 1));
+                          SelectGainMode(Polarization(), 1));
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _resources.NCpus(); ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &lane,

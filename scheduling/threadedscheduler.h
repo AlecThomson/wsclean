@@ -61,8 +61,9 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   /// The first value of the pair is the unique id for the tasks, for looking up
   /// the task and its callback into task_data_map_.
-  /// The second value is the index of the facet for the sub-task.
-  using TaskQueueType = aocommon::TaskQueue<std::pair<size_t, size_t>>;
+  /// The second value contains the indices of the facet(s) for the sub-task(s).
+  using TaskQueueType =
+      aocommon::TaskQueue<std::pair<size_t, std::vector<size_t>>>;
 
   /// Protects task_data_map_, latest_exception_ and ready_list_.
   std::mutex mutex_;

@@ -18,6 +18,26 @@ To enable facet-based imaging in WSClean, a file containing the facet definition
 in which :code:`[MY_REGIONS_FILE]` is a file containing the facet definitions in the DS9 region file format.
 For a detailed explanation on the expected file format, see the explanation on :doc:`ds9_facet_file`. WSClean supports both convex and concave polygons in the region file.
 
+Enabling shared reads
+-----------------------
+
+When working with facets it is possible for data reads and some computation to be done once only per group of facets instead of once for each individual facets gridder.
+The individual gridders can then share a single large chunk of visibility memory instead of each having their own, allowing for more visibilities to be chunked at a time when parallel gridding.
+
+To enable shared reads faceting mode should be enabled and then the :code:`-shared-facet-reads` option set on the command line:
+Shared reads are currently only supported for the ``wgridder`` gridder.
+
+When working without corrections and with parallel gridding shared reads are generally faster than repeated reads. This is as a consequence of being able to fit more visibilities in memory as well as to some extent the reduced IO and computation.
+When working with corrections, in order to facilitate the use of a shared memory buffer, it becomes necessary for the corrections of each facet to be applied "on the fly" during the gridding as the gridder accesses the visibilities.
+This can lead to increased time spent computing corrections. These can partially, or even completely, negate the performance gains and lead to slower performance instead.
+Whether shared reads will harm or aid performance in such scenarios is complex and depends on many factors. The two main factors that have been identified are data vs memory size and how dominant FFT computation is in the gridding performance.
+The larger the ratio of `visibilities/memory` the higher the chances that shared reads will outperform repeated reads and the more dominant FFT computation is the more this becomes true.
+
+When using shared reads it is important to carefully pick your other parallel gridding settings:
+1. Ensure `-parallel-gridding` is a factor of `-j` to avoid unused cores that will be idle for the entire execution.
+2. Consider the number of facets. `-parallel-gridding` should generally be equal or less to the number of facets, as otherwise a lot of cores that are assigned to parallel gridders may sit idle with no work to do.
+3. `-parallel-gridding` should optimally also be a factor of the number of facets, or if not should have as large a remainder as possible when dividing, as otherwise there can be a slight increase in idle cores when dealing with the remaining facets/
+
 Beam correction
 ~~~~~~~~~~~~~~~
 

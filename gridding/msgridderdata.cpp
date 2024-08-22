@@ -7,7 +7,6 @@ namespace wsclean {
 MsGridderData::MsGridderData(const Settings& settings)
     : settings_(settings),
       visibility_weighting_mode_(settings.visibilityWeightingMode) {
-  settings_ = settings;
 #ifdef HAVE_EVERYBEAM
   visibility_modifier_.SetBeamInfo(settings.beamMode,
                                    settings.beamNormalisationMode);
@@ -27,7 +26,7 @@ void MsGridderData::StartMeasurementSet(
   writer_lock_index_ =
       facet_group_index_ * ms_count + ms_data.original_ms_index;
   n_vis_polarizations_ = ms_data.ms_provider->NPolarizations();
-  gain_mode_ = GetGainMode(Polarization(), n_vis_polarizations_);
+  gain_mode_ = SelectGainMode(Polarization(), n_vis_polarizations_);
   const size_t n_channels = ms_data.SelectedBand().ChannelCount();
   scratch_image_weights_.resize(n_channels);
   if (is_predict) {

@@ -61,7 +61,8 @@ size_t WGriddingMSGridder::CalculateConstantMemory() const {
 
 size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
     int64_t available_memory, size_t constant_memory,
-    size_t additional_per_row_consumption, size_t data_size) const {
+    size_t additional_per_row_consumption, size_t channel_count,
+    size_t num_polarizations_stored) const {
   if (static_cast<int64_t>(constant_memory) >= available_memory) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers
@@ -72,8 +73,11 @@ size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
 
   const size_t per_visibility_ducc_overhead =
       gridder_->PerVisibilityMemoryUsage();
+  // Internal DUCC size and size we might be storing in memory are different as
+  // we collapse the visibilities before passing them in to DUCC
   const size_t per_row_visibility_memory =
-      (per_visibility_ducc_overhead + sizeof(std::complex<float>)) * data_size;
+      (per_visibility_ducc_overhead * channel_count) +
+      (sizeof(std::complex<float>) * channel_count * num_polarizations_stored);
   const size_t per_row_uvw_memory = sizeof(double) * 3;
   const uint64_t memory_per_row =
       additional_per_row_consumption  // external overheads
@@ -90,6 +94,26 @@ size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
   return max_n_rows;
 }
 
+void WGriddingMSGridder::GridSharedMeasurementSetChunk(
+    bool apply_corrections, size_t n_polarizations, size_t n_rows,
+    const double* uvws, const double* frequencies,
+    const aocommon::BandData& selected_band,
+    const std::pair<size_t, size_t>* antennas,
+    const std::complex<float>* visibilities, const size_t* time_offsets,
+    size_t n_antennas) {
+  // If there are no corrections to apply then we can bypass needing a callback
+  // and just use the shared buffer directly
+  if (!apply_corrections) {
+    gridder_->AddInversionData(n_rows, selected_band.ChannelCount(), uvws,
+                               frequencies, visibilities);
+  } else {
+    gridder_->AddInversionDataWithCorrectionCallback(
+        GetGainMode(), n_polarizations, n_rows, uvws, frequencies,
+        selected_band.ChannelCount(), selected_band, antennas, visibilities,
+        time_offsets, this, n_antennas);
+  }
+}
+
 size_t WGriddingMSGridder::GridMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
@@ -104,8 +128,9 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
-      resources_.Memory(), CalculateConstantMemory(), 0, data_size);
+  size_t max_rows_per_chunk =
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
+                               0, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<std::complex<float>> visibility_buffer(
       max_rows_per_chunk * selected_band.ChannelCount());
@@ -170,7 +195,7 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
 
   size_t max_rows_per_chunk =
       CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
-                               0, selected_band.ChannelCount());
+                               0, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
   // Iterate over chunks until all data has been gridded

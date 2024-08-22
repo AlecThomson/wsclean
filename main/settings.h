@@ -150,7 +150,8 @@ class Settings {
   bool simulateNoise = false;
   double simulatedNoiseStdDev = 0.0;
   std::string simulatedBaselineNoiseFilename;
-  bool compoundTasks = false;
+  bool compound_tasks = false;
+  bool shared_facet_reads = false;
 
   /** @{
    * These settings all relate to the deconvolution.

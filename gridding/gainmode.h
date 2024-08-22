@@ -51,8 +51,8 @@ constexpr bool AllowScalarCorrection(GainMode mode) {
 /**
  * @param polarization The polarization requested
  */
-inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
-                            size_t n_visibility_polarizations) {
+inline GainMode SelectGainMode(aocommon::PolarizationEnum polarization,
+                               size_t n_visibility_polarizations) {
   switch (n_visibility_polarizations) {
     case 1:
       switch (polarization) {

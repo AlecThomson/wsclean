@@ -82,11 +82,12 @@ class VisibilityCallbackBuffer : public TInfo {
       // it's not capable of calculating  this itself when not called
       // sequentially
       size_t time_offset = time_offsets_[row];
-      // We can safely pass null for weight buffer and 0 for time and field_id
-      // because these are unused in ModifierBehaviour::kApply mode
+      // We can safely pass nullptr for weight buffer and image weights as well
+      // as 0 for time and field_id because these are unused in
+      // ModifierBehaviour::kApply mode
       gridder_->ApplyCorrections<Mode, ModifierBehaviour::kApply, false>(
           n_antennas_, visibility_row.get(), selected_band_, nullptr, 0, 0,
-          antenna_pair.first, antenna_pair.second, time_offset);
+          antenna_pair.first, antenna_pair.second, time_offset, nullptr);
 
       if constexpr (NPolarizations > 1) {
         internal::CollapseData<NPolarizations>(
@@ -97,7 +98,7 @@ class VisibilityCallbackBuffer : public TInfo {
     }
 
     return visibility_row_cache.getRef(row)[channel];
-  };
+  }
   template <typename... Params>
   const TVisibility operator()(Params... params) const {
     return raw(TInfo::idx(params...));
@@ -149,8 +150,8 @@ template <GainMode Mode, typename... Params>
 void WGriddingGridder_Simple<NumT>::AddInversionMs(size_t n_polarizations,
                                                    Params... params) {
   switch (n_polarizations) {
-    case 0: {
-      AddInversionMs<Mode, 0>(params...);
+    case 1: {
+      AddInversionMs<Mode, 1>(params...);
       break;
     }
     case 2: {
@@ -161,6 +162,8 @@ void WGriddingGridder_Simple<NumT>::AddInversionMs(size_t n_polarizations,
       AddInversionMs<Mode, 4>(params...);
       break;
     }
+    default:
+      assert(false);
   }
 }
 
