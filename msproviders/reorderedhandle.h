@@ -12,7 +12,7 @@ namespace wsclean {
 namespace reordering {
 
 struct ChannelRange {
-  int data_desc_id;
+  size_t data_desc_id;
   size_t start, end;
   bool operator<(const ChannelRange& rhs) const {
     if (data_desc_id < rhs.data_desc_id) return true;

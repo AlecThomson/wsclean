@@ -118,12 +118,6 @@ struct PartHeader {
   }
 };
 
-struct ReorderDataFile {
-  std::unique_ptr<std::ofstream> data;
-  std::unique_ptr<std::ofstream> weight;
-  std::unique_ptr<std::ofstream> model;
-};
-
 std::string GetFilenamePrefix(const std::string& ms_path,
                               const std::string& temp_dir);
 std::string GetPartPrefix(const std::string& ms_path, size_t part_index,

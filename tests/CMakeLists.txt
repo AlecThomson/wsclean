@@ -23,6 +23,7 @@ add_executable(
   msproviders/treorder_utils.cpp
   msproviders/treorder_extraction.cpp
   msproviders/treorder_store.cpp
+  msproviders/treorder_writer.cpp
   scheduling/tgriddingtaskfactory.cpp
   structures/timagingtable.cpp
   structures/tfacetutil.cpp

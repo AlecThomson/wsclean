@@ -1,5 +1,7 @@
 #include "reorderedmsprovider.h"
 #include "msreaders/reorderedmsreader.h"
+#include "reorderedfilewriter.h"
+#include "reorderedhandle.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -9,7 +11,6 @@
 #include "../main/progressbar.h"
 #include "../main/settings.h"
 
-#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -157,43 +158,9 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   std::set<aocommon::PolarizationEnum> pols_out;
   for (aocommon::PolarizationEnum p : settings.polarizations)
     pols_out.insert(settings.GetProviderPolarization(p));
-  const size_t polarizations_per_file =
-      aocommon::Polarization::GetVisibilityCount(*pols_out.begin());
   const std::string& temporary_directory = settings.temporaryDirectory;
 
   const size_t channel_parts = channels.size();
-
-  if (channel_parts != 1) {
-    Logger::Debug << "Reordering in " << channels.size() << " channels:";
-    for (size_t i = 0; i != channels.size(); ++i)
-      Logger::Debug << ' ' << channels[i].data_desc_id << ':'
-                    << channels[i].start << '-' << channels[i].end;
-  }
-  Logger::Debug << '\n';
-
-  // Ordered as files[pol x channelpart]
-  std::vector<reordering::ReorderDataFile> files(channel_parts *
-                                                 pols_out.size());
-
-  const size_t maxchannels_ = reordering::GetMaxChannels(channels);
-
-  // Each data desc id needs a separate meta file because they can have
-  // different uvws and other info.
-  size_t file_index = 0;
-  for (size_t part = 0; part != channel_parts; ++part) {
-    for (aocommon::PolarizationEnum p : pols_out) {
-      reordering::ReorderDataFile& f = files[file_index];
-      std::string part_prefix = reordering::GetPartPrefix(
-          ms_path, part, p, channels[part].data_desc_id, temporary_directory);
-      f.data = std::make_unique<std::ofstream>(part_prefix + ".tmp");
-      f.weight = std::make_unique<std::ofstream>(part_prefix + "-w.tmp");
-      if (initial_model_required)
-        f.model = std::make_unique<std::ofstream>(part_prefix + "-m.tmp");
-      f.data->seekp(reordering::PartHeader::BINARY_SIZE, std::ios::beg);
-
-      ++file_index;
-    }
-  }
 
   // This maps data_desc_id to spw index.
   const std::map<size_t, size_t> selected_data_desc_ids =
@@ -233,35 +200,19 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   const size_t nAntennas = row_provider->Ms().antenna().nrow();
   const aocommon::MultiBandData bands(row_provider->Ms());
 
+  // This handle is just for the writer
+  reordering::ReorderedHandleData handle_data(
+      ms_path, data_column_name, temporary_directory, channels,
+      initial_model_required, model_update_required, pols_out, selection, bands,
+      nAntennas, true, ReorderedMsProvider::StoreReorderedInMS);
+
+  reordering::ReorderedFileWriter reordered_file_writer(
+      handle_data, ms_polarizations_per_data_desc_id,
+      row_provider->StartTime());
+
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << ms_path << " into " << channel_parts
                  << " x " << pols_out.size() << " parts.\n";
-
-  // Write header of meta file, one meta file for each data desc id
-  // TODO rather than writing we can just skip and write later
-  std::vector<std::unique_ptr<std::ofstream>> meta_files(
-      selected_data_desc_ids.size());
-  for (const std::pair<const size_t, size_t>& p : selected_data_desc_ids) {
-    const size_t data_desc_id = p.first;
-    const size_t spw_index = p.second;
-    std::string meta_filename =
-        reordering::GetMetaFilename(ms_path, temporary_directory, data_desc_id);
-    meta_files[spw_index] = std::make_unique<std::ofstream>(meta_filename);
-    reordering::MetaHeader meta_header;
-    meta_header.selected_row_count = 0;  // not yet known
-    meta_header.filename_length = ms_path.size();
-    meta_header.start_time = row_provider->StartTime();
-    meta_header.Write(*meta_files[spw_index]);
-    meta_files[spw_index]->write(ms_path.c_str(), ms_path.size());
-    if (!meta_files[spw_index]->good())
-      throw std::runtime_error("Error writing to temporary file " +
-                               meta_filename);
-  }
-
-  // Write actual data
-  std::vector<std::complex<float>> data_buffer(polarizations_per_file *
-                                               maxchannels_);
-  std::vector<float> weight_buffer(polarizations_per_file * maxchannels_);
 
   casacore::Array<std::complex<float>> data_array;
   casacore::Array<std::complex<float>> model_array;
@@ -280,75 +231,19 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
       progress1->SetProgress(row_provider->CurrentProgress(),
                              row_provider->TotalProgress());
 
-    reordering::MetaRecord meta;
-
-    double time;
+    double time, u, v, w;
     uint32_t data_desc_id, antenna1, antenna2, field_id;
-    row_provider->ReadData(data_array, flag_array, weight_spectrum_array,
-                           meta.u, meta.v, meta.w, data_desc_id, antenna1,
-                           antenna2, field_id, time);
-    meta.antenna1 = antenna1;
-    meta.antenna2 = antenna2;
-    meta.field_id = field_id;
-    meta.time = time;
-    const size_t spw_index = selected_data_desc_ids.find(data_desc_id)->second;
-    ++selected_row_count_per_spw_index[spw_index];
-    ++selected_rows_total;
-    std::ofstream& meta_file = *meta_files[spw_index];
-    meta.Write(meta_file);
-    if (!meta_file.good())
-      throw std::runtime_error("Error writing to temporary file");
+    row_provider->ReadData(data_array, flag_array, weight_spectrum_array, u, v,
+                           w, data_desc_id, antenna1, antenna2, field_id, time);
 
     if (initial_model_required) row_provider->ReadModel(model_array);
 
-    file_index = 0;
-    for (size_t part = 0; part != channel_parts; ++part) {
-      if (channels[part].data_desc_id == int(data_desc_id)) {
-        const size_t part_start_ch = channels[part].start;
-        const size_t part_end_ch = channels[part].end;
-        const std::set<aocommon::PolarizationEnum>& ms_polarizations =
-            ms_polarizations_per_data_desc_id.find(data_desc_id)->second;
+    reordered_file_writer.WriteMetaRow(u, v, w, time, data_desc_id, antenna1,
+                                       antenna2, field_id);
 
-        for (aocommon::PolarizationEnum p : pols_out) {
-          reordering::ReorderDataFile& f = files[file_index];
-          reordering::ExtractData(data_buffer.data(), part_start_ch,
-                                  part_end_ch, ms_polarizations,
-                                  data_array.data(), p);
-          f.data->write(reinterpret_cast<char*>(data_buffer.data()),
-                        (part_end_ch - part_start_ch) *
-                            sizeof(std::complex<float>) *
-                            polarizations_per_file);
-          if (!f.data->good())
-            throw std::runtime_error("Error writing to temporary data file");
-
-          if (initial_model_required) {
-            reordering::ExtractData(data_buffer.data(), part_start_ch,
-                                    part_end_ch, ms_polarizations,
-                                    model_array.data(), p);
-            f.model->write(reinterpret_cast<char*>(data_buffer.data()),
-                           (part_end_ch - part_start_ch) *
-                               sizeof(std::complex<float>) *
-                               polarizations_per_file);
-            if (!f.model->good())
-              throw std::runtime_error(
-                  "Error writing to temporary model data file");
-          }
-
-          reordering::ExtractWeights(
-              weight_buffer.data(), part_start_ch, part_end_ch,
-              ms_polarizations, data_array.data(), weight_spectrum_array.data(),
-              flag_array.data(), p);
-          f.weight->write(reinterpret_cast<char*>(weight_buffer.data()),
-                          (part_end_ch - part_start_ch) * sizeof(float) *
-                              polarizations_per_file);
-          if (!f.weight->good())
-            throw std::runtime_error("Error writing to temporary weights file");
-          ++file_index;
-        }
-      } else {
-        file_index += pols_out.size();
-      }
-    }
+    reordered_file_writer.WriteDataRow(data_array.data(), model_array.data(),
+                                       weight_spectrum_array.data(),
+                                       flag_array.data(), data_desc_id);
 
     row_provider->NextRow();
   }
@@ -356,64 +251,22 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   Logger::Debug << "Total selected rows: " << selected_rows_total << '\n';
   row_provider->OutputStatistics();
 
-  // Rewrite meta headers to include selected row count
-  for (const std::pair<const size_t, size_t>& p : selected_data_desc_ids) {
-    const size_t spw_index = p.second;
-    reordering::MetaHeader meta_header;
-    meta_header.selected_row_count =
-        selected_row_count_per_spw_index[spw_index];
-    meta_header.filename_length = ms_path.size();
-    meta_header.start_time = row_provider->StartTime();
-    meta_files[spw_index]->seekp(0);
-    meta_header.Write(*meta_files[spw_index]);
-    meta_files[spw_index]->write(ms_path.c_str(), ms_path.size());
-  }
+  reordered_file_writer.UpdateMetaHeaders();
+  reordered_file_writer.UpdatePartHeaders(include_model);
 
-  // Write header to parts and write empty model files (if requested)
-  reordering::PartHeader header;
-  header.has_model = include_model;
-  file_index = 0;
-  data_buffer.assign(maxchannels_ * polarizations_per_file, 0.0);
   std::unique_ptr<ProgressBar> progress2;
-  if (include_model && !initial_model_required &&
-      settings.parallelReordering == 1)
-    progress2 =
-        std::make_unique<ProgressBar>("Initializing model visibilities");
-  for (size_t part = 0; part != channel_parts; ++part) {
-    header.channel_start = channels[part].start,
-    header.channel_count = channels[part].end - header.channel_start;
-    header.data_desc_id = channels[part].data_desc_id;
-    for (std::set<aocommon::PolarizationEnum>::const_iterator p =
-             pols_out.begin();
-         p != pols_out.end(); ++p) {
-      reordering::ReorderDataFile& f = files[file_index];
-      f.data->seekp(0, std::ios::beg);
-      header.Write(*f.data);
-      if (!f.data->good())
-        throw std::runtime_error("Error writing to temporary data file");
-
-      f.data.reset();
-      f.weight.reset();
-      f.model.reset();
-      ++file_index;
-
-      // If model is requested, fill model file with zeros
-      if (include_model && !initial_model_required) {
-        std::string part_prefix = reordering::GetPartPrefix(
-            ms_path, part, *p, header.data_desc_id, temporary_directory);
-        std::ofstream modelFile(part_prefix + "-m.tmp");
-        const size_t selected_row_count = selected_row_count_per_spw_index
-            [selected_data_desc_ids.find(channels[part].data_desc_id)->second];
-        for (size_t i = 0; i != selected_row_count; ++i) {
-          modelFile.write(reinterpret_cast<char*>(data_buffer.data()),
-                          header.channel_count * sizeof(std::complex<float>) *
-                              polarizations_per_file);
-          if (progress2)
-            progress2->SetProgress(part * selected_row_count + i,
-                                   channel_parts * selected_row_count);
-        }
-      }
+  if (include_model && !initial_model_required) {
+    if (settings.parallelReordering) {
+      progress2 =
+          std::make_unique<ProgressBar>("Initializing model visibilities");
     }
+    auto update_progress = [progress2 = std::move(progress2)](size_t progress,
+                                                              size_t total) {
+      if (progress2) {
+        progress2->SetProgress(progress, total);
+      }
+    };
+    reordered_file_writer.PopulateModelWithZeros(std::cref(update_progress));
   }
   progress2.reset();
 
@@ -421,7 +274,7 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
       ms_path, data_column_name, temporary_directory, channels,
       initial_model_required, model_update_required, pols_out, selection, bands,
       nAntennas, settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
-}
+}  // namespace wsclean
 
 void ReorderedMsProvider::StoreReorderedInMS(
     const reordering::ReorderedHandleData& handle) {
