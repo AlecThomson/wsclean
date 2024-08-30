@@ -385,7 +385,8 @@ add_library(
 # on for all files.
 set_source_files_properties(
   wsclean/directmsgridder.cpp wsclean/wstackinggridder.cpp
-  wgridder/wgriddinggridder_simple.cpp PROPERTIES COMPILE_FLAGS -ffast-math)
+  wgridder/gridder_simple_float.cpp wgridder/gridder_simple_double.cpp
+  PROPERTIES COMPILE_FLAGS -ffast-math)
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}
