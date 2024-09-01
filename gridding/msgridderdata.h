@@ -772,13 +772,13 @@ inline void MsGridderData::ApplyWeights(std::complex<float>* visibility_row,
       // We can use the boolean for computation instead of an if-condition
       // within the loop. This allows the inner part of the loop to be
       // autovectorized more easily.
-      const bool noWeight = cumWeight == 0.0;
+      const bool has_weight = cumWeight != 0.0;
       if (pol == 0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
-        visibility_weight_sum_ += weight_buffer[i] * noWeight;
+        visibility_weight_sum_ += weight_buffer[i] * has_weight;
         max_gridded_weight_ =
             std::max(static_cast<double>(cumWeight), max_gridded_weight_);
-        gridded_visibility_count_ += !noWeight;
+        gridded_visibility_count_ += has_weight;
       }
       // Total weight includes imaging weights
       total_weight_ += cumWeight;

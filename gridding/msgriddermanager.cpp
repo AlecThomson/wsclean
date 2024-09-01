@@ -421,7 +421,7 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
                                       GriddingResult& result,
                                       bool store_common_info) {
   for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
-    // Add facet-specific result values to the reult.
+    // Add facet-specific result values to the result.
     facet_result.images = gridder->ResultImages();
     facet_result.actualWGridSize = gridder->ActualWGridSize();
     facet_result.averageCorrection = gridder->GetAverageCorrection();
