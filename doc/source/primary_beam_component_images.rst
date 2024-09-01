@@ -21,8 +21,8 @@ The images are somewhat difficult to interpret, because the response pattern tha
 
 Mueller matrix structure
 ------------------------
-The images form the lower triangle of the Hermitian matrix. For the diagonal elements, only the real value is stored, and off-diagonal elements contain two images: the real and imaginary parts. They're counted from left to right, top to bottom, so their indices correspond to the following positions:
-
+The images form the lower triangle of the Hermitian matrix. For the diagonal elements, only the real value is stored, and off-diagonal elements contain two images: the real and imaginary parts. They're counted from left to right, top to bottom, so their indices correspond to the following positions::
+  
   [0]
   [1]+[ 2]i   [ 3]
   [4]+[ 5]i   [ 6]+[ 7]i   [ 8]
