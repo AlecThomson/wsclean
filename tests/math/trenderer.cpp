@@ -8,8 +8,8 @@
 #include <aocommon/image.h>
 #include <aocommon/threadpool.h>
 
-#include <schaapcommon/fft/restoreimage.h>
 #include <schaapcommon/fitters/gaussianfitter.h>
+#include <schaapcommon/math/restoreimage.h>
 
 namespace wsclean {
 
@@ -58,16 +58,13 @@ BOOST_FIXTURE_TEST_CASE(fit_with_bad_initial_value, RendererFixture) {
                                       beamMin, beamPA, 100e6, 200e6,
                                       aocommon::Polarization::StokesI);
 
-  schaapcommon::fitters::GaussianFitter fitter;
-  double fitMajor;
-  double fitMinor;
-  double fitPA;
-  fitter.Fit2DGaussianCentred(restored.Data(), restored.Width(),
-                              restored.Height(), estimatedBeamPx, fitMajor,
-                              fitMinor, fitPA, 10.0, false);
+  const schaapcommon::math::Ellipse ellipse =
+      schaapcommon::fitters::Fit2DGaussianCentred(
+          restored.Data(), restored.Width(), restored.Height(), estimatedBeamPx,
+          10.0, false);
 
-  BOOST_CHECK_CLOSE_FRACTION(fitMajor, 4.0, 1e-4);
-  BOOST_CHECK_CLOSE_FRACTION(fitMinor, 4.0, 1e-4);
+  BOOST_CHECK_CLOSE_FRACTION(ellipse.major, 4.0, 1e-4);
+  BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 4.0, 1e-4);
 }
 
 BOOST_FIXTURE_TEST_CASE(fit_circular, RendererFixture) {
@@ -91,10 +88,9 @@ BOOST_FIXTURE_TEST_CASE(fit_circular, RendererFixture) {
                                       beamMin, beamPA, 100e6, 200e6,
                                       aocommon::Polarization::StokesI);
 
-  schaapcommon::fitters::GaussianFitter fitter;
   double fitMajor = estimatedBeamPx;
-  fitter.Fit2DCircularGaussianCentred(restored.Data(), restored.Width(),
-                                      restored.Height(), fitMajor);
+  schaapcommon::fitters::Fit2DCircularGaussianCentred(
+      restored.Data(), restored.Width(), restored.Height(), fitMajor);
 
   BOOST_CHECK_CLOSE_FRACTION(fitMajor, 4.0, 1e-4);
 }
@@ -120,15 +116,12 @@ BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
                                       beamMin, beamPA, 100e6, 200e6,
                                       aocommon::Polarization::StokesI);
 
-  schaapcommon::fitters::GaussianFitter fitter;
-  double fitMajor = estimatedBeamPx;
-  double fitMinor = estimatedBeamPx;
-  double fitPA = 0.0;
-  fitter.Fit2DGaussianCentred(restored.Data(), restored.Width(),
-                              restored.Height(), estimatedBeamPx, fitMajor,
-                              fitMinor, fitPA, 10.0, false);
+  const schaapcommon::math::Ellipse ellipse =
+      schaapcommon::fitters::Fit2DGaussianCentred(
+          restored.Data(), restored.Width(), restored.Height(), estimatedBeamPx,
+          10.0, false);
 
-  BOOST_CHECK_CLOSE_FRACTION(fitMinor, 0.5, 1e-4);
+  BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 0.5, 1e-4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

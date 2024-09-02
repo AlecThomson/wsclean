@@ -196,4 +196,4 @@ void WGriddingGridder_Simple<NumT>::PredictVisibilities(
 
 }  // namespace wsclean
 
-#endif  //#ifndef WSCLEAN_WGRIDDER_SIMPLE_IMPL_H_
+#endif  // #ifndef WSCLEAN_WGRIDDER_SIMPLE_IMPL_H_

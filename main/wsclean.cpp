@@ -41,8 +41,8 @@
 #include <aocommon/units/angle.h>
 
 #include <schaapcommon/facets/facetimage.h>
-#include <schaapcommon/fft/resampler.h>
-#include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/math/resampler.h>
+#include <schaapcommon/math/restoreimage.h>
 #include <schaapcommon/fitters/nlplfitter.h>
 
 #include <algorithm>
@@ -1095,7 +1095,7 @@ void WSClean::saveRestoredImagesForGroup(
     }
     Logger::Info << "Rendering sources to restored image " + beamStr + "... ";
     Logger::Info.Flush();
-    schaapcommon::fft::RestoreImage(
+    schaapcommon::math::RestoreImage(
         restoredImage.Data(), modelImage.Data(), _settings.trimmedImageWidth,
         _settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
         _settings.pixelScaleX, _settings.pixelScaleY);
@@ -1711,7 +1711,7 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
   Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  schaapcommon::fft::Resampler fft(
+  schaapcommon::math::Resampler fft(
       _settings.trimmedImageWidth, _settings.trimmedImageHeight,
       _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
   fft.SingleFT(image.Data(), realUV.Data(), imagUV.Data());

@@ -80,7 +80,7 @@ include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 include_directories("${CMAKE_SOURCE_DIR}/external/lrucache11")
 
 # Schaapcommon
-set(SCHAAPCOMMON_MODULES ducc0 facets fft fitters h5parm)
+set(SCHAAPCOMMON_MODULES ducc0 facets fitters h5parm math)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")

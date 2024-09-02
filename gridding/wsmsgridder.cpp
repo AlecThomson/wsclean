@@ -11,7 +11,7 @@
 
 #include <aocommon/logger.h>
 
-#include <schaapcommon/fft/resampler.h>
+#include <schaapcommon/math/resampler.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -463,7 +463,7 @@ void WSMSGridder::FinishInversion() {
       ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
-    schaapcommon::fft::Resampler resampler(
+    schaapcommon::math::Resampler resampler(
         ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
         ImageHeight(), _resources.NCpus());
 
@@ -535,7 +535,7 @@ void WSMSGridder::StartPredict(std::vector<Image>&& images) {
       ImageHeight() != ActualInversionHeight()) {
     // Decimate the image
     // Input is ImageWidth() x ImageHeight()
-    schaapcommon::fft::Resampler resampler(
+    schaapcommon::math::Resampler resampler(
         ImageWidth(), ImageHeight(), ActualInversionWidth(),
         ActualInversionHeight(), _resources.NCpus());
 

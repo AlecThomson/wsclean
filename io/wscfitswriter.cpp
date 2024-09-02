@@ -6,7 +6,7 @@
 
 #include <aocommon/fits/fitsreader.h>
 
-#include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/math/restoreimage.h>
 
 #include "../math/renderer.h"
 
@@ -267,10 +267,10 @@ void WSCFitsWriter::Restore(const Settings& settings) {
           "can't restore with no pixel size");
     }
   }
-  schaapcommon::fft::RestoreImage(image.data(), model.data(),
-                                  imgReader.ImageWidth(),
-                                  imgReader.ImageHeight(), beamMaj, beamMin,
-                                  beamPA, pixel_size_x, pixel_size_y);
+  schaapcommon::math::RestoreImage(image.data(), model.data(),
+                                   imgReader.ImageWidth(),
+                                   imgReader.ImageHeight(), beamMaj, beamMin,
+                                   beamPA, pixel_size_x, pixel_size_y);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);

@@ -3,8 +3,8 @@
 
 #include <aocommon/imagecoordinates.h>
 
-#include <schaapcommon/fft/convolution.h>
-#include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/math/convolution.h>
+#include <schaapcommon/math/restoreimage.h>
 
 #include <cmath>
 #include <array>
@@ -178,7 +178,7 @@ void RestoreWithEllipticalBeam(aocommon::Image& image,
   aocommon::Image rendered_without_beam(image.Width(), image.Height(), 0.0);
   RenderModel(rendered_without_beam, image_settings, model, start_frequency,
               end_frequency, polarization);
-  schaapcommon::fft::RestoreImage(
+  schaapcommon::math::RestoreImage(
       image.Data(), rendered_without_beam.Data(), image.Width(), image.Height(),
       beam_major_axis, beam_minor_axis, beam_position_angle,
       image_settings.pixel_scale_l, image_settings.pixel_scale_m);

@@ -13,7 +13,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/units/angle.h>
 
-#include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/math/restoreimage.h>
 #include <schaapcommon/fitters/gaussianfitter.h>
 
 using aocommon::Logger;
@@ -80,20 +80,23 @@ void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
                                   double& bMin, double& bPA,
                                   const aocommon::Image& image,
                                   double beamEstimate) {
-  schaapcommon::fitters::GaussianFitter beamFitter;
   Logger::Info << "Fitting beam... ";
   Logger::Info.Flush();
   if (settings.circularBeam) {
     bMaj = beamEstimate;
-    beamFitter.Fit2DCircularGaussianCentred(image.Data(), image.Width(),
-                                            image.Height(), bMaj,
-                                            settings.beamFittingBoxSize);
+    schaapcommon::fitters::Fit2DCircularGaussianCentred(
+        image.Data(), image.Width(), image.Height(), bMaj,
+        settings.beamFittingBoxSize);
     bMin = bMaj;
     bPA = 0.0;
   } else {
-    beamFitter.Fit2DGaussianCentred(image.Data(), image.Width(), image.Height(),
-                                    beamEstimate, bMaj, bMin, bPA,
-                                    settings.beamFittingBoxSize);
+    const schaapcommon::math::Ellipse ellipse =
+        schaapcommon::fitters::Fit2DGaussianCentred(
+            image.Data(), image.Width(), image.Height(), beamEstimate,
+            settings.beamFittingBoxSize);
+    bMaj = ellipse.major;
+    bMin = ellipse.minor;
+    bPA = ellipse.position_angle;
   }
   bMaj = bMaj * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
   bMin = bMin * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
@@ -271,7 +274,7 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
       v = 0.0;
     }
   }
-  schaapcommon::fft::RestoreImage(
+  schaapcommon::math::RestoreImage(
       image.data(), modelImage.data(), settings.trimmedImageWidth,
       settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
       settings.pixelScaleX, settings.pixelScaleY);
